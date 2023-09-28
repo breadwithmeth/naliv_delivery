@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/bottomMenu.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
 
 import '../misc/api.dart';
@@ -261,6 +262,7 @@ class _ItemCardState extends State<ItemCard> {
           MaterialPageRoute(
               builder: (context) => ProductPage(
                     item_id: element["item_id"],
+                    returnWidget: BottomMenu(page: 1),
                   )),
         );
       },

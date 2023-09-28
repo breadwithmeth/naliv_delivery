@@ -189,7 +189,12 @@ class _HomePageState extends State<HomePage>
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => CategoryPage(category_id: categories[index]["category_id"],)),
+                        MaterialPageRoute(
+                            builder: (context) => CategoryPage(
+                                  category_id: categories[index]["category_id"],
+                                  category_name: categories[index]["name"],
+                                  scroll: 0,
+                                )),
                       );
                     },
                     child: Container(

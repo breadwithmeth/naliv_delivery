@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/bottomMenu.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
 import 'package:naliv_delivery/shared/buyButton.dart';
 import 'package:naliv_delivery/shared/likeButton.dart';
+import 'package:states_rebuilder/states_rebuilder.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -297,6 +299,7 @@ class _ItemCardState extends State<ItemCard> {
           MaterialPageRoute(
               builder: (context) => ProductPage(
                     item_id: element["item_id"],
+                    returnWidget: BottomMenu(page: 2),
                   )),
         );
       },

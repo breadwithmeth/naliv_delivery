@@ -16,8 +16,8 @@ import 'package:naliv_delivery/shared/commonAppBar.dart';
 import 'main.dart';
 
 class BottomMenu extends StatefulWidget {
-  const BottomMenu({super.key});
-
+  BottomMenu({super.key, required this.page});
+  final int page;
   @override
   State<BottomMenu> createState() => _BottomMenuState();
 }
@@ -218,8 +218,13 @@ class _BottomMenuState extends State<BottomMenu> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    Icon(Icons.pin_drop_outlined, color: Colors.black,),
-                    SizedBox(width: 10,),
+                    Icon(
+                      Icons.pin_drop_outlined,
+                      color: Colors.black,
+                    ),
+                    SizedBox(
+                      width: 10,
+                    ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -251,7 +256,11 @@ class _BottomMenuState extends State<BottomMenu> {
                         SizedBox(
                           height: 3,
                         ),
-                        Text("Открыто", style: TextStyle(fontSize: 14, color: Colors.grey.shade400),),
+                        Text(
+                          "Открыто",
+                          style: TextStyle(
+                              fontSize: 14, color: Colors.grey.shade400),
+                        ),
                       ],
                     )
                   ],
@@ -378,12 +387,22 @@ class _BottomMenuState extends State<BottomMenu> {
       );
       appbars = [
         minimizedAppBar,
-        CommonAppBar(business: business, title: "ЛЮБИМОЕ", titleIcon: Icon(Icons.favorite_outline), options: []),
-        CommonAppBar(business: business, title: "КОРЗИНА", titleIcon: Icon(Icons.shopping_bag_outlined), options: []),
-                CommonAppBar(business: business, title: "ПРОФИЛЬ", titleIcon: Icon(Icons.person_outlined), options: []),
-
-        
-          ];
+        CommonAppBar(
+            business: business,
+            title: "ЛЮБИМОЕ",
+            titleIcon: Icon(Icons.favorite_outline),
+            options: []),
+        CommonAppBar(
+            business: business,
+            title: "КОРЗИНА",
+            titleIcon: Icon(Icons.shopping_bag_outlined),
+            options: []),
+        CommonAppBar(
+            business: business,
+            title: "ПРОФИЛЬ",
+            titleIcon: Icon(Icons.person_outlined),
+            options: []),
+      ];
       _currentAppBar = minimizedAppBar;
     });
   }
@@ -439,6 +458,9 @@ class _BottomMenuState extends State<BottomMenu> {
     setState(() {
       businessName = business!['name'];
       currentBusiness = business;
+      _currentAppBar = appbars[widget.page];
+      _pageController.animateToPage(widget.page, duration: Duration(seconds: 1), curve: Curves.easeInCirc);
+      appbarIndex = widget.page;
     });
   }
 
@@ -462,6 +484,7 @@ class _BottomMenuState extends State<BottomMenu> {
           extendBodyBehindAppBar: true,
           extendBody: true,
           appBar: AppBar(
+            automaticallyImplyLeading: false,
             systemOverlayStyle: SystemUiOverlayStyle(
                 statusBarBrightness: Brightness.light,
                 statusBarColor: Colors.white,

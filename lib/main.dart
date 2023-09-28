@@ -32,7 +32,7 @@ class _MainState extends State<Main> {
     String? token = await getToken();
     if (token != null) {
       setState(() {
-        _redirect = BottomMenu();
+        _redirect = BottomMenu(page: 0,);
       });
     } else {
       setState(() {
@@ -47,8 +47,8 @@ class _MainState extends State<Main> {
         theme: ThemeData(
           brightness: Brightness.light,
           pageTransitionsTheme: PageTransitionsTheme(builders: {
-            TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+            TargetPlatform.android: ZoomPageTransitionsBuilder(),
+            TargetPlatform.iOS: ZoomPageTransitionsBuilder(),
           }),
           bottomNavigationBarTheme: BottomNavigationBarThemeData(),
           scaffoldBackgroundColor: Colors.white,

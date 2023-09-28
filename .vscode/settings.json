@@ -1,0 +1,6 @@
+{
+    "editor.wordWrapColumn": 200,
+    "editor.minimap.maxColumn": 300,
+    "prettier.printWidth": 160,
+    "html.format.wrapLineLength": 160
+}

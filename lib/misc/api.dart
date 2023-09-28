@@ -3,7 +3,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
-var URL_API = '192.168.0.141';
+//var URL_API = '10.8.0.3';
+
+//  var URL_API = '192.168.0.141:8080';
+var URL_API = '185.164.173.128';
 
 Future<Position> determinePosition() async {
   bool serviceEnabled;
@@ -184,25 +187,46 @@ Future<List> getCategories() async {
   return data;
 }
 
-Future<Map> getItems(String category_id) async {
+Future<List> getItems(String category_id, {Map? filters = null}) async {
+  String? token = await getToken();
+  if (token == null) {
+    return [];
+  }
+  var url = Uri.http(URL_API, 'api/item/get.php');
+  var response = await http.post(
+    url,
+    encoding: Encoding.getByName('utf-8'),
+    headers: {"Content-Type": "application/json", "AUTH": token},
+    body: filters == null
+        ? json.encode({'category_id': category_id})
+        : json.encode({'category_id': category_id, 'filters': filters}),
+  );
+  print(json.encode({'category_id': category_id, 'filters': filters}));
+  // List<dynamic> list = json.decode(response.body);
+  print(utf8.decode(response.bodyBytes));
+  List data = json.decode(utf8.decode(response.bodyBytes));
+  return data;
+}
+
+Future<Map> getFilters(String category_id) async {
   String? token = await getToken();
   if (token == null) {
     return {};
   }
-  var url = Uri.http(URL_API, 'api/item/get.php');
+  var url = Uri.http(URL_API, 'api/item/getFilters.php');
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
     body: json.encode({'category_id': category_id}),
   );
-  print(utf8.decode(response.bodyBytes));
   // List<dynamic> list = json.decode(response.body);
+  print(utf8.decode(response.bodyBytes));
   Map data = json.decode(utf8.decode(response.bodyBytes));
-  print(data);
   return data;
 }
 
-Future<Map<String, dynamic>?> getItem(String item_id) async {
+Future<Map<String, dynamic>?> getItem(String item_id,
+    {List? filter = null}) async {
   String? token = await getToken();
   if (token == null) {
     return {};
@@ -211,7 +235,7 @@ Future<Map<String, dynamic>?> getItem(String item_id) async {
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
-    body: json.encode({'item_id': item_id}),
+    body: json.encode({'item_id': item_id, 'filter': filter}),
   );
 
   // List<dynamic> list = json.decode(response.body);
@@ -278,8 +302,6 @@ Future<List> getCart() async {
   return data;
 }
 
-
-
 Future<Map<String, dynamic>?> getCartInfo() async {
   String? token = await getToken();
   if (token == null) {
@@ -296,7 +318,6 @@ Future<Map<String, dynamic>?> getCartInfo() async {
   Map<String, dynamic>? data = json.decode(utf8.decode(response.bodyBytes));
   return data;
 }
-
 
 Future<String?> dislikeItem(String item_id) async {
   String? token = await getToken();
@@ -391,6 +412,52 @@ Future<List> getAddresses() async {
   List data = json.decode(utf8.decode(response.bodyBytes));
   print(data);
   return data;
+}
+
+Future<bool> createAddress(Map address) async {
+  String? token = await getToken();
+  if (token == null) {
+    return false;
+  }
+  var url = Uri.http(URL_API, 'api/user/createAddress.php');
+  var response = await http.post(
+    url,
+    body: json.encode(address),
+    headers: {"Content-Type": "application/json", "AUTH": token},
+  );
+  Map<String, dynamic>? data = json.decode(utf8.decode(response.bodyBytes));
+  if (data == null) {
+    return false;
+  } else {
+    if (data["result"] == true) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
+
+Future<bool> selectAddress(String address_id) async {
+  String? token = await getToken();
+  if (token == null) {
+    return false;
+  }
+  var url = Uri.http(URL_API, 'api/user/selectAddress.php');
+  var response = await http.post(
+    url,
+    body: json.encode({"address_id": address_id}),
+    headers: {"Content-Type": "application/json", "AUTH": token},
+  );
+  Map<String, dynamic>? data = json.decode(utf8.decode(response.bodyBytes));
+  if (data == null) {
+    return false;
+  } else {
+    if (data["result"] == true) {
+      return true;
+    } else {
+      return false;
+    }
+  }
 }
 
 Future<Map<String, dynamic>?> getCity() async {
