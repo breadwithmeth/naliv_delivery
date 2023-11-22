@@ -40,6 +40,7 @@ dependencies:
   geolocator: ^9.0.2
   yandex_mapkit: ^3.3.3
   states_rebuilder: ^6.3.0
+  flutter_markdown: ^0.6.17+3
 
 dev_dependencies:
   flutter_test:
@@ -85,7 +86,13 @@ flutter:
     - assets/icons/place.png
     - assets/property_icons/litr.png
     - assets/property_icons/percent.png
+    - assets/agreements/offer.md
+    - assets/agreements/privacy.md
+    - assets/agreements/returnPolicy.md
+    - assets/agreements/links.md
+    - assets/agreements/nds.md
 
+    
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

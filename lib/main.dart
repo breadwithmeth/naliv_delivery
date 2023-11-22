@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:naliv_delivery/bottomMenu.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/misc/colors.dart';
+import 'package:naliv_delivery/pages/DealPage.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
 
 void main() {
@@ -32,7 +33,9 @@ class _MainState extends State<Main> {
     String? token = await getToken();
     if (token != null) {
       setState(() {
-        _redirect = BottomMenu(page: 0,);
+        _redirect = BottomMenu(
+          page: 0,
+        );
       });
     } else {
       setState(() {
@@ -40,6 +43,7 @@ class _MainState extends State<Main> {
       });
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

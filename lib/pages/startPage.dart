@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/colors.dart';
+import 'package:naliv_delivery/pages/loginPage.dart';
 import 'package:naliv_delivery/pages/registrationPage.dart';
+
+import '../misc/api.dart';
+import 'DealPage.dart';
 
 class StartPage extends StatefulWidget {
   const StartPage({super.key});
@@ -10,6 +14,17 @@ class StartPage extends StatefulWidget {
 }
 
 class _StartPageState extends State<StartPage> {
+  Future<void> _checkAgreement() async {
+    bool? token = await getAgreement();
+    if (token != true) {
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DealPage(),
+          ));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -21,11 +36,11 @@ class _StartPageState extends State<StartPage> {
             child: Container(
               decoration: BoxDecoration(
                   image: DecorationImage(
-                      colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.4), BlendMode.darken),
+                      colorFilter: ColorFilter.mode(
+                          Colors.black.withOpacity(0.4), BlendMode.darken),
                       fit: BoxFit.cover,
                       image: NetworkImage(
                           "https://www.wallpaperup.com/uploads/wallpapers/2016/04/12/928589/e06cf8b680f4e013ade86a34c13138d8.jpg"))),
-              
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -111,11 +126,12 @@ class _StartPageState extends State<StartPage> {
                 TextButton(
                     style: TextButton.styleFrom(primary: Colors.black),
                     onPressed: () {
+                      _checkAgreement();
                       Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const RegistrationPage()),
-                      );
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => LoginPage(),
+                          ));
                     },
                     child: Row(
                       children: [

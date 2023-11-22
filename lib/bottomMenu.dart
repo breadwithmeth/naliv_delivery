@@ -146,10 +146,10 @@ class _BottomMenuState extends State<BottomMenu> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: [
-                              Text(
-                                currentBusiness!["city"] ?? "",
-                                style: TextStyle(fontSize: 12, color: gray1),
-                              ),
+                              // Text(
+                              //   currentBusiness!["city"] ?? "",
+                              //   style: TextStyle(fontSize: 12, color: gray1),
+                              // ),
                               Icon(
                                 Icons.arrow_forward_ios,
                                 size: 6,

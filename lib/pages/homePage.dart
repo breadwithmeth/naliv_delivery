@@ -18,26 +18,26 @@ class _HomePageState extends State<HomePage>
       PageController(viewportFraction: 0.7, initialPage: 0);
 
   List<Map> images = [
-    {
-      "text":
-          "Очень длинный текст акции 123 123 123 123 123 12312312312312313213",
-      "image":
-          "https://podacha-blud.com/uploads/posts/2022-12/1670216296_41-podacha-blud-com-p-zhenskie-kokteili-alkogolnie-foto-55.jpg"
-    },
-    {
-      "text": "123",
-      "image": "https://pogarchik.com/wp-content/uploads/2019/03/5-1.jpg"
-    },
-    {
-      "text":
-          "Очень длинный текст акции 123 123 123 123 123 12312312312312313213",
-      "image":
-          "https://podacha-blud.com/uploads/posts/2022-12/1670216296_41-podacha-blud-com-p-zhenskie-kokteili-alkogolnie-foto-55.jpg"
-    },
+    // {
+    //   "text":
+    //       "Очень длинный текст акции 123 123 123 123 123 12312312312312313213",
+    //   "image":
+    //       "https://podacha-blud.com/uploads/posts/2022-12/1670216296_41-podacha-blud-com-p-zhenskie-kokteili-alkogolnie-foto-55.jpg"
+    // },
     {
       "text": "123",
       "image": "https://pogarchik.com/wp-content/uploads/2019/03/5-1.jpg"
     },
+    // {
+    //   "text":
+    //       "Очень длинный текст акции 123 123 123 123 123 12312312312312313213",
+    //   "image":
+    //       "https://podacha-blud.com/uploads/posts/2022-12/1670216296_41-podacha-blud-com-p-zhenskie-kokteili-alkogolnie-foto-55.jpg"
+    // },
+    // {
+    //   "text": "123",
+    //   "image": "https://pogarchik.com/wp-content/uploads/2019/03/5-1.jpg"
+    // },
   ];
 
   List<Widget> indicators(imagesLength, currentIndex) {

@@ -44,112 +44,93 @@ class _CategoryPageState extends State<CategoryPage> {
 
   TextEditingController search = TextEditingController();
 
+  int page = 0;
+
+  List itemsL = [];
+
+  Widget loadingScreen = Container();
+
   Future<void> _getItems() async {
+    print("==================");
     setState(() {
       items = Container();
     });
     List _items;
     if (selectedFilters.isEmpty) {
-      _items = await getItems(widget.category_id);
+      // _items = await getItems(category_id: widget.category_id, page: page);
+      // _items = await getItems(page: page, category_id: widget.category_id);
+      _items = await getItems(widget.category_id, page);
     } else {
-      _items = await getItems(widget.category_id, filters: selectedFilters);
+      _items =
+          await getItems(widget.category_id, page, filters: selectedFilters);
     }
 
-    List<GestureDetector> _itemsWidget = [];
-    for (var i = 0; i < _items.length; i++) {
-      Map<String, dynamic> element = _items[i];
-      _itemsWidget.add(GestureDetector(
-        key: Key(element["item_id"]),
-        child: ItemCard(
-          item_id: element["item_id"],
-          element: element,
-          category_id: widget.category_id,
-          category_name: widget.category_name!,
-          scroll: 0,
-        ),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => ProductPage(
-                      item_id: element["item_id"],
-                      returnWidget: CategoryPage(
-                        category_id: widget.category_id,
-                        category_name: widget.category_name,
-                        scroll: widget.scroll,
-                      ),
-                    )),
-          ).then((value) {
-            print("===================OFFSET===================");
-            double _currentsc = _sc.offset;
-            print(_currentsc);
-            _getItems();
-            _sc.animateTo(20,
-                duration: Duration(microseconds: 300), curve: Curves.bounceIn);
-            // updateItemCard(itemsWidget
-            //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
-            // print("индекс");
-
-            // print(itemsWidget
-            //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
-            // print("индекс");
-            // setState(() {
-            //   // itemsWidget[itemsWidget.indexWhere(
-            //   //         (_gd) => _gd.key == Key(element["item_id"]))] =
-            //   //     GestureDetector();
-            // });
-          });
-        },
-      ));
-    }
-    _items.forEach((element) {
-      // _itemsWidget.add(GestureDetector(
-      //   key: Key(element["item_id"]),
-      //   child: ItemCard(
-      //     item_id: element["item_id"],
-      //     element: element,
-      //     category_id: widget.category_id,
-      //     category_name: widget.category_name!,
-      //     scroll: 0,
-      //   ),
-      //   onTap: () {
-      //     Navigator.push(
-      //       context,
-      //       MaterialPageRoute(
-      //           builder: (context) => ProductPage(
-      //                 item_id: element["item_id"],
-      //                 returnWidget: CategoryPage(
-      //                   category_id: widget.category_id,
-      //                   category_name: widget.category_name,
-      //                   scroll: widget.scroll,
-      //                 ),
-      //               )),
-      //     ).then((value) {
-      //       updateItemCard(itemsWidget.indexWhere(
-      //                 (_gd) => _gd.key == Key(element["item_id"])));
-      //       print("индекс");
-
-      //       print(itemsWidget
-      //           .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
-      //       print("индекс");
-      //       setState(() {
-      //         itemsWidget[itemsWidget.indexWhere(
-      //                 (_gd) => _gd.key == Key(element["item_id"]))] =
-      //             GestureDetector();
-      //       });
-      //     });
-      //   },
-      // ));
-    });
     setState(() {
-      itemsWidget = _itemsWidget;
-      // items = ListView(
-      //   controller: _sc,
-      //   children: _itemsWidget,
-      // );
-      // _sc.animateTo(widget.scroll,
-      //     duration: Duration(seconds: 1), curve: Curves.bounceIn);
+      itemsL.addAll(_items);
     });
+
+    setState(() {
+      page += 1;
+    });
+
+    // List<GestureDetector> _itemsWidget = [];
+    // for (var i = 0; i < _items.length; i++) {
+    //   Map<String, dynamic> element = _items[i];
+    //   // _itemsWidget.add();
+    // }
+    // _items.forEach((element) {
+    //   // _itemsWidget.add(GestureDetector(
+    //   //   key: Key(element["item_id"]),
+    //   //   child: ItemCard(
+    //   //     item_id: element["item_id"],
+    //   //     element: element,
+    //   //     category_id: widget.category_id,
+    //   //     category_name: widget.category_name!,
+    //   //     scroll: 0,
+    //   //   ),
+    //   //   onTap: () {
+    //   //     Navigator.push(
+    //   //       context,
+    //   //       MaterialPageRoute(
+    //   //           builder: (context) => ProductPage(
+    //   //                 item_id: element["item_id"],
+    //   //                 returnWidget: CategoryPage(
+    //   //                   category_id: widget.category_id,
+    //   //                   category_name: widget.category_name,
+    //   //                   scroll: widget.scroll,
+    //   //                 ),
+    //   //               )),
+    //   //     ).then((value) {
+    //   //       updateItemCard(itemsWidget.indexWhere(
+    //   //                 (_gd) => _gd.key == Key(element["item_id"])));
+    //   //       print("индекс");
+
+    //   //       print(itemsWidget
+    //   //           .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
+    //   //       print("индекс");
+    //   //       setState(() {
+    //   //         itemsWidget[itemsWidget.indexWhere(
+    //   //                 (_gd) => _gd.key == Key(element["item_id"]))] =
+    //   //             GestureDetector();
+    //   //       });
+    //   //     });
+    //   //   },
+    //   // ));
+    // });
+    // // List <GestureDetector> tempItems = [];
+    // // _itemsWidget.forEach((element) {
+    // //     itemsWidget.add(element);
+    // //   });
+    // setState(() {
+    //   itemsWidget.addAll(_itemsWidget);
+    //   print(itemsWidget);
+    //   // items = ListView(
+    //   //   controller: _sc,
+    //   //   children: _itemsWidget,
+    //   // );
+    //   // _sc.animateTo(widget.scroll,
+    //   //     duration: Duration(seconds: 1), curve: Curves.bounceIn);
+    // });
   }
 
   Future<void> _getFilters() async {
@@ -312,6 +293,37 @@ class _CategoryPageState extends State<CategoryPage> {
     _getFilters();
   }
 
+  _scrollListener() {
+    if (_sc.position.pixels > _sc.position.maxScrollExtent - 10) {
+      setState(() {
+        loadingScreen = Center(
+          child: Container(
+              decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.white.withOpacity(0.5),
+                        offset: Offset(4, 4),
+                        spreadRadius: 5,
+                        blurRadius: 5)
+                  ]),
+              width: 100,
+              height: 100,
+              padding: EdgeInsets.all(20),
+              child: CircularProgressIndicator()),
+        );
+      });
+      print("=========");
+
+      _getItems().then(((value) {
+        setState(() {
+          loadingScreen = Container();
+        });
+      }));
+    }
+  }
+
   @override
   void initState() {
     print(widget.category_id);
@@ -320,361 +332,451 @@ class _CategoryPageState extends State<CategoryPage> {
     super.initState();
     _getItems();
     _getFilters();
+    _sc = ScrollController();
+    _sc.addListener(_scrollListener);
   }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
         top: true,
-        child: Scaffold(
-            appBar: AppBar(
-                elevation: 10,
-                toolbarHeight: 120,
-                automaticallyImplyLeading: false,
-                titleSpacing: 0,
-                title: Container(
-                  padding: EdgeInsets.all(10),
-                  child: Column(
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(context,
-                              MaterialPageRoute(builder: (context) {
-                            return BottomMenu(
-                              page: 0,
-                            );
-                          }));
-                        },
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              Icons.arrow_back_ios,
-                              color: Colors.black,
-                            ),
-                            Text(
-                              widget.category_name ?? "",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 20,
-                                  color: Colors.black),
-                            )
-                          ],
-                        ),
-                      ),
-                      SizedBox(
-                        height: 5,
-                      ),
-                      // Row(
-                      //   mainAxisAlignment: MainAxisAlignment.start,
-                      //   children: [
-                      //     Text(
-                      //       "Караганда ",
-                      //       style: TextStyle(fontSize: 12, color: gray1),
-                      //     ),
-                      //     Icon(
-                      //       Icons.arrow_forward_ios,
-                      //       size: 6,
-                      //     ),
-                      //     Text(
-                      //       " Караганда",
-                      //       style: TextStyle(fontSize: 12, color: gray1),
-                      //     )
-                      //   ],
-                      // ),
-                      // SizedBox(
-                      //   height: 10,
-                      // ),
-                      Row(
+        child: Stack(
+          children: [
+            Scaffold(
+                appBar: AppBar(
+                    elevation: 10,
+                    toolbarHeight: 120,
+                    automaticallyImplyLeading: false,
+                    titleSpacing: 0,
+                    title: Container(
+                      padding: EdgeInsets.all(10),
+                      child: Column(
                         children: [
-                          Container(
-                            width: MediaQuery.of(context).size.width * 0.65,
-                            child: TextFormField(
-                              scrollPadding: EdgeInsets.all(0),
-                              controller: search,
-                              onFieldSubmitted: (search) {
-                                if (search.isNotEmpty) {
-                                  print(search);
-                                  setState(() {
-                                    selectedFilters["search"] = search;
-                                  });
-                                }
-                                _getItems();
-                              },
-                              style: TextStyle(fontSize: 20),
-                              textAlignVertical: TextAlignVertical.top,
-                              decoration: InputDecoration(
-                                  contentPadding: EdgeInsets.all(10),
-                                  suffix: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      GestureDetector(
-                                        child: Icon(Icons.search),
-                                        onTap: () {
-                                          if (search.text.isNotEmpty) {
-                                            print(search);
-                                            setState(() {
-                                              selectedFilters["search"] =
-                                                  search.text;
-                                            });
-                                          }
-                                          _getItems();
-                                        },
-                                      ),
-                                      GestureDetector(
-                                        child: Icon(Icons.cancel),
-                                        onTap: () {
-                                          setState(() {
-                                            search.text = "";
-                                            selectedFilters = {};
-                                          });
-
-                                          _getItems();
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                  label: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.search,
-                                        color: gray1,
-                                      ),
-                                      Text(
-                                        "Поиск",
-                                        style: TextStyle(color: gray1),
-                                      )
-                                    ],
-                                  ),
-                                  floatingLabelBehavior:
-                                      FloatingLabelBehavior.never,
-                                  border: OutlineInputBorder(
-                                      borderSide: BorderSide.none,
-                                      borderRadius: BorderRadius.all(
-                                          Radius.circular(30))),
-                                  focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide.none,
-                                      borderRadius: BorderRadius.all(
-                                          Radius.circular(30))),
-                                  focusColor: gray1,
-                                  hoverColor: gray1,
-                                  fillColor: Colors.grey.shade200,
-                                  filled: true,
-                                  isDense: true),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(context,
+                                  MaterialPageRoute(builder: (context) {
+                                return BottomMenu(
+                                  page: 0,
+                                );
+                              }));
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  Icons.arrow_back_ios,
+                                  color: Colors.black,
+                                ),
+                                Text(
+                                  widget.category_name ?? "",
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 20,
+                                      color: Colors.black),
+                                )
+                              ],
                             ),
                           ),
-                          TextButton(
-                              onPressed: () {
-                                print(_sc.position);
-                                setFilters();
-                                showDialog(
-                                  useSafeArea: false,
-                                  barrierColor: Colors.transparent,
-                                  context: context,
-                                  builder: (context) => Dialog(
-                                      shape: RoundedRectangleBorder(),
-                                      shadowColor: Colors.black38,
-                                      backgroundColor:
-                                          Colors.white.withOpacity(0.9),
-                                      child: Container(
-                                        padding: EdgeInsets.all(20),
-                                        decoration: BoxDecoration(
-                                          color: Colors.transparent,
-                                        ),
-                                        clipBehavior: Clip.hardEdge,
-                                        height:
-                                            MediaQuery.of(context).size.height *
-                                                0.7,
-                                        child: BackdropFilter(
-                                          filter: ImageFilter.blur(
-                                              sigmaX: 5, sigmaY: 5),
+                          SizedBox(
+                            height: 5,
+                          ),
+                          // Row(
+                          //   mainAxisAlignment: MainAxisAlignment.start,
+                          //   children: [
+                          //     Text(
+                          //       "Караганда ",
+                          //       style: TextStyle(fontSize: 12, color: gray1),
+                          //     ),
+                          //     Icon(
+                          //       Icons.arrow_forward_ios,
+                          //       size: 6,
+                          //     ),
+                          //     Text(
+                          //       " Караганда",
+                          //       style: TextStyle(fontSize: 12, color: gray1),
+                          //     )
+                          //   ],
+                          // ),
+                          // SizedBox(
+                          //   height: 10,
+                          // ),
+                          Row(
+                            children: [
+                              Container(
+                                width: MediaQuery.of(context).size.width * 0.65,
+                                child: TextFormField(
+                                  scrollPadding: EdgeInsets.all(0),
+                                  controller: search,
+                                  onFieldSubmitted: (search) {
+                                    if (search.isNotEmpty) {
+                                      print(search);
+                                      setState(() {
+                                        selectedFilters["search"] = search;
+                                      });
+                                    }
+                                    _getItems();
+                                  },
+                                  style: TextStyle(fontSize: 20),
+                                  textAlignVertical: TextAlignVertical.top,
+                                  decoration: InputDecoration(
+                                      contentPadding: EdgeInsets.all(10),
+                                      suffix: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          GestureDetector(
+                                            child: Icon(Icons.search),
+                                            onTap: () {
+                                              if (search.text.isNotEmpty) {
+                                                print(search);
+                                                setState(() {
+                                                  selectedFilters["search"] =
+                                                      search.text;
+                                                });
+                                              }
+                                              _getItems();
+                                            },
+                                          ),
+                                          GestureDetector(
+                                            child: Icon(Icons.cancel),
+                                            onTap: () {
+                                              setState(() {
+                                                search.text = "";
+                                                selectedFilters = {};
+                                              });
+
+                                              _getItems();
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                      label: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.search,
+                                            color: gray1,
+                                          ),
+                                          Text(
+                                            "Поиск",
+                                            style: TextStyle(color: gray1),
+                                          )
+                                        ],
+                                      ),
+                                      floatingLabelBehavior:
+                                          FloatingLabelBehavior.never,
+                                      border: OutlineInputBorder(
+                                          borderSide: BorderSide.none,
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(30))),
+                                      focusedBorder: OutlineInputBorder(
+                                          borderSide: BorderSide.none,
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(30))),
+                                      focusColor: gray1,
+                                      hoverColor: gray1,
+                                      fillColor: Colors.grey.shade200,
+                                      filled: true,
+                                      isDense: true),
+                                ),
+                              ),
+                              TextButton(
+                                  onPressed: () {
+                                    print(_sc.position);
+                                    setFilters();
+                                    showDialog(
+                                      useSafeArea: false,
+                                      barrierColor: Colors.transparent,
+                                      context: context,
+                                      builder: (context) => Dialog(
+                                          shape: RoundedRectangleBorder(),
+                                          shadowColor: Colors.black38,
+                                          backgroundColor:
+                                              Colors.white.withOpacity(0.9),
                                           child: Container(
-                                            color: Colors.transparent,
+                                            padding: EdgeInsets.all(20),
+                                            decoration: BoxDecoration(
+                                              color: Colors.transparent,
+                                            ),
+                                            clipBehavior: Clip.hardEdge,
                                             height: MediaQuery.of(context)
                                                     .size
                                                     .height *
                                                 0.7,
-                                            child: SingleChildScrollView(
-                                                child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.center,
-                                                  children: [
-                                                    Text(
-                                                      "Фильтры",
-                                                      style: TextStyle(
-                                                          color: Colors.black,
-                                                          fontSize: 22,
-                                                          fontWeight:
-                                                              FontWeight.w700),
-                                                    ),
-                                                    IconButton(
-                                                        onPressed: () {
-                                                          Navigator.pop(
-                                                              context);
-                                                        },
-                                                        icon: Icon(Icons.close))
-                                                  ],
-                                                ),
-                                                Column(
+                                            child: BackdropFilter(
+                                              filter: ImageFilter.blur(
+                                                  sigmaX: 5, sigmaY: 5),
+                                              child: Container(
+                                                color: Colors.transparent,
+                                                height: MediaQuery.of(context)
+                                                        .size
+                                                        .height *
+                                                    0.7,
+                                                child: SingleChildScrollView(
+                                                    child: Column(
                                                   crossAxisAlignment:
                                                       CrossAxisAlignment.start,
-                                                  children: propertyWidget,
-                                                ),
-                                                Container(
-                                                  width: MediaQuery.of(context)
-                                                          .size
-                                                          .width *
-                                                      0.8,
-                                                  margin: EdgeInsets.symmetric(
-                                                      vertical: 5),
-                                                  padding: EdgeInsets.all(10),
-                                                  decoration: BoxDecoration(
-                                                      color:
-                                                          Colors.grey.shade100,
-                                                      borderRadius:
-                                                          BorderRadius.all(
-                                                              Radius.circular(
-                                                                  20))),
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Text(
-                                                        "Бренды",
-                                                        style: TextStyle(
-                                                            color: Colors.black,
-                                                            fontSize: 16,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .w700),
+                                                  children: [
+                                                    Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .spaceBetween,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Text(
+                                                          "Фильтры",
+                                                          style: TextStyle(
+                                                              color:
+                                                                  Colors.black,
+                                                              fontSize: 22,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700),
+                                                        ),
+                                                        IconButton(
+                                                            onPressed: () {
+                                                              Navigator.pop(
+                                                                  context);
+                                                            },
+                                                            icon: Icon(
+                                                                Icons.close))
+                                                      ],
+                                                    ),
+                                                    Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: propertyWidget,
+                                                    ),
+                                                    Container(
+                                                      width:
+                                                          MediaQuery.of(context)
+                                                                  .size
+                                                                  .width *
+                                                              0.8,
+                                                      margin:
+                                                          EdgeInsets.symmetric(
+                                                              vertical: 5),
+                                                      padding:
+                                                          EdgeInsets.all(10),
+                                                      decoration: BoxDecoration(
+                                                          color: Colors
+                                                              .grey.shade100,
+                                                          borderRadius:
+                                                              BorderRadius.all(
+                                                                  Radius
+                                                                      .circular(
+                                                                          20))),
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          Text(
+                                                            "Бренды",
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .black,
+                                                                fontSize: 16,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700),
+                                                          ),
+                                                          Wrap(
+                                                              spacing: 5,
+                                                              children:
+                                                                  brandsWidget)
+                                                        ],
                                                       ),
-                                                      Wrap(
-                                                          spacing: 5,
-                                                          children:
-                                                              brandsWidget)
-                                                    ],
-                                                  ),
-                                                ),
-                                                Container(
-                                                  width: MediaQuery.of(context)
-                                                          .size
-                                                          .width *
-                                                      0.8,
-                                                  margin: EdgeInsets.symmetric(
-                                                      vertical: 5),
-                                                  padding: EdgeInsets.all(10),
-                                                  decoration: BoxDecoration(
-                                                      color:
-                                                          Colors.grey.shade100,
-                                                      borderRadius:
-                                                          BorderRadius.all(
-                                                              Radius.circular(
-                                                                  20))),
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Text(
-                                                        "Производители",
-                                                        style: TextStyle(
-                                                            color: Colors.black,
-                                                            fontSize: 16,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .w700),
+                                                    ),
+                                                    Container(
+                                                      width:
+                                                          MediaQuery.of(context)
+                                                                  .size
+                                                                  .width *
+                                                              0.8,
+                                                      margin:
+                                                          EdgeInsets.symmetric(
+                                                              vertical: 5),
+                                                      padding:
+                                                          EdgeInsets.all(10),
+                                                      decoration: BoxDecoration(
+                                                          color: Colors
+                                                              .grey.shade100,
+                                                          borderRadius:
+                                                              BorderRadius.all(
+                                                                  Radius
+                                                                      .circular(
+                                                                          20))),
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          Text(
+                                                            "Производители",
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .black,
+                                                                fontSize: 16,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700),
+                                                          ),
+                                                          Wrap(
+                                                              spacing: 5,
+                                                              children:
+                                                                  manufacturersWidget)
+                                                        ],
                                                       ),
-                                                      Wrap(
-                                                          spacing: 5,
-                                                          children:
-                                                              manufacturersWidget)
-                                                    ],
-                                                  ),
-                                                ),
-                                                Container(
-                                                  width: MediaQuery.of(context)
-                                                          .size
-                                                          .width *
-                                                      0.8,
-                                                  margin: EdgeInsets.symmetric(
-                                                      vertical: 5),
-                                                  padding: EdgeInsets.all(10),
-                                                  decoration: BoxDecoration(
-                                                      color:
-                                                          Colors.grey.shade100,
-                                                      borderRadius:
-                                                          BorderRadius.all(
-                                                              Radius.circular(
-                                                                  20))),
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Text(
-                                                        "Страны",
-                                                        style: TextStyle(
-                                                            color: Colors.black,
-                                                            fontSize: 16,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .w700),
+                                                    ),
+                                                    Container(
+                                                      width:
+                                                          MediaQuery.of(context)
+                                                                  .size
+                                                                  .width *
+                                                              0.8,
+                                                      margin:
+                                                          EdgeInsets.symmetric(
+                                                              vertical: 5),
+                                                      padding:
+                                                          EdgeInsets.all(10),
+                                                      decoration: BoxDecoration(
+                                                          color: Colors
+                                                              .grey.shade100,
+                                                          borderRadius:
+                                                              BorderRadius.all(
+                                                                  Radius
+                                                                      .circular(
+                                                                          20))),
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          Text(
+                                                            "Страны",
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .black,
+                                                                fontSize: 16,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700),
+                                                          ),
+                                                          Wrap(
+                                                              spacing: 5,
+                                                              children:
+                                                                  countriesWidget)
+                                                        ],
                                                       ),
-                                                      Wrap(
-                                                          spacing: 5,
-                                                          children:
-                                                              countriesWidget)
-                                                    ],
-                                                  ),
-                                                ),
-                                                ElevatedButton(
-                                                    onPressed: () {
-                                                      _applyFilters();
-                                                    },
-                                                    child: Text("data"))
-                                              ],
-                                            )),
-                                          ),
-                                        ),
-                                      )),
-                                );
-                              },
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.settings,
-                                    color: Colors.black,
-                                  ),
-                                  Text(
-                                    "Фильтры",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 16,
-                                        color: Colors.black),
-                                  )
-                                ],
-                              ))
+                                                    ),
+                                                    ElevatedButton(
+                                                        onPressed: () {
+                                                          _applyFilters();
+                                                        },
+                                                        child: Row(
+                                                          children: [
+                                                            Container(
+                                                              padding:
+                                                                  EdgeInsets
+                                                                      .all(5),
+                                                              child: Text(
+                                                                  "Подтвердить"),
+                                                            )
+                                                          ],
+                                                        ))
+                                                  ],
+                                                )),
+                                              ),
+                                            ),
+                                          )),
+                                    );
+                                  },
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.settings,
+                                        color: Colors.black,
+                                      ),
+                                      Text(
+                                        "Фильтры",
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 16,
+                                            color: Colors.black),
+                                      )
+                                    ],
+                                  ))
+                            ],
+                          )
                         ],
-                      )
-                    ],
+                      ),
+                    )),
+                body:
+
+                    // ListView(
+                    //   controller: _sc,
+                    //   children: itemsWidget,
+                    // )
+
+                    ListView.builder(
+                  controller: _sc,
+                  itemCount: itemsL.length,
+                  itemBuilder: (context, index) => GestureDetector(
+                    key: Key(itemsL[index]["item_id"]),
+                    child: ItemCard(
+                      item_id: itemsL[index]["item_id"],
+                      element: itemsL[index],
+                      category_id: widget.category_id,
+                      category_name: widget.category_name!,
+                      scroll: 0,
+                    ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => ProductPage(
+                                  item_id: itemsL[index]["item_id"],
+                                  returnWidget: CategoryPage(
+                                    category_id: widget.category_id,
+                                    category_name: widget.category_name,
+                                    scroll: widget.scroll,
+                                  ),
+                                )),
+                      ).then((value) {
+                        print("===================OFFSET===================");
+                        double _currentsc = _sc.offset;
+                        print(_currentsc);
+                        _getItems();
+                        _sc.animateTo(20,
+                            duration: Duration(microseconds: 300),
+                            curve: Curves.bounceIn);
+                        // updateItemCard(itemsWidget
+                        //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
+                        // print("индекс");
+
+                        // print(itemsWidget
+                        //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
+                        // print("индекс");
+                        // setState(() {
+                        //   // itemsWidget[itemsWidget.indexWhere(
+                        //   //         (_gd) => _gd.key == Key(element["item_id"]))] =
+                        //   //     GestureDetector();
+                        // });
+                      });
+                    },
                   ),
                 )),
-            body: ListView(
-              controller: _sc,
-              children: itemsWidget,
-            )));
+            loadingScreen
+          ],
+        ));
   }
 }
 
@@ -776,14 +878,19 @@ class _ItemCardState extends State<ItemCard> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Image.network(
-                'http://185.164.173.128/img/' + element["photo"],
+                'https://naliv.kz/img/' + element["photo"],
                 width: MediaQuery.of(context).size.width * 0.4,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
-                  return Image.network(
-                      'https://cs9.pikabu.ru/avatars/1762/x1762333-627804515.png',
+                  return Container(
+                      alignment: Alignment.center,
                       width: MediaQuery.of(context).size.width * 0.4,
-                      fit: BoxFit.fitWidth);
+                      height: MediaQuery.of(context).size.width * 0.4,
+                      child: Container(
+                        child: CircularProgressIndicator(),
+                        width: 20,
+                        height: 20,
+                      ));
                 },
               ),
               SizedBox(

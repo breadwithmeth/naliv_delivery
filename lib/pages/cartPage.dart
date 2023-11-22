@@ -118,7 +118,6 @@ class _CartPageState extends State<CartPage> {
                     borderRadius: BorderRadius.all(Radius.circular(10)))),
           ),
         ),
-        
         Container(
           margin: EdgeInsets.all(30),
           child: ElevatedButton(
@@ -184,14 +183,14 @@ class _ItemCardState extends State<ItemCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Image.network(
-                  element["photo"],
+                  'https://naliv.kz/img/' + element["photo"],
                   width: MediaQuery.of(context).size.width * 0.25,
-                  fit: BoxFit.cover,
+                  fit: BoxFit.fill,
                 ),
                 Container(
                   width: MediaQuery.of(context).size.width * 0.6,
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     mainAxisSize: MainAxisSize.max,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

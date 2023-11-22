@@ -159,7 +159,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       Text(
                         "Карты оплаты",
                         style: TextStyle(
-                            color: Colors.black,
+                            color: Colors.grey,
                             fontWeight: FontWeight.w400,
                             fontSize: 20),
                       )
