@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/addressesPage.dart';
 import 'package:naliv_delivery/pages/loginPage.dart';
+import 'package:naliv_delivery/pages/settingsPage.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -85,7 +87,8 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Column(
               children: [
                 TextButton(
-                  style: TextButton.styleFrom(padding: EdgeInsets.symmetric(horizontal: 30)),
+                  style: TextButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 30)),
                   onPressed: () {},
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -109,14 +112,13 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
                 Divider(),
-
                 TextButton(
-                  style: TextButton.styleFrom(padding: EdgeInsets.symmetric(horizontal: 30)),
+                  style: TextButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 30)),
                   onPressed: () {
-                   Navigator.push(
+                    Navigator.push(
                       context,
-                      MaterialPageRoute(
-                          builder: (context) => AddressesPage()),
+                      MaterialPageRoute(builder: (context) => AddressesPage()),
                     );
                   },
                   child: Row(
@@ -141,9 +143,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
                 Divider(),
-
                 TextButton(
-                  style: TextButton.styleFrom(padding: EdgeInsets.symmetric(horizontal: 30)),
+                  style: TextButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 30)),
                   onPressed: () {},
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -167,10 +169,16 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
                 Divider(),
-
                 TextButton(
-                  style: TextButton.styleFrom(padding: EdgeInsets.symmetric(horizontal: 30)),
-                  onPressed: () {},
+                  style: TextButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 30)),
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(
+                      builder: (context) {
+                        return SettingsPage();
+                      },
+                    ));
+                  },
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -193,10 +201,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
                 Divider(),
-
-
                 TextButton(
-                  style: TextButton.styleFrom(padding: EdgeInsets.symmetric(horizontal: 30)),
+                  style: TextButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 30)),
                   onPressed: () {},
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -220,12 +227,18 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
                 Divider(),
-
-
-
                 TextButton(
-                  style: TextButton.styleFrom(padding: EdgeInsets.symmetric(horizontal: 30)),
-                  onPressed: () {},
+                  style: TextButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 30)),
+                  onPressed: () {
+                    print(123);
+                    logout();
+                    Navigator.pushReplacement(context, MaterialPageRoute(
+                      builder: (context) {
+                        return LoginPage();
+                      },
+                    ));
+                  },
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [

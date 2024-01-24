@@ -48,8 +48,9 @@ Future<Position> determinePosition() async {
 Future<String?> getToken() async {
   final prefs = await SharedPreferences.getInstance();
   String? token = prefs.getString('token') ?? null;
-  print(123);
-
+  if (token == "000") {
+    return null;
+  }
   print(token);
   return token;
 }
@@ -224,7 +225,8 @@ Future<List> getItems(String category_id, int page,
         : json.encode(
             {'category_id': category_id, 'filters': filters, "page": page}),
   );
-  print(json.encode({'category_id': category_id, 'filters': filters}));
+  print(json
+      .encode({'category_id': category_id, 'filters': filters, "page": page}));
   // List<dynamic> list = json.decode(response.body);
   print(utf8.decode(response.bodyBytes));
   List data = json.decode(utf8.decode(response.bodyBytes));
@@ -514,4 +516,28 @@ Future<bool?> deleteFromCart(String item_id) async {
   bool? data = jsonDecode(response.body);
 
   return data;
+}
+
+Future<bool> logout() async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('token', "000");
+  final token = prefs.getString('token') ?? false;
+  print(token);
+  return token == false ? false : true;
+}
+
+Future<bool?> deleteAccount() async {
+  String? token = await getToken();
+  if (token == null) {
+    return null;
+  }
+  var url = Uri.https(URL_API, 'api/user/deleteAccount.php');
+  var response = await http.post(
+    url,
+    body: json.encode({}),
+    headers: {"Content-Type": "application/json", "AUTH": token},
+  );
+  Map? data = jsonDecode(response.body);
+
+  return data!["result"];
 }

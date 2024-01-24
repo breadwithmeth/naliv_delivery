@@ -73,42 +73,42 @@ class _StartPageState extends State<StartPage> {
                   SizedBox(
                     height: 10,
                   ),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 15),
-                    child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(10))),
-                          backgroundColor: Colors.black,
-                          padding: EdgeInsets.symmetric(vertical: 15),
-                        ),
-                        onPressed: () {},
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [Icon(Icons.facebook), Text(" Facebook")],
-                        )),
-                  ),
-                  SizedBox(
-                    height: 10,
-                  ),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 15),
-                    child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          alignment: Alignment.center,
-                          shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(10))),
-                          backgroundColor: Colors.black,
-                          padding: EdgeInsets.symmetric(vertical: 15),
-                        ),
-                        onPressed: () {},
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [Icon(Icons.facebook), Text(" Google")],
-                        )),
-                  ),
+                  // Container(
+                  //   padding: EdgeInsets.symmetric(horizontal: 15),
+                  //   child: ElevatedButton(
+                  //       style: ElevatedButton.styleFrom(
+                  //         shape: RoundedRectangleBorder(
+                  //             borderRadius:
+                  //                 BorderRadius.all(Radius.circular(10))),
+                  //         backgroundColor: Colors.black,
+                  //         padding: EdgeInsets.symmetric(vertical: 15),
+                  //       ),
+                  //       onPressed: () {},
+                  //       child: Row(
+                  //         mainAxisAlignment: MainAxisAlignment.center,
+                  //         children: [Icon(Icons.facebook), Text(" Facebook")],
+                  //       )),
+                  // ),
+                  // SizedBox(
+                  //   height: 10,
+                  // ),
+                  // Container(
+                  //   padding: EdgeInsets.symmetric(horizontal: 15),
+                  //   child: ElevatedButton(
+                  //       style: ElevatedButton.styleFrom(
+                  //         alignment: Alignment.center,
+                  //         shape: RoundedRectangleBorder(
+                  //             borderRadius:
+                  //                 BorderRadius.all(Radius.circular(10))),
+                  //         backgroundColor: Colors.black,
+                  //         padding: EdgeInsets.symmetric(vertical: 15),
+                  //       ),
+                  //       onPressed: () {},
+                  //       child: Row(
+                  //         mainAxisAlignment: MainAxisAlignment.center,
+                  //         children: [Icon(Icons.facebook), Text(" Google")],
+                  //       )),
+                  // ),
                   SizedBox(
                     height: 20,
                   ),
