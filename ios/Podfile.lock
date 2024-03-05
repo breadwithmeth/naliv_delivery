@@ -1,0 +1,42 @@
+PODS:
+  - Flutter (1.0.0)
+  - geolocator_apple (1.2.0):
+    - Flutter
+  - shared_preferences_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - yandex_mapkit (0.0.1):
+    - Flutter
+    - YandexMapsMobile (= 4.3.2-full)
+  - YandexMapsMobile (4.3.2-full)
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - geolocator_apple (from `.symlinks/plugins/geolocator_apple/ios`)
+  - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
+  - yandex_mapkit (from `.symlinks/plugins/yandex_mapkit/ios`)
+
+SPEC REPOS:
+  trunk:
+    - YandexMapsMobile
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  geolocator_apple:
+    :path: ".symlinks/plugins/geolocator_apple/ios"
+  shared_preferences_foundation:
+    :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
+  yandex_mapkit:
+    :path: ".symlinks/plugins/yandex_mapkit/ios"
+
+SPEC CHECKSUMS:
+  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  geolocator_apple: cc556e6844d508c95df1e87e3ea6fa4e58c50401
+  shared_preferences_foundation: e2dae3258e06f44cc55f49d42024fd8dd03c590c
+  yandex_mapkit: 352801c3b9fe72c0010207d9b01f8838a54b1c5a
+  YandexMapsMobile: c73c71ec041b215284efbe8a0ebd7cdb77aad8d7
+
+PODFILE CHECKSUM: 286a4617cc2084771c447a66721c65791110eded
+
+COCOAPODS: 1.14.3

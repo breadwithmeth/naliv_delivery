@@ -50,6 +50,7 @@ class _DealPageState extends State<DealPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+    appBar: AppBar(toolbarHeight: 0,),
         body: SingleChildScrollView(
       child: Container(
         padding: EdgeInsets.all(30),
