@@ -493,11 +493,13 @@ class _ItemCardState extends State<ItemCard> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Image.network(
+                Container(
+                width: MediaQuery.of(context).size.width * 0.25,
+                child: Image.network(
                   'https://naliv.kz/img/' + element["photo"],
                   width: MediaQuery.of(context).size.width * 0.25,
                   fit: BoxFit.fill,
-                ),
+                ),),
                 Container(
                   width: MediaQuery.of(context).size.width * 0.6,
                   child: Column(

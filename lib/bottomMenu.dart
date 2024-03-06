@@ -605,32 +605,44 @@ class _BottomMenuState extends State<BottomMenu> {
 
   final List<BottomNavigationBarItem> _bottomNavigationBarItems = [
     BottomNavigationBarItem(
-        icon: SizedBox(
-          child: Image.asset("assets/icons/home_filled.png"),
-          width: 25,
-          height: 25,
-        ),
+        activeIcon: ImageIcon(AssetImage("assets/icons/home_active.png")),
+        icon: ImageIcon(AssetImage("assets/icons/home.png")),
+
+        // icon: SizedBox(
+        //   child: Image.asset("assets/icons/home_filled.png"),
+        //   width: 25,
+        //   height: 25,
+        // ),
         label: "Каталог"),
     BottomNavigationBarItem(
-        icon: SizedBox(
-          child: Image.asset("assets/icons/fav_outlined.png"),
-          width: 25,
-          height: 25,
-        ),
+        activeIcon: ImageIcon(AssetImage("assets/icons/like_active.png")),
+        icon: ImageIcon(AssetImage("assets/icons/like.png")),
+
+        // icon: SizedBox(
+        //   child: Image.asset("assets/icons/fav_outlined.png"),
+        //   width: 25,
+        //   height: 25,
+        // ),
         label: "Любимое"),
     BottomNavigationBarItem(
-        icon: SizedBox(
-          child: Image.asset("assets/icons/shop_outlined.png"),
-          width: 25,
-          height: 25,
-        ),
+        activeIcon: ImageIcon(AssetImage("assets/icons/cart_active.png")),
+        icon: ImageIcon(AssetImage("assets/icons/cart.png")),
+
+        // icon: SizedBox(
+        //   child: Image.asset("assets/icons/shop_outlined.png"),
+        //   width: 25,
+        //   height: 25,
+        // ),
         label: "Корзина"),
     BottomNavigationBarItem(
-        icon: SizedBox(
-          child: Image.asset("assets/icons/person_outlined.png"),
-          width: 25,
-          height: 25,
-        ),
+        activeIcon: ImageIcon(AssetImage("assets/icons/profile_active.png")),
+        icon: ImageIcon(AssetImage("assets/icons/profile.png")),
+
+        // icon: SizedBox(
+        //   child: Image.asset("assets/icons/person_outlined.png"),
+        //   width: 25,
+        //   height: 25,
+        // ),
         label: "Профиль"),
   ];
 
@@ -1037,7 +1049,8 @@ class _BottomMenuState extends State<BottomMenu> {
       businessName = business!['name'];
       currentBusiness = business;
       _currentAppBar = appbars[widget.page];
-      _pageController.animateToPage(widget.page, duration: Duration(seconds: 1), curve: Curves.easeInCirc);
+      _pageController.animateToPage(widget.page,
+          duration: Duration(seconds: 1), curve: Curves.easeInCirc);
       appbarIndex = widget.page;
     });
   }
@@ -1059,53 +1072,77 @@ class _BottomMenuState extends State<BottomMenu> {
     return SafeArea(
         top: true,
         child: Scaffold(
-          extendBodyBehindAppBar: true,
-          extendBody: true,
+          backgroundColor: Colors.white,
+          extendBodyBehindAppBar: false,
+          extendBody: false,
+          bottomNavigationBar: BottomNavigationBar(
+            showSelectedLabels: true,
+            showUnselectedLabels: true,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            unselectedLabelStyle: TextStyle(fontSize: 12, color: Colors.black),
+            selectedLabelStyle: TextStyle(
+                fontSize: 12, color: Colors.black, fontWeight: FontWeight.w500),
+            selectedItemColor: Color(0xFFEE7203),
+            // unselectedItemColor: Colors.black,
+            iconSize: 24,
+            type: BottomNavigationBarType.fixed,
+            currentIndex: _curentIndex,
+            items: _bottomNavigationBarItems,
+            onTap: (value) {
+              setState(() {
+                _curentIndex = value;
+                _pageController.jumpToPage(value);
+                _currentAppBar = appbars[_curentIndex];
+              });
+            },
+          ),
           appBar: AppBar(
+            leading: Container(),
             automaticallyImplyLeading: false,
             systemOverlayStyle: SystemUiOverlayStyle(
                 statusBarBrightness: Brightness.light,
                 statusBarColor: Colors.white,
                 statusBarIconBrightness: Brightness.dark),
-            bottomOpacity: 0,
+            bottomOpacity: 0.5,
             toolbarHeight: _toolbarheight,
             flexibleSpace: _currentAppBar,
           ),
           floatingActionButtonLocation:
               FloatingActionButtonLocation.centerDocked,
-          floatingActionButton: Container(
-              clipBehavior: Clip.hardEdge,
-              decoration: BoxDecoration(
-                color: Colors.white70,
-              ),
-              padding: EdgeInsets.symmetric(horizontal: 10),
-              margin: EdgeInsets.only(top: 10),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                child: BottomNavigationBar(
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  unselectedLabelStyle:
-                      TextStyle(fontSize: 12, color: Colors.black),
-                  selectedLabelStyle: TextStyle(
-                      fontSize: 12,
-                      color: Colors.black,
-                      fontWeight: FontWeight.w500),
-                  selectedItemColor: Colors.black,
-                  unselectedItemColor: Colors.black,
-                  iconSize: 24,
-                  type: BottomNavigationBarType.fixed,
-                  currentIndex: _curentIndex,
-                  items: _bottomNavigationBarItems,
-                  onTap: (value) {
-                    setState(() {
-                      _curentIndex = value;
-                      _pageController.jumpToPage(value);
-                      _currentAppBar = appbars[_curentIndex];
-                    });
-                  },
-                ),
-              )),
+          // floatingActionButton: Container(
+          //     clipBehavior: Clip.hardEdge,
+          //     decoration: BoxDecoration(
+          //       color: Colors.white70,
+          //     ),
+          //     padding: EdgeInsets.symmetric(horizontal: 10),
+          //     margin: EdgeInsets.only(top: 10),
+          //     child: BackdropFilter(
+          //       filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          //       child: BottomNavigationBar(
+          //         backgroundColor: Colors.transparent,
+          //         elevation: 0,
+          //         unselectedLabelStyle:
+          //             TextStyle(fontSize: 12, color: Colors.black),
+          //         selectedLabelStyle: TextStyle(
+          //             fontSize: 12,
+          //             color: Colors.black,
+          //             fontWeight: FontWeight.w500),
+          //         selectedItemColor: Colors.black,
+          //         unselectedItemColor: Colors.black,
+          //         iconSize: 24,
+          //         type: BottomNavigationBarType.fixed,
+          //         currentIndex: _curentIndex,
+          //         items: _bottomNavigationBarItems,
+          //         onTap: (value) {
+          //           setState(() {
+          //             _curentIndex = value;
+          //             _pageController.jumpToPage(value);
+          //             _currentAppBar = appbars[_curentIndex];
+          //           });
+          //         },
+          //       ),
+          //     )),
           // // bottomNavigationBar:
           body: PageView(
             controller: _pageController,
