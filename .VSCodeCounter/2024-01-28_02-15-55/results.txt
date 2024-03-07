@@ -1,0 +1,161 @@
+Date : 2024-01-28 02:15:55
+Directory : c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery
+Total : 80 files,  8068 codes, 891 comments, 798 blanks, all 9757 lines
+
+Languages
++-----------------+------------+------------+------------+------------+------------+
+| language        | files      | code       | comment    | blank      | total      |
++-----------------+------------+------------+------------+------------+------------+
+| Dart            |         29 |      6,400 |        621 |        464 |      7,485 |
+| C++             |         16 |        532 |        118 |        181 |        831 |
+| XML             |         10 |        471 |         48 |         14 |        533 |
+| JSON            |          4 |        248 |          0 |          4 |        252 |
+| Markdown        |          7 |        156 |          0 |         56 |        212 |
+| Gradle          |          3 |         90 |          5 |         22 |        117 |
+| YAML            |          2 |         46 |         80 |         26 |        152 |
+| Swift           |          4 |         42 |          3 |         11 |         56 |
+| HTML            |          1 |         38 |         16 |          6 |         60 |
+| CMake           |          2 |         37 |          0 |         12 |         49 |
+| Java Properties |          2 |          8 |          0 |          2 |         10 |
++-----------------+------------+------------+------------+------------+------------+
+
+Directories
++------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                                                   | files      | code       | comment    | blank      | total      |
++------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                                                      |         80 |      8,068 |        891 |        798 |      9,757 |
+| . (Files)                                                                                                              |          3 |         56 |         80 |         33 |        169 |
+| android                                                                                                                |         12 |        165 |         51 |         35 |        251 |
+| android (Files)                                                                                                        |          3 |         38 |          0 |         10 |         48 |
+| android\app                                                                                                            |          8 |        122 |         51 |         24 |        197 |
+| android\app (Files)                                                                                                    |          1 |         55 |          5 |         13 |         73 |
+| android\app\src                                                                                                        |          7 |         67 |         46 |         11 |        124 |
+| android\app\src\debug                                                                                                  |          1 |          6 |          4 |          1 |         11 |
+| android\app\src\main                                                                                                   |          5 |         57 |         38 |          9 |        104 |
+| android\app\src\main (Files)                                                                                           |          1 |         31 |          6 |          3 |         40 |
+| android\app\src\main\res                                                                                               |          4 |         26 |         32 |          6 |         64 |
+| android\app\src\main\res\drawable                                                                                      |          1 |          4 |          7 |          2 |         13 |
+| android\app\src\main\res\drawable-v21                                                                                  |          1 |          4 |          7 |          2 |         13 |
+| android\app\src\main\res\values                                                                                        |          1 |          9 |          9 |          1 |         19 |
+| android\app\src\main\res\values-night                                                                                  |          1 |          9 |          9 |          1 |         19 |
+| android\app\src\profile                                                                                                |          1 |          4 |          4 |          1 |          9 |
+| android\gradle                                                                                                         |          1 |          5 |          0 |          1 |          6 |
+| android\gradle\wrapper                                                                                                 |          1 |          5 |          0 |          1 |          6 |
+| assets                                                                                                                 |          5 |        143 |          0 |         47 |        190 |
+| assets\agreements                                                                                                      |          5 |        143 |          0 |         47 |        190 |
+| ios                                                                                                                    |          7 |        224 |          2 |          8 |        234 |
+| ios\Runner                                                                                                             |          7 |        224 |          2 |          8 |        234 |
+| ios\Runner (Files)                                                                                                     |          2 |         15 |          0 |          2 |         17 |
+| ios\Runner\Assets.xcassets                                                                                             |          3 |        148 |          0 |          4 |        152 |
+| ios\Runner\Assets.xcassets\AppIcon.appiconset                                                                          |          1 |        122 |          0 |          1 |        123 |
+| ios\Runner\Assets.xcassets\LaunchImage.imageset                                                                        |          2 |         26 |          0 |          3 |         29 |
+| ios\Runner\Base.lproj                                                                                                  |          2 |         61 |          2 |          2 |         65 |
+| lib                                                                                                                    |         28 |      6,386 |        611 |        457 |      7,454 |
+| lib (Files)                                                                                                            |          3 |        595 |         14 |         43 |        652 |
+| lib\agreements                                                                                                         |          1 |         36 |          0 |          4 |         40 |
+| lib\misc                                                                                                               |          2 |        447 |         26 |         49 |        522 |
+| lib\pages                                                                                                              |         18 |      4,915 |        566 |        336 |      5,817 |
+| lib\shared                                                                                                             |          4 |        393 |          5 |         25 |        423 |
+| linux                                                                                                                  |          6 |        112 |         27 |         44 |        183 |
+| linux (Files)                                                                                                          |          3 |         86 |         18 |         27 |        131 |
+| linux\flutter                                                                                                          |          3 |         26 |          9 |         17 |         52 |
+| macos                                                                                                                  |          5 |        439 |          3 |         12 |        454 |
+| macos\Flutter                                                                                                          |          1 |          8 |          3 |          4 |         15 |
+| macos\Runner                                                                                                           |          4 |        431 |          0 |          8 |        439 |
+| macos\Runner (Files)                                                                                                   |          2 |         20 |          0 |          6 |         26 |
+| macos\Runner\Assets.xcassets                                                                                           |          1 |         68 |          0 |          1 |         69 |
+| macos\Runner\Assets.xcassets\AppIcon.appiconset                                                                        |          1 |         68 |          0 |          1 |         69 |
+| macos\Runner\Base.lproj                                                                                                |          1 |        343 |          0 |          1 |        344 |
+| test                                                                                                                   |          1 |         14 |         10 |          7 |         31 |
+| web                                                                                                                    |          2 |         73 |         16 |          7 |         96 |
+| windows                                                                                                                |         11 |        456 |         91 |        148 |        695 |
+| windows\flutter                                                                                                        |          3 |         30 |          9 |         17 |         56 |
+| windows\runner                                                                                                         |          8 |        426 |         82 |        131 |        639 |
++------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++------------------------------------------------------------------------------------------------------------------------+-----------------+------------+------------+------------+------------+
+| filename                                                                                                               | language        | code       | comment    | blank      | total      |
++------------------------------------------------------------------------------------------------------------------------+-----------------+------------+------------+------------+------------+
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\README.md                                                     | Markdown        |         10 |          0 |          7 |         17 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\analysis_options.yaml                                         | YAML            |          3 |         23 |          4 |         30 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\android\app\build.gradle                                      | Gradle          |         55 |          5 |         13 |         73 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\android\app\src\debug\AndroidManifest.xml                     | XML             |          6 |          4 |          1 |         11 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\android\app\src\main\AndroidManifest.xml                      | XML             |         31 |          6 |          3 |         40 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\android\app\src\main\res\drawable-v21\launch_background.xml   | XML             |          4 |          7 |          2 |         13 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\android\app\src\main\res\drawable\launch_background.xml       | XML             |          4 |          7 |          2 |         13 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\android\app\src\main\res\values-night\styles.xml              | XML             |          9 |          9 |          1 |         19 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\android\app\src\main\res\values\styles.xml                    | XML             |          9 |          9 |          1 |         19 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\android\app\src\profile\AndroidManifest.xml                   | XML             |          4 |          4 |          1 |          9 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\android\build.gradle                                          | Gradle          |         27 |          0 |          5 |         32 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\android\gradle.properties                                     | Java Properties |          3 |          0 |          1 |          4 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\android\gradle\wrapper\gradle-wrapper.properties              | Java Properties |          5 |          0 |          1 |          6 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\android\settings.gradle                                       | Gradle          |          8 |          0 |          4 |         12 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\assets\agreements\links.md                                    | Markdown        |          4 |          0 |          3 |          7 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\assets\agreements\nds.md                                      | Markdown        |          2 |          0 |          1 |          3 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\assets\agreements\offer.md                                    | Markdown        |         37 |          0 |         30 |         67 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\assets\agreements\privacy.md                                  | Markdown        |         85 |          0 |          2 |         87 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\assets\agreements\returnPolicy.md                             | Markdown        |         15 |          0 |         11 |         26 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\ios\Runner\AppDelegate.swift                                  | Swift           |         14 |          0 |          1 |         15 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\ios\Runner\Assets.xcassets\AppIcon.appiconset\Contents.json   | JSON            |        122 |          0 |          1 |        123 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\ios\Runner\Assets.xcassets\LaunchImage.imageset\Contents.json | JSON            |         23 |          0 |          1 |         24 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\ios\Runner\Assets.xcassets\LaunchImage.imageset\README.md     | Markdown        |          3 |          0 |          2 |          5 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\ios\Runner\Base.lproj\LaunchScreen.storyboard                 | XML             |         36 |          1 |          1 |         38 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\ios\Runner\Base.lproj\Main.storyboard                         | XML             |         25 |          1 |          1 |         27 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\ios\Runner\Runner-Bridging-Header.h                           | C++             |          1 |          0 |          1 |          2 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\agreements\offer.dart                                     | Dart            |         36 |          0 |          4 |         40 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\bottomMenu.dart                                           | Dart            |        499 |         12 |         29 |        540 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\main.dart                                                 | Dart            |         70 |          1 |          9 |         80 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\misc.dart                                                 | Dart            |         26 |          1 |          5 |         32 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\misc\api.dart                                             | Dart            |        445 |         26 |         47 |        518 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\misc\colors.dart                                          | Dart            |          2 |          0 |          2 |          4 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\pages\addressesPage.dart                                  | Dart            |        123 |          1 |          7 |        131 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\pages\businessSelectStartPage.dart                        | Dart            |         65 |          1 |          9 |         75 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\pages\cartPage.dart                                       | Dart            |        271 |         21 |         16 |        308 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\pages\categoryPage.dart                                   | Dart            |      1,056 |        100 |         77 |      1,233 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\pages\createAddress.dart                                  | Dart            |        215 |          0 |          5 |        220 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\pages\createOrder.dart                                    | Dart            |        378 |         45 |         21 |        444 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\pages\dealPage.dart                                       | Dart            |        170 |          1 |          6 |        177 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\pages\favPage.dart                                        | Dart            |         96 |        229 |         16 |        341 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\pages\homePage.dart                                       | Dart            |        146 |         65 |         11 |        222 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\pages\loginPage.dart                                      | Dart            |        172 |          1 |          5 |        178 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\pages\orderConfirmation.dart                              | Dart            |         99 |          1 |          8 |        108 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\pages\orderPage.dart                                      | Dart            |         13 |          0 |          3 |         16 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\pages\pickAddressPage.dart                                | Dart            |        870 |         78 |        100 |      1,048 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\pages\productPage.dart                                    | Dart            |        625 |         22 |         22 |        669 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\pages\profilePage.dart                                    | Dart            |        243 |          1 |         14 |        258 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\pages\registrationPage.dart                               | Dart            |        204 |          0 |          7 |        211 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\pages\settingsPage.dart                                   | Dart            |         13 |          0 |          3 |         16 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\pages\startPage.dart                                      | Dart            |        156 |          0 |          6 |        162 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\shared\buyButton.dart                                     | Dart            |        245 |          2 |         14 |        261 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\shared\commonAppBar.dart                                  | Dart            |         95 |          1 |          6 |        102 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\shared\likeButton.dart                                    | Dart            |         53 |          2 |          4 |         59 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\lib\shared\propertyIcon.dart                                  | Dart            |          0 |          0 |          1 |          1 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\linux\flutter\generated_plugin_registrant.cc                  | C++             |          3 |          4 |          5 |         12 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\linux\flutter\generated_plugin_registrant.h                   | C++             |          5 |          5 |          6 |         16 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\linux\flutter\generated_plugins.cmake                         | CMake           |         18 |          0 |          6 |         24 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\linux\main.cc                                                 | C++             |          5 |          0 |          2 |          7 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\linux\my_application.cc                                       | C++             |         74 |         11 |         20 |        105 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\linux\my_application.h                                        | C++             |          7 |          7 |          5 |         19 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\macos\Flutter\GeneratedPluginRegistrant.swift                 | Swift           |          8 |          3 |          4 |         15 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\macos\Runner\AppDelegate.swift                                | Swift           |          8 |          0 |          2 |         10 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\macos\Runner\Assets.xcassets\AppIcon.appiconset\Contents.json | JSON            |         68 |          0 |          1 |         69 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\macos\Runner\Base.lproj\MainMenu.xib                          | XML             |        343 |          0 |          1 |        344 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\macos\Runner\MainFlutterWindow.swift                          | Swift           |         12 |          0 |          4 |         16 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\pubspec.yaml                                                  | YAML            |         43 |         57 |         22 |        122 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\test\widget_test.dart                                         | Dart            |         14 |         10 |          7 |         31 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\web\index.html                                                | HTML            |         38 |         16 |          6 |         60 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\web\manifest.json                                             | JSON            |         35 |          0 |          1 |         36 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\windows\flutter\generated_plugin_registrant.cc                | C++             |          6 |          4 |          5 |         15 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\windows\flutter\generated_plugin_registrant.h                 | C++             |          5 |          5 |          6 |         16 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\windows\flutter\generated_plugins.cmake                       | CMake           |         19 |          0 |          6 |         25 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\windows\runner\flutter_window.cpp                             | C++             |         48 |          4 |         15 |         67 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\windows\runner\flutter_window.h                               | C++             |         20 |          5 |          9 |         34 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\windows\runner\main.cpp                                       | C++             |         30 |          4 |         10 |         44 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\windows\runner\resource.h                                     | C++             |          9 |          6 |          2 |         17 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\windows\runner\utils.cpp                                      | C++             |         53 |          2 |         10 |         65 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\windows\runner\utils.h                                        | C++             |          8 |          6 |          6 |         20 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\windows\runner\win32_window.cpp                               | C++             |        210 |         24 |         55 |        289 |
+| c:\Users\serge\OneDrive\Documents\flutter\naliv_delivery\windows\runner\win32_window.h                                 | C++             |         48 |         31 |         24 |        103 |
+| Total                                                                                                                  |                 |      8,068 |        891 |        798 |      9,757 |
++------------------------------------------------------------------------------------------------------------------------+-----------------+------------+------------+------------+------------+

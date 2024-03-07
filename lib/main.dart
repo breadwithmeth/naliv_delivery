@@ -7,6 +7,8 @@ import 'package:naliv_delivery/pages/DealPage.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
   runApp(Main());
 }
 
