@@ -3,8 +3,6 @@ import 'package:naliv_delivery/bottomMenu.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
 
 import '../misc/api.dart';
-import '../shared/buyButton.dart';
-import '../shared/likeButton.dart';
 import 'categoryPage.dart';
 
 class FavPage extends StatefulWidget {
@@ -18,10 +16,10 @@ class _FavPageState extends State<FavPage> {
   List items = [];
 
   Future<void> _getItems() async {
-    List _items = await getLiked();
-    List<Widget> _itemsWidget = [];
-    _items.forEach((element) {
-      _itemsWidget.add(GestureDetector(
+    List items = await getLiked();
+    List<Widget> itemsWidget = [];
+    for (var element in items) {
+      itemsWidget.add(GestureDetector(
         key: Key(element["item_id"]),
         child: ItemCard(
           item_id: element["item_id"],
@@ -36,7 +34,7 @@ class _FavPageState extends State<FavPage> {
             MaterialPageRoute(
                 builder: (context) => ProductPage(
                       item_id: element["item_id"],
-                      returnWidget: BottomMenu(page: 1),
+                      returnWidget: const BottomMenu(page: 1),
                     )),
           ).then((value) {
             print("===================OFFSET===================");
@@ -56,9 +54,9 @@ class _FavPageState extends State<FavPage> {
           });
         },
       ));
-    });
+    }
     setState(() {
-      items = _items;
+      items = items;
     });
   }
 
@@ -73,7 +71,7 @@ class _FavPageState extends State<FavPage> {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Column(children: [
-        SizedBox(
+        const SizedBox(
           height: 10,
         ),
         items.isNotEmpty
@@ -98,7 +96,7 @@ class _FavPageState extends State<FavPage> {
                         MaterialPageRoute(
                             builder: (context) => ProductPage(
                                   item_id: items[index]["item_id"],
-                                  returnWidget: BottomMenu(page: 1),
+                                  returnWidget: const BottomMenu(page: 1),
                                 )),
                       ).then((value) {
                         print("===================OFFSET===================");
@@ -120,13 +118,13 @@ class _FavPageState extends State<FavPage> {
                   );
                 },
               )
-            : Center(
+            : const Center(
                 child: Text(
                   "Вы пока не добавили товары в этом магазине",
                   style: TextStyle(color: Colors.black),
                 ),
               ),
-        SizedBox(
+        const SizedBox(
           height: 100,
         )
       ]),

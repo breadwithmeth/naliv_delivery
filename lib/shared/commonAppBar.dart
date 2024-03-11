@@ -1,7 +1,6 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 import '../misc/colors.dart';
 
@@ -34,7 +33,7 @@ class _CommonAppBarState extends State<CommonAppBar> {
   Widget build(BuildContext context) {
     return Container(
       alignment: Alignment.center,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white70,
       ),
       clipBehavior: Clip.antiAlias,
@@ -44,7 +43,7 @@ class _CommonAppBarState extends State<CommonAppBar> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            SizedBox(
+            const SizedBox(
               width: 10,
             ),
             Column(
@@ -54,43 +53,43 @@ class _CommonAppBarState extends State<CommonAppBar> {
                 Row(
                   children: [
                     widget.titleIcon,
-                    SizedBox(
+                    const SizedBox(
                       width: 5,
                     ),
                     Text(
                       widget.title,
-                      style: TextStyle(
+                      style: const TextStyle(
                           color: Colors.black,
                           fontWeight: FontWeight.w700,
                           fontSize: 20),
                     ),
                   ],
                 ),
-                SizedBox(
+                const SizedBox(
                   height: 5,
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     Text(
-                      business!["city"],
-                      style: TextStyle(fontSize: 12, color: gray1),
+                      business["city"],
+                      style: const TextStyle(fontSize: 12, color: gray1),
                     ),
-                    Icon(
+                    const Icon(
                       Icons.arrow_forward_ios,
                       size: 6,
                     ),
                     Text(
-                      business!["address"],
-                      style: TextStyle(fontSize: 12, color: gray1),
+                      business["address"],
+                      style: const TextStyle(fontSize: 12, color: gray1),
                     )
                   ],
                 )
               ],
             ),
-            Spacer(),
+            const Spacer(),
             Row(children: widget.options),
-            SizedBox(
+            const SizedBox(
               width: 10,
             ),
           ],

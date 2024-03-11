@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/misc/api.dart';
 
 class LikeButton extends StatefulWidget {
@@ -28,10 +27,10 @@ class _LikeButtonState extends State<LikeButton> {
     return is_liked
         ? GestureDetector(
             // style: IconButton.styleFrom(padding: EdgeInsets.all(0)),
-            child: Icon(Icons.favorite),
+            child: const Icon(Icons.favorite),
             onTap: () async {
-              String? _is_liked = await dislikeItem(widget.item_id);
-              if (_is_liked != null) {
+              String? isLiked1 = await dislikeItem(widget.item_id);
+              if (isLiked1 != null) {
                 setState(() {
                   is_liked = true;
                 });
@@ -43,8 +42,8 @@ class _LikeButtonState extends State<LikeButton> {
             },
           )
         : GestureDetector(onTap: () async {
-              String? _is_liked = await likeItem(widget.item_id);
-              if (_is_liked != null) {
+              String? isLiked = await likeItem(widget.item_id);
+              if (isLiked != null) {
                 setState(() {
                   is_liked = true;
                 });
@@ -53,6 +52,6 @@ class _LikeButtonState extends State<LikeButton> {
                   is_liked = false;
                 });
               }
-            }, child: Icon(Icons.favorite_outline));
+            }, child: const Icon(Icons.favorite_outline));
   }
 }

@@ -28,7 +28,7 @@ class _CreateAddressState extends State<CreateAddress> {
     bool isCreated = await createAddress({
       "lat": widget.lat,
       "lon": widget.lon,
-      "address": widget.street + " " + widget.house,
+      "address": "${widget.street} ${widget.house}",
       "name": name.text,
       "apartment": house.text,
       "entrance": entrance.text,
@@ -38,7 +38,7 @@ class _CreateAddressState extends State<CreateAddress> {
     if (isCreated) {
       print(isCreated);
       Navigator.pushReplacement(context,
-          MaterialPageRoute(builder: (context) => BottomMenu(page: 0)));
+          MaterialPageRoute(builder: (context) => const BottomMenu(page: 0)));
     }
   }
 
@@ -46,7 +46,7 @@ class _CreateAddressState extends State<CreateAddress> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-          padding: EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
           width: MediaQuery.of(context).size.width,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -54,78 +54,79 @@ class _CreateAddressState extends State<CreateAddress> {
               Row(
                 children: [
                   Flexible(
+                    flex: 7,
                     child: TextField(
                       decoration: InputDecoration(
                           labelText: "Название",
                           filled: true,
                           fillColor: Colors.grey.shade100,
-                          border: OutlineInputBorder(
+                          border: const OutlineInputBorder(
                               borderSide:
                                   BorderSide(color: Colors.black, width: 10),
                               borderRadius:
                                   BorderRadius.all(Radius.circular(10)))),
                       style:
-                          TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
+                          const TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
                       controller: name,
                     ),
-                    flex: 7,
                   ),
                 ],
               ),
-              SizedBox(
+              const SizedBox(
                 height: 10,
               ),
               Row(
                 children: [
                   Flexible(
+                    flex: 7,
                     child: TextField(
                       decoration: InputDecoration(
                           filled: true,
                           fillColor: Colors.grey.shade200,
-                          border: OutlineInputBorder(
+                          border: const OutlineInputBorder(
                               borderSide:
                                   BorderSide(color: Colors.black, width: 10),
                               borderRadius:
                                   BorderRadius.all(Radius.circular(10)))),
                       readOnly: true,
                       style:
-                          TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
+                          const TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
                       controller: TextEditingController(text: widget.street),
                     ),
-                    flex: 7,
                   ),
-                  Spacer(
+                  const Spacer(
                     flex: 1,
                   ),
                   Flexible(
+                    flex: 3,
                     child: TextField(
                       decoration: InputDecoration(
                           filled: true,
                           fillColor: Colors.grey.shade200,
-                          border: OutlineInputBorder(
+                          border: const OutlineInputBorder(
                               borderSide:
                                   BorderSide(color: Colors.black, width: 10),
                               borderRadius:
                                   BorderRadius.all(Radius.circular(10)))),
                       readOnly: true,
                       style:
-                          TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
+                          const TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
                       controller: TextEditingController(text: widget.house),
                     ),
-                    flex: 3,
                   ),
                 ],
               ),
-              SizedBox(
+              const SizedBox(
                 height: 10,
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Flexible(
+                    flex: 5,
                     child: TextField(
                       controller: house,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                           labelText: "Квартира/Офис",
                           filled: true,
                           fillColor: Colors.white,
@@ -135,13 +136,13 @@ class _CreateAddressState extends State<CreateAddress> {
                               borderRadius:
                                   BorderRadius.all(Radius.circular(10)))),
                     ),
-                    flex: 5,
                   ),
-                  Spacer(),
+                  const Spacer(),
                   Flexible(
+                    flex: 5,
                     child: TextField(
                       controller: entrance,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                           labelText: "Подъезд/Вход",
                           filled: true,
                           fillColor: Colors.white,
@@ -151,13 +152,13 @@ class _CreateAddressState extends State<CreateAddress> {
                               borderRadius:
                                   BorderRadius.all(Radius.circular(10)))),
                     ),
-                    flex: 5,
                   ),
-                  Spacer(),
+                  const Spacer(),
                   Flexible(
+                    flex: 3,
                     child: TextField(
                       controller: floor,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                           labelText: "Этаж",
                           filled: true,
                           fillColor: Colors.white,
@@ -167,18 +168,17 @@ class _CreateAddressState extends State<CreateAddress> {
                               borderRadius:
                                   BorderRadius.all(Radius.circular(10)))),
                     ),
-                    flex: 3,
                   ),
                 ],
               ),
-              SizedBox(
+              const SizedBox(
                 height: 10,
               ),
               Row(
                 children: [
                   Flexible(
                       child: TextField(
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                         labelText: "Комментарий",
                         filled: true,
                         fillColor: Colors.white,
@@ -194,20 +194,20 @@ class _CreateAddressState extends State<CreateAddress> {
               Row(
                 children: [
                   Text(widget.lat.toString()),
-                  SizedBox(
+                  const SizedBox(
                     width: 10,
                   ),
                   Text(widget.lon.toString())
                 ],
               ),
-              SizedBox(
+              const SizedBox(
                 height: 20,
               ),
               ElevatedButton(
                   onPressed: () {
                     _createAddress();
                   },
-                  child: Row(
+                  child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.max,
                     children: [Text("Добавить новый адрес")],

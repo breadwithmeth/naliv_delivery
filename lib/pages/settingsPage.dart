@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
@@ -17,7 +16,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Настройки"),
+        title: const Text("Настройки"),
       ),
       body: ListView(
         children: [
@@ -27,44 +26,44 @@ class _SettingsPageState extends State<SettingsPage> {
                     context: context,
                     builder: (context) {
                       return AlertDialog(
-                        title: Text("Удалить аккаунт?"),
+                        title: const Text("Удалить аккаунт?"),
                         actions: [
                           TextButton(
                               onPressed: () {
                                 logout();
                                 Timer timer =
-                                    new Timer(new Duration(seconds: 5), () {
+                                    Timer(const Duration(seconds: 5), () {
                                   Navigator.pushReplacement(context,
                                       MaterialPageRoute(
                                     builder: (context) {
-                                      return Main();
+                                      return const Main();
                                     },
                                   ));
                                 });
                                 deleteAccount().then((value) {
                                   Navigator.pushReplacement(context,
                                       MaterialPageRoute(builder: ((context) {
-                                    return Main();
+                                    return const Main();
                                   })));
                                 });
                                 Navigator.pushReplacement(context,
                                     MaterialPageRoute(
                                   builder: (context) {
-                                    return Main();
+                                    return const Main();
                                   },
                                 ));
                               },
-                              child: Text("Да")),
+                              child: const Text("Да")),
                           TextButton(
                               onPressed: () {
                                 Navigator.pop(context);
                               },
-                              child: Text("Нет"))
+                              child: const Text("Нет"))
                         ],
                       );
                     });
               },
-              child: Text("Удалить аккаунт"))
+              child: const Text("Удалить аккаунт"))
         ],
       ),
     );

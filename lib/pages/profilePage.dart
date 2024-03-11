@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/addressesPage.dart';
 import 'package:naliv_delivery/pages/loginPage.dart';
@@ -15,10 +14,10 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   Map user = {};
   Future<void> _getUser() async {
-    Map<String, dynamic>? _user = await getUser();
-    if (_user != null) {
+    Map<String, dynamic>? user = await getUser();
+    if (user != null) {
       setState(() {
-        user = _user;
+        user = user;
       });
     }
   }
@@ -35,36 +34,36 @@ class _ProfilePageState extends State<ProfilePage> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          SizedBox(
+          const SizedBox(
             height: 80,
           ),
           Container(
-            padding: EdgeInsets.symmetric(vertical: 20, horizontal: 50),
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 50),
             child: Row(
               children: [
                 CircleAvatar(
                   radius: MediaQuery.of(context).size.width * 0.15,
-                  backgroundImage: NetworkImage(
+                  backgroundImage: const NetworkImage(
                       "https://air-fom.com/wp-content/uploads/2018/06/real_1920.jpg"),
                 ),
-                SizedBox(
+                const SizedBox(
                   width: 20,
                 ),
-                Container(
+                SizedBox(
                   width: MediaQuery.of(context).size.width * 0.3,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         user["name"] ?? "",
-                        style: TextStyle(
+                        style: const TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.w500,
                             fontSize: 16),
                       ),
                       Text(
                         user["login"] ?? "",
-                        style: TextStyle(
+                        style: const TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.w400,
                             fontSize: 14),
@@ -83,14 +82,14 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           Container(
-            padding: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
             child: Column(
               children: [
                 TextButton(
                   style: TextButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 30)),
+                      padding: const EdgeInsets.symmetric(horizontal: 30)),
                   onPressed: () {},
-                  child: Row(
+                  child: const Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Icon(
@@ -111,17 +110,17 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
                 ),
-                Divider(),
+                const Divider(),
                 TextButton(
                   style: TextButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 30)),
+                      padding: const EdgeInsets.symmetric(horizontal: 30)),
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => AddressesPage()),
+                      MaterialPageRoute(builder: (context) => const AddressesPage()),
                     );
                   },
-                  child: Row(
+                  child: const Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Icon(
@@ -142,12 +141,12 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
                 ),
-                Divider(),
+                const Divider(),
                 TextButton(
                   style: TextButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 30)),
+                      padding: const EdgeInsets.symmetric(horizontal: 30)),
                   onPressed: () {},
-                  child: Row(
+                  child: const Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Icon(
@@ -168,18 +167,18 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
                 ),
-                Divider(),
+                const Divider(),
                 TextButton(
                   style: TextButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 30)),
+                      padding: const EdgeInsets.symmetric(horizontal: 30)),
                   onPressed: () {
                     Navigator.push(context, MaterialPageRoute(
                       builder: (context) {
-                        return SettingsPage();
+                        return const SettingsPage();
                       },
                     ));
                   },
-                  child: Row(
+                  child: const Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Icon(
@@ -200,12 +199,12 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
                 ),
-                Divider(),
+                const Divider(),
                 TextButton(
                   style: TextButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 30)),
+                      padding: const EdgeInsets.symmetric(horizontal: 30)),
                   onPressed: () {},
-                  child: Row(
+                  child: const Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Icon(
@@ -226,20 +225,20 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
                 ),
-                Divider(),
+                const Divider(),
                 TextButton(
                   style: TextButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 30)),
+                      padding: const EdgeInsets.symmetric(horizontal: 30)),
                   onPressed: () {
                     print(123);
                     logout();
                     Navigator.pushReplacement(context, MaterialPageRoute(
                       builder: (context) {
-                        return LoginPage();
+                        return const LoginPage();
                       },
                     ));
                   },
-                  child: Row(
+                  child: const Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Icon(

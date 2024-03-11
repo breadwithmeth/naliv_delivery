@@ -13,20 +13,20 @@ Widget _customIcon() {
 }
 
 
-  double getDisc(double gyp2_lat, double gyp2_lon, double gyp1_lat, double gyp1_lon) {
+  double getDisc(double gyp2Lat, double gyp2Lon, double gyp1Lat, double gyp1Lon) {
     double p = 0.017453292519943295;
     double a = 0.5 -
-        cos((gyp2_lat - gyp1_lat) * p) / 2 +
-        cos(gyp1_lat * p) *
-            cos(gyp2_lat * p) *
-            (1 - cos((gyp2_lon - gyp1_lon) * p)) /
+        cos((gyp2Lat - gyp1Lat) * p) / 2 +
+        cos(gyp1Lat * p) *
+            cos(gyp2Lat * p) *
+            (1 - cos((gyp2Lon - gyp1Lon) * p)) /
             2;
 
     // 12742 * Math.asin(Math.sqrt(a));
-    double d = acos((sin(gyp1_lat) * sin(gyp2_lat)) +
-            cos(gyp1_lat) *
-                cos(gyp2_lat) *
-                cos(gyp2_lon - gyp1_lon)) *
+    double d = acos((sin(gyp1Lat) * sin(gyp2Lat)) +
+            cos(gyp1Lat) *
+                cos(gyp2Lat) *
+                cos(gyp2Lon - gyp1Lon)) *
         6371;
     return 12742 * asin(sqrt(a));
   }

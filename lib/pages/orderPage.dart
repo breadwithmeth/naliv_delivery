@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class OrderPage extends StatefulWidget {
@@ -11,6 +10,6 @@ class OrderPage extends StatefulWidget {
 class _OrderPageState extends State<OrderPage> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: Center(child: Text("adasdadad"),),);
+    return const Scaffold(body: Center(child: Text("adasdadad"),),);
   }
 }

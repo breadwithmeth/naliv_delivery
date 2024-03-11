@@ -12,11 +12,11 @@ class RegistrationPage extends StatefulWidget {
 }
 
 class _RegistrationPageState extends State<RegistrationPage> {
-  TextEditingController _login = TextEditingController();
-  TextEditingController _password = TextEditingController();
-  TextEditingController _name = TextEditingController();
+  final TextEditingController _login = TextEditingController();
+  final TextEditingController _password = TextEditingController();
+  final TextEditingController _name = TextEditingController();
 
-  Widget _resultWidget = Container();
+  final Widget _resultWidget = Container();
 
   Future<void> _register() async {
     bool status = await register(_login.text, _password.text, _name.text);
@@ -43,10 +43,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   MaterialPageRoute(builder: (context) => const StartPage()),
                 );
               },
-              icon: Icon(Icons.arrow_back)),
+              icon: const Icon(Icons.arrow_back)),
           actions: [
             Padding(
-              padding: EdgeInsets.all(5),
+              padding: const EdgeInsets.all(5),
               child: TextButton(
                   onPressed: () {
                     Navigator.push(
@@ -55,7 +55,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           builder: (context) => const LoginPage()),
                     );
                   },
-                  child: Text(
+                  child: const Text(
                     "Войти",
                     style: TextStyle(
                         color: Colors.black,
@@ -70,8 +70,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
             Column(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                Spacer(),
-                Row(
+                const Spacer(),
+                const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
@@ -83,16 +83,16 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     )
                   ],
                 ),
-                Spacer(),
+                const Spacer(),
                 Container(
-                  margin: EdgeInsets.all(20),
+                  margin: const EdgeInsets.all(20),
                   child: Form(
                       autovalidateMode: AutovalidateMode.always,
                       child: Column(
                         children: [
                           TextFormField(
                             controller: _name,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                                 labelStyle:
                                     TextStyle(color: gray1, fontSize: 16),
                                 label: Row(
@@ -118,12 +118,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
                                     borderSide:
                                         BorderSide(color: Colors.black))),
                           ),
-                          SizedBox(
+                          const SizedBox(
                             height: 10,
                           ),
                           TextFormField(
                             controller: _login,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                                 labelStyle:
                                     TextStyle(color: gray1, fontSize: 16),
                                 label: Row(
@@ -149,13 +149,13 @@ class _RegistrationPageState extends State<RegistrationPage> {
                                     borderSide:
                                         BorderSide(color: Colors.black))),
                           ),
-                          SizedBox(
+                          const SizedBox(
                             height: 10,
                           ),
                           TextFormField(
                             controller: _password,
                             obscureText: true,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                                 labelStyle:
                                     TextStyle(color: gray1, fontSize: 16),
                                 label: Row(
@@ -181,16 +181,16 @@ class _RegistrationPageState extends State<RegistrationPage> {
                                     borderSide:
                                         BorderSide(color: Colors.black))),
                           ),
-                          SizedBox(
+                          const SizedBox(
                             height: 50,
                           ),
                           ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                  padding: EdgeInsets.all(18)),
+                                  padding: const EdgeInsets.all(18)),
                               onPressed: () {
                                 _register();
                               },
-                              child: Row(
+                              child: const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 mainAxisSize: MainAxisSize.max,
                                 children: [Text("Регистрация")],
@@ -198,7 +198,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         ],
                       )),
                 ),
-                Spacer(
+                const Spacer(
                   flex: 3,
                 )
               ],

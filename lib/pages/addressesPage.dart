@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
 
@@ -14,9 +13,9 @@ class _AddressesPageState extends State<AddressesPage> {
   List addresses = [];
 
   Future<void> _getAddresses() async {
-    List _addresses = await getAddresses();
+    List addresses = await getAddresses();
     setState(() {
-      addresses = _addresses;
+      addresses = addresses;
     });
   }
 
@@ -34,7 +33,13 @@ class _AddressesPageState extends State<AddressesPage> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: GestureDetector(
         child: Container(
-          child: Row(
+          padding: const EdgeInsets.all(20),
+          margin: const EdgeInsets.all(10),
+          width: MediaQuery.of(context).size.width,
+          decoration: BoxDecoration(
+              color: Colors.grey.shade400,
+              borderRadius: const BorderRadius.all(Radius.circular(10))),
+          child: const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
@@ -46,17 +51,11 @@ class _AddressesPageState extends State<AddressesPage> {
               ),
             ],
           ),
-          padding: EdgeInsets.all(20),
-          margin: EdgeInsets.all(10),
-          width: MediaQuery.of(context).size.width,
-          decoration: BoxDecoration(
-              color: Colors.grey.shade400,
-              borderRadius: BorderRadius.all(Radius.circular(10))),
         ),
         onTap: () {          Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (context) => PickAddressPage()),
+                    builder: (context) => const PickAddressPage()),
               );},
       ),
       body: Column(
@@ -67,13 +66,13 @@ class _AddressesPageState extends State<AddressesPage> {
             itemCount: addresses.length,
             itemBuilder: (context, index) {
               return Container(
-                margin: EdgeInsets.all(10),
-                padding: EdgeInsets.symmetric(vertical: 10, horizontal: 25),
+                margin: const EdgeInsets.all(10),
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 25),
                 decoration: BoxDecoration(
                     color: addresses[index]["is_selected"] == "1"
                         ? Colors.grey.shade700
                         : Colors.white,
-                    borderRadius: BorderRadius.all(Radius.circular(10))),
+                    borderRadius: const BorderRadius.all(Radius.circular(10))),
                 child: Column(
                   children: [
                     Row(
@@ -87,19 +86,19 @@ class _AddressesPageState extends State<AddressesPage> {
                                   : Colors.black),
                         ),
                         addresses[index]["is_selected"] == "1"
-                            ? Icon(
+                            ? const Icon(
                                 Icons.check_box_outlined,
                                 color: Colors.white,
                               )
                             : Container()
                       ],
                     ),
-                    SizedBox(
+                    const SizedBox(
                       height: 5,
                     ),
                     RichText(
                       text: TextSpan(
-                          style: TextStyle(
+                          style: const TextStyle(
                               textBaseline: TextBaseline.ideographic,
                               fontSize: 12,
                               color: Colors.black),

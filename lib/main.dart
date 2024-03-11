@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:naliv_delivery/bottomMenu.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/misc/colors.dart';
-import 'package:naliv_delivery/pages/DealPage.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
 
 void main() {
-  runApp(Main());
+  runApp(const Main());
 }
 
 class Main extends StatefulWidget {
@@ -18,7 +16,7 @@ class Main extends StatefulWidget {
 }
 
 class _MainState extends State<Main> {
-  Widget _redirect = Center(
+  Widget _redirect = const Center(
     child: CircularProgressIndicator(),
   );
 
@@ -33,13 +31,13 @@ class _MainState extends State<Main> {
     String? token = await getToken();
     if (token != null) {
       setState(() {
-        _redirect = BottomMenu(
+        _redirect = const BottomMenu(
           page: 0,
         );
       });
     } else {
       setState(() {
-        _redirect = StartPage();
+        _redirect = const StartPage();
       });
     }
   }
@@ -50,11 +48,11 @@ class _MainState extends State<Main> {
     return MaterialApp(
         theme: ThemeData(
           brightness: Brightness.light,
-          pageTransitionsTheme: PageTransitionsTheme(builders: {
+          pageTransitionsTheme: const PageTransitionsTheme(builders: {
             TargetPlatform.android: ZoomPageTransitionsBuilder(),
             TargetPlatform.iOS: ZoomPageTransitionsBuilder(),
           }),
-          bottomNavigationBarTheme: BottomNavigationBarThemeData(),
+          bottomNavigationBarTheme: const BottomNavigationBarThemeData(),
           scaffoldBackgroundColor: Colors.white,
           appBarTheme: AppBarTheme(
               backgroundColor: Colors.white54,
@@ -62,10 +60,10 @@ class _MainState extends State<Main> {
               foregroundColor: Colors.black),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              shape: RoundedRectangleBorder(
+              shape: const RoundedRectangleBorder(
                   borderRadius: BorderRadius.all(Radius.circular(10))),
               backgroundColor: Colors.black,
-              padding: EdgeInsets.symmetric(vertical: 15),
+              padding: const EdgeInsets.symmetric(vertical: 15),
             ),
           ),
           textTheme: const TextTheme(

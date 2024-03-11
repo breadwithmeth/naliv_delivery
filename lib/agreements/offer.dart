@@ -20,7 +20,7 @@ class _OfferPageState extends State<OfferPage> {
               onPressed: () {
                 Navigator.pop(context);
               },
-              icon: Icon(Icons.close))
+              icon: const Icon(Icons.close))
         ],
       ),
       body: FutureBuilder(
@@ -30,7 +30,7 @@ class _OfferPageState extends State<OfferPage> {
               return Markdown(data: snapshot.data!);
             }
 
-            return Center(
+            return const Center(
               child: CircularProgressIndicator(),
             );
           }),

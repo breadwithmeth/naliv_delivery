@@ -1,9 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/misc/colors.dart';
-import 'package:naliv_delivery/pages/loginPage.dart';
-import 'package:naliv_delivery/pages/registrationPage.dart';
 
 import '../misc/api.dart';
 import 'DealPage.dart';
@@ -32,7 +29,7 @@ class _StartPageState extends State<StartPage> {
       Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => DealPage(),
+            builder: (context) => const DealPage(),
           ));
     }
   }
@@ -43,7 +40,7 @@ class _StartPageState extends State<StartPage> {
     super.initState();
 
     setState(() {
-      _timer = Timer.periodic(new Duration(seconds: 10), (timer) {
+      _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
         setState(() {
           if (currentPage == 2) {
             currentPage = 0;
@@ -52,7 +49,7 @@ class _StartPageState extends State<StartPage> {
           }
         });
         p_controller.animateToPage(currentPage,
-            duration: Duration(seconds: 1), curve: Curves.decelerate);
+            duration: const Duration(seconds: 1), curve: Curves.decelerate);
       });
     });
   }
@@ -90,16 +87,16 @@ class _StartPageState extends State<StartPage> {
           //             fit: BoxFit.cover,
           //           ));
           //         })),
-          Spacer(),
+          const Spacer(),
           Flexible(
               flex: 2,
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
                 child: TextButton(
                     style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
+                        shape: const RoundedRectangleBorder(
                             borderRadius: BorderRadius.all(Radius.circular(5))),
-                        backgroundColor: Color(0xFFFFCA3C)),
+                        backgroundColor: const Color(0xFFFFCA3C)),
                     onPressed: () {
                       // Navigator.pushReplacement(context, MaterialPageRoute(
                       //   builder: (context) {
@@ -108,12 +105,14 @@ class _StartPageState extends State<StartPage> {
                       // ));
                       Navigator.pushReplacement(context, MaterialPageRoute(
                         builder: (context) {
-                          return DealPage();
+                          return const DealPage();
                         },
                       ));
                     },
                     child: Container(
-                      child: Row(
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                      child: const Row(
                         mainAxisSize: MainAxisSize.max,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -126,8 +125,6 @@ class _StartPageState extends State<StartPage> {
                           ),
                         ],
                       ),
-                      padding:
-                          EdgeInsets.symmetric(vertical: 10, horizontal: 10),
                     )),
               )),
           // Flexible(

@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/bottomMenu.dart';
 import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/misc/colors.dart';
-import 'package:naliv_delivery/pages/registrationPage.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 
@@ -16,10 +13,10 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  TextEditingController _login = TextEditingController();
-  TextEditingController _password = TextEditingController();
-  TextEditingController _phone_number = TextEditingController();
-  TextEditingController _one_time_code = TextEditingController();
+  final TextEditingController _login = TextEditingController();
+  final TextEditingController _password = TextEditingController();
+  final TextEditingController _phone_number = TextEditingController();
+  final TextEditingController _one_time_code = TextEditingController();
   bool isCodeSend = false;
   String _number = "";
   Future<void> _getOneTimeCode() async {
@@ -56,7 +53,7 @@ class _LoginPageState extends State<LoginPage> {
                 MaterialPageRoute(builder: (context) => const StartPage()),
               );
             },
-            icon: Icon(Icons.arrow_back)),
+            icon: const Icon(Icons.arrow_back)),
         // actions: [
         //   Padding(
         //     padding: EdgeInsets.all(5),
@@ -81,8 +78,8 @@ class _LoginPageState extends State<LoginPage> {
       body: Column(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          Spacer(),
-          Row(
+          const Spacer(),
+          const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
@@ -94,9 +91,9 @@ class _LoginPageState extends State<LoginPage> {
               )
             ],
           ),
-          Spacer(),
+          const Spacer(),
           Container(
-            margin: EdgeInsets.all(20),
+            margin: const EdgeInsets.all(20),
             child: Form(
                 autovalidateMode: AutovalidateMode.always,
                 child: Column(
@@ -106,7 +103,7 @@ class _LoginPageState extends State<LoginPage> {
                       enabled: !isCodeSend,
                       dropdownIconPosition: IconPosition.trailing,
                       showCountryFlag: true,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: 'Номер телефона',
                         border: OutlineInputBorder(
                           borderSide: BorderSide(),
@@ -119,7 +116,7 @@ class _LoginPageState extends State<LoginPage> {
                         });
                       },
                     ),
-                    SizedBox(
+                    const SizedBox(
                       height: 10,
                     ),
                     AnimatedSwitcher(
@@ -135,7 +132,7 @@ class _LoginPageState extends State<LoginPage> {
                                 keyboardType: TextInputType.number,
                                 maxLength: 6,
                                 textAlign: TextAlign.center,
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                     labelText: "Введите одноразовый код из СМС",
                                     border: OutlineInputBorder()),
                               )
@@ -196,21 +193,21 @@ class _LoginPageState extends State<LoginPage> {
                     //       focusedBorder: OutlineInputBorder(
                     //           borderSide: BorderSide(color: Colors.black))),
                     // ),
-                    SizedBox(
+                    const SizedBox(
                       height: 20,
                     ),
                     // Spacer(),
                     !isCodeSend
                         ? ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.all(18)),
+                                padding: const EdgeInsets.all(18)),
                             onPressed: () async {
                               print(_phone_number.text.length);
                               if (_phone_number.text.length == 10) {
                                 _getOneTimeCode();
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
+                                    const SnackBar(
                                         content: Text(
                                             "Проверьте правильность номера")));
                               }
@@ -226,14 +223,14 @@ class _LoginPageState extends State<LoginPage> {
                               //   );
                               // }
                             },
-                            child: Row(
+                            child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               mainAxisSize: MainAxisSize.max,
                               children: [Text("Получить код подтверждения")],
                             ))
                         : ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.all(18)),
+                                padding: const EdgeInsets.all(18)),
                             onPressed: () async {
                               await verify(_number, _one_time_code.text)
                                   .then((value) => {
@@ -242,13 +239,13 @@ class _LoginPageState extends State<LoginPage> {
                                             Navigator.pushReplacement(context,
                                                 MaterialPageRoute(
                                               builder: (context) {
-                                                return Main();
+                                                return const Main();
                                               },
                                             ))
                                           }
                                       });
                             },
-                            child: Row(
+                            child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               mainAxisSize: MainAxisSize.max,
                               children: [Text("Отправить код")],
@@ -256,7 +253,7 @@ class _LoginPageState extends State<LoginPage> {
                   ],
                 )),
           ),
-          Spacer(
+          const Spacer(
             flex: 3,
           )
         ],

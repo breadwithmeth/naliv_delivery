@@ -15,7 +15,7 @@ class _HomePageState extends State<HomePage>
     with AutomaticKeepAliveClientMixin<HomePage> {
   @override
   bool get wantKeepAlive => true;
-  PageController _pageController =
+  final PageController _pageController =
       PageController(viewportFraction: 0.7, initialPage: 0);
 
   List<Map> images = [
@@ -44,7 +44,7 @@ class _HomePageState extends State<HomePage>
   List<Widget> indicators(imagesLength, currentIndex) {
     return List<Widget>.generate(imagesLength, (index) {
       return Container(
-        margin: EdgeInsets.all(3),
+        margin: const EdgeInsets.all(3),
         width: 5,
         height: 5,
         decoration: BoxDecoration(
@@ -59,9 +59,9 @@ class _HomePageState extends State<HomePage>
   int activePage = 0;
 
   Future<void> _getCategories() async {
-    List _categories = await getCategories();
+    List categories1 = await getCategories();
     setState(() {
-      categories = _categories;
+      categories = categories1;
     });
   }
 
@@ -79,87 +79,87 @@ class _HomePageState extends State<HomePage>
         mainAxisAlignment: MainAxisAlignment.start,
         mainAxisSize: MainAxisSize.max,
         children: [
-          SizedBox(
+          const SizedBox(
             height: 10,
           ),
-          Container(
+          SizedBox(
             width: MediaQuery.of(context).size.width,
             // height: 170,
             child: GridView(
               primary: false,
               shrinkWrap: true,
               gridDelegate:
-                  SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 4),
+                  const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 4),
               children: [
                 Container(
                   width: MediaQuery.of(context).size.width * 0.25,
                   height: MediaQuery.of(context).size.width * 0.25,
-                  margin: EdgeInsets.all(5),
+                  margin: const EdgeInsets.all(5),
                   child: Column(
                     children: [
                       Container(
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                             color: Colors.amber,
                             borderRadius:
                                 BorderRadius.all(Radius.circular(15))),
                         width: MediaQuery.of(context).size.width * 0.15,
                         height: MediaQuery.of(context).size.width * 0.15,
                       ),
-                      Text("Новинки")
+                      const Text("Новинки")
                     ],
                   ),
                 ),
                 Container(
                   width: MediaQuery.of(context).size.width * .25,
                   height: MediaQuery.of(context).size.width * .25,
-                  margin: EdgeInsets.all(5),
+                  margin: const EdgeInsets.all(5),
                   child: Column(
                     children: [
                       Container(
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                             color: Colors.amber,
                             borderRadius:
                                 BorderRadius.all(Radius.circular(15))),
                         width: MediaQuery.of(context).size.width * 0.15,
                         height: MediaQuery.of(context).size.width * 0.15,
                       ),
-                      Text("Новинки")
+                      const Text("Новинки")
                     ],
                   ),
                 ),
                 Container(
                   width: MediaQuery.of(context).size.width * .25,
                   height: MediaQuery.of(context).size.width * .25,
-                  margin: EdgeInsets.all(5),
+                  margin: const EdgeInsets.all(5),
                   child: Column(
                     children: [
                       Container(
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                             color: Colors.amber,
                             borderRadius:
                                 BorderRadius.all(Radius.circular(15))),
                         width: MediaQuery.of(context).size.width * 0.15,
                         height: MediaQuery.of(context).size.width * 0.15,
                       ),
-                      Text("Новинки")
+                      const Text("Новинки")
                     ],
                   ),
                 ),
                 Container(
                   width: MediaQuery.of(context).size.width * .25,
                   height: MediaQuery.of(context).size.width * 0.33,
-                  margin: EdgeInsets.all(5),
+                  margin: const EdgeInsets.all(5),
                   child: Column(
                     children: [
                       Container(
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                             color: Colors.amber,
                             borderRadius:
                                 BorderRadius.all(Radius.circular(15))),
                         width: MediaQuery.of(context).size.width * 0.15,
                         height: MediaQuery.of(context).size.width * 0.15,
                       ),
-                      Text("Новинки")
+                      const Text("Новинки")
                     ],
                   ),
                 )
@@ -206,12 +206,12 @@ class _HomePageState extends State<HomePage>
           //     mainAxisAlignment: MainAxisAlignment.center,
           //     children: indicators(images.length, activePage)),
           Padding(
-            padding: EdgeInsets.all(10),
+            padding: const EdgeInsets.all(10),
             child: GridView.builder(
-              padding: EdgeInsets.all(0),
-              physics: NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(0),
+              physics: const NeverScrollableScrollPhysics(),
               shrinkWrap: true,
-              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                   maxCrossAxisExtent: 150,
                   childAspectRatio: 1,
                   crossAxisSpacing: 10,
@@ -225,7 +225,7 @@ class _HomePageState extends State<HomePage>
               },
             ),
           ),
-          SizedBox(
+          const SizedBox(
             height: 200,
           )
         ],
@@ -275,7 +275,7 @@ class _CategoryItemState extends State<CategoryItem> {
   @override
   Widget build(BuildContext context) {
     return TextButton(
-        style: TextButton.styleFrom(padding: EdgeInsets.all(0)),
+        style: TextButton.styleFrom(padding: const EdgeInsets.all(0)),
         onPressed: () {
           Navigator.push(
             context,
@@ -294,7 +294,7 @@ class _CategoryItemState extends State<CategoryItem> {
                   borderRadius: BorderRadius.circular(15),
                   gradient: LinearGradient(
                       colors: [FirstColor, SecondColor],
-                      transform: GradientRotation(2))),
+                      transform: const GradientRotation(2))),
             ),
             Container(
               clipBehavior: Clip.antiAliasWithSaveLayer,
@@ -318,7 +318,7 @@ class _CategoryItemState extends State<CategoryItem> {
                       : Container()),
             ),
             Container(
-              padding: EdgeInsets.all(15),
+              padding: const EdgeInsets.all(15),
               alignment: Alignment.topLeft,
               decoration:
                   BoxDecoration(borderRadius: BorderRadius.circular(15)),

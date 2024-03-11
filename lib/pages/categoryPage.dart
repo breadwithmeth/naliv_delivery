@@ -1,11 +1,8 @@
-import 'dart:io';
 import 'dart:ui';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/bottomMenu.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/pages/addressesPage.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
 import 'package:naliv_delivery/shared/buyButton.dart';
 import 'package:naliv_delivery/shared/likeButton.dart';
@@ -55,18 +52,18 @@ class _CategoryPageState extends State<CategoryPage> {
     setState(() {
       items = Container();
     });
-    List _items;
+    List items1;
     if (selectedFilters.isEmpty) {
       // _items = await getItems(category_id: widget.category_id, page: page);
       // _items = await getItems(page: page, category_id: widget.category_id);
-      _items = await getItems(widget.category_id, page);
+      items1 = await getItems(widget.category_id, page);
     } else {
-      _items =
+      items1 =
           await getItems(widget.category_id, page, filters: selectedFilters);
     }
 
     setState(() {
-      itemsL.addAll(_items);
+      itemsL.addAll(items1);
     });
 
     setState(() {
@@ -134,72 +131,72 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   Future<void> _getFilters() async {
-    Map _filters = await getFilters(widget.category_id);
-    List _properties = _filters["properties"];
+    Map filters = await getFilters(widget.category_id);
+    List properties = filters["properties"];
 
-    List<PropertyItem> _propertiesWidget = [];
+    List<PropertyItem> propertiesWidget = [];
 
-    List<BrandItem> _brandsWidget = [];
+    List<BrandItem> brandsWidget = [];
 
-    List<ManufacturerItem> _manufacturersWidget = [];
-    List<CountryItem> _countriesWidget = [];
+    List<ManufacturerItem> manufacturersWidget = [];
+    List<CountryItem> countriesWidget = [];
 
-    _properties.forEach((element) {
+    for (var element in properties) {
       element["propertyItems"] = element["amounts"].split("|");
-    });
-    _filters["properties"] = _properties;
+    }
+    filters["properties"] = properties;
 
-    _properties.forEach((element) {
+    for (var element in properties) {
       element["propertyItems"].forEach((el) {
-        _propertiesWidget
+        propertiesWidget
             .add(PropertyItem(property_id: element["property_id"], value: el));
       });
-    });
+    }
 
-    _filters["brands"].forEach((element) {
-      _brandsWidget
+    filters["brands"].forEach((element) {
+      brandsWidget
           .add(BrandItem(brand_id: element["brand_id"], name: element["name"]));
     });
 
-    _filters["manufacturers"].forEach((element) {
-      _manufacturersWidget.add(ManufacturerItem(
+    filters["manufacturers"].forEach((element) {
+      manufacturersWidget.add(ManufacturerItem(
           manufacturer_id: element["manufacturer_id"], name: element["name"]));
     });
 
-    _filters["countries"].forEach((element) {
-      _countriesWidget.add(CountryItem(
+    filters["countries"].forEach((element) {
+      countriesWidget.add(CountryItem(
           country_id: element["country_id"], name: element["name"]));
     });
 
     setState(() {
-      filters = _filters;
-      properties = _properties;
-      propertiesWidget = _propertiesWidget;
-      brandsWidget = _brandsWidget;
-      countriesWidget = _countriesWidget;
-      manufacturersWidget = _manufacturersWidget;
+      filters = filters;
+      properties = properties;
+      propertiesWidget = propertiesWidget;
+      brandsWidget = brandsWidget;
+      countriesWidget = countriesWidget;
+      manufacturersWidget = manufacturersWidget;
     });
   }
 
   void setFilters() {
     print(properties);
-    List<Widget> _propertyWidget = [];
+    List<Widget> propertyWidget = [];
 
-    properties.forEach((element) {
+    for (var element in properties) {
       print(element);
-      _propertyWidget.add(Container(
+      propertyWidget.add(Container(
         width: MediaQuery.of(context).size.width * 0.8,
-        margin: EdgeInsets.symmetric(vertical: 5),
-        padding: EdgeInsets.all(10),
+        margin: const EdgeInsets.symmetric(vertical: 5),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
             color: Colors.grey.shade100,
-            borderRadius: BorderRadius.all(Radius.circular(20))),
+            borderRadius: const BorderRadius.all(Radius.circular(20))),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               element["name"],
-              style: TextStyle(
+              style: const TextStyle(
                   color: Colors.black,
                   fontSize: 16,
                   fontWeight: FontWeight.w700),
@@ -216,74 +213,73 @@ class _CategoryPageState extends State<CategoryPage> {
           ],
         ),
       ));
-    });
+    }
 
     setState(() {
-      propertyWidget = _propertyWidget;
+      propertyWidget = propertyWidget;
     });
   }
 
   void _applyFilters() {
-    Map _selectedFilters = {};
-    Map<String, List> _properties = {};
-    List _manufacturers = [];
-    List _countries = [];
-    List _brands = [];
+    Map selectedFilters = {};
+    Map<String, List> properties = {};
+    List manufacturers = [];
+    List countries = [];
+    List brands = [];
 
-    if (propertiesWidget.length > 0) {
-      propertiesWidget.forEach((element) {
+    if (propertiesWidget.isNotEmpty) {
+      for (var element in propertiesWidget) {
         if (element.isSelected) {
-          if (_properties[element.property_id] == null) {
-            _properties[element.property_id] = [];
+          if (properties[element.property_id] == null) {
+            properties[element.property_id] = [];
           }
-          _properties[element.property_id]!.add(element.value);
+          properties[element.property_id]!.add(element.value);
         }
-      });
+      }
     }
 
-    if (manufacturersWidget.length > 0) {
-      manufacturersWidget.forEach((element) {
+    if (manufacturersWidget.isNotEmpty) {
+      for (var element in manufacturersWidget) {
         if (element.isSelected) {
-          _manufacturers.add((element.manufacturer_id));
+          manufacturers.add((element.manufacturer_id));
         }
-      });
+      }
     }
 
-    if (brandsWidget.length > 0) {
-      brandsWidget.forEach((element) {
+    if (brandsWidget.isNotEmpty) {
+      for (var element in brandsWidget) {
         if (element.isSelected) {
-          _brands.add((element.brand_id));
+          brands.add((element.brand_id));
         }
-      });
+      }
     }
 
-    if (countriesWidget.length > 0) {
-      countriesWidget.forEach((element) {
+    if (countriesWidget.isNotEmpty) {
+      for (var element in countriesWidget) {
         if (element.isSelected) {
-          _countries.add((element.country_id));
+          countries.add((element.country_id));
         }
-      });
+      }
     }
 
-    if (_brands.length > 0) {
-      _selectedFilters["brands"] = _brands;
+    if (brands.isNotEmpty) {
+      selectedFilters["brands"] = brands;
     }
 
-    if (_countries.length > 0) {
-      _selectedFilters["countries"] = _countries;
-      ;
+    if (countries.isNotEmpty) {
+      selectedFilters["countries"] = countries;
     }
 
-    if (_manufacturers.length > 0) {
-      _selectedFilters["manufacturers"] = _manufacturers;
+    if (manufacturers.isNotEmpty) {
+      selectedFilters["manufacturers"] = manufacturers;
     }
 
-    if (_properties.length > 0) {
-      _selectedFilters["properties"] = _properties;
+    if (properties.isNotEmpty) {
+      selectedFilters["properties"] = properties;
     }
-    print(_selectedFilters);
+    print(selectedFilters);
     setState(() {
-      selectedFilters = _selectedFilters;
+      selectedFilters = selectedFilters;
     });
 
     print(selectedFilters);
@@ -304,14 +300,14 @@ class _CategoryPageState extends State<CategoryPage> {
                   boxShadow: [
                     BoxShadow(
                         color: Colors.white.withOpacity(0.5),
-                        offset: Offset(4, 4),
+                        offset: const Offset(4, 4),
                         spreadRadius: 5,
                         blurRadius: 5)
                   ]),
               width: 100,
               height: 100,
-              padding: EdgeInsets.all(20),
-              child: CircularProgressIndicator()),
+              padding: const EdgeInsets.all(20),
+              child: const CircularProgressIndicator()),
         );
       });
       print("=========");
@@ -349,14 +345,14 @@ class _CategoryPageState extends State<CategoryPage> {
                     automaticallyImplyLeading: false,
                     titleSpacing: 0,
                     title: Container(
-                      padding: EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(10),
                       child: Column(
                         children: [
                           TextButton(
                             onPressed: () {
                               Navigator.push(context,
                                   MaterialPageRoute(builder: (context) {
-                                return BottomMenu(
+                                return const BottomMenu(
                                   page: 0,
                                 );
                               }));
@@ -365,13 +361,13 @@ class _CategoryPageState extends State<CategoryPage> {
                               mainAxisAlignment: MainAxisAlignment.start,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.arrow_back_ios,
                                   color: Colors.black,
                                 ),
                                 Text(
                                   widget.category_name ?? "",
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 20,
                                       color: Colors.black),
@@ -379,7 +375,7 @@ class _CategoryPageState extends State<CategoryPage> {
                               ],
                             ),
                           ),
-                          SizedBox(
+                          const SizedBox(
                             height: 5,
                           ),
                           // Row(
@@ -404,10 +400,10 @@ class _CategoryPageState extends State<CategoryPage> {
                           // ),
                           Row(
                             children: [
-                              Container(
+                              SizedBox(
                                 width: MediaQuery.of(context).size.width * 0.65,
                                 child: TextFormField(
-                                  scrollPadding: EdgeInsets.all(0),
+                                  scrollPadding: const EdgeInsets.all(0),
                                   controller: search,
                                   onFieldSubmitted: (search) {
                                     if (search.isNotEmpty) {
@@ -418,10 +414,10 @@ class _CategoryPageState extends State<CategoryPage> {
                                     }
                                     _getItems();
                                   },
-                                  style: TextStyle(fontSize: 20),
+                                  style: const TextStyle(fontSize: 20),
                                   textAlignVertical: TextAlignVertical.top,
                                   decoration: InputDecoration(
-                                      contentPadding: EdgeInsets.all(10),
+                                      contentPadding: const EdgeInsets.all(10),
                                       suffix: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         mainAxisAlignment:
@@ -430,7 +426,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                             CrossAxisAlignment.center,
                                         children: [
                                           GestureDetector(
-                                            child: Icon(Icons.search),
+                                            child: const Icon(Icons.search),
                                             onTap: () {
                                               if (search.text.isNotEmpty) {
                                                 print(search);
@@ -443,7 +439,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                             },
                                           ),
                                           GestureDetector(
-                                            child: Icon(Icons.cancel),
+                                            child: const Icon(Icons.cancel),
                                             onTap: () {
                                               setState(() {
                                                 search.text = "";
@@ -455,7 +451,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                           ),
                                         ],
                                       ),
-                                      label: Row(
+                                      label: const Row(
                                         children: [
                                           Icon(
                                             Icons.search,
@@ -469,11 +465,11 @@ class _CategoryPageState extends State<CategoryPage> {
                                       ),
                                       floatingLabelBehavior:
                                           FloatingLabelBehavior.never,
-                                      border: OutlineInputBorder(
+                                      border: const OutlineInputBorder(
                                           borderSide: BorderSide.none,
                                           borderRadius: BorderRadius.all(
                                               Radius.circular(30))),
-                                      focusedBorder: OutlineInputBorder(
+                                      focusedBorder: const OutlineInputBorder(
                                           borderSide: BorderSide.none,
                                           borderRadius: BorderRadius.all(
                                               Radius.circular(30))),
@@ -493,13 +489,13 @@ class _CategoryPageState extends State<CategoryPage> {
                                       barrierColor: Colors.transparent,
                                       context: context,
                                       builder: (context) => Dialog(
-                                          shape: RoundedRectangleBorder(),
+                                          shape: const RoundedRectangleBorder(),
                                           shadowColor: Colors.black38,
                                           backgroundColor:
                                               Colors.white.withOpacity(0.9),
                                           child: Container(
-                                            padding: EdgeInsets.all(20),
-                                            decoration: BoxDecoration(
+                                            padding: const EdgeInsets.all(20),
+                                            decoration: const BoxDecoration(
                                               color: Colors.transparent,
                                             ),
                                             clipBehavior: Clip.hardEdge,
@@ -529,7 +525,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                                           CrossAxisAlignment
                                                               .center,
                                                       children: [
-                                                        Text(
+                                                        const Text(
                                                           "Фильтры",
                                                           style: TextStyle(
                                                               color:
@@ -544,7 +540,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                                               Navigator.pop(
                                                                   context);
                                                             },
-                                                            icon: Icon(
+                                                            icon: const Icon(
                                                                 Icons.close))
                                                       ],
                                                     ),
@@ -560,17 +556,18 @@ class _CategoryPageState extends State<CategoryPage> {
                                                                   .size
                                                                   .width *
                                                               0.8,
-                                                      margin:
-                                                          EdgeInsets.symmetric(
-                                                              vertical: 5),
+                                                      margin: const EdgeInsets
+                                                          .symmetric(
+                                                          vertical: 5),
                                                       padding:
-                                                          EdgeInsets.all(10),
+                                                          const EdgeInsets.all(
+                                                              10),
                                                       decoration: BoxDecoration(
                                                           color: Colors
                                                               .grey.shade100,
                                                           borderRadius:
-                                                              BorderRadius.all(
-                                                                  Radius
+                                                              const BorderRadius
+                                                                  .all(Radius
                                                                       .circular(
                                                                           20))),
                                                       child: Column(
@@ -578,7 +575,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                                             CrossAxisAlignment
                                                                 .start,
                                                         children: [
-                                                          Text(
+                                                          const Text(
                                                             "Бренды",
                                                             style: TextStyle(
                                                                 color: Colors
@@ -601,17 +598,18 @@ class _CategoryPageState extends State<CategoryPage> {
                                                                   .size
                                                                   .width *
                                                               0.8,
-                                                      margin:
-                                                          EdgeInsets.symmetric(
-                                                              vertical: 5),
+                                                      margin: const EdgeInsets
+                                                          .symmetric(
+                                                          vertical: 5),
                                                       padding:
-                                                          EdgeInsets.all(10),
+                                                          const EdgeInsets.all(
+                                                              10),
                                                       decoration: BoxDecoration(
                                                           color: Colors
                                                               .grey.shade100,
                                                           borderRadius:
-                                                              BorderRadius.all(
-                                                                  Radius
+                                                              const BorderRadius
+                                                                  .all(Radius
                                                                       .circular(
                                                                           20))),
                                                       child: Column(
@@ -619,7 +617,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                                             CrossAxisAlignment
                                                                 .start,
                                                         children: [
-                                                          Text(
+                                                          const Text(
                                                             "Производители",
                                                             style: TextStyle(
                                                                 color: Colors
@@ -642,17 +640,18 @@ class _CategoryPageState extends State<CategoryPage> {
                                                                   .size
                                                                   .width *
                                                               0.8,
-                                                      margin:
-                                                          EdgeInsets.symmetric(
-                                                              vertical: 5),
+                                                      margin: const EdgeInsets
+                                                          .symmetric(
+                                                          vertical: 5),
                                                       padding:
-                                                          EdgeInsets.all(10),
+                                                          const EdgeInsets.all(
+                                                              10),
                                                       decoration: BoxDecoration(
                                                           color: Colors
                                                               .grey.shade100,
                                                           borderRadius:
-                                                              BorderRadius.all(
-                                                                  Radius
+                                                              const BorderRadius
+                                                                  .all(Radius
                                                                       .circular(
                                                                           20))),
                                                       child: Column(
@@ -660,7 +659,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                                             CrossAxisAlignment
                                                                 .start,
                                                         children: [
-                                                          Text(
+                                                          const Text(
                                                             "Страны",
                                                             style: TextStyle(
                                                                 color: Colors
@@ -685,9 +684,9 @@ class _CategoryPageState extends State<CategoryPage> {
                                                           children: [
                                                             Container(
                                                               padding:
-                                                                  EdgeInsets
+                                                                  const EdgeInsets
                                                                       .all(5),
-                                                              child: Text(
+                                                              child: const Text(
                                                                   "Подтвердить"),
                                                             )
                                                           ],
@@ -699,7 +698,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                           )),
                                     );
                                   },
-                                  child: Row(
+                                  child: const Row(
                                     children: [
                                       Icon(
                                         Icons.settings,
@@ -752,11 +751,11 @@ class _CategoryPageState extends State<CategoryPage> {
                                 )),
                       ).then((value) {
                         print("===================OFFSET===================");
-                        double _currentsc = _sc.offset;
-                        print(_currentsc);
+                        double currentsc = _sc.offset;
+                        print(currentsc);
                         _getItems();
                         _sc.animateTo(20,
-                            duration: Duration(microseconds: 300),
+                            duration: const Duration(microseconds: 300),
                             curve: Curves.bounceIn);
                         // updateItemCard(itemsWidget
                         //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
@@ -818,17 +817,17 @@ class _ItemCardState extends State<ItemCard> {
 
   void getProperties() {
     if (widget.element["properties"] != null) {
-      List<InlineSpan> properties_t = [];
+      List<InlineSpan> propertiesT = [];
       List<String> properties = widget.element["properties"].split(",");
       print(properties);
-      properties.forEach((element) {
+      for (var element in properties) {
         List temp = element.split(":");
-        properties_t.add(WidgetSpan(
+        propertiesT.add(WidgetSpan(
             child: Row(
           children: [
             Text(
               temp[1],
-              style: TextStyle(
+              style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: Colors.black),
@@ -838,25 +837,25 @@ class _ItemCardState extends State<ItemCard> {
               width: 14,
               height: 14,
             ),
-            SizedBox(
+            const SizedBox(
               width: 10,
             )
           ],
         )));
-      });
+      }
       setState(() {
-        propertiesWidget = properties_t;
+        propertiesWidget = propertiesT;
       });
     }
   }
 
   Future<void> refreshItemCard() async {
-    Map<String, dynamic>? _element = await getItem(widget.element["item_id"]);
-    print(_element);
-    this.setState(() {
-      element["name"] = "123";
-      element = _element!;
-      _buyButton = BuyButton(element: _element);
+    Map<String, dynamic>? element = await getItem(widget.element["item_id"]);
+    print(element);
+    setState(() {
+      element!["name"] = "123";
+      element = element!;
+      _buyButton = BuyButton(element: element!);
     });
   }
 
@@ -865,12 +864,12 @@ class _ItemCardState extends State<ItemCard> {
     chack = widget.chack;
     return Container(
       width: MediaQuery.of(context).size.width,
-      margin: EdgeInsets.all(10),
+      margin: const EdgeInsets.all(10),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.max,
         children: [
-          SizedBox(
+          const SizedBox(
             height: 20,
           ),
           Row(
@@ -886,14 +885,14 @@ class _ItemCardState extends State<ItemCard> {
                       alignment: Alignment.center,
                       width: MediaQuery.of(context).size.width * 0.4,
                       height: MediaQuery.of(context).size.width * 0.4,
-                      child: Container(
-                        child: CircularProgressIndicator(),
+                      child: const SizedBox(
                         width: 20,
                         height: 20,
+                        child: CircularProgressIndicator(),
                       ));
                 },
               ),
-              SizedBox(
+              const SizedBox(
                 width: 10,
               ),
               Column(
@@ -901,11 +900,11 @@ class _ItemCardState extends State<ItemCard> {
                 mainAxisSize: MainAxisSize.max,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
+                  SizedBox(
                     width: MediaQuery.of(context).size.width * 0.5,
                     child: RichText(
                       text: TextSpan(
-                          style: TextStyle(
+                          style: const TextStyle(
                               textBaseline: TextBaseline.alphabetic,
                               fontSize: 20,
                               color: Colors.black),
@@ -914,30 +913,30 @@ class _ItemCardState extends State<ItemCard> {
                             element["country"] != null
                                 ? WidgetSpan(
                                     child: Container(
+                                    padding: const EdgeInsets.all(5),
+                                    decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: const BorderRadius.all(
+                                            Radius.circular(10))),
                                     child: Text(
                                       element["country"] ?? "",
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           color: Colors.black,
                                           fontWeight: FontWeight.w600),
                                     ),
-                                    padding: EdgeInsets.all(5),
-                                    decoration: BoxDecoration(
-                                        color: Colors.grey.shade200,
-                                        borderRadius: BorderRadius.all(
-                                            Radius.circular(10))),
                                   ))
-                                : TextSpan()
+                                : const TextSpan()
                           ]),
                     ),
                   ),
-                  SizedBox(
+                  const SizedBox(
                     height: 10,
                   ),
                   RichText(
                       text: TextSpan(
-                          style: TextStyle(color: Colors.black),
+                          style: const TextStyle(color: Colors.black),
                           children: propertiesWidget)),
-                  SizedBox(
+                  const SizedBox(
                     height: 10,
                   ),
                   Column(
@@ -948,7 +947,7 @@ class _ItemCardState extends State<ItemCard> {
                               children: [
                                 Text(
                                   element['prev_price'] ?? "",
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       color: Colors.black,
                                       fontWeight: FontWeight.w500,
                                       fontSize: 14,
@@ -968,7 +967,7 @@ class _ItemCardState extends State<ItemCard> {
                         children: [
                           Text(
                             element['price'] ?? "",
-                            style: TextStyle(
+                            style: const TextStyle(
                                 color: Colors.black,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 24),
@@ -984,10 +983,10 @@ class _ItemCardState extends State<ItemCard> {
                       ),
                     ],
                   ),
-                  SizedBox(
+                  const SizedBox(
                     height: 15,
                   ),
-                  Container(
+                  SizedBox(
                     width: MediaQuery.of(context).size.width * 0.5,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -996,11 +995,11 @@ class _ItemCardState extends State<ItemCard> {
                         _buyButton,
                         Container(
                           alignment: Alignment.centerRight,
+                          width: MediaQuery.of(context).size.width * 0.1,
                           child: LikeButton(
                             is_liked: element["is_liked"],
                             item_id: element["item_id"],
                           ),
-                          width: MediaQuery.of(context).size.width * 0.1,
                         )
                       ],
                     ),
@@ -1009,7 +1008,7 @@ class _ItemCardState extends State<ItemCard> {
               )
             ],
           ),
-          SizedBox(
+          const SizedBox(
             height: 25,
           ),
           Container(
@@ -1064,7 +1063,7 @@ class _PropertyItemState extends State<PropertyItem> {
   Widget build(BuildContext context) {
     return ElevatedButton(
         style: ElevatedButton.styleFrom(
-            padding: EdgeInsets.all(5),
+            padding: const EdgeInsets.all(5),
             backgroundColor: widget.isSelected ? Colors.black : Colors.grey),
         onPressed: () {
           _select();
@@ -1116,7 +1115,7 @@ class _BrandItemState extends State<BrandItem> {
   Widget build(BuildContext context) {
     return ElevatedButton(
         style: ElevatedButton.styleFrom(
-            padding: EdgeInsets.all(5),
+            padding: const EdgeInsets.all(5),
             backgroundColor: widget.isSelected ? Colors.black : Colors.grey),
         onPressed: () {
           _select();
@@ -1169,7 +1168,7 @@ class _CountryItemState extends State<CountryItem> {
   Widget build(BuildContext context) {
     return ElevatedButton(
         style: ElevatedButton.styleFrom(
-            padding: EdgeInsets.all(5),
+            padding: const EdgeInsets.all(5),
             backgroundColor: widget.isSelected ? Colors.black : Colors.grey),
         onPressed: () {
           _select();
@@ -1222,7 +1221,7 @@ class _ManufacturerItemState extends State<ManufacturerItem> {
   Widget build(BuildContext context) {
     return ElevatedButton(
         style: ElevatedButton.styleFrom(
-            padding: EdgeInsets.all(5),
+            padding: const EdgeInsets.all(5),
             backgroundColor: widget.isSelected ? Colors.black : Colors.grey),
         onPressed: () {
           _select();

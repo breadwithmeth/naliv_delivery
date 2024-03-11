@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/pages/categoryPage.dart';
-import 'package:naliv_delivery/shared/buyButton.dart';
 import 'package:naliv_delivery/shared/likeButton.dart';
 
 class ProductPage extends StatefulWidget {
@@ -21,12 +19,12 @@ class _ProductPageState extends State<ProductPage> {
   List<Widget> groupItems = [];
   List<TableRow> properties = [];
 
-  ScrollController _sc = ScrollController();
+  final ScrollController _sc = ScrollController();
 
   List<Widget> propertiesWidget = [];
 
   int currentTab = 0;
-  String? amount = null;
+  String? amount;
   List<String> TabText = [
     "Виски Ballantine's 12 лет — это бленд 40 отборных солодовых и зерновых дистиллятов, минимальный срок выдержки которых составляет 12 лет. ",
     "Джордж Баллантайн (George Ballantine) – выходец из семьи простых фермеров, начал свою трудовую карьеру в возрасте девятнадцати лет в качестве подсобного рабочего в бакалейной лавке в Эдинбурге. Здесь, в 1827 году, Джордж открывает свой бакалейный магазин, в котором небольшими партиями начинает реализовывать собственный алкоголь. К 1865 году Баллантайну удается открыть еще один магазин в Глазго, куда и переезжает глава семьи, оставив торговлю в Эдинбурге старшему сыну Арчибальду. В это время виски под маркой Ballantine’s продают уже по всей Шотландии, а Джордж возглавляет компанию George Ballantine and Son, престижную репутацию которой в 1895 году подтвердил факт получения ордена Королевы Виктории.",
@@ -34,18 +32,18 @@ class _ProductPageState extends State<ProductPage> {
   ];
 
   Future<void> _getItem() async {
-    Map<String, dynamic>? _item = await getItem(widget.item_id);
-    print(_item);
-    if (_item != null) {
-      List<Widget> _groupItems = [];
-      List<TableRow> _properties = [];
-      List<Widget> properties_t = [];
+    Map<String, dynamic>? item = await getItem(widget.item_id);
+    print(item);
+    if (item != null) {
+      List<Widget> groupItems = [];
+      List<TableRow> properties = [];
+      List<Widget> propertiesT = [];
 
-      if (_item["group"] != null) {
-        List temp = _item["group"];
-        temp.forEach((element) {
+      if (item["group"] != null) {
+        List temp = item["group"];
+        for (var element in temp) {
           print(element);
-          _groupItems.add(GestureDetector(
+          groupItems.add(GestureDetector(
             onTap: () {
               Navigator.pushReplacement(context,
                   MaterialPageRoute(builder: (context) {
@@ -56,33 +54,33 @@ class _ProductPageState extends State<ProductPage> {
             },
             child: Container(
               alignment: Alignment.center,
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-              margin: EdgeInsets.all(5),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+              margin: const EdgeInsets.all(5),
               decoration: BoxDecoration(
                   color: Colors.grey.shade400,
-                  borderRadius: BorderRadius.all(Radius.circular(5))),
+                  borderRadius: const BorderRadius.all(Radius.circular(5))),
               child: Text(
                 element["amount"],
                 style:
-                    TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                    const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
               ),
             ),
           ));
-        });
+        }
       }
 
-      if (_item["properties"] != null) {
-        List temp = _item["properties"];
+      if (item["properties"] != null) {
+        List temp = item["properties"];
 
-        temp.forEach((element) {
-          properties_t.add(Container(
-              padding: EdgeInsets.all(5),
+        for (var element in temp) {
+          propertiesT.add(Container(
+              padding: const EdgeInsets.all(5),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     element["amount"],
-                    style: TextStyle(
+                    style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: Colors.black),
@@ -92,22 +90,22 @@ class _ProductPageState extends State<ProductPage> {
                     width: 14,
                     height: 14,
                   ),
-                  SizedBox(
+                  const SizedBox(
                     width: 10,
                   )
                 ],
               )));
-        });
+        }
 
-        if (_item["country"] != null) {
-          properties_t.add(Container(
-              padding: EdgeInsets.all(5),
+        if (item["country"] != null) {
+          propertiesT.add(Container(
+              padding: const EdgeInsets.all(5),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    _item["country"],
-                    style: TextStyle(
+                    item["country"],
+                    style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: Colors.black),
@@ -117,115 +115,115 @@ class _ProductPageState extends State<ProductPage> {
                     width: 14,
                     height: 14,
                   ),
-                  SizedBox(
+                  const SizedBox(
                     width: 10,
                   )
                 ],
               )));
         }
 
-        temp.forEach((element) {
-          _properties.add(TableRow(children: [
+        for (var element in temp) {
+          properties.add(TableRow(children: [
             TableCell(
               child: Container(
+                padding: const EdgeInsets.all(5),
                 child: Text(
                   element["name"],
-                  style: TextStyle(color: Colors.black, fontSize: 14),
+                  style: const TextStyle(color: Colors.black, fontSize: 14),
                 ),
-                padding: EdgeInsets.all(5),
               ),
             ),
             TableCell(
               child: Container(
+                padding: const EdgeInsets.all(5),
                 child: Text(
                   element["amount"] + element["unit"],
-                  style: TextStyle(color: Colors.black, fontSize: 14),
+                  style: const TextStyle(color: Colors.black, fontSize: 14),
                 ),
-                padding: EdgeInsets.all(5),
               ),
             )
           ]));
-        });
+        }
       }
-      _properties.addAll([
+      properties.addAll([
         TableRow(children: [
           TableCell(
             child: Container(
-              child: Text(
+              padding: const EdgeInsets.all(5),
+              child: const Text(
                 "Страна",
                 style: TextStyle(color: Colors.black, fontSize: 14),
               ),
-              padding: EdgeInsets.all(5),
             ),
           ),
           TableCell(
             child: Container(
+              padding: const EdgeInsets.all(5),
               child: Text(
-                _item["country"] ?? "",
-                style: TextStyle(color: Colors.black, fontSize: 14),
+                item["country"] ?? "",
+                style: const TextStyle(color: Colors.black, fontSize: 14),
               ),
-              padding: EdgeInsets.all(5),
             ),
           )
         ]),
         TableRow(children: [
           TableCell(
             child: Container(
-              child: Text(
+              padding: const EdgeInsets.all(5),
+              child: const Text(
                 "Брэнд",
                 style: TextStyle(color: Colors.black, fontSize: 14),
               ),
-              padding: EdgeInsets.all(5),
             ),
           ),
           TableCell(
             child: Container(
+              padding: const EdgeInsets.all(5),
               child: Text(
-                _item["b_name"] ?? "",
-                style: TextStyle(color: Colors.black, fontSize: 14),
+                item["b_name"] ?? "",
+                style: const TextStyle(color: Colors.black, fontSize: 14),
               ),
-              padding: EdgeInsets.all(5),
             ),
           )
         ]),
         TableRow(children: [
           TableCell(
             child: Container(
-              child: Text(
+              padding: const EdgeInsets.all(5),
+              child: const Text(
                 "Производитель",
                 style: TextStyle(color: Colors.black, fontSize: 14),
               ),
-              padding: EdgeInsets.all(5),
             ),
           ),
           TableCell(
             child: Container(
+              padding: const EdgeInsets.all(5),
               child: Text(
-                _item["m_name"] ?? "",
-                style: TextStyle(color: Colors.black, fontSize: 14),
+                item["m_name"] ?? "",
+                style: const TextStyle(color: Colors.black, fontSize: 14),
               ),
-              padding: EdgeInsets.all(5),
             ),
           )
         ]),
       ]);
 
       setState(() {
-        item = _item;
+        item = item;
         amount = item?["amount"];
-        properties = _properties;
+        properties = properties;
         TabText = [
-          _item["description"] ?? "",
-          _item["b_desc"] ?? "",
-          _item["m_desc"] ?? ""
+          item!["description"] ?? "",
+          item!["b_desc"] ?? "",
+          item!["m_desc"] ?? ""
         ];
-        groupItems = _groupItems;
+        groupItems = groupItems;
 
-        propertiesWidget = properties_t;
+        propertiesWidget = propertiesT;
 
         if (item != null) {
           _image = Image.network(
-            'https://naliv.kz/img/' + item!["photo"].toString(),
+            'https://naliv.kz/img/${item!["photo"]}',
             fit: BoxFit.cover,
             // width: MediaQuery.of(context).size.width * 0.8,
           );
@@ -257,7 +255,7 @@ class _ProductPageState extends State<ProductPage> {
     // setState(() {
     //   isLoad = true;
     // });
-    String? _amount = await addToCart(widget.item_id).then((value) {
+    String? amount1 = await addToCart(widget.item_id).then((value) {
       print(value);
       setState(() {
         amount = value;
@@ -273,7 +271,7 @@ class _ProductPageState extends State<ProductPage> {
     // TODO: implement initState
     super.initState();
     _getItem();
-    Timer(Duration(seconds: 3), () {});
+    Timer(const Duration(seconds: 3), () {});
   }
 
   @override
@@ -289,18 +287,18 @@ class _ProductPageState extends State<ProductPage> {
           floatingActionButton: GestureDetector(
             child: Container(
               height: 80,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                   // color: Colors.grey.shade400,
                   borderRadius: BorderRadius.all(Radius.circular(15))),
-              margin: EdgeInsets.all(5),
-              padding: EdgeInsets.all(4),
+              margin: const EdgeInsets.all(5),
+              padding: const EdgeInsets.all(4),
               width: MediaQuery.of(context).size.width,
               child: amount != null
                   ? Container(
                       decoration: BoxDecoration(
                           color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.all(Radius.circular(15))),
-                      padding: EdgeInsets.all(10),
+                          borderRadius: const BorderRadius.all(Radius.circular(15))),
+                      padding: const EdgeInsets.all(10),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -308,35 +306,35 @@ class _ProductPageState extends State<ProductPage> {
                             alignment: Alignment.centerLeft,
                             width: MediaQuery.of(context).size.width * 0.3,
                             child: Container(
-                              padding: EdgeInsets.all(3),
+                              padding: const EdgeInsets.all(3),
                               decoration: BoxDecoration(
                                   color: Colors.grey.shade200,
                                   borderRadius:
-                                      BorderRadius.all(Radius.circular(10))),
+                                      const BorderRadius.all(Radius.circular(10))),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   IconButton(
-                                    padding: EdgeInsets.all(0),
+                                    padding: const EdgeInsets.all(0),
                                     onPressed: () async {
-                                      String? _amount =
+                                      String? amount =
                                           await removeFromCart(widget.item_id);
                                       setState(() {
-                                        amount = _amount;
+                                        amount = amount;
                                       });
                                     },
-                                    icon: Icon(Icons.remove),
+                                    icon: const Icon(Icons.remove),
                                   ),
                                   Text(
                                     amount.toString(),
-                                    style: TextStyle(color: Colors.black),
+                                    style: const TextStyle(color: Colors.black),
                                   ),
                                   IconButton(
-                                    padding: EdgeInsets.all(0),
+                                    padding: const EdgeInsets.all(0),
                                     onPressed: () {
                                       _addToCard();
                                     },
-                                    icon: Icon(Icons.add),
+                                    icon: const Icon(Icons.add),
                                   ),
                                 ],
                               ),
@@ -347,17 +345,17 @@ class _ProductPageState extends State<ProductPage> {
                               item?["prev_price"] != null
                                   ? Text(
                                       item?["prev_price"],
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           decoration:
                                               TextDecoration.lineThrough),
                                     )
                                   : Container(),
-                              SizedBox(
+                              const SizedBox(
                                 width: 5,
                               ),
                               Text(
                                 item?["price"] ?? "",
-                                style: TextStyle(
+                                style: const TextStyle(
                                     fontWeight: FontWeight.w700,
                                     fontSize: 26,
                                     color: Colors.black),
@@ -369,7 +367,7 @@ class _ProductPageState extends State<ProductPage> {
                     )
                   : ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.all(10),
+                          padding: const EdgeInsets.all(10),
                           backgroundColor: Colors.grey.shade400),
                       onPressed: () {
                         _addToCard();
@@ -379,7 +377,7 @@ class _ProductPageState extends State<ProductPage> {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         mainAxisSize: MainAxisSize.max,
                         children: [
-                          Text(
+                          const Text(
                             "В корзину",
                             style: TextStyle(
                                 fontWeight: FontWeight.w700,
@@ -397,12 +395,12 @@ class _ProductPageState extends State<ProductPage> {
                                           color: Colors.grey.shade500),
                                     )
                                   : Container(),
-                              SizedBox(
+                              const SizedBox(
                                 width: 5,
                               ),
                               Text(
                                 item?["price"] ?? "",
-                                style: TextStyle(
+                                style: const TextStyle(
                                     fontWeight: FontWeight.w700,
                                     fontSize: 26,
                                     color: Colors.black),
@@ -413,24 +411,24 @@ class _ProductPageState extends State<ProductPage> {
                       )),
             ),
           ),
-          backgroundColor: Color(0xAAFAFAFA),
+          backgroundColor: const Color(0xAAFAFAFA),
           body: Container(
             color: Colors.white,
             child: ListView(
               controller: _sc,
               children: [
                 Container(
-                  padding: EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(10),
                   width: MediaQuery.of(context).size.width,
                   height: MediaQuery.of(context).size.width,
                   child: Stack(
                     children: [
                       Container(
                         width: double.maxFinite,
-                        padding: EdgeInsets.all(40),
+                        padding: const EdgeInsets.all(40),
                         child: _image,
                       ),
-                      Container(
+                      SizedBox(
                         width: MediaQuery.of(context).size.width,
                         height: MediaQuery.of(context).size.width,
                         child: Column(
@@ -450,13 +448,13 @@ class _ProductPageState extends State<ProductPage> {
                                       },
                                     ));
                                   },
-                                  icon: Icon(
+                                  icon: const Icon(
                                     Icons.arrow_back_ios,
                                   ),
                                 ),
                                 IconButton(
                                   onPressed: () {},
-                                  icon: Icon(Icons.share_outlined),
+                                  icon: const Icon(Icons.share_outlined),
                                 ),
                               ],
                             ),
@@ -465,16 +463,16 @@ class _ProductPageState extends State<ProductPage> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Text(
+                                const Text(
                                   "Арт: 1234567",
                                   style: TextStyle(fontSize: 10),
                                 ),
                                 Container(
+                                  margin: const EdgeInsets.all(5),
                                   child: LikeButton(
                                     item_id: item!["item_id"],
                                     is_liked: item!["is_liked"],
                                   ),
-                                  margin: EdgeInsets.all(5),
                                 )
                               ],
                             )
@@ -485,67 +483,67 @@ class _ProductPageState extends State<ProductPage> {
                   ),
                 ),
                 Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
                   child: Row(
                     children: [
                       Container(
-                        margin: EdgeInsets.only(right: 10),
-                        padding: EdgeInsets.all(5),
-                        child: Text(
+                        margin: const EdgeInsets.only(right: 10),
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: const BorderRadius.all(Radius.circular(5))),
+                        child: const Text(
                           "Новинка",
                           style: TextStyle(color: Colors.black),
                         ),
-                        decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.all(Radius.circular(5))),
                       ),
                       Container(
-                        margin: EdgeInsets.only(right: 10),
-                        padding: EdgeInsets.all(5),
-                        child: Text(
+                        margin: const EdgeInsets.only(right: 10),
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: const BorderRadius.all(Radius.circular(5))),
+                        child: const Text(
                           "Новинка",
                           style: TextStyle(color: Colors.black),
                         ),
-                        decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.all(Radius.circular(5))),
                       ),
                       Container(
-                        margin: EdgeInsets.only(right: 10),
-                        padding: EdgeInsets.all(5),
-                        child: Text(
+                        margin: const EdgeInsets.only(right: 10),
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: const BorderRadius.all(Radius.circular(5))),
+                        child: const Text(
                           "Новинка",
                           style: TextStyle(color: Colors.black),
                         ),
-                        decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.all(Radius.circular(5))),
                       ),
                     ],
                   ),
-                  padding: EdgeInsets.symmetric(horizontal: 15, vertical: 5),
                 ),
                 Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
                   child: Text(
                     item!["name"] ?? "",
-                    style: TextStyle(
+                    style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w500,
                         color: Colors.black),
                   ),
-                  padding: EdgeInsets.symmetric(horizontal: 15, vertical: 5),
                 ),
-                SizedBox(
+                const SizedBox(
                   height: 5,
                 ),
                 Container(
                     width: MediaQuery.of(context).size.width,
-                    padding: EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
                     child: Wrap(
                       children: propertiesWidget,
                     )),
                 item!["group"] != null
                     ? Container(
-                        padding: EdgeInsets.symmetric(horizontal: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
                         height: 50,
                         width: MediaQuery.of(context).size.width,
                         child: ListView(
@@ -555,26 +553,26 @@ class _ProductPageState extends State<ProductPage> {
                             children: groupItems),
                       )
                     : Container(),
-                SizedBox(
+                const SizedBox(
                   height: 5,
                 ),
                 Stack(
                   children: [
                     Container(
                       height: 25,
-                      padding: EdgeInsets.symmetric(horizontal: 15),
+                      padding: const EdgeInsets.symmetric(horizontal: 15),
                       decoration: BoxDecoration(
                           boxShadow: [
                             BoxShadow(
                                 color: Colors.grey.withOpacity(0.15),
-                                offset: Offset(0, -1),
+                                offset: const Offset(0, -1),
                                 blurRadius: 15,
                                 spreadRadius: 1)
                           ],
                           border: Border(
                               bottom: BorderSide(
                                   color: Colors.grey.shade200, width: 3))),
-                      child: Row(
+                      child: const Row(
                         children: [],
                       ),
                     ),
@@ -583,7 +581,7 @@ class _ProductPageState extends State<ProductPage> {
                       children: [
                         GestureDetector(
                           child: Container(
-                            margin: EdgeInsets.only(left: 15),
+                            margin: const EdgeInsets.only(left: 15),
                             decoration: BoxDecoration(
                                 border: Border(
                                     bottom: BorderSide(
@@ -591,7 +589,7 @@ class _ProductPageState extends State<ProductPage> {
                                         color: currentTab == 0
                                             ? Colors.black
                                             : Colors.grey.shade200))),
-                            child: Text(
+                            child: const Text(
                               "Описание",
                               style:
                                   TextStyle(color: Colors.black, fontSize: 16),
@@ -605,7 +603,7 @@ class _ProductPageState extends State<ProductPage> {
                         ),
                         GestureDetector(
                           child: Container(
-                            margin: EdgeInsets.only(left: 15),
+                            margin: const EdgeInsets.only(left: 15),
                             height: 25,
                             decoration: BoxDecoration(
                                 border: Border(
@@ -614,7 +612,7 @@ class _ProductPageState extends State<ProductPage> {
                                         color: currentTab == 1
                                             ? Colors.black
                                             : Colors.grey.shade200))),
-                            child: Text(
+                            child: const Text(
                               "О бренде",
                               style:
                                   TextStyle(color: Colors.black, fontSize: 16),
@@ -628,7 +626,7 @@ class _ProductPageState extends State<ProductPage> {
                         ),
                         GestureDetector(
                           child: Container(
-                            margin: EdgeInsets.only(left: 15),
+                            margin: const EdgeInsets.only(left: 15),
                             height: 25,
                             decoration: BoxDecoration(
                                 border: Border(
@@ -637,7 +635,7 @@ class _ProductPageState extends State<ProductPage> {
                                         color: currentTab == 2
                                             ? Colors.black
                                             : Colors.grey.shade200))),
-                            child: Text(
+                            child: const Text(
                               "Производитель",
                               style:
                                   TextStyle(color: Colors.black, fontSize: 16),
@@ -654,13 +652,13 @@ class _ProductPageState extends State<ProductPage> {
                   ],
                 ),
                 Container(
-                  padding: EdgeInsets.all(15),
+                  padding: const EdgeInsets.all(15),
                   child: Text(TabText[currentTab]),
                 ),
                 Container(
-                    padding: EdgeInsets.all(15),
+                    padding: const EdgeInsets.all(15),
                     child: Table(
-                      columnWidths: {
+                      columnWidths: const {
                         0: FlexColumnWidth(),
                         1: FlexColumnWidth()
                       },
@@ -673,9 +671,9 @@ class _ProductPageState extends State<ProductPage> {
                     )),
                 Container(
                   alignment: Alignment.center,
-                  child: CircularProgressIndicator(),
+                  child: const CircularProgressIndicator(),
                 ),
-                SizedBox(
+                const SizedBox(
                   height: 100,
                 )
               ],

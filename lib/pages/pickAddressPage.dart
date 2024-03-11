@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/pages/createAddress.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
@@ -24,18 +23,18 @@ class _PickAddressPageState extends State<PickAddressPage>
   List<Widget> suggestions = [];
   Widget selectedAddress = Container();
 
-  MapObjectId cameraMapObjectId = MapObjectId("current_location");
+  MapObjectId cameraMapObjectId = const MapObjectId("current_location");
 
   bool map_expanded = true;
 
-  TextEditingController _addressInputController = TextEditingController();
+  final TextEditingController _addressInputController = TextEditingController();
 
   late Animation<double> animation;
   late Animation<double> animationR;
 
   late AnimationController aController;
 
-  Widget _loadingScreen = Container();
+  final Widget _loadingScreen = Container();
 
   String street = "";
   String house = "";
@@ -46,10 +45,10 @@ class _PickAddressPageState extends State<PickAddressPage>
 
   Map<String, dynamic> city = {};
   Future<void> _getCity() async {
-    Map<String, dynamic>? _city = await getCity();
-    if (_city != null) {
+    Map<String, dynamic>? city = await getCity();
+    if (city != null) {
       setState(() {
-        city = _city;
+        city = city;
       });
     }
 
@@ -57,20 +56,20 @@ class _PickAddressPageState extends State<PickAddressPage>
             zoom: 12,
             target: Point(
                 latitude:
-                    ((double.parse(city["x1"]) + double.parse(city["x2"])) /
+                    ((double.parse(city!["x1"]) + double.parse(city!["x2"])) /
                             2) ??
                         50,
                 longitude:
-                    ((double.parse(city["y1"]) + double.parse(city["y2"])) /
+                    ((double.parse(city!["y1"]) + double.parse(city!["y2"])) /
                         2))))) ??
         50;
   }
 
   _getStores() async {
     List? businesses = await getBusinesses();
-    Timer(Duration(seconds: 5), () {
-      List<MapObject> _mapObjects = [];
-      _mapObjects.add(
+    Timer(const Duration(seconds: 5), () {
+      List<MapObject> mapObjects = [];
+      mapObjects.add(
         PlacemarkMapObject(
           mapId: cameraMapObjectId,
           point: Point(
@@ -86,22 +85,22 @@ class _PickAddressPageState extends State<PickAddressPage>
       );
 
       if (businesses != null) {
-        businesses.forEach((element) {
-          _mapObjects.add(
+        for (var element in businesses) {
+          mapObjects.add(
             PlacemarkMapObject(
               mapId: MapObjectId(element["business_id"]),
               point: Point(
                   latitude: double.parse(element["lat"]),
                   longitude: double.parse(element["lon"])),
               text: PlacemarkText(
-                  text: element["name"], style: PlacemarkTextStyle()),
+                  text: element["name"], style: const PlacemarkTextStyle()),
               opacity: 0.5,
             ),
           );
-        });
+        }
       }
       setState(() {
-        mapObjects = _mapObjects;
+        mapObjects = mapObjects;
       });
     });
   }
@@ -112,44 +111,44 @@ class _PickAddressPageState extends State<PickAddressPage>
     final resultWithSession = YandexSearch.searchByPoint(
       point: cameraPos.target,
       zoom: cameraPos.zoom.toInt(),
-      searchOptions: SearchOptions(
+      searchOptions: const SearchOptions(
         searchType: SearchType.geo,
         geometry: false,
       ),
     );
 
-    String? _street = await resultWithSession.result.then((value) => value
+    String? street = await resultWithSession.result.then((value) => value
         .items!
         .first
         .toponymMetadata!
         .address
         .addressComponents[SearchComponentKind.street]);
-    String? _appartment = await resultWithSession.result.then((value) => value
+    String? appartment = await resultWithSession.result.then((value) => value
         .items!
         .first
         .toponymMetadata!
         .address
         .addressComponents[SearchComponentKind.house]);
-    double? _lat = await resultWithSession.result.then(
+    double? lat = await resultWithSession.result.then(
         (value) => value.items!.first.toponymMetadata!.balloonPoint.latitude);
-    double? _lon = await resultWithSession.result.then(
+    double? lon = await resultWithSession.result.then(
         (value) => value.items!.first.toponymMetadata!.balloonPoint.longitude);
-    print(_street);
+    print(street);
 
     resultWithSession.session.close();
     setState(() {
-      house = _appartment ?? "";
-      street = _street ?? "";
+      house = appartment ?? "";
+      street = street ?? "";
     });
 
     Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => CreateAddress(
-            lon: _lon!,
-            lat: _lat!,
-            street: _street!,
-            house: _appartment!,
+            lon: lon!,
+            lat: lat!,
+            street: street!,
+            house: appartment!,
           ),
         ));
   }
@@ -165,21 +164,21 @@ class _PickAddressPageState extends State<PickAddressPage>
         southWest: Point(latitude: city["x1"], longitude: city["y2"]),
         northEast: Point(latitude: city["x2"], longitude: city["y1"]),
       )),
-      searchOptions: SearchOptions(
+      searchOptions: const SearchOptions(
         searchType: SearchType.geo,
         geometry: false,
       ),
     );
 
-    double? _lat = await resultWithSession.result.then(
+    double? lat = await resultWithSession.result.then(
         (value) => value.items!.first.toponymMetadata!.balloonPoint.latitude);
-    double? _lon = await resultWithSession.result.then(
+    double? lon = await resultWithSession.result.then(
         (value) => value.items!.first.toponymMetadata!.balloonPoint.longitude);
-    print(_lat);
+    print(lat);
 
     setState(() {
       controller.moveCamera(CameraUpdate.newCameraPosition(
-          CameraPosition(target: Point(latitude: _lat!, longitude: _lon!))));
+          CameraPosition(target: Point(latitude: lat!, longitude: lon!))));
       controller.moveCamera(CameraUpdate.zoomTo(20));
     });
 
@@ -193,23 +192,23 @@ class _PickAddressPageState extends State<PickAddressPage>
   }
 
   Future<void> _getAddressAuto() async {
-    Position _curPos = await determinePosition();
+    Position curPos = await determinePosition();
 
     final resultWithSession = YandexSearch.searchByPoint(
-      point: Point(latitude: _curPos.latitude, longitude: _curPos.longitude),
-      searchOptions: SearchOptions(
+      point: Point(latitude: curPos.latitude, longitude: curPos.longitude),
+      searchOptions: const SearchOptions(
         searchType: SearchType.geo,
         geometry: false,
       ),
     );
 
-    String? _street = await resultWithSession.result.then((value) => value
+    String? street = await resultWithSession.result.then((value) => value
         .items!
         .first
         .toponymMetadata!
         .address
         .addressComponents[SearchComponentKind.street]);
-    String? _appartment = await resultWithSession.result.then((value) => value
+    String? appartment = await resultWithSession.result.then((value) => value
         .items!
         .first
         .toponymMetadata!
@@ -217,43 +216,43 @@ class _PickAddressPageState extends State<PickAddressPage>
         .addressComponents[SearchComponentKind.house]);
     resultWithSession.session.close();
 
-    print(_street);
-    print(_appartment);
-    if (_street != null && _appartment != null) {
+    print(street);
+    print(appartment);
+    if (street != null && appartment != null) {
       controller.moveCamera(CameraUpdate.newCameraPosition(CameraPosition(
           zoom: 20,
           target: Point(
-              latitude: _curPos.latitude, longitude: _curPos.longitude))));
+              latitude: curPos.latitude, longitude: curPos.longitude))));
       showDialog(
         useSafeArea: false,
         context: context,
         builder: (context) {
           return AlertDialog(
-            contentPadding: EdgeInsets.all(0),
+            contentPadding: const EdgeInsets.all(0),
             content: Container(
-              padding: EdgeInsets.all(15),
-              decoration: BoxDecoration(
+              padding: const EdgeInsets.all(15),
+              decoration: const BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.all(Radius.circular(30))),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
+                  const Text(
                     "Ваше устройство находится здесь?",
                     style: TextStyle(
                         fontWeight: FontWeight.w400,
                         fontSize: 14,
                         color: Colors.black),
                   ),
-                  SizedBox(
+                  const SizedBox(
                     height: 10,
                   ),
                   Row(
                     children: [
-                      Text("Улица: "),
+                      const Text("Улица: "),
                       Text(
-                        _street,
-                        style: TextStyle(
+                        street,
+                        style: const TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
                             color: Colors.black),
@@ -262,35 +261,35 @@ class _PickAddressPageState extends State<PickAddressPage>
                   ),
                   Row(
                     children: [
-                      Text("Дом: "),
+                      const Text("Дом: "),
                       Text(
-                        _appartment,
-                        style: TextStyle(
+                        appartment,
+                        style: const TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
                             color: Colors.black),
                       )
                     ],
                   ),
-                  SizedBox(
+                  const SizedBox(
                     height: 20,
                   ),
                   ElevatedButton(
                       onPressed: () {
                         _search();
                       },
-                      child: Row(
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [Text("Использовать этот адрес")],
                       )),
-                  SizedBox(
+                  const SizedBox(
                     height: 5,
                   ),
                   ElevatedButton(
                       onPressed: () {
                         Navigator.pop(context);
                       },
-                      child: Row(
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [Text("Добавить другой адрес")],
                       )),
@@ -314,7 +313,7 @@ class _PickAddressPageState extends State<PickAddressPage>
               latitude: double.parse(city["x2"]),
               longitude: double.parse(city["y1"])),
         ),
-        suggestOptions: SuggestOptions(
+        suggestOptions: const SuggestOptions(
           suggestType: SuggestType.geo,
           suggestWords: true,
         ));
@@ -348,12 +347,12 @@ class _PickAddressPageState extends State<PickAddressPage>
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.location_on_outlined),
+                      const Icon(Icons.location_on_outlined),
                       Column(
                         children: [
                           Text(
                             item.title,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w400,
                                 color: Colors.black),
@@ -362,7 +361,7 @@ class _PickAddressPageState extends State<PickAddressPage>
                       ),
                     ],
                   ),
-                  Divider()
+                  const Divider()
                 ],
               )));
         }
@@ -407,8 +406,8 @@ class _PickAddressPageState extends State<PickAddressPage>
                                 point: cameraPosition.target);
                       });
                     },
-                    onMapCreated: (_controller) {
-                      controller = _controller;
+                    onMapCreated: (controller) {
+                      controller = controller;
 
                       controller.moveCamera(CameraUpdate.newCameraPosition(
                               CameraPosition(
@@ -428,23 +427,23 @@ class _PickAddressPageState extends State<PickAddressPage>
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       Container(
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                             color: Colors.white,
                             borderRadius:
                                 BorderRadius.all(Radius.circular(15))),
                         width: MediaQuery.of(context).size.width,
-                        padding: EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(10),
                         margin:
-                            EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                            const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.search),
-                            Container(
+                            const Icon(Icons.search),
+                            SizedBox(
                               width: MediaQuery.of(context).size.width * 0.7,
                               child: TextFormField(
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                     hintText: "Поиск улицы",
                                     border: InputBorder.none,
                                     errorBorder: InputBorder.none,
@@ -462,15 +461,15 @@ class _PickAddressPageState extends State<PickAddressPage>
                     ],
                   ),
                   Container(
+                    margin: const EdgeInsets.all(15),
+                    padding: const EdgeInsets.all(10),
+                    decoration: const BoxDecoration(
+                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                        color: Colors.white),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: suggestions,
                     ),
-                    margin: EdgeInsets.all(15),
-                    padding: EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                        borderRadius: BorderRadius.all(Radius.circular(10)),
-                        color: Colors.white),
                   ),
                   Center(
                     child: Icon(
@@ -483,17 +482,17 @@ class _PickAddressPageState extends State<PickAddressPage>
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Container(
-                        padding: EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(10),
                         child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.all(20),
+                                padding: const EdgeInsets.all(20),
                                 backgroundColor: test),
                             onPressed: () {
                               setState(() {
                                 test = Colors.blue;
                               });
                             },
-                            child: Row(
+                            child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               mainAxisSize: MainAxisSize.max,
                               children: [
@@ -546,7 +545,7 @@ class _PickAddressPageState extends State<PickAddressPage>
         aController.forward();
       }
     });
-    Timer timer = new Timer(new Duration(seconds: 2), () {
+    Timer timer = Timer(const Duration(seconds: 2), () {
       initMap();
       _getCity();
 
@@ -566,7 +565,7 @@ class _PickAddressPageState extends State<PickAddressPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           "Выберите адрес",
           style: TextStyle(
               color: Colors.black, fontWeight: FontWeight.w700, fontSize: 20),
@@ -670,8 +669,8 @@ class _PickAddressPageState extends State<PickAddressPage>
                             });
                           }
                         },
-                        onMapCreated: (_controller) {
-                          controller = _controller;
+                        onMapCreated: (controller) {
+                          controller = controller;
                         },
                       ),
                       Center(
@@ -685,15 +684,15 @@ class _PickAddressPageState extends State<PickAddressPage>
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Container(
-                            padding: EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(10),
                             child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                    padding: EdgeInsets.all(20),
+                                    padding: const EdgeInsets.all(20),
                                     backgroundColor: Colors.grey.shade400),
                                 onPressed: () {
                                   _search();
                                 },
-                                child: Row(
+                                child: const Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   mainAxisSize: MainAxisSize.max,
                                   children: [
@@ -716,24 +715,24 @@ class _PickAddressPageState extends State<PickAddressPage>
           Column(
             children: [
               Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.all(Radius.circular(15))),
                 width: MediaQuery.of(context).size.width,
-                padding: EdgeInsets.all(10),
-                margin: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                padding: const EdgeInsets.all(10),
+                margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.search),
-                    Container(
+                    const Icon(Icons.search),
+                    SizedBox(
                       width: MediaQuery.of(context).size.width * 0.7,
                       child: TextFormField(
                         onChanged: (value) {
                           _suggest();
                         },
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                             hintText: "Поиск улицы",
                             border: InputBorder.none,
                             errorBorder: InputBorder.none,
@@ -749,15 +748,15 @@ class _PickAddressPageState extends State<PickAddressPage>
                 ),
               ),
               Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 1),
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                    color: Colors.white),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: suggestions,
                 ),
-                margin: EdgeInsets.symmetric(horizontal: 20, vertical: 1),
-                padding: EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.all(Radius.circular(10)),
-                    color: Colors.white),
               )
             ],
           ),
@@ -772,7 +771,7 @@ class _SessionPageByGeo extends StatefulWidget {
   final SearchSession session;
   final Point point;
 
-  _SessionPageByGeo(this.point, this.session, this.result);
+  const _SessionPageByGeo(this.point, this.session, this.result);
 
   @override
   _SessionState createState() => _SessionState();
@@ -817,7 +816,7 @@ class _SessionGeoState extends State<_SessionPageByGeo> {
     final list = <Widget>[];
 
     if (results.isEmpty) {
-      list.add((Text('Nothing found')));
+      list.add((const Text('Nothing found')));
     }
     print(results[0]
         .items![0]
@@ -909,7 +908,7 @@ class _SessionPage extends StatefulWidget {
   final SearchSession session;
   final String query;
 
-  _SessionPage(this.query, this.session, this.result);
+  const _SessionPage(this.query, this.session, this.result);
 
   @override
   _SessionState createState() => _SessionState();
@@ -938,12 +937,12 @@ class _SessionState extends State<_SessionPage> {
     return Scaffold(
         appBar: AppBar(title: Text('Search ${widget.session.id}')),
         body: Container(
-            padding: EdgeInsets.all(8),
+            padding: const EdgeInsets.all(8),
             child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   Expanded(
                       child: SingleChildScrollView(
                           child: Column(children: <Widget>[
@@ -954,14 +953,14 @@ class _SessionState extends State<_SessionPage> {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Text(widget.query,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 20,
                                 )),
                             !_progress
                                 ? Container()
                                 : TextButton.icon(
-                                    icon: CircularProgressIndicator(),
-                                    label: Text('Cancel'),
+                                    icon: const CircularProgressIndicator(),
+                                    label: const Text('Cancel'),
                                     onPressed: _cancel)
                           ],
                         )),
@@ -970,7 +969,7 @@ class _SessionState extends State<_SessionPage> {
                       children: <Widget>[
                         Flexible(
                           child: Padding(
-                              padding: EdgeInsets.only(top: 20),
+                              padding: const EdgeInsets.only(top: 20),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: _getList(),
@@ -986,7 +985,7 @@ class _SessionState extends State<_SessionPage> {
     final list = <Widget>[];
 
     if (results.isEmpty) {
-      list.add((Text('Nothing found')));
+      list.add((const Text('Nothing found')));
     }
 
     for (var r in results) {

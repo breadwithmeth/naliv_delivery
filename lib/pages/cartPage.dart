@@ -5,7 +5,6 @@ import 'package:naliv_delivery/pages/createOrder.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
 import 'package:naliv_delivery/shared/buyButton.dart';
 import 'package:naliv_delivery/shared/likeButton.dart';
-import 'package:states_rebuilder/states_rebuilder.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -19,22 +18,20 @@ class _CartPageState extends State<CartPage> {
   Map<String, dynamic> cartInfo = {};
 
   Future<void> _getCart() async {
-    List _cart = await getCart();
-    print(_cart);
+    List cart = await getCart();
+    print(cart);
 
-    Map<String, dynamic>? _cartInfo = await getCartInfo();
+    Map<String, dynamic>? cartInfo = await getCartInfo();
 
     setState(() {
-      items = _cart;
-      cartInfo = _cartInfo!;
+      items = cart;
+      cartInfo = cartInfo!;
     });
   }
 
-  Future<bool> _deleteFromCart(String item_id) async {
-    bool? result = await deleteFromCart(item_id);
-    if (result == null) {
-      result = false;
-    }
+  Future<bool> _deleteFromCart(String itemId) async {
+    bool? result = await deleteFromCart(itemId);
+    result ??= false;
 
     print(result);
     return Future(() => result!);
@@ -51,7 +48,7 @@ class _CartPageState extends State<CartPage> {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Column(children: [
-        SizedBox(
+        const SizedBox(
           height: 10,
         ),
         ListView.builder(
@@ -71,7 +68,7 @@ class _CartPageState extends State<CartPage> {
                 // what to do after an item has been swiped away.
 
                 // Show a red background as the item is swiped away.
-                background: Container(
+                background: SizedBox(
                   width: 100,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -81,15 +78,15 @@ class _CartPageState extends State<CartPage> {
                       Container(
                         width: MediaQuery.of(context).size.width * 0.7,
                         alignment: Alignment.center,
-                        padding: EdgeInsets.only(right: 10),
+                        padding: const EdgeInsets.only(right: 10),
                         color: Colors.grey.shade100,
                       ),
                       Container(
                         width: MediaQuery.of(context).size.width * 0.3,
                         alignment: Alignment.center,
-                        padding: EdgeInsets.only(right: 10),
+                        padding: const EdgeInsets.only(right: 10),
                         color: Colors.grey.shade100,
-                        child: Column(
+                        child: const Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [Icon(Icons.delete), Text("Удалить")],
                         ),
@@ -101,39 +98,39 @@ class _CartPageState extends State<CartPage> {
           },
         ),
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 30, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
           child: TextField(
             decoration: InputDecoration(
                 hintText: "Введите промокод",
                 fillColor: Colors.grey.shade100,
                 filled: true,
-                border: OutlineInputBorder(
+                border: const OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.white),
                     borderRadius: BorderRadius.all(Radius.circular(10))),
-                focusedBorder: OutlineInputBorder(
+                focusedBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.white),
                     borderRadius: BorderRadius.all(Radius.circular(10))),
-                enabledBorder: OutlineInputBorder(
+                enabledBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.white),
                     borderRadius: BorderRadius.all(Radius.circular(10)))),
           ),
         ),
         Container(
-          margin: EdgeInsets.all(30),
+          margin: const EdgeInsets.all(30),
           child: ElevatedButton(
               onPressed: () {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => CreateOrderPage(),
+                      builder: (context) => const CreateOrderPage(),
                     ));
               },
-              child: Row(
+              child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [Text("Оформить заказ")],
               )),
         ),
-        SizedBox(
+        const SizedBox(
           height: 100,
         )
       ]),
@@ -161,9 +158,9 @@ class _ItemCardState extends State<ItemCard> {
 
   Future<void> refreshItemCard() async {
     if (element["item_id"] != null) {
-      Map<String, dynamic>? _element = await getItem(widget.element["item_id"]);
+      Map<String, dynamic>? element = await getItem(widget.element["item_id"]);
       setState(() {
-        element = _element!;
+        element = element!;
       });
     }
   }
@@ -172,7 +169,7 @@ class _ItemCardState extends State<ItemCard> {
   Widget build(BuildContext context) {
     return GestureDetector(
       child: Container(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.max,
@@ -182,14 +179,14 @@ class _ItemCardState extends State<ItemCard> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
+                SizedBox(
                 width: MediaQuery.of(context).size.width * 0.25,
                 child: Image.network(
                   'https://naliv.kz/img/' + element["photo"],
                   width: MediaQuery.of(context).size.width * 0.25,
                   fit: BoxFit.fill,
                 ),),
-                Container(
+                SizedBox(
                   width: MediaQuery.of(context).size.width * 0.6,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -201,11 +198,11 @@ class _ItemCardState extends State<ItemCard> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.max,
                         children: [
-                          Container(
+                          SizedBox(
                             width: MediaQuery.of(context).size.width * 0.4,
                             child: RichText(
                               text: TextSpan(
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       textBaseline: TextBaseline.alphabetic,
                                       fontSize: 14,
                                       color: Colors.black),
@@ -234,7 +231,7 @@ class _ItemCardState extends State<ItemCard> {
                           )
                         ],
                       ),
-                      SizedBox(
+                      const SizedBox(
                         height: 10,
                       ),
                       Row(
@@ -242,13 +239,14 @@ class _ItemCardState extends State<ItemCard> {
                         mainAxisSize: MainAxisSize.max,
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Container(
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.3,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   element['prev_price'] ?? "",
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       color: Colors.black,
                                       fontWeight: FontWeight.w500,
                                       fontSize: 15,
@@ -258,7 +256,7 @@ class _ItemCardState extends State<ItemCard> {
                                   children: [
                                     Text(
                                       element['price'] ?? "",
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           color: Colors.black,
                                           fontWeight: FontWeight.w600,
                                           fontSize: 24),
@@ -274,7 +272,6 @@ class _ItemCardState extends State<ItemCard> {
                                 ),
                               ],
                             ),
-                            width: MediaQuery.of(context).size.width * 0.3,
                           ),
                           BuyButton(element: element),
                         ],
@@ -284,7 +281,7 @@ class _ItemCardState extends State<ItemCard> {
                 )
               ],
             ),
-            SizedBox(
+            const SizedBox(
               height: 15,
             ),
             Container(
@@ -300,7 +297,7 @@ class _ItemCardState extends State<ItemCard> {
           MaterialPageRoute(
               builder: (context) => ProductPage(
                     item_id: element["item_id"],
-                    returnWidget: BottomMenu(page: 2),
+                    returnWidget: const BottomMenu(page: 2),
                   )),
         );
       },

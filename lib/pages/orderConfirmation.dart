@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/orderPage.dart';
 
@@ -26,13 +25,13 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    Timer(Duration(seconds: 1), () {
+    Timer(const Duration(seconds: 1), () {
       setState(() {
         _w = 300;
       });
     });
-    Timer(Duration(seconds: 6), () {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => OrderPage(),));
+    Timer(const Duration(seconds: 6), () {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const OrderPage(),));
     });
   }
 
@@ -43,7 +42,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text("Убедитесь в правильности заказа"),
+            const Text("Убедитесь в правильности заказа"),
             Stack(
               children: [
                 Container(
@@ -54,7 +53,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                       border: Border.all(color: Colors.black, width: 1)),
                 ),
                 AnimatedContainer(
-                  duration: Duration(seconds: 5),
+                  duration: const Duration(seconds: 5),
                   width: _w,
                   height: 10,
                   color: Colors.black,
@@ -68,9 +67,9 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                       color: Colors.grey.shade100,
                     ),
                     color: Colors.white,
-                    borderRadius: BorderRadius.all(Radius.circular(10))),
-                margin: EdgeInsets.symmetric(horizontal: 30, vertical: 5),
-                padding: EdgeInsets.all(5),
+                    borderRadius: const BorderRadius.all(Radius.circular(10))),
+                margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
+                padding: const EdgeInsets.all(5),
                 child: ListView.builder(
                     primary: false,
                     shrinkWrap: true,
@@ -89,9 +88,9 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                           color: Colors.grey.shade100,
                         ),
                         color: Colors.white,
-                        borderRadius: BorderRadius.all(Radius.circular(10))),
-                    margin: EdgeInsets.symmetric(horizontal: 30, vertical: 5),
-                    padding: EdgeInsets.all(15),
+                        borderRadius: const BorderRadius.all(Radius.circular(10))),
+                    margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
+                    padding: const EdgeInsets.all(15),
                     child: Column(
                       children: [
                         Text(widget.address!["address"] ?? "") ?? Container()

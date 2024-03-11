@@ -16,7 +16,7 @@ import 'package:naliv_delivery/shared/commonAppBar.dart';
 import 'main.dart';
 
 class BottomMenu extends StatefulWidget {
-  BottomMenu({super.key, required this.page});
+  const BottomMenu({super.key, required this.page});
   final int page;
   @override
   State<BottomMenu> createState() => _BottomMenuState();
@@ -26,7 +26,7 @@ class _BottomMenuState extends State<BottomMenu> {
   late final Position _location;
 
   final List<BottomNavigationBarItem> _bottomNavigationBarItems = [
-    BottomNavigationBarItem(
+    const BottomNavigationBarItem(
         activeIcon: ImageIcon(AssetImage("assets/icons/home_active.png")),
         icon: ImageIcon(AssetImage("assets/icons/home.png")),
 
@@ -36,7 +36,7 @@ class _BottomMenuState extends State<BottomMenu> {
         //   height: 25,
         // ),
         label: "Каталог"),
-    BottomNavigationBarItem(
+    const BottomNavigationBarItem(
         activeIcon: ImageIcon(AssetImage("assets/icons/like_active.png")),
         icon: ImageIcon(AssetImage("assets/icons/like.png")),
 
@@ -46,7 +46,7 @@ class _BottomMenuState extends State<BottomMenu> {
         //   height: 25,
         // ),
         label: "Любимое"),
-    BottomNavigationBarItem(
+    const BottomNavigationBarItem(
         activeIcon: ImageIcon(AssetImage("assets/icons/cart_active.png")),
         icon: ImageIcon(AssetImage("assets/icons/cart.png")),
 
@@ -56,7 +56,7 @@ class _BottomMenuState extends State<BottomMenu> {
         //   height: 25,
         // ),
         label: "Корзина"),
-    BottomNavigationBarItem(
+    const BottomNavigationBarItem(
         activeIcon: ImageIcon(AssetImage("assets/icons/profile_active.png")),
         icon: ImageIcon(AssetImage("assets/icons/profile.png")),
 
@@ -82,7 +82,7 @@ class _BottomMenuState extends State<BottomMenu> {
   bool _isMinimized = false;
   List<String> list = <String>['One', 'Two', 'Three', 'Four'];
 
-  List<Widget> menuItems = [HomePage(), FavPage(), CartPage(), ProfilePage()];
+  List<Widget> menuItems = [const HomePage(), const FavPage(), const CartPage(), const ProfilePage()];
 
   double _toolbarheight = 80;
 
@@ -112,7 +112,7 @@ class _BottomMenuState extends State<BottomMenu> {
   void generateMaximizedAppBar() {
     print(123);
     _getBusinesses();
-    Widget _maximizedAppBar = Container(
+    Widget maximizedAppBar = SizedBox(
         height: MediaQuery.of(context).size.height,
         child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -122,14 +122,14 @@ class _BottomMenuState extends State<BottomMenu> {
               height: MediaQuery.of(context).size.height,
               child: Column(
                 children: [
-                  SizedBox(
+                  const SizedBox(
                     height: 10,
                   ),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      SizedBox(
+                      const SizedBox(
                         width: 10,
                       ),
                       Column(
@@ -138,13 +138,13 @@ class _BottomMenuState extends State<BottomMenu> {
                         children: [
                           GestureDetector(
                             child: Container(
-                              margin: EdgeInsets.symmetric(vertical: 5),
-                              padding: EdgeInsets.symmetric(
+                              margin: const EdgeInsets.symmetric(vertical: 5),
+                              padding: const EdgeInsets.symmetric(
                                   vertical: 7, horizontal: 5),
                               color: Colors.black,
                               child: Text(
                                 currentBusiness!["name"] ?? "",
-                                style: TextStyle(
+                                style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
                                     fontSize: 17),
@@ -152,7 +152,7 @@ class _BottomMenuState extends State<BottomMenu> {
                             ),
                             onTap: () {},
                           ),
-                          SizedBox(
+                          const SizedBox(
                             height: 5,
                           ),
                           Row(
@@ -162,19 +162,19 @@ class _BottomMenuState extends State<BottomMenu> {
                               //   currentBusiness!["city"] ?? "",
                               //   style: TextStyle(fontSize: 12, color: gray1),
                               // ),
-                              Icon(
+                              const Icon(
                                 Icons.arrow_forward_ios,
                                 size: 6,
                               ),
                               Text(
                                 currentBusiness!["address"] ?? "",
-                                style: TextStyle(fontSize: 12, color: gray1),
+                                style: const TextStyle(fontSize: 12, color: gray1),
                               )
                             ],
                           )
                         ],
                       ),
-                      Spacer(),
+                      const Spacer(),
                       Row(children: [
                         IconButton(
                             onPressed: () {
@@ -183,9 +183,9 @@ class _BottomMenuState extends State<BottomMenu> {
                                 initAppBar();
                               });
                             },
-                            icon: Icon(Icons.close))
+                            icon: const Icon(Icons.close))
                       ]),
-                      SizedBox(
+                      const SizedBox(
                         width: 10,
                       ),
                     ],
@@ -195,7 +195,7 @@ class _BottomMenuState extends State<BottomMenu> {
               ),
             )));
     setState(() {
-      _currentAppBar = _maximizedAppBar;
+      _currentAppBar = maximizedAppBar;
       _toolbarheight = MediaQuery.of(context).size.height;
     });
   }
@@ -205,36 +205,36 @@ class _BottomMenuState extends State<BottomMenu> {
     if (businesses == null) {
       print("");
     } else {
-      List<Widget> _businessesWidget = [];
-      businesses.forEach((element) {
+      List<Widget> businessesWidget = [];
+      for (var element in businesses) {
         double dist = getDisc(
             double.parse(element["lat"]),
             double.parse(element["lon"]),
             double.parse(element["user_lat"]),
             double.parse(element["user_lon"]));
         print(dist);
-        _businessesWidget.add(TextButton(
+        businessesWidget.add(TextButton(
           onPressed: () async {
             if (await setCurrentStore(element["business_id"])) {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => Main()),
+                MaterialPageRoute(builder: (context) => const Main()),
               );
             }
           },
           child: Container(
-            padding: EdgeInsets.all(15),
+            padding: const EdgeInsets.all(15),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.pin_drop_outlined,
                       color: Colors.black,
                     ),
-                    SizedBox(
+                    const SizedBox(
                       width: 10,
                     ),
                     Column(
@@ -242,30 +242,30 @@ class _BottomMenuState extends State<BottomMenu> {
                       children: [
                         Text(
                           element["name"] ?? "",
-                          style: TextStyle(fontSize: 14, color: Colors.black),
+                          style: const TextStyle(fontSize: 14, color: Colors.black),
                         ),
                         Text(
                           element["address"] ?? "",
-                          style: TextStyle(fontSize: 14, color: Colors.black),
+                          style: const TextStyle(fontSize: 14, color: Colors.black),
                         ),
                       ],
                     ),
-                    Spacer(),
+                    const Spacer(),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         dist >= 1
                             ? Text(
-                                dist.toStringAsPrecision(1) + "км",
+                                "${dist.toStringAsPrecision(1)}км",
                                 style: TextStyle(
                                     fontSize: 14, color: Colors.grey.shade400),
                               )
                             : Text(
-                                (dist * 1000).toStringAsFixed(0) + "м",
+                                "${(dist * 1000).toStringAsFixed(0)}м",
                                 style: TextStyle(
                                     fontSize: 14, color: Colors.grey.shade400),
                               ),
-                        SizedBox(
+                        const SizedBox(
                           height: 3,
                         ),
                         Text(
@@ -277,34 +277,34 @@ class _BottomMenuState extends State<BottomMenu> {
                     )
                   ],
                 ),
-                SizedBox(
+                const SizedBox(
                   height: 10,
                 )
               ],
             ),
           ),
         ));
-      });
+      }
       setState(() {
         _stores = Column(
-          children: _businessesWidget,
+          children: businessesWidget,
         );
       });
-      print(_businessesWidget);
+      print(businessesWidget);
     }
   }
 
   String dropdownValue = "Two";
   int _curentIndex = 0;
   Widget _dropDownButtonStore = Container();
-  PageController _pageController = PageController();
+  final PageController _pageController = PageController();
 
   Future<void> initAppBar() async {
     Map<String, dynamic>? business = await getLastSelectedBusiness();
     if (business == null) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => BusinessSelectStartPage()),
+        MaterialPageRoute(builder: (context) => const BusinessSelectStartPage()),
       );
     }
 
@@ -313,7 +313,7 @@ class _BottomMenuState extends State<BottomMenu> {
 
       minimizedAppBar = Container(
         alignment: Alignment.center,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: Colors.white70,
         ),
         clipBehavior: Clip.antiAlias,
@@ -323,7 +323,7 @@ class _BottomMenuState extends State<BottomMenu> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              SizedBox(
+              const SizedBox(
                 width: 10,
               ),
               Column(
@@ -332,12 +332,12 @@ class _BottomMenuState extends State<BottomMenu> {
                 children: [
                   GestureDetector(
                     child: Container(
-                      margin: EdgeInsets.symmetric(vertical: 5),
-                      padding: EdgeInsets.symmetric(vertical: 7, horizontal: 5),
+                      margin: const EdgeInsets.symmetric(vertical: 5),
+                      padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 5),
                       color: Colors.black,
                       child: Text(
                         business!["name"],
-                        style: TextStyle(
+                        style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
                             fontSize: 17),
@@ -353,44 +353,44 @@ class _BottomMenuState extends State<BottomMenu> {
                       // );
                     },
                   ),
-                  SizedBox(
+                  const SizedBox(
                     height: 5,
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       Text(
-                        business!["city"],
-                        style: TextStyle(fontSize: 12, color: gray1),
+                        business["city"],
+                        style: const TextStyle(fontSize: 12, color: gray1),
                       ),
-                      Icon(
+                      const Icon(
                         Icons.arrow_forward_ios,
                         size: 6,
                       ),
                       Text(
-                        business!["address"],
-                        style: TextStyle(fontSize: 12, color: gray1),
+                        business["address"],
+                        style: const TextStyle(fontSize: 12, color: gray1),
                       )
                     ],
                   )
                 ],
               ),
-              Spacer(),
+              const Spacer(),
               Row(children: [
                 IconButton(
                     onPressed: () {},
-                    icon: Icon(
+                    icon: const Icon(
                       Icons.search,
                       size: 28,
                     )),
                 IconButton(
                     onPressed: () {},
-                    icon: Icon(
+                    icon: const Icon(
                       Icons.notifications_outlined,
                       size: 28,
                     ))
               ]),
-              SizedBox(
+              const SizedBox(
                 width: 10,
               ),
             ],
@@ -402,18 +402,18 @@ class _BottomMenuState extends State<BottomMenu> {
         CommonAppBar(
             business: business,
             title: "ЛЮБИМОЕ",
-            titleIcon: Icon(Icons.favorite_outline),
-            options: []),
+            titleIcon: const Icon(Icons.favorite_outline),
+            options: const []),
         CommonAppBar(
             business: business,
             title: "КОРЗИНА",
-            titleIcon: Icon(Icons.shopping_bag_outlined),
-            options: []),
+            titleIcon: const Icon(Icons.shopping_bag_outlined),
+            options: const []),
         CommonAppBar(
             business: business,
             title: "ПРОФИЛЬ",
-            titleIcon: Icon(Icons.person_outlined),
-            options: []),
+            titleIcon: const Icon(Icons.person_outlined),
+            options: const []),
       ];
       _currentAppBar = minimizedAppBar;
     });
@@ -436,14 +436,14 @@ class _BottomMenuState extends State<BottomMenu> {
               dropdownValue = value!;
             });
           },
-          items: [
+          items: const [
             DropdownMenuItem(
-              child: Text("One"),
               value: "One",
+              child: Text("One"),
             ),
             DropdownMenuItem(
-              child: Text("Two"),
               value: "Two",
+              child: Text("Two"),
             ),
           ]);
     });
@@ -464,7 +464,7 @@ class _BottomMenuState extends State<BottomMenu> {
     if (business == null) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => BusinessSelectStartPage()),
+        MaterialPageRoute(builder: (context) => const BusinessSelectStartPage()),
       );
     }
     setState(() {
@@ -472,7 +472,7 @@ class _BottomMenuState extends State<BottomMenu> {
       currentBusiness = business;
       _currentAppBar = appbars[widget.page];
       _pageController.animateToPage(widget.page,
-          duration: Duration(seconds: 1), curve: Curves.easeInCirc);
+          duration: const Duration(seconds: 1), curve: Curves.easeInCirc);
       appbarIndex = widget.page;
     });
   }
@@ -502,10 +502,10 @@ class _BottomMenuState extends State<BottomMenu> {
             showUnselectedLabels: true,
             backgroundColor: Colors.transparent,
             elevation: 0,
-            unselectedLabelStyle: TextStyle(fontSize: 12, color: Colors.black),
-            selectedLabelStyle: TextStyle(
+            unselectedLabelStyle: const TextStyle(fontSize: 12, color: Colors.black),
+            selectedLabelStyle: const TextStyle(
                 fontSize: 12, color: Colors.black, fontWeight: FontWeight.w500),
-            selectedItemColor: Color(0xFFEE7203),
+            selectedItemColor: const Color(0xFFEE7203),
             // unselectedItemColor: Colors.black,
             iconSize: 24,
             type: BottomNavigationBarType.fixed,
@@ -522,7 +522,7 @@ class _BottomMenuState extends State<BottomMenu> {
           appBar: AppBar(
             leading: Container(),
             automaticallyImplyLeading: false,
-            systemOverlayStyle: SystemUiOverlayStyle(
+            systemOverlayStyle: const SystemUiOverlayStyle(
                 statusBarBrightness: Brightness.light,
                 statusBarColor: Colors.white,
                 statusBarIconBrightness: Brightness.dark),
@@ -568,7 +568,7 @@ class _BottomMenuState extends State<BottomMenu> {
           // // bottomNavigationBar:
           body: PageView(
             controller: _pageController,
-            physics: NeverScrollableScrollPhysics(),
+            physics: const NeverScrollableScrollPhysics(),
             children: menuItems,
           ),
         ));

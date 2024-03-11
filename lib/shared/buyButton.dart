@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 import '../misc/api.dart';
 
@@ -27,9 +26,9 @@ class _BuyButtonState extends State<BuyButton> {
 
   Future<void> refreshItemCard() async {
     if (element["item_id"] != null) {
-      Map<String, dynamic>? _element = await getItem(widget.element["item_id"]);
+      Map<String, dynamic>? element = await getItem(widget.element["item_id"]);
       setState(() {
-        element = _element!;
+        element = element!;
       });
     }
   }
@@ -58,15 +57,15 @@ class _BuyButtonState extends State<BuyButton> {
                 alignment: Alignment.centerLeft,
                 width: MediaQuery.of(context).size.width * 0.3,
                 child: Container(
-                  padding: EdgeInsets.all(3),
+                  padding: const EdgeInsets.all(3),
                   decoration: BoxDecoration(
                       color: Colors.grey.shade200,
-                      borderRadius: BorderRadius.all(Radius.circular(10))),
+                      borderRadius: const BorderRadius.all(Radius.circular(10))),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        padding: EdgeInsets.all(0),
+                        padding: const EdgeInsets.all(0),
                         onPressed: () async {
                           String? amount =
                               await removeFromCart(element["item_id"]);
@@ -74,18 +73,18 @@ class _BuyButtonState extends State<BuyButton> {
                             element["amount"] = amount;
                           });
                         },
-                        icon: Icon(Icons.remove),
+                        icon: const Icon(Icons.remove),
                       ),
                       Text(
                         element["amount"].toString(),
-                        style: TextStyle(color: Colors.black),
+                        style: const TextStyle(color: Colors.black),
                       ),
                       IconButton(
-                        padding: EdgeInsets.all(0),
+                        padding: const EdgeInsets.all(0),
                         onPressed: () {
                           _addToCard();
                         },
-                        icon: Icon(Icons.add),
+                        icon: const Icon(Icons.add),
                       ),
                     ],
                   ),
@@ -97,7 +96,7 @@ class _BuyButtonState extends State<BuyButton> {
                 onPressed: () {
                   _addToCard();
                 },
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.max,
                   children: [
@@ -118,7 +117,7 @@ class _BuyButtonState extends State<BuyButton> {
                     onTap: () {
                       refreshItemCard();
                     },
-                    child: Row(
+                    child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.max,
                     children: [CircularProgressIndicator()],)),
@@ -152,9 +151,9 @@ class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
 
   Future<void> refreshItemCard() async {
     if (element["item_id"] != null) {
-      Map<String, dynamic>? _element = await getItem(widget.element["item_id"]);
+      Map<String, dynamic>? element = await getItem(widget.element["item_id"]);
       setState(() {
-        element = _element!;
+        element = element!;
       });
     }
   }
@@ -183,15 +182,15 @@ class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
                 alignment: Alignment.centerLeft,
                 width: MediaQuery.of(context).size.width * 0.3,
                 child: Container(
-                  padding: EdgeInsets.all(3),
+                  padding: const EdgeInsets.all(3),
                   decoration: BoxDecoration(
                       color: Colors.grey.shade200,
-                      borderRadius: BorderRadius.all(Radius.circular(10))),
+                      borderRadius: const BorderRadius.all(Radius.circular(10))),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        padding: EdgeInsets.all(0),
+                        padding: const EdgeInsets.all(0),
                         onPressed: () async {
                           String? amount =
                               await removeFromCart(element["item_id"]);
@@ -199,18 +198,18 @@ class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
                             element["amount"] = amount;
                           });
                         },
-                        icon: Icon(Icons.remove),
+                        icon: const Icon(Icons.remove),
                       ),
                       Text(
                         element["amount"].toString(),
-                        style: TextStyle(color: Colors.black),
+                        style: const TextStyle(color: Colors.black),
                       ),
                       IconButton(
-                        padding: EdgeInsets.all(0),
+                        padding: const EdgeInsets.all(0),
                         onPressed: () {
                           _addToCard();
                         },
-                        icon: Icon(Icons.add),
+                        icon: const Icon(Icons.add),
                       ),
                     ],
                   ),
@@ -224,7 +223,7 @@ class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
                   addToCart(element["item_id"]);
                   refreshItemCard();
                 },
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.max,
                   children: [
@@ -244,7 +243,7 @@ class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
                 onPressed: () {
                   refreshItemCard();
                 },
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.max,
                   children: [
