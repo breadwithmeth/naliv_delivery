@@ -21,43 +21,41 @@ class _FavPageState extends State<FavPage> {
     List _items = await getLiked();
     List<Widget> _itemsWidget = [];
     _items.forEach((element) {
-      _itemsWidget.add(
-         GestureDetector(
-              key: Key(element["item_id"]),
-              child: ItemCard(
-                item_id: element["item_id"],
-                element: element,
-                category_id: "",
-                category_name: "",
-                scroll: 0,
-              ),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => ProductPage(
-                            item_id: element["item_id"],
-                            returnWidget: BottomMenu(page: 1),
-                          )),
-                ).then((value) {
-                  print("===================OFFSET===================");
-                  
-                  // updateItemCard(itemsWidget
-                  //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
-                  // print("индекс");
+      _itemsWidget.add(GestureDetector(
+        key: Key(element["item_id"]),
+        child: ItemCard(
+          item_id: element["item_id"],
+          element: element,
+          category_id: "",
+          category_name: "",
+          scroll: 0,
+        ),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => ProductPage(
+                      item_id: element["item_id"],
+                      returnWidget: BottomMenu(page: 1),
+                    )),
+          ).then((value) {
+            print("===================OFFSET===================");
 
-                  // print(itemsWidget
-                  //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
-                  // print("индекс");
-                  // setState(() {
-                  //   // itemsWidget[itemsWidget.indexWhere(
-                  //   //         (_gd) => _gd.key == Key(element["item_id"]))] =
-                  //   //     GestureDetector();
-                  // });
-                });
-              },
-            )
-      );
+            // updateItemCard(itemsWidget
+            //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
+            // print("индекс");
+
+            // print(itemsWidget
+            //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
+            // print("индекс");
+            // setState(() {
+            //   // itemsWidget[itemsWidget.indexWhere(
+            //   //         (_gd) => _gd.key == Key(element["item_id"]))] =
+            //   //     GestureDetector();
+            // });
+          });
+        },
+      ));
     });
     setState(() {
       items = _items;
@@ -78,49 +76,56 @@ class _FavPageState extends State<FavPage> {
         SizedBox(
           height: 10,
         ),
-        ListView.builder(
-          primary: false,
-          shrinkWrap: true,
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            final item = items[index];
-            return GestureDetector(
-              key: Key(items[index]["item_id"]),
-              child: ItemCard(
-                item_id: items[index]["item_id"],
-                element: items[index],
-                category_id: "",
-                category_name: "",
-                scroll: 0,
-              ),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => ProductPage(
-                            item_id: items[index]["item_id"],
-                            returnWidget: BottomMenu(page: 1),
-                          )),
-                ).then((value) {
-                  print("===================OFFSET===================");
-                  
-                  // updateItemCard(itemsWidget
-                  //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
-                  // print("индекс");
+        items.isNotEmpty
+            ? ListView.builder(
+                primary: false,
+                shrinkWrap: true,
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  return GestureDetector(
+                    key: Key(items[index]["item_id"]),
+                    child: ItemCard(
+                      item_id: items[index]["item_id"],
+                      element: items[index],
+                      category_id: "",
+                      category_name: "",
+                      scroll: 0,
+                    ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => ProductPage(
+                                  item_id: items[index]["item_id"],
+                                  returnWidget: BottomMenu(page: 1),
+                                )),
+                      ).then((value) {
+                        print("===================OFFSET===================");
 
-                  // print(itemsWidget
-                  //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
-                  // print("индекс");
-                  // setState(() {
-                  //   // itemsWidget[itemsWidget.indexWhere(
-                  //   //         (_gd) => _gd.key == Key(element["item_id"]))] =
-                  //   //     GestureDetector();
-                  // });
-                });
-              },
-            );
-          },
-        ),
+                        // updateItemCard(itemsWidget
+                        //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
+                        // print("индекс");
+
+                        // print(itemsWidget
+                        //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
+                        // print("индекс");
+                        // setState(() {
+                        //   // itemsWidget[itemsWidget.indexWhere(
+                        //   //         (_gd) => _gd.key == Key(element["item_id"]))] =
+                        //   //     GestureDetector();
+                        // });
+                      });
+                    },
+                  );
+                },
+              )
+            : Center(
+                child: Text(
+                  "Вы пока не добавили товары в этом магазине",
+                  style: TextStyle(color: Colors.black),
+                ),
+              ),
         SizedBox(
           height: 100,
         )
