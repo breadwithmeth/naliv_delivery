@@ -66,16 +66,6 @@ class _BottomMenuState extends State<BottomMenu> {
         //   height: 25,
         // ),
         label: "Корзина"),
-    const BottomNavigationBarItem(
-        activeIcon: ImageIcon(AssetImage("assets/icons/profile_active.png")),
-        icon: ImageIcon(AssetImage("assets/icons/profile.png")),
-
-        // icon: SizedBox(
-        //   child: Image.asset("assets/icons/person_outlined.png"),
-        //   width: 25,
-        //   height: 25,
-        // ),
-        label: "Профиль"),
   ];
 
   String businessName = "";
@@ -90,7 +80,6 @@ class _BottomMenuState extends State<BottomMenu> {
     const HomePage(),
     const FavPage(),
     const CartPage(),
-    const ProfilePage()
   ];
 
   List<AppBar> appbars = [];
@@ -155,9 +144,6 @@ class _BottomMenuState extends State<BottomMenu> {
                   ],
                 ),
               ))),
-    );
-    appbars.add(
-      AppBar(),
     );
     appbars.add(
       AppBar(),
@@ -434,7 +420,7 @@ class _BottomMenuState extends State<BottomMenu> {
       // ),
 
       body: PageView.builder(
-        itemCount: 4,
+        itemCount: menuItems.length,
         pageSnapping: true,
         onPageChanged: (value) {
           setState(() {
@@ -451,240 +437,242 @@ class _BottomMenuState extends State<BottomMenu> {
 
   Drawer _drawer() {
     return Drawer(
-        child: Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 50),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: MediaQuery.of(context).size.width * 0.10,
-                  backgroundImage: const NetworkImage(
-                      "https://air-fom.com/wp-content/uploads/2018/06/real_1920.jpg"),
-                ),
-                const SizedBox(
-                  height: 10,
-                  width: 10,
-                  child: Placeholder(),
-                ),
-                // SizedBox(
-                //   width: MediaQuery.of(context).size.width * 0.3,
-                //   child: Column(
-                //     crossAxisAlignment: CrossAxisAlignment.start,
-                //     children: [
-                //       Text(
-                //         user["name"] ?? "",
-                //         style: const TextStyle(
-                //             color: Colors.black,
-                //             fontWeight: FontWeight.w500,
-                //             fontSize: 16),
-                //       ),
-                //       Text(
-                //         user["login"] ?? "",
-                //         style: const TextStyle(
-                //             color: Colors.black,
-                //             fontWeight: FontWeight.w400,
-                //             fontSize: 14),
-                //       ),
-                //       Text(
-                //         user["user_id"] ?? "",
-                //         style: TextStyle(
-                //             color: Colors.grey.shade400,
-                //             fontWeight: FontWeight.w400,
-                //             fontSize: 14),
-                //       )
-                //     ],
-                //   ),
-                // )
-              ],
+        child: SafeArea(
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: MediaQuery.of(context).size.width * 0.10,
+                    backgroundImage: const NetworkImage(
+                        "https://air-fom.com/wp-content/uploads/2018/06/real_1920.jpg"),
+                  ),
+                  const SizedBox(
+                    width: 10,
+                  ),
+                  // TODO: activate this code in production
+                  // SizedBox(
+                  //   width: MediaQuery.of(context).size.width * 0.3,
+                  //   child: Column(
+                  //     crossAxisAlignment: CrossAxisAlignment.start,
+                  //     children: [
+                  //       Text(
+                  //         user["name"] ?? "",
+                  //         style: const TextStyle(
+                  //             color: Colors.black,
+                  //             fontWeight: FontWeight.w500,
+                  //             fontSize: 16),
+                  //       ),
+                  //       Text(
+                  //         user["login"] ?? "",
+                  //         style: const TextStyle(
+                  //             color: Colors.black,
+                  //             fontWeight: FontWeight.w400,
+                  //             fontSize: 14),
+                  //       ),
+                  //       Text(
+                  //         user["user_id"] ?? "",
+                  //         style: TextStyle(
+                  //             color: Colors.grey.shade400,
+                  //             fontWeight: FontWeight.w400,
+                  //             fontSize: 14),
+                  //       )
+                  //     ],
+                  //   ),
+                  // )
+                ],
+              ),
             ),
           ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-          child: Column(
-            children: [
-              TextButton(
-                style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 30)),
-                onPressed: () {},
-                child: const Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.shopping_bag_outlined,
-                      size: 24,
-                      color: Colors.black,
-                    ),
-                    SizedBox(
-                      width: 10,
-                    ),
-                    Text(
-                      "История заказов",
-                      style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w400,
-                          fontSize: 20),
-                    )
-                  ],
+          const Divider(),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+            child: Column(
+              children: [
+                TextButton(
+                  style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 20)),
+                  onPressed: () {},
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.shopping_bag_outlined,
+                        size: 24,
+                        color: Colors.black,
+                      ),
+                      SizedBox(
+                        width: 10,
+                      ),
+                      Text(
+                        "История заказов",
+                        style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w400,
+                            fontSize: 20),
+                      )
+                    ],
+                  ),
                 ),
-              ),
-              const Divider(),
-              TextButton(
-                style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 30)),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const AddressesPage()),
-                  );
-                },
-                child: const Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.home_outlined,
-                      size: 24,
-                      color: Colors.black,
-                    ),
-                    SizedBox(
-                      width: 10,
-                    ),
-                    Text(
-                      "Адреса доставки",
-                      style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w400,
-                          fontSize: 20),
-                    )
-                  ],
+                const Divider(),
+                TextButton(
+                  style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 20)),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const AddressesPage()),
+                    );
+                  },
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.home_outlined,
+                        size: 24,
+                        color: Colors.black,
+                      ),
+                      SizedBox(
+                        width: 10,
+                      ),
+                      Text(
+                        "Адреса доставки",
+                        style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w400,
+                            fontSize: 20),
+                      )
+                    ],
+                  ),
                 ),
-              ),
-              const Divider(),
-              TextButton(
-                style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 30)),
-                onPressed: () {},
-                child: const Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.credit_card,
-                      size: 24,
-                      color: Colors.black,
-                    ),
-                    SizedBox(
-                      width: 10,
-                    ),
-                    Text(
-                      "Карты оплаты",
-                      style: TextStyle(
-                          color: Colors.grey,
-                          fontWeight: FontWeight.w400,
-                          fontSize: 20),
-                    )
-                  ],
+                const Divider(),
+                TextButton(
+                  style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 20)),
+                  onPressed: () {},
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.credit_card,
+                        size: 24,
+                        color: Colors.black,
+                      ),
+                      SizedBox(
+                        width: 10,
+                      ),
+                      Text(
+                        "Карты оплаты",
+                        style: TextStyle(
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w400,
+                            fontSize: 20),
+                      )
+                    ],
+                  ),
                 ),
-              ),
-              const Divider(),
-              TextButton(
-                style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 30)),
-                onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(
-                    builder: (context) {
-                      return const SettingsPage();
-                    },
-                  ));
-                },
-                child: const Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.settings_outlined,
-                      size: 24,
-                      color: Colors.black,
-                    ),
-                    SizedBox(
-                      width: 10,
-                    ),
-                    Text(
-                      "Настройки",
-                      style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w400,
-                          fontSize: 20),
-                    )
-                  ],
+                const Divider(),
+                TextButton(
+                  style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 20)),
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(
+                      builder: (context) {
+                        return const SettingsPage();
+                      },
+                    ));
+                  },
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.settings_outlined,
+                        size: 24,
+                        color: Colors.black,
+                      ),
+                      SizedBox(
+                        width: 10,
+                      ),
+                      Text(
+                        "Настройки",
+                        style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w400,
+                            fontSize: 20),
+                      )
+                    ],
+                  ),
                 ),
-              ),
-              const Divider(),
-              TextButton(
-                style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 30)),
-                onPressed: () {},
-                child: const Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.chat_bubble_outline,
-                      size: 24,
-                      color: Colors.black,
-                    ),
-                    SizedBox(
-                      width: 10,
-                    ),
-                    Text(
-                      "Поддержка",
-                      style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w400,
-                          fontSize: 20),
-                    )
-                  ],
+                const Divider(),
+                TextButton(
+                  style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 20)),
+                  onPressed: () {},
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.chat_bubble_outline,
+                        size: 24,
+                        color: Colors.black,
+                      ),
+                      SizedBox(
+                        width: 10,
+                      ),
+                      Text(
+                        "Поддержка",
+                        style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w400,
+                            fontSize: 20),
+                      )
+                    ],
+                  ),
                 ),
-              ),
-              const Divider(),
-              TextButton(
-                style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 30)),
-                onPressed: () {
-                  print(123);
-                  logout();
-                  Navigator.pushReplacement(context, MaterialPageRoute(
-                    builder: (context) {
-                      return const LoginPage();
-                    },
-                  ));
-                },
-                child: const Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.exit_to_app_outlined,
-                      size: 24,
-                      color: Colors.black,
-                    ),
-                    SizedBox(
-                      width: 10,
-                    ),
-                    Text(
-                      "Выйти",
-                      style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w400,
-                          fontSize: 20),
-                    )
-                  ],
+                const Divider(),
+                TextButton(
+                  style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 20)),
+                  onPressed: () {
+                    print(123);
+                    logout();
+                    Navigator.pushReplacement(context, MaterialPageRoute(
+                      builder: (context) {
+                        return const LoginPage();
+                      },
+                    ));
+                  },
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.exit_to_app_outlined,
+                        size: 24,
+                        color: Colors.black,
+                      ),
+                      SizedBox(
+                        width: 10,
+                      ),
+                      Text(
+                        "Выйти",
+                        style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w400,
+                            fontSize: 20),
+                      )
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        )
-      ],
+              ],
+            ),
+          )
+        ],
+      ),
     ));
   }
 }

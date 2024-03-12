@@ -46,6 +46,7 @@ class _MainState extends State<Main> {
   Widget build(BuildContext context) {
     return MaterialApp(
         theme: ThemeData(
+          useMaterial3: true,
           brightness: Brightness.light,
           pageTransitionsTheme: const PageTransitionsTheme(builders: {
             TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),

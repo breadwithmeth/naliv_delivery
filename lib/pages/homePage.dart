@@ -148,7 +148,10 @@ class _HomePageState extends State<HomePage>
                         width: MediaQuery.of(context).size.width * 0.15,
                         height: MediaQuery.of(context).size.width * 0.15,
                       ),
-                      const Text("Новинки")
+                      const Text(
+                        "Новинки",
+                        style: TextStyle(fontSize: 12),
+                      )
                     ],
                   ),
                 ),
@@ -166,7 +169,10 @@ class _HomePageState extends State<HomePage>
                         width: MediaQuery.of(context).size.width * 0.15,
                         height: MediaQuery.of(context).size.width * 0.15,
                       ),
-                      const Text("Новинки")
+                      const Text(
+                        "Со скидкой",
+                        style: TextStyle(fontSize: 12),
+                      )
                     ],
                   ),
                 ),
@@ -184,7 +190,10 @@ class _HomePageState extends State<HomePage>
                         width: MediaQuery.of(context).size.width * 0.15,
                         height: MediaQuery.of(context).size.width * 0.15,
                       ),
-                      const Text("Новинки")
+                      const Text(
+                        "Хит продаж",
+                        style: TextStyle(fontSize: 12),
+                      )
                     ],
                   ),
                 ),
@@ -202,7 +211,10 @@ class _HomePageState extends State<HomePage>
                         width: MediaQuery.of(context).size.width * 0.15,
                         height: MediaQuery.of(context).size.width * 0.15,
                       ),
-                      const Text("Новинки")
+                      const Text(
+                        "Вы покупали",
+                        style: TextStyle(fontSize: 12),
+                      )
                     ],
                   ),
                 )
@@ -264,7 +276,7 @@ class _CategoryItemState extends State<CategoryItem> {
       setState(() {
         FirstColor = paletteGenerator.vibrantColor!.color;
         SecondColor = paletteGenerator.darkVibrantColor!.color;
-        textBG = paletteGenerator.lightMutedColor!.color;
+        textBG = paletteGenerator.darkMutedColor!.color;
       });
     }
   }
