@@ -74,11 +74,54 @@ class _HomePageState extends State<HomePage>
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
+    return Scaffold(
+        body: SingleChildScrollView(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         mainAxisSize: MainAxisSize.max,
         children: [
+          Container(
+              height: 150,
+              width: MediaQuery.of(context).size.width,
+              child: PageView.builder(
+                onPageChanged: (value) {
+                  setState(() {
+                    activePage = value;
+                  });
+                },
+                itemCount: images.length,
+                itemBuilder: (context, index) {
+                  return Container(
+                      decoration: BoxDecoration(
+                          borderRadius: BorderRadius.all(Radius.circular(10)),
+                          image: DecorationImage(
+                              opacity: 0.5,
+                              image: NetworkImage(images[index]["image"]),
+                              fit: BoxFit.cover)),
+                      margin: EdgeInsets.all(10),
+                      padding: EdgeInsets.all(10),
+                      child: TextButton(
+                        style:
+                            TextButton.styleFrom(alignment: Alignment.topLeft),
+                        child: Text(
+                          images[index]["text"],
+                          style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black),
+                        ),
+                        onPressed: () {
+                          print("object");
+                        },
+                      ));
+                },
+                controller: _pageController,
+                padEnds: false,
+                pageSnapping: false,
+              )),
+          Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: indicators(images.length, activePage)),
           const SizedBox(
             height: 10,
           ),
@@ -88,8 +131,8 @@ class _HomePageState extends State<HomePage>
             child: GridView(
               primary: false,
               shrinkWrap: true,
-              gridDelegate:
-                  const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 4),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4),
               children: [
                 Container(
                   width: MediaQuery.of(context).size.width * 0.25,
@@ -165,46 +208,7 @@ class _HomePageState extends State<HomePage>
                 )
               ],
             ),
-            // child: PageView.builder(
-            //   onPageChanged: (value) {
-            //     setState(() {
-            //       activePage = value;
-            //     });
-            //   },
-            //   itemCount: images.length,
-            //   itemBuilder: (context, index) {
-            //     return Container(
-            //         decoration: BoxDecoration(
-            //             borderRadius: BorderRadius.all(Radius.circular(10)),
-            //             image: DecorationImage(
-            //                 opacity: 0.5,
-            //                 image: NetworkImage(images[index]["image"]),
-            //                 fit: BoxFit.cover)),
-            //         margin: EdgeInsets.all(10),
-            //         padding: EdgeInsets.all(10),
-            //         child: TextButton(
-            //           style:
-            //               TextButton.styleFrom(alignment: Alignment.topLeft),
-            //           child: Text(
-            //             images[index]["text"],
-            //             style: TextStyle(
-            //                 fontSize: 20,
-            //                 fontWeight: FontWeight.w700,
-            //                 color: Colors.black),
-            //           ),
-            //           onPressed: () {
-            //             print("object");
-            //           },
-            //         ));
-            //   },
-            //   controller: _pageController,
-            //   padEnds: false,
-            //   pageSnapping: false,
-            // )
           ),
-          // Row(
-          //     mainAxisAlignment: MainAxisAlignment.center,
-          //     children: indicators(images.length, activePage)),
           Padding(
             padding: const EdgeInsets.all(10),
             child: GridView.builder(
@@ -230,7 +234,7 @@ class _HomePageState extends State<HomePage>
           )
         ],
       ),
-    );
+    ));
   }
 }
 
@@ -258,9 +262,9 @@ class _CategoryItemState extends State<CategoryItem> {
         widget.image!,
       ));
       setState(() {
-        FirstColor = paletteGenerator.dominantColor!.color;
-        SecondColor = paletteGenerator.vibrantColor!.color;
-        textBG = paletteGenerator.darkMutedColor!.color;
+        FirstColor = paletteGenerator.vibrantColor!.color;
+        SecondColor = paletteGenerator.darkVibrantColor!.color;
+        textBG = paletteGenerator.lightMutedColor!.color;
       });
     }
   }
@@ -302,7 +306,6 @@ class _CategoryItemState extends State<CategoryItem> {
                   BoxDecoration(borderRadius: BorderRadius.circular(15)),
               width: double.infinity,
               height: double.infinity,
-              
               alignment: Alignment.bottomCenter,
               child: Transform.rotate(
                   // origin: Offset(-50, 0),
@@ -318,20 +321,26 @@ class _CategoryItemState extends State<CategoryItem> {
                       : Container()),
             ),
             Container(
-              padding: const EdgeInsets.all(15),
-              alignment: Alignment.topLeft,
-              decoration:
-                  BoxDecoration(borderRadius: BorderRadius.circular(15)),
-              child: Text(
-                widget.name,
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    // backgroundColor: Colors.amber,
-                    height: 1.2,
-                    background: Paint()..color = textBG),
-              ),
-            )
+                padding: const EdgeInsets.all(15),
+                alignment: Alignment.topLeft,
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(5))),
+                child: Container(
+                  decoration: BoxDecoration(
+                      color: textBG,
+                      borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(5),
+                          bottomRight: Radius.circular(5))),
+                  child: Text(
+                    widget.name,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      height: 1.2,
+                      // background: Paint()..color = textBG)
+                    ),
+                  ),
+                )),
           ],
         ));
   }

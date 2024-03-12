@@ -42,7 +42,6 @@ class _MainState extends State<Main> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -54,17 +53,18 @@ class _MainState extends State<Main> {
           }),
           bottomNavigationBarTheme: const BottomNavigationBarThemeData(),
           scaffoldBackgroundColor: Colors.white,
-          appBarTheme: AppBarTheme(
-              backgroundColor: Colors.white54,
-              shadowColor: Colors.grey.withOpacity(0.2),
-              foregroundColor: Colors.black),
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Colors.white,
+            // shadowColor: Colors.grey.withOpacity(0.2),
+            // foregroundColor: Colors.black
+          ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(10))),
-              backgroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(vertical: 15),
-            ),
+                shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(10))),
+                backgroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                foregroundColor: Colors.white),
           ),
           textTheme: const TextTheme(
               bodyMedium: TextStyle(color: gray1),

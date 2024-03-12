@@ -34,9 +34,6 @@ class _ProfilePageState extends State<ProfilePage> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          const SizedBox(
-            height: 80,
-          ),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 50),
             child: Row(

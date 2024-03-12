@@ -1,8 +1,8 @@
 import 'dart:ui';
-import 'package:geolocator/geolocator.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/misc.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/misc/colors.dart';
@@ -11,6 +11,7 @@ import 'package:naliv_delivery/pages/cartPage.dart';
 import 'package:naliv_delivery/pages/favPage.dart';
 import 'package:naliv_delivery/pages/homePage.dart';
 import 'package:naliv_delivery/pages/profilePage.dart';
+import 'package:naliv_delivery/pages/searchPage.dart';
 import 'package:naliv_delivery/shared/commonAppBar.dart';
 
 import 'main.dart';
@@ -24,6 +25,9 @@ class BottomMenu extends StatefulWidget {
 
 class _BottomMenuState extends State<BottomMenu> {
   late final Position _location;
+  NetworkImage _businessImage = NetworkImage(
+      "https://www.pngfind.com/pngs/m/414-4143107_martini-logo-logo-martini-hd-png-download.png");
+  Widget _searchAppBar = AppBar();
 
   final List<BottomNavigationBarItem> _bottomNavigationBarItems = [
     const BottomNavigationBarItem(
@@ -74,131 +78,68 @@ class _BottomMenuState extends State<BottomMenu> {
 
   Widget _stores = Container();
 
-  Widget minimizedAppBar = AppBar();
-  Widget maximizedAppBar = AppBar();
-
-  Widget _currentAppBar = AppBar();
-
   bool _isMinimized = false;
-  List<String> list = <String>['One', 'Two', 'Three', 'Four'];
 
-  List<Widget> menuItems = [const HomePage(), const FavPage(), const CartPage(), const ProfilePage()];
+  List<Widget> menuItems = [
+    const HomePage(),
+    const FavPage(),
+    const CartPage(),
+    const ProfilePage()
+  ];
 
-  double _toolbarheight = 80;
+  List<AppBar> appbars = [];
 
-  List<Widget> appbars = [];
+  void _setAppbars(context) {
+    appbars.add(
+      AppBar(
+          automaticallyImplyLeading: true,
+          // leading: IconButton(
+          //   icon: Icon(Icons.menu),
+          //   onPressed: () {},
+          // ),
+          title: TextButton(
+              onPressed: () {},
+              child: Container(
+                margin: EdgeInsets.symmetric(vertical: 15),
+                padding: EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.1),
+                    borderRadius: BorderRadius.all(Radius.circular(30))),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Image(image: _businessImage),
+                    Text(
+                      "Найти",
+                      style: TextStyle(
+                          fontWeight: FontWeight.w500, color: Colors.black),
+                    ),
+                    Container(
+                        padding: EdgeInsets.all(10),
+                        child: Icon(
+                          Icons.search,
+                          color: Colors.black,
+                        )),
+                  ],
+                ),
+              ))),
+    );
+    appbars.add(
+      AppBar(),
+    );
+    appbars.add(
+      AppBar(),
+    );
+    appbars.add(
+      AppBar(),
+    );
+  }
+
   int appbarIndex = 0;
 
   Map<String, dynamic>? currentBusiness = {};
 
-  void changeAppBar() {
-    if (!_isMinimized) {
-      setState(() {
-        _isMinimized = true;
-        _currentAppBar = minimizedAppBar;
-        _toolbarheight = 80;
-      });
-    } else {
-      setState(() {
-        _isMinimized = false;
-        _currentAppBar = maximizedAppBar;
-        _toolbarheight = MediaQuery.of(context).size.height * 1;
-      });
-    }
-  }
-
   void getCurrentStore() {}
-
-  void generateMaximizedAppBar() {
-    print(123);
-    _getBusinesses();
-    Widget maximizedAppBar = SizedBox(
-        height: MediaQuery.of(context).size.height,
-        child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              color: Colors.white,
-              width: MediaQuery.of(context).size.width,
-              height: MediaQuery.of(context).size.height,
-              child: Column(
-                children: [
-                  const SizedBox(
-                    height: 10,
-                  ),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const SizedBox(
-                        width: 10,
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          GestureDetector(
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(vertical: 5),
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 7, horizontal: 5),
-                              color: Colors.black,
-                              child: Text(
-                                currentBusiness!["name"] ?? "",
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 17),
-                              ),
-                            ),
-                            onTap: () {},
-                          ),
-                          const SizedBox(
-                            height: 5,
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              // Text(
-                              //   currentBusiness!["city"] ?? "",
-                              //   style: TextStyle(fontSize: 12, color: gray1),
-                              // ),
-                              const Icon(
-                                Icons.arrow_forward_ios,
-                                size: 6,
-                              ),
-                              Text(
-                                currentBusiness!["address"] ?? "",
-                                style: const TextStyle(fontSize: 12, color: gray1),
-                              )
-                            ],
-                          )
-                        ],
-                      ),
-                      const Spacer(),
-                      Row(children: [
-                        IconButton(
-                            onPressed: () {
-                              setState(() {
-                                _toolbarheight = 80;
-                                initAppBar();
-                              });
-                            },
-                            icon: const Icon(Icons.close))
-                      ]),
-                      const SizedBox(
-                        width: 10,
-                      ),
-                    ],
-                  ),
-                  _stores
-                ],
-              ),
-            )));
-    setState(() {
-      _currentAppBar = maximizedAppBar;
-      _toolbarheight = MediaQuery.of(context).size.height;
-    });
-  }
 
   Future<void> _getBusinesses() async {
     List? businesses = await getBusinesses();
@@ -242,11 +183,13 @@ class _BottomMenuState extends State<BottomMenu> {
                       children: [
                         Text(
                           element["name"] ?? "",
-                          style: const TextStyle(fontSize: 14, color: Colors.black),
+                          style: const TextStyle(
+                              fontSize: 14, color: Colors.black),
                         ),
                         Text(
                           element["address"] ?? "",
-                          style: const TextStyle(fontSize: 14, color: Colors.black),
+                          style: const TextStyle(
+                              fontSize: 14, color: Colors.black),
                         ),
                       ],
                     ),
@@ -294,160 +237,14 @@ class _BottomMenuState extends State<BottomMenu> {
     }
   }
 
+  NetworkImage? _getImage() {}
   String dropdownValue = "Two";
-  int _curentIndex = 0;
+  int _page = 0;
   Widget _dropDownButtonStore = Container();
-  final PageController _pageController = PageController();
-
-  Future<void> initAppBar() async {
-    Map<String, dynamic>? business = await getLastSelectedBusiness();
-    if (business == null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const BusinessSelectStartPage()),
-      );
-    }
-
-    setState(() {
-      print(_stores);
-
-      minimizedAppBar = Container(
-        alignment: Alignment.center,
-        decoration: const BoxDecoration(
-          color: Colors.white70,
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const SizedBox(
-                width: 10,
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  GestureDetector(
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(vertical: 5),
-                      padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 5),
-                      color: Colors.black,
-                      child: Text(
-                        business!["name"],
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 17),
-                      ),
-                    ),
-                    onTap: () {
-                      generateMaximizedAppBar();
-                      // changeAppBar();
-                      // Navigator.push(
-                      //   context,
-                      //   MaterialPageRoute(
-                      //       builder: (context) => BusinessSelectStartPage()),
-                      // );
-                    },
-                  ),
-                  const SizedBox(
-                    height: 5,
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Text(
-                        business["city"],
-                        style: const TextStyle(fontSize: 12, color: gray1),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        size: 6,
-                      ),
-                      Text(
-                        business["address"],
-                        style: const TextStyle(fontSize: 12, color: gray1),
-                      )
-                    ],
-                  )
-                ],
-              ),
-              const Spacer(),
-              Row(children: [
-                IconButton(
-                    onPressed: () {},
-                    icon: const Icon(
-                      Icons.search,
-                      size: 28,
-                    )),
-                IconButton(
-                    onPressed: () {},
-                    icon: const Icon(
-                      Icons.notifications_outlined,
-                      size: 28,
-                    ))
-              ]),
-              const SizedBox(
-                width: 10,
-              ),
-            ],
-          ),
-        ),
-      );
-      appbars = [
-        minimizedAppBar,
-        CommonAppBar(
-            business: business,
-            title: "ЛЮБИМОЕ",
-            titleIcon: const Icon(Icons.favorite_outline),
-            options: const []),
-        CommonAppBar(
-            business: business,
-            title: "КОРЗИНА",
-            titleIcon: const Icon(Icons.shopping_bag_outlined),
-            options: const []),
-        CommonAppBar(
-            business: business,
-            title: "ПРОФИЛЬ",
-            titleIcon: const Icon(Icons.person_outlined),
-            options: const []),
-      ];
-      _currentAppBar = minimizedAppBar;
-    });
-  }
-
-  void initDropDownButton() {
-    setState(() {
-      _dropDownButtonStore = DropdownButton(
-          isDense: true,
-          value: dropdownValue,
-          icon: const Icon(Icons.arrow_downward),
-          elevation: 16,
-          style: const TextStyle(color: Colors.deepPurple),
-          underline: Container(
-            height: 2,
-            color: Colors.deepPurpleAccent,
-          ),
-          onChanged: (value) {
-            setState(() {
-              dropdownValue = value!;
-            });
-          },
-          items: const [
-            DropdownMenuItem(
-              value: "One",
-              child: Text("One"),
-            ),
-            DropdownMenuItem(
-              value: "Two",
-              child: Text("Two"),
-            ),
-          ]);
-    });
-  }
+  final PageController _pageController = PageController(
+    onAttach: (position) {},
+    onDetach: (position) {},
+  );
 
   Future<void> getPosition() async {
     Position location = await determinePosition();
@@ -461,16 +258,21 @@ class _BottomMenuState extends State<BottomMenu> {
 
   Future<void> _getLastSelectedBusiness() async {
     Map<String, dynamic>? business = await getLastSelectedBusiness();
+    print(business);
     if (business == null) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const BusinessSelectStartPage()),
+        MaterialPageRoute(
+            builder: (context) => const BusinessSelectStartPage()),
       );
     }
+    NetworkImage businessImage = NetworkImage(business!['logo']);
     setState(() {
       businessName = business!['name'];
+      businessAddress = business['address'];
+      _businessImage = businessImage;
       currentBusiness = business;
-      _currentAppBar = appbars[widget.page];
+      // _currentAppBar = appbars[widget.page];
       _pageController.animateToPage(widget.page,
           duration: const Duration(seconds: 1), curve: Curves.easeInCirc);
       appbarIndex = widget.page;
@@ -482,95 +284,120 @@ class _BottomMenuState extends State<BottomMenu> {
     // TODO: implement initState
     super.initState();
     getPosition();
-
-    initAppBar();
-    changeAppBar();
     _getLastSelectedBusiness();
     _getBusinesses();
+    _setAppbars(context);
+
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-        top: true,
-        child: Scaffold(
-          backgroundColor: Colors.white,
-          extendBodyBehindAppBar: false,
-          extendBody: false,
-          bottomNavigationBar: BottomNavigationBar(
-            showSelectedLabels: true,
-            showUnselectedLabels: true,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            unselectedLabelStyle: const TextStyle(fontSize: 12, color: Colors.black),
-            selectedLabelStyle: const TextStyle(
-                fontSize: 12, color: Colors.black, fontWeight: FontWeight.w500),
-            selectedItemColor: const Color(0xFFEE7203),
-            // unselectedItemColor: Colors.black,
-            iconSize: 24,
-            type: BottomNavigationBarType.fixed,
-            currentIndex: _curentIndex,
-            items: _bottomNavigationBarItems,
-            onTap: (value) {
-              setState(() {
-                _curentIndex = value;
-                _pageController.jumpToPage(value);
-                _currentAppBar = appbars[_curentIndex];
-              });
-            },
-          ),
-          appBar: AppBar(
-            leading: Container(),
-            automaticallyImplyLeading: false,
-            systemOverlayStyle: const SystemUiOverlayStyle(
-                statusBarBrightness: Brightness.light,
-                statusBarColor: Colors.white,
-                statusBarIconBrightness: Brightness.dark),
-            bottomOpacity: 0.5,
-            toolbarHeight: _toolbarheight,
-            flexibleSpace: _currentAppBar,
-          ),
-          floatingActionButtonLocation:
-              FloatingActionButtonLocation.centerDocked,
-          // floatingActionButton: Container(
-          //     clipBehavior: Clip.hardEdge,
-          //     decoration: BoxDecoration(
-          //       color: Colors.white70,
-          //     ),
-          //     padding: EdgeInsets.symmetric(horizontal: 10),
-          //     margin: EdgeInsets.only(top: 10),
-          //     child: BackdropFilter(
-          //       filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-          //       child: BottomNavigationBar(
-          //         backgroundColor: Colors.transparent,
-          //         elevation: 0,
-          //         unselectedLabelStyle:
-          //             TextStyle(fontSize: 12, color: Colors.black),
-          //         selectedLabelStyle: TextStyle(
-          //             fontSize: 12,
-          //             color: Colors.black,
-          //             fontWeight: FontWeight.w500),
-          //         selectedItemColor: Colors.black,
-          //         unselectedItemColor: Colors.black,
-          //         iconSize: 24,
-          //         type: BottomNavigationBarType.fixed,
-          //         currentIndex: _curentIndex,
-          //         items: _bottomNavigationBarItems,
-          //         onTap: (value) {
-          //           setState(() {
-          //             _curentIndex = value;
-          //             _pageController.jumpToPage(value);
-          //             _currentAppBar = appbars[_curentIndex];
-          //           });
-          //         },
-          //       ),
-          //     )),
-          // // bottomNavigationBar:
-          body: PageView(
-            controller: _pageController,
-            physics: const NeverScrollableScrollPhysics(),
-            children: menuItems,
-          ),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      extendBodyBehindAppBar: false,
+      extendBody: false,
+      bottomNavigationBar: BottomNavigationBar(
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        unselectedLabelStyle:
+            const TextStyle(fontSize: 12, color: Colors.black),
+        selectedLabelStyle: const TextStyle(
+            fontSize: 12, color: Colors.black, fontWeight: FontWeight.w500),
+        selectedItemColor: const Color(0xFFEE7203),
+        // unselectedItemColor: Colors.black,
+        iconSize: 24,
+        type: BottomNavigationBarType.fixed,
+        currentIndex: _page,
+        items: _bottomNavigationBarItems,
+        onTap: (value) {
+          _pageController.animateToPage(value,
+              duration: Duration(microseconds: 200), curve: Curves.bounceIn);
+        },
+      ),
+      appBar: appbars[_page],
+      drawer: _drawer(),
+      // appBar: AppBar(
+      //   // leading: Container(),
+      //   automaticallyImplyLeading: false,
+      //   systemOverlayStyle: SystemUiOverlayStyle(
+      //       statusBarColor: Colors.white,
+      //       systemNavigationBarDividerColor: Colors.white,
+      //       systemNavigationBarColor: Colors.white,
+      //       statusBarBrightness: Brightness.light,
+      //       statusBarIconBrightness: Brightness.dark),
+      //   // bottomOpacity: 0.5,
+      //   // toolbarHeight: _toolbarheight,
+      //   // flexibleSpace: _currentAppBar,
+      // ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      // floatingActionButton: Container(
+      //     clipBehavior: Clip.hardEdge,
+      //     decoration: BoxDecoration(
+      //       color: Colors.white70,
+      //     ),
+      //     padding: EdgeInsets.symmetric(horizontal: 10),
+      //     margin: EdgeInsets.only(top: 10),
+      //     child: BackdropFilter(
+      //       filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+      //       child: BottomNavigationBar(
+      //         backgroundColor: Colors.transparent,
+      //         elevation: 0,
+      //         unselectedLabelStyle:
+      //             TextStyle(fontSize: 12, color: Colors.black),
+      //         selectedLabelStyle: TextStyle(
+      //             fontSize: 12,
+      //             color: Colors.black,
+      //             fontWeight: FontWeight.w500),
+      //         selectedItemColor: Colors.black,
+      //         unselectedItemColor: Colors.black,
+      //         iconSize: 24,
+      //         type: BottomNavigationBarType.fixed,
+      //         currentIndex: _curentIndex,
+      //         items: _bottomNavigationBarItems,
+      //         onTap: (value) {
+      //           setState(() {
+      //             _curentIndex = value;
+      //             _pageController.jumpToPage(value);
+      //             _currentAppBar = appbars[_curentIndex];
+      //           });
+      //         },
+      //       ),
+      //     )),
+      // // bottomNavigationBar:
+      // body: PageView.builder(
+      //   controller: _pageController,
+      //   physics: const NeverScrollableScrollPhysics(),
+      //   children: menuItems,
+      // ),
+
+      body: PageView.builder(
+        itemCount: 4,
+        pageSnapping: true,
+        onPageChanged: (value) {
+          setState(() {
+            _page = value;
+          });
+        },
+        itemBuilder: (context, index) {
+          return menuItems[index];
+        },
+        controller: _pageController,
+      ),
+    );
+  }
+
+  Drawer _drawer() {
+    return Drawer(
+        width: 200,
+        child: Column(
+          children: [
+            Container(
+              child: Placeholder(),
+            )
+          ],
         ));
   }
 }
