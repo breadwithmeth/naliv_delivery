@@ -1,7 +1,9 @@
 import 'dart:ui';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/misc.dart';
 import 'package:naliv_delivery/misc/api.dart';
@@ -27,9 +29,10 @@ class BottomMenu extends StatefulWidget {
 }
 
 class _BottomMenuState extends State<BottomMenu> {
+  bool _loaded = false;
+
   late final Position _location;
-  NetworkImage _businessImage = NetworkImage(
-      "https://www.pngfind.com/pngs/m/414-4143107_martini-logo-logo-martini-hd-png-download.png");
+
   Widget _searchAppBar = AppBar();
 
   final List<BottomNavigationBarItem> _bottomNavigationBarItems = [
@@ -78,7 +81,7 @@ class _BottomMenuState extends State<BottomMenu> {
   String businessName = "";
   String businessAddress = "";
   String businessCity = "";
-
+  late Image businessLogo;
   Widget _stores = Container();
 
   bool _isMinimized = false;
@@ -92,7 +95,7 @@ class _BottomMenuState extends State<BottomMenu> {
 
   List<AppBar> appbars = [];
 
-  void _setAppbars(context) {
+  void _setAppbars(context, String logourl) {
     appbars.add(
       AppBar(
           automaticallyImplyLeading: true,
@@ -111,12 +114,32 @@ class _BottomMenuState extends State<BottomMenu> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Image(image: _businessImage),
+                    Spacer(
+                      flex: 3,
+                    ),
                     Text(
                       "Найти",
                       style: TextStyle(
                           fontWeight: FontWeight.w500, color: Colors.black),
                     ),
+                    // Expanded(
+                    //   flex: 2,
+                    //   child: Image.network(
+                    //     logourl,
+                    //     fit: BoxFit.contain,
+                    //     frameBuilder: (BuildContext context, Widget child,
+                    //         int? frame, bool? wasSynchronouslyLoaded) {
+                    //       return Padding(
+                    //         padding: const EdgeInsets.all(8.0),
+                    //         child: child,
+                    //       );
+                    //     },
+                    //     loadingBuilder: (BuildContext context, Widget child,
+                    //         ImageChunkEvent? loadingProgress) {
+                    //       return Center(child: child);
+                    //     },
+                    //   ),
+                    // ),
                     Container(
                         padding: EdgeInsets.all(10),
                         child: Icon(
@@ -240,7 +263,25 @@ class _BottomMenuState extends State<BottomMenu> {
     }
   }
 
-  NetworkImage? _getImage() {}
+  void _getImage(String image) {
+    Image businessImage = Image.network(image);
+
+    businessImage.image
+        .resolve(ImageConfiguration())
+        .addListener(ImageStreamListener(
+      (image, synchronousCall) {
+        if (mounted) {
+          setState(() {
+            _loaded = true;
+            businessLogo = businessImage;
+            print(businessLogo);
+            print("|||||||||");
+          });
+        }
+      },
+    ));
+  }
+
   String dropdownValue = "Two";
   int _page = 0;
   Widget _dropDownButtonStore = Container();
@@ -260,25 +301,26 @@ class _BottomMenuState extends State<BottomMenu> {
   }
 
   Future<void> _getLastSelectedBusiness() async {
-    Map<String, dynamic>? business = await getLastSelectedBusiness();
-    print(business);
-    if (business == null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => const BusinessSelectStartPage()),
-      );
-    }
-    NetworkImage businessImage = NetworkImage(business!['logo']);
-    setState(() {
-      businessName = business!['name'];
-      businessAddress = business['address'];
-      _businessImage = businessImage;
-      currentBusiness = business;
-      // _currentAppBar = appbars[widget.page];
-      _pageController.animateToPage(widget.page,
-          duration: const Duration(seconds: 1), curve: Curves.easeInCirc);
-      appbarIndex = widget.page;
+    await getLastSelectedBusiness().then((value) {
+      if (value == null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => const BusinessSelectStartPage()),
+        );
+      }
+      _getImage(value!["logo"]);
+
+      setState(() {
+        // _pageController.animateToPage(widget.page,
+        //     duration: const Duration(seconds: 1), curve: Curves.easeInCirc);
+        appbarIndex = widget.page;
+        _setAppbars(context, value!["logo"]);
+        businessName = value!['name'];
+        businessAddress = value['address'];
+        currentBusiness = value;
+        // _currentAppBar = appbars[widget.page];
+      });
     });
   }
 
@@ -299,9 +341,7 @@ class _BottomMenuState extends State<BottomMenu> {
     getPosition();
     _getLastSelectedBusiness();
     _getBusinesses();
-    _setAppbars(context);
     _getUser();
-
     setState(() {});
   }
 
