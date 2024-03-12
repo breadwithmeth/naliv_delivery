@@ -104,7 +104,13 @@ class _BottomMenuState extends State<BottomMenu> {
           //   onPressed: () {},
           // ),
           title: TextButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(
+                  builder: (context) {
+                    return SearchPage();
+                  },
+                ));
+              },
               child: Container(
                 margin: EdgeInsets.symmetric(vertical: 15),
                 padding: EdgeInsets.all(5),
