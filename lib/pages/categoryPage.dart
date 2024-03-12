@@ -1,6 +1,8 @@
 import 'dart:ui';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/bottomMenu.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
@@ -348,60 +350,41 @@ class _CategoryPageState extends State<CategoryPage> {
                       padding: const EdgeInsets.all(10),
                       child: Column(
                         children: [
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(context,
-                                  MaterialPageRoute(builder: (context) {
-                                return const BottomMenu(
-                                  page: 0,
-                                );
-                              }));
-                            },
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Icon(
-                                  Icons.arrow_back_ios,
-                                  color: Colors.black,
-                                ),
-                                Text(
-                                  widget.category_name ?? "",
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 20,
-                                      color: Colors.black),
-                                )
-                              ],
-                            ),
-                          ),
-                          const SizedBox(
-                            height: 5,
-                          ),
-                          // Row(
-                          //   mainAxisAlignment: MainAxisAlignment.start,
-                          //   children: [
-                          //     Text(
-                          //       "Караганда ",
-                          //       style: TextStyle(fontSize: 12, color: gray1),
-                          //     ),
-                          //     Icon(
-                          //       Icons.arrow_forward_ios,
-                          //       size: 6,
-                          //     ),
-                          //     Text(
-                          //       " Караганда",
-                          //       style: TextStyle(fontSize: 12, color: gray1),
-                          //     )
-                          //   ],
-                          // ),
-                          // SizedBox(
-                          //   height: 10,
-                          // ),
                           Row(
                             children: [
-                              SizedBox(
-                                width: MediaQuery.of(context).size.width * 0.65,
+                              Expanded(
+                                flex: 1,
+                                child: TextButton(
+                                  onPressed: () {
+                                    Navigator.push(context,
+                                        MaterialPageRoute(builder: (context) {
+                                      return const BottomMenu(
+                                        page: 0,
+                                      );
+                                    }));
+                                  },
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Icon(
+                                        Icons.arrow_back_ios,
+                                        color: Colors.black,
+                                      ),
+                                      // Text(
+                                      //   widget.category_name ?? "",
+                                      //   style: const TextStyle(
+                                      //       fontWeight: FontWeight.w700,
+                                      //       fontSize: 20,
+                                      //       color: Colors.black),
+                                      // )
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 6,
                                 child: TextFormField(
                                   scrollPadding: const EdgeInsets.all(0),
                                   controller: search,
@@ -457,9 +440,14 @@ class _CategoryPageState extends State<CategoryPage> {
                                             Icons.search,
                                             color: gray1,
                                           ),
-                                          Text(
-                                            "Поиск",
-                                            style: TextStyle(color: gray1),
+                                          Padding(
+                                            padding: EdgeInsets.only(left: 10),
+                                            child: Text(
+                                              "Найти...",
+                                              style: TextStyle(
+                                                  color: gray1,
+                                                  fontWeight: FontWeight.w500),
+                                            ),
                                           )
                                         ],
                                       ),
@@ -480,239 +468,284 @@ class _CategoryPageState extends State<CategoryPage> {
                                       isDense: true),
                                 ),
                               ),
-                              TextButton(
-                                  onPressed: () {
-                                    print(_sc.position);
-                                    setFilters();
-                                    showDialog(
-                                      useSafeArea: false,
-                                      barrierColor: Colors.transparent,
-                                      context: context,
-                                      builder: (context) => Dialog(
-                                          shape: const RoundedRectangleBorder(),
-                                          shadowColor: Colors.black38,
-                                          backgroundColor:
-                                              Colors.white.withOpacity(0.9),
-                                          child: Container(
-                                            padding: const EdgeInsets.all(20),
-                                            decoration: const BoxDecoration(
-                                              color: Colors.transparent,
-                                            ),
-                                            clipBehavior: Clip.hardEdge,
-                                            height: MediaQuery.of(context)
-                                                    .size
-                                                    .height *
-                                                0.7,
-                                            child: BackdropFilter(
-                                              filter: ImageFilter.blur(
-                                                  sigmaX: 5, sigmaY: 5),
-                                              child: Container(
+                            ],
+                          ),
+                          const SizedBox(
+                            height: 5,
+                          ),
+                          // Row(
+                          //   mainAxisAlignment: MainAxisAlignment.start,
+                          //   children: [
+                          //     Text(
+                          //       "Караганда ",
+                          //       style: TextStyle(fontSize: 12, color: gray1),
+                          //     ),
+                          //     Icon(
+                          //       Icons.arrow_forward_ios,
+                          //       size: 6,
+                          //     ),
+                          //     Text(
+                          //       " Караганда",
+                          //       style: TextStyle(fontSize: 12, color: gray1),
+                          //     )
+                          //   ],
+                          // ),
+                          // SizedBox(
+                          //   height: 10,
+                          // ),
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 4,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 8, horizontal: 10),
+                                  child: Text(
+                                    widget.category_name ?? "",
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 20,
+                                        color: Colors.black),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: TextButton(
+                                    onPressed: () {
+                                      print(_sc.position);
+                                      setFilters();
+                                      showDialog(
+                                        useSafeArea: false,
+                                        barrierColor: Colors.transparent,
+                                        context: context,
+                                        builder: (context) => Dialog(
+                                            shape:
+                                                const RoundedRectangleBorder(),
+                                            shadowColor: Colors.black38,
+                                            backgroundColor:
+                                                Colors.white.withOpacity(0.9),
+                                            child: Container(
+                                              padding: const EdgeInsets.all(20),
+                                              decoration: const BoxDecoration(
                                                 color: Colors.transparent,
-                                                height: MediaQuery.of(context)
-                                                        .size
-                                                        .height *
-                                                    0.7,
-                                                child: SingleChildScrollView(
-                                                    child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .spaceBetween,
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .center,
-                                                      children: [
-                                                        const Text(
-                                                          "Фильтры",
-                                                          style: TextStyle(
-                                                              color:
-                                                                  Colors.black,
-                                                              fontSize: 22,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w700),
-                                                        ),
-                                                        IconButton(
-                                                            onPressed: () {
-                                                              Navigator.pop(
-                                                                  context);
-                                                            },
-                                                            icon: const Icon(
-                                                                Icons.close))
-                                                      ],
-                                                    ),
-                                                    Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: propertyWidget,
-                                                    ),
-                                                    Container(
-                                                      width:
-                                                          MediaQuery.of(context)
-                                                                  .size
-                                                                  .width *
-                                                              0.8,
-                                                      margin: const EdgeInsets
-                                                          .symmetric(
-                                                          vertical: 5),
-                                                      padding:
-                                                          const EdgeInsets.all(
-                                                              10),
-                                                      decoration: BoxDecoration(
-                                                          color: Colors
-                                                              .grey.shade100,
-                                                          borderRadius:
-                                                              const BorderRadius
-                                                                  .all(Radius
-                                                                      .circular(
-                                                                          20))),
-                                                      child: Column(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
-                                                        children: [
-                                                          const Text(
-                                                            "Бренды",
-                                                            style: TextStyle(
-                                                                color: Colors
-                                                                    .black,
-                                                                fontSize: 16,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w700),
-                                                          ),
-                                                          Wrap(
-                                                              spacing: 5,
-                                                              children:
-                                                                  brandsWidget)
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    Container(
-                                                      width:
-                                                          MediaQuery.of(context)
-                                                                  .size
-                                                                  .width *
-                                                              0.8,
-                                                      margin: const EdgeInsets
-                                                          .symmetric(
-                                                          vertical: 5),
-                                                      padding:
-                                                          const EdgeInsets.all(
-                                                              10),
-                                                      decoration: BoxDecoration(
-                                                          color: Colors
-                                                              .grey.shade100,
-                                                          borderRadius:
-                                                              const BorderRadius
-                                                                  .all(Radius
-                                                                      .circular(
-                                                                          20))),
-                                                      child: Column(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
-                                                        children: [
-                                                          const Text(
-                                                            "Производители",
-                                                            style: TextStyle(
-                                                                color: Colors
-                                                                    .black,
-                                                                fontSize: 16,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w700),
-                                                          ),
-                                                          Wrap(
-                                                              spacing: 5,
-                                                              children:
-                                                                  manufacturersWidget)
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    Container(
-                                                      width:
-                                                          MediaQuery.of(context)
-                                                                  .size
-                                                                  .width *
-                                                              0.8,
-                                                      margin: const EdgeInsets
-                                                          .symmetric(
-                                                          vertical: 5),
-                                                      padding:
-                                                          const EdgeInsets.all(
-                                                              10),
-                                                      decoration: BoxDecoration(
-                                                          color: Colors
-                                                              .grey.shade100,
-                                                          borderRadius:
-                                                              const BorderRadius
-                                                                  .all(Radius
-                                                                      .circular(
-                                                                          20))),
-                                                      child: Column(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
-                                                        children: [
-                                                          const Text(
-                                                            "Страны",
-                                                            style: TextStyle(
-                                                                color: Colors
-                                                                    .black,
-                                                                fontSize: 16,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w700),
-                                                          ),
-                                                          Wrap(
-                                                              spacing: 5,
-                                                              children:
-                                                                  countriesWidget)
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    ElevatedButton(
-                                                        onPressed: () {
-                                                          _applyFilters();
-                                                        },
-                                                        child: Row(
-                                                          children: [
-                                                            Container(
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                      .all(5),
-                                                              child: const Text(
-                                                                  "Подтвердить"),
-                                                            )
-                                                          ],
-                                                        ))
-                                                  ],
-                                                )),
                                               ),
-                                            ),
-                                          )),
-                                    );
-                                  },
-                                  child: const Row(
-                                    children: [
-                                      Icon(
-                                        Icons.settings,
-                                        color: Colors.black,
-                                      ),
-                                      Text(
-                                        "Фильтры",
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 16,
-                                            color: Colors.black),
-                                      )
-                                    ],
-                                  ))
+                                              clipBehavior: Clip.hardEdge,
+                                              height: MediaQuery.of(context)
+                                                      .size
+                                                      .height *
+                                                  0.7,
+                                              child: BackdropFilter(
+                                                filter: ImageFilter.blur(
+                                                    sigmaX: 5, sigmaY: 5),
+                                                child: Container(
+                                                  color: Colors.transparent,
+                                                  height: MediaQuery.of(context)
+                                                          .size
+                                                          .height *
+                                                      0.7,
+                                                  child: SingleChildScrollView(
+                                                      child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .spaceBetween,
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .center,
+                                                        children: [
+                                                          const Text(
+                                                            "Фильтры",
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .black,
+                                                                fontSize: 22,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700),
+                                                          ),
+                                                          IconButton(
+                                                              onPressed: () {
+                                                                Navigator.pop(
+                                                                    context);
+                                                              },
+                                                              icon: const Icon(
+                                                                  Icons.close))
+                                                        ],
+                                                      ),
+                                                      Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children:
+                                                            propertyWidget,
+                                                      ),
+                                                      Container(
+                                                        width: MediaQuery.of(
+                                                                    context)
+                                                                .size
+                                                                .width *
+                                                            0.8,
+                                                        margin: const EdgeInsets
+                                                            .symmetric(
+                                                            vertical: 5),
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(10),
+                                                        decoration: BoxDecoration(
+                                                            color: Colors
+                                                                .grey.shade100,
+                                                            borderRadius:
+                                                                const BorderRadius
+                                                                    .all(
+                                                                    Radius.circular(
+                                                                        20))),
+                                                        child: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            const Text(
+                                                              "Бренды",
+                                                              style: TextStyle(
+                                                                  color: Colors
+                                                                      .black,
+                                                                  fontSize: 16,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w700),
+                                                            ),
+                                                            Wrap(
+                                                                spacing: 5,
+                                                                children:
+                                                                    brandsWidget)
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      Container(
+                                                        width: MediaQuery.of(
+                                                                    context)
+                                                                .size
+                                                                .width *
+                                                            0.8,
+                                                        margin: const EdgeInsets
+                                                            .symmetric(
+                                                            vertical: 5),
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(10),
+                                                        decoration: BoxDecoration(
+                                                            color: Colors
+                                                                .grey.shade100,
+                                                            borderRadius:
+                                                                const BorderRadius
+                                                                    .all(
+                                                                    Radius.circular(
+                                                                        20))),
+                                                        child: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            const Text(
+                                                              "Производители",
+                                                              style: TextStyle(
+                                                                  color: Colors
+                                                                      .black,
+                                                                  fontSize: 16,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w700),
+                                                            ),
+                                                            Wrap(
+                                                                spacing: 5,
+                                                                children:
+                                                                    manufacturersWidget)
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      Container(
+                                                        width: MediaQuery.of(
+                                                                    context)
+                                                                .size
+                                                                .width *
+                                                            0.8,
+                                                        margin: const EdgeInsets
+                                                            .symmetric(
+                                                            vertical: 5),
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(10),
+                                                        decoration: BoxDecoration(
+                                                            color: Colors
+                                                                .grey.shade100,
+                                                            borderRadius:
+                                                                const BorderRadius
+                                                                    .all(
+                                                                    Radius.circular(
+                                                                        20))),
+                                                        child: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            const Text(
+                                                              "Страны",
+                                                              style: TextStyle(
+                                                                  color: Colors
+                                                                      .black,
+                                                                  fontSize: 16,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w700),
+                                                            ),
+                                                            Wrap(
+                                                                spacing: 5,
+                                                                children:
+                                                                    countriesWidget)
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      ElevatedButton(
+                                                          onPressed: () {
+                                                            _applyFilters();
+                                                          },
+                                                          child: Row(
+                                                            children: [
+                                                              Container(
+                                                                padding:
+                                                                    const EdgeInsets
+                                                                        .all(5),
+                                                                child: const Text(
+                                                                    "Подтвердить"),
+                                                              )
+                                                            ],
+                                                          ))
+                                                    ],
+                                                  )),
+                                                ),
+                                              ),
+                                            )),
+                                      );
+                                    },
+                                    child: Expanded(
+                                        flex: 1,
+                                        child: Icon(
+                                          Icons.sort,
+                                          color: Colors.black,
+                                        ))),
+                              ),
+                              Expanded(
+                                flex: 1,
+                                child: TextButton(
+                                  onPressed: () => {UnimplementedError()},
+                                  child: Icon(Icons.view_list_rounded,
+                                      color: Colors.black),
+                                ),
+                              ),
                             ],
                           )
                         ],

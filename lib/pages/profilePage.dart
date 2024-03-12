@@ -84,7 +84,7 @@ class _ProfilePageState extends State<ProfilePage> {
               children: [
                 TextButton(
                   style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 30)),
+                      padding: const EdgeInsets.symmetric(horizontal: 20)),
                   onPressed: () {},
                   child: const Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -110,11 +110,12 @@ class _ProfilePageState extends State<ProfilePage> {
                 const Divider(),
                 TextButton(
                   style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 30)),
+                      padding: const EdgeInsets.symmetric(horizontal: 20)),
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const AddressesPage()),
+                      MaterialPageRoute(
+                          builder: (context) => const AddressesPage()),
                     );
                   },
                   child: const Row(
@@ -141,7 +142,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 const Divider(),
                 TextButton(
                   style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 30)),
+                      padding: const EdgeInsets.symmetric(horizontal: 20)),
                   onPressed: () {},
                   child: const Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -167,7 +168,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 const Divider(),
                 TextButton(
                   style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 30)),
+                      padding: const EdgeInsets.symmetric(horizontal: 20)),
                   onPressed: () {
                     Navigator.push(context, MaterialPageRoute(
                       builder: (context) {
@@ -199,7 +200,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 const Divider(),
                 TextButton(
                   style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 30)),
+                      padding: const EdgeInsets.symmetric(horizontal: 20)),
                   onPressed: () {},
                   child: const Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -225,7 +226,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 const Divider(),
                 TextButton(
                   style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 30)),
+                      padding: const EdgeInsets.symmetric(horizontal: 20)),
                   onPressed: () {
                     print(123);
                     logout();
