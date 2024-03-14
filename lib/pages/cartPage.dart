@@ -297,7 +297,7 @@ class _ItemCardState extends State<ItemCard> {
           MaterialPageRoute(
               builder: (context) => ProductPage(
                     item_id: element["item_id"],
-                    returnWidget: const BottomMenu(page: 2),
+                    returnWidget: const BottomMenu(),
                   )),
         );
       },

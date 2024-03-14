@@ -34,7 +34,7 @@ class _FavPageState extends State<FavPage> {
             MaterialPageRoute(
                 builder: (context) => ProductPage(
                       item_id: element["item_id"],
-                      returnWidget: const BottomMenu(page: 1),
+                      returnWidget: const BottomMenu(),
                     )),
           ).then((value) {
             print("===================OFFSET===================");
@@ -96,7 +96,7 @@ class _FavPageState extends State<FavPage> {
                         MaterialPageRoute(
                             builder: (context) => ProductPage(
                                   item_id: items[index]["item_id"],
-                                  returnWidget: const BottomMenu(page: 1),
+                                  returnWidget: const BottomMenu(),
                                 )),
                       ).then((value) {
                         print("===================OFFSET===================");

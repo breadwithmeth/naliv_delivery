@@ -38,7 +38,7 @@ class _CreateAddressState extends State<CreateAddress> {
     if (isCreated) {
       print(isCreated);
       Navigator.pushReplacement(context,
-          MaterialPageRoute(builder: (context) => const BottomMenu(page: 0)));
+          MaterialPageRoute(builder: (context) => const BottomMenu()));
     }
   }
 
