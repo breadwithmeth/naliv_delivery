@@ -18,19 +18,19 @@ class _SearchResultPageState extends State<SearchResultPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          actions: [
-            IconButton(
-              icon: Icon(
-                Icons.search,
-                color: Colors.black,
-              ),
-              onPressed: () {
-                setState(() {
-                  itemsList = Container();
-                });
-              },
-            ),
-          ],
+          // actions: [
+          //   IconButton(
+          //     icon: Icon(
+          //       Icons.search,
+          //       color: Colors.black,
+          //     ),
+          //     onPressed: () {
+          //       setState(() {
+          //         itemsList = Container();
+          //       });
+          //     },
+          //   ),
+          // ],
           title: TextField(
             decoration: InputDecoration(
                 floatingLabelAlignment: FloatingLabelAlignment.start,
