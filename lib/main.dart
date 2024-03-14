@@ -49,8 +49,8 @@ class _MainState extends State<Main> {
           useMaterial3: true,
           brightness: Brightness.light,
           pageTransitionsTheme: const PageTransitionsTheme(builders: {
-            TargetPlatform.android: ZoomPageTransitionsBuilder(),
-            TargetPlatform.iOS: ZoomPageTransitionsBuilder(),
+            TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+            TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder()
           }),
           bottomNavigationBarTheme: const BottomNavigationBarThemeData(),
           scaffoldBackgroundColor: Colors.white,

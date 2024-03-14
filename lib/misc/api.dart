@@ -209,8 +209,28 @@ Future<List> getCategories() async {
   return data;
 }
 
-Future<List> getItems(String categoryId, int page,
-    {Map? filters}) async {
+Future<List> getItemsMain(int page, {Map? filters}) async {
+  String? token = await getToken();
+  if (token == null) {
+    return [];
+  }
+  var url = Uri.https(URL_API, 'api/item/get.php');
+  var response = await http.post(
+    url,
+    encoding: Encoding.getByName('utf-8'),
+    headers: {"Content-Type": "application/json", "AUTH": token},
+    body: filters == null
+        ? json.encode({"page": page})
+        : json.encode({'filters': filters, "page": page}),
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(utf8.decode(response.bodyBytes));
+  List data = json.decode(utf8.decode(response.bodyBytes));
+  return data;
+}
+
+Future<List> getItems(String categoryId, int page, {Map? filters}) async {
   String? token = await getToken();
   if (token == null) {
     return [];
@@ -250,8 +270,7 @@ Future<Map> getFilters(String categoryId) async {
   return data;
 }
 
-Future<Map<String, dynamic>?> getItem(String itemId,
-    {List? filter}) async {
+Future<Map<String, dynamic>?> getItem(String itemId, {List? filter}) async {
   String? token = await getToken();
   if (token == null) {
     return {};
