@@ -408,8 +408,7 @@ class _CategoryPageState extends State<CategoryPage> {
                             onPressed: () {
                               Navigator.push(context,
                                   MaterialPageRoute(builder: (context) {
-                                return const BottomMenu(
-                                  page: 0,
+                                return  BottomMenu(
                                 );
                               }));
                             },
