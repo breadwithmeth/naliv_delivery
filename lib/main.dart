@@ -31,9 +31,7 @@ class _MainState extends State<Main> {
     String? token = await getToken();
     if (token != null) {
       setState(() {
-        _redirect = const BottomMenu(
-          page: 0,
-        );
+        _redirect = BottomMenu();
       });
     } else {
       setState(() {
@@ -46,6 +44,11 @@ class _MainState extends State<Main> {
   Widget build(BuildContext context) {
     return MaterialApp(
         theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.amber,
+              background: Colors.white,
+              error: Colors.red,
+              onTertiary: Colors.black),
           useMaterial3: true,
           brightness: Brightness.light,
           pageTransitionsTheme: const PageTransitionsTheme(builders: {
@@ -61,11 +64,14 @@ class _MainState extends State<Main> {
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-                shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(10))),
-                backgroundColor: Colors.black,
+                // shape: const RoundedRectangleBorder(
+                //     borderRadius: BorderRadius.all(Radius.circular(10))),
+                // backgroundColor: Colors.black,
+                backgroundColor: Color(0xFFFFCA3C),
+                foregroundColor: Colors.black,
                 padding: const EdgeInsets.symmetric(vertical: 15),
-                foregroundColor: Colors.white),
+                // foregroundColor: Colors.white
+                ),
           ),
           textTheme: const TextTheme(
               bodyMedium: TextStyle(color: gray1),

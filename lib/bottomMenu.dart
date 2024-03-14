@@ -22,8 +22,7 @@ import 'package:naliv_delivery/shared/commonAppBar.dart';
 import 'main.dart';
 
 class BottomMenu extends StatefulWidget {
-  const BottomMenu({super.key, required this.page});
-  final int page;
+  const BottomMenu({super.key});
   @override
   State<BottomMenu> createState() => _BottomMenuState();
 }
@@ -306,8 +305,7 @@ class _BottomMenuState extends State<BottomMenu> {
       setState(() {
         // _pageController.animateToPage(widget.page,
         //     duration: const Duration(seconds: 1), curve: Curves.easeInCirc);
-        appbarIndex = widget.page;
-        _setAppbars(context, value!["logo"]);
+        _setAppbars(context, value["logo"]);
         businessName = value!['name'];
         businessAddress = value['address'];
         currentBusiness = value;
@@ -330,8 +328,8 @@ class _BottomMenuState extends State<BottomMenu> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    getPosition();
     _getLastSelectedBusiness();
+    getPosition();
     _getBusinesses();
     _getUser();
     setState(() {});

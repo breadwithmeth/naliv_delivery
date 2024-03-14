@@ -209,7 +209,7 @@ Future<List> getCategories() async {
   return data;
 }
 
-Future<List> getItemsMain(int page, {Map? filters}) async {
+Future<List> getItemsMain(int page, String search) async {
   String? token = await getToken();
   if (token == null) {
     return [];
@@ -219,9 +219,11 @@ Future<List> getItemsMain(int page, {Map? filters}) async {
     url,
     encoding: Encoding.getByName('utf-8'),
     headers: {"Content-Type": "application/json", "AUTH": token},
-    body: filters == null
-        ? json.encode({"page": page})
-        : json.encode({'filters': filters, "page": page}),
+    body: json.encode({'search': search, "page": page}),
+  );
+
+  print(
+    json.encode({'search': search, "page": page}),
   );
 
   // List<dynamic> list = json.decode(response.body);

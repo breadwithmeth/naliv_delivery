@@ -1,7 +1,5 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/misc/api.dart';
+import 'package:naliv_delivery/pages/searchResultPage.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -11,88 +9,77 @@ class SearchPage extends StatefulWidget {
 }
 
 class _SearchPageState extends State<SearchPage> {
-  Future<List> _getItems(int index) async {
-    await getItemsMain(index).then((value) {
-      print(index);
+  TextEditingController _keyword = TextEditingController();
 
-      return value;
-    });
-
-    return [];
+  void _search() {
+    Navigator.pushReplacement(context, MaterialPageRoute(
+      builder: (context) {
+        return SearchResultPage(
+          search: _keyword.text,
+        );
+      },
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Container(
-          width: double.infinity,
-          margin: EdgeInsets.all(10),
-          child: TextField(
-            decoration: InputDecoration(
-                fillColor: Colors.black12,
-                filled: true,
-                focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(10)),
-                    borderSide: BorderSide(color: Colors.white, width: 0)),
-                enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(15)),
-                    borderSide: BorderSide(color: Colors.white, width: 0)),
-                border: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white, width: 0))),
-          ),
+        title: Text(
+          "Поиск",
+          style: TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
-      body: ListView.builder(itemBuilder: (context, index) {
-        return KeepAliveFutureBuilder(
-          future: getItemsMain(index),
-          builder: (context, snapshot) {
-            List? items = snapshot.data;
-            return ListView.builder(
-              shrinkWrap: true,
-              primary: false,
-              itemCount: items!.length,
-              prototypeItem: ListTile(
-                title: Text(items[1]["name"]),
-              ),
-              itemBuilder: (context, index1) {
-                return ListTile(
-                  title: Text(items[index1]["name"]),
-                );
-              },
-            );
-          },
-        );
-      }),
+      body: Column(
+        children: [
+          Container(
+            margin: EdgeInsets.all(10),
+            padding: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      offset: Offset(5, 5),
+                      blurRadius: 10)
+                ],
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.all(Radius.circular(15))),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _keyword,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                      labelText: "Поиск",
+                      filled: true,
+                      fillColor: Colors.white,
+                      focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(width: 2, color: Colors.amber),
+                          borderRadius: BorderRadius.all(Radius.circular(30))),
+                      enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(width: 2, color: Colors.grey),
+                          borderRadius: BorderRadius.all(Radius.circular(30))),
+                      border: OutlineInputBorder(
+                          borderSide: BorderSide(width: 5, color: Colors.black),
+                          borderRadius: BorderRadius.all(Radius.circular(30)))),
+                ),
+                SizedBox(
+                  height: 10,
+                ),
+                ElevatedButton(
+                    onPressed: () {
+                      _search();
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.max,
+                      children: [Text("Найти")],
+                    ))
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
-}
-
-
-
-class KeepAliveFutureBuilder extends StatefulWidget {
-
-  final Future future;
-  final AsyncWidgetBuilder builder;
-
-  KeepAliveFutureBuilder({
-    required this.future,
-    required this.builder
-  });
-
-  @override
-  _KeepAliveFutureBuilderState createState() => _KeepAliveFutureBuilderState();
-}
-
-class _KeepAliveFutureBuilderState extends State<KeepAliveFutureBuilder> with AutomaticKeepAliveClientMixin {
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: widget.future,
-      builder: widget.builder,
-    );
-  }
-
-  @override
-  bool get wantKeepAlive => true;
 }
