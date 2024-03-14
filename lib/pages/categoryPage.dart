@@ -943,7 +943,7 @@ class _ItemCardState extends State<ItemCard> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Image.network(
-                'https://naliv.kz/img/' + element["photo"],
+                'https://naliv.kz/img/$element["photo"]',
                 width: MediaQuery.of(context).size.width * 0.4,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {

@@ -328,6 +328,12 @@ class _BottomMenuState extends State<BottomMenu> {
     }
   }
 
+  StreamController _dataStreamController = StreamController();
+
+  Future<void> loadData() async {
+    await _getLastSelectedBusiness();
+  }
+
   @override
   void initState() {
     // TODO: implement initState
@@ -337,6 +343,7 @@ class _BottomMenuState extends State<BottomMenu> {
     _getBusinesses();
     _getUser();
     setState(() {});
+    super.initState();
   }
 
   @override
@@ -365,7 +372,7 @@ class _BottomMenuState extends State<BottomMenu> {
               duration: Duration(microseconds: 200), curve: Curves.bounceIn);
         },
       ),
-      appBar: appbars[_page],
+      appBar: appbars.isNotEmpty ? appbars[_page] : AppBar(),
       drawer: _drawer(),
       // appBar: AppBar(
       //   // leading: Container(),
