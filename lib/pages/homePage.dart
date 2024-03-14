@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/misc/colors.dart';
+import 'package:naliv_delivery/pages/businessSelectStartPage.dart';
 import 'package:naliv_delivery/pages/categoryPage.dart';
 import 'package:palette_generator/palette_generator.dart';
 
@@ -65,11 +66,22 @@ class _HomePageState extends State<HomePage>
     });
   }
 
+  Map<String, dynamic>? _business = {};
+  Future<void> _getCurrentBusiness() async {
+    Map<String, dynamic>? business = await getLastSelectedBusiness();
+    if (business != null) {
+      setState(() {
+        _business = business;
+      });
+    }
+  }
+
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     _getCategories();
+    _getCurrentBusiness();
   }
 
   @override
@@ -80,6 +92,54 @@ class _HomePageState extends State<HomePage>
         mainAxisAlignment: MainAxisAlignment.start,
         mainAxisSize: MainAxisSize.max,
         children: [
+          GestureDetector(
+            onTap: () {
+              Navigator.pushReplacement(context, MaterialPageRoute(
+                builder: (context) {
+                  return BusinessSelectStartPage();
+                },
+              ));
+            },
+            child: Container(
+                margin: EdgeInsets.all(10),
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                    color: Colors.black12,
+                    borderRadius: BorderRadius.all(Radius.circular(30))),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              _business?["name"] ?? "",
+                              style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w700),
+                            )
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Text(
+                              _business?["address"] ?? "",
+                              style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w700),
+                            )
+                          ],
+                        )
+                      ],
+                    ),
+                    Icon(Icons.arrow_forward_ios)
+                  ],
+                )),
+          ),
           Container(
               height: 150,
               width: MediaQuery.of(context).size.width,
@@ -158,7 +218,7 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: MediaQuery.of(context).size.width * .25,
                   height: MediaQuery.of(context).size.width * .25,
-                  margin: const EdgeInsets.all(5),
+                  margin: EdgeInsets.all(5),
                   child: Column(
                     children: [
                       Container(

@@ -12,6 +12,7 @@ class SearchResultPage extends StatefulWidget {
 
 class _SearchResultPageState extends State<SearchResultPage> {
   Widget itemsList = Container();
+  int snapshotLenght = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -55,41 +56,47 @@ class _SearchResultPageState extends State<SearchResultPage> {
                     borderSide: BorderSide(color: Colors.white, width: 0))),
           ),
         ),
-        body: ListView.builder(itemBuilder: (context, index) {
-          return KeepAliveFutureBuilder(
-            future: getItemsMain(index, widget.search),
-            builder: (context, snapshot) {
-              List? items = snapshot.data;
-
-              if (snapshot.hasError) {
-                return Container();
-              } else if (snapshot.connectionState == ConnectionState.waiting) {
-                return Container(
-                  height: MediaQuery.of(context).size.height,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [CircularProgressIndicator()],
-                    mainAxisSize: MainAxisSize.max,
-                  ),
-                );
-              } else {
-                return ListView.builder(
-                  shrinkWrap: true,
-                  primary: false,
-                  itemCount: items!.length,
-                  prototypeItem: ListTile(
-                    title: Text(items[1]["name"]),
-                  ),
-                  itemBuilder: (context, index1) {
-                    return ListTile(
-                      title: Text(items[index1]["name"]),
+        body: ListView.builder(
+            // itemCount: snapshotLenght,
+            itemBuilder: (context, index) {
+             
+              return KeepAliveFutureBuilder(
+                future: getItemsMain(index, widget.search),
+                builder: (context, snapshot) {
+                  List? items = snapshot.data;
+                  if (items!.length < index) {
+                    
+                  }
+                  if (snapshot.hasError) {
+                    return Container();
+                  } else if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return Container(
+                      height: MediaQuery.of(context).size.height,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [CircularProgressIndicator()],
+                        mainAxisSize: MainAxisSize.max,
+                      ),
                     );
-                  },
-                );
-              }
-            },
-          );
-        }));
+                  } else {
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      primary: false,
+                      itemCount: items!.length,
+                      prototypeItem: ListTile(
+                        title: Text(items[1]["name"]),
+                      ),
+                      itemBuilder: (context, index1) {
+                        return ListTile(
+                          title: Text(items[index1]["name"]),
+                        );
+                      },
+                    );
+                  }
+                },
+              );
+            }));
   }
 }
 
