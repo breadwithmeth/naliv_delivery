@@ -27,6 +27,7 @@ migrate_working_dir/
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
+local.properties
 .packages
 .pub-cache/
 .pub/
@@ -42,4 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+.flutter-plugins-dependencies
+.flutter-plugins
+.flutter-plugins-dependencies
 .flutter-plugins-dependencies
