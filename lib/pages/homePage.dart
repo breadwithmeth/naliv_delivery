@@ -42,16 +42,19 @@ class _HomePageState extends State<HomePage>
   ];
 
   List<Widget> indicators(imagesLength, currentIndex) {
-    return List<Widget>.generate(imagesLength, (index) {
-      return Container(
-        margin: const EdgeInsets.all(3),
-        width: 5,
-        height: 5,
-        decoration: BoxDecoration(
-            color: currentIndex == index ? gray1 : Colors.black12,
-            shape: BoxShape.circle),
-      );
-    });
+    return List<Widget>.generate(
+      imagesLength,
+      (index) {
+        return Container(
+          margin: const EdgeInsets.all(3),
+          width: 5,
+          height: 5,
+          decoration: BoxDecoration(
+              color: currentIndex == index ? gray1 : Colors.black12,
+              shape: BoxShape.circle),
+        );
+      },
+    );
   }
 
   List categories = [];
@@ -60,9 +63,11 @@ class _HomePageState extends State<HomePage>
 
   Future<void> _getCategories() async {
     List categories1 = await getCategories();
-    setState(() {
-      categories = categories1;
-    });
+    setState(
+      () {
+        categories = categories1;
+      },
+    );
   }
 
   @override
@@ -75,178 +80,182 @@ class _HomePageState extends State<HomePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: SingleChildScrollView(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        mainAxisSize: MainAxisSize.max,
-        children: [
-          Container(
+      body: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            SizedBox(
               height: 150,
               width: MediaQuery.of(context).size.width,
               child: PageView.builder(
                 onPageChanged: (value) {
-                  setState(() {
-                    activePage = value;
-                  });
+                  setState(
+                    () {
+                      activePage = value;
+                    },
+                  );
                 },
                 itemCount: images.length,
                 itemBuilder: (context, index) {
                   return Container(
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.all(Radius.circular(10)),
-                          image: DecorationImage(
-                              opacity: 0.5,
-                              image: NetworkImage(images[index]["image"]),
-                              fit: BoxFit.cover)),
-                      margin: EdgeInsets.all(10),
-                      padding: EdgeInsets.all(10),
-                      child: TextButton(
-                        style:
-                            TextButton.styleFrom(alignment: Alignment.topLeft),
-                        child: Text(
-                          images[index]["text"],
-                          style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black),
-                        ),
-                        onPressed: () {
-                          print("object");
-                        },
-                      ));
+                    decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.all(Radius.circular(10)),
+                        image: DecorationImage(
+                            opacity: 0.5,
+                            image: NetworkImage(images[index]["image"]),
+                            fit: BoxFit.cover)),
+                    margin: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(10),
+                    child: TextButton(
+                      style: TextButton.styleFrom(alignment: Alignment.topLeft),
+                      child: Text(
+                        images[index]["text"],
+                        style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black),
+                      ),
+                      onPressed: () {
+                        print("object");
+                      },
+                    ),
+                  );
                 },
                 controller: _pageController,
                 padEnds: false,
                 pageSnapping: false,
-              )),
-          Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: indicators(images.length, activePage)),
-          const SizedBox(
-            height: 10,
-          ),
-          SizedBox(
-            width: MediaQuery.of(context).size.width,
-            // height: 170,
-            child: GridView(
-              primary: false,
-              shrinkWrap: true,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 4),
-              children: [
-                Container(
-                  width: MediaQuery.of(context).size.width * 0.25,
-                  height: MediaQuery.of(context).size.width * 0.25,
-                  margin: const EdgeInsets.all(5),
-                  child: Column(
-                    children: [
-                      Container(
-                        decoration: const BoxDecoration(
-                            color: Colors.amber,
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(15))),
-                        width: MediaQuery.of(context).size.width * 0.15,
-                        height: MediaQuery.of(context).size.width * 0.15,
-                      ),
-                      const Text(
-                        "Новинки",
-                        style: TextStyle(fontSize: 12),
-                      )
-                    ],
-                  ),
-                ),
-                Container(
-                  width: MediaQuery.of(context).size.width * .25,
-                  height: MediaQuery.of(context).size.width * .25,
-                  margin: const EdgeInsets.all(5),
-                  child: Column(
-                    children: [
-                      Container(
-                        decoration: const BoxDecoration(
-                            color: Colors.amber,
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(15))),
-                        width: MediaQuery.of(context).size.width * 0.15,
-                        height: MediaQuery.of(context).size.width * 0.15,
-                      ),
-                      const Text(
-                        "Со скидкой",
-                        style: TextStyle(fontSize: 12),
-                      )
-                    ],
-                  ),
-                ),
-                Container(
-                  width: MediaQuery.of(context).size.width * .25,
-                  height: MediaQuery.of(context).size.width * .25,
-                  margin: const EdgeInsets.all(5),
-                  child: Column(
-                    children: [
-                      Container(
-                        decoration: const BoxDecoration(
-                            color: Colors.amber,
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(15))),
-                        width: MediaQuery.of(context).size.width * 0.15,
-                        height: MediaQuery.of(context).size.width * 0.15,
-                      ),
-                      const Text(
-                        "Хит продаж",
-                        style: TextStyle(fontSize: 12),
-                      )
-                    ],
-                  ),
-                ),
-                Container(
-                  width: MediaQuery.of(context).size.width * .25,
-                  height: MediaQuery.of(context).size.width * 0.33,
-                  margin: const EdgeInsets.all(5),
-                  child: Column(
-                    children: [
-                      Container(
-                        decoration: const BoxDecoration(
-                            color: Colors.amber,
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(15))),
-                        width: MediaQuery.of(context).size.width * 0.15,
-                        height: MediaQuery.of(context).size.width * 0.15,
-                      ),
-                      const Text(
-                        "Вы покупали",
-                        style: TextStyle(fontSize: 12),
-                      )
-                    ],
-                  ),
-                )
-              ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: GridView.builder(
-              padding: const EdgeInsets.all(0),
-              physics: const NeverScrollableScrollPhysics(),
-              shrinkWrap: true,
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 150,
-                  childAspectRatio: 1,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10),
-              itemCount: categories.length,
-              itemBuilder: (BuildContext ctx, index) {
-                return CategoryItem(
-                    category_id: categories[index]["category_id"],
-                    name: categories[index]["name"],
-                    image: categories[index]["photo"]);
-              },
+            Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: indicators(images.length, activePage)),
+            const SizedBox(
+              height: 10,
             ),
-          ),
-          const SizedBox(
-            height: 200,
-          )
-        ],
+            SizedBox(
+              width: MediaQuery.of(context).size.width,
+              // height: 170,
+              child: GridView(
+                primary: false,
+                shrinkWrap: true,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4),
+                children: [
+                  Container(
+                    width: MediaQuery.of(context).size.width * 0.25,
+                    height: MediaQuery.of(context).size.width * 0.25,
+                    margin: const EdgeInsets.all(5),
+                    child: Column(
+                      children: [
+                        Container(
+                          decoration: const BoxDecoration(
+                              color: Colors.amber,
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(15))),
+                          width: MediaQuery.of(context).size.width * 0.15,
+                          height: MediaQuery.of(context).size.width * 0.15,
+                        ),
+                        const Text(
+                          "Новинки",
+                          style: TextStyle(fontSize: 12),
+                        )
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: MediaQuery.of(context).size.width * .25,
+                    height: MediaQuery.of(context).size.width * .25,
+                    margin: const EdgeInsets.all(5),
+                    child: Column(
+                      children: [
+                        Container(
+                          decoration: const BoxDecoration(
+                              color: Colors.amber,
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(15))),
+                          width: MediaQuery.of(context).size.width * 0.15,
+                          height: MediaQuery.of(context).size.width * 0.15,
+                        ),
+                        const Text(
+                          "Со скидкой",
+                          style: TextStyle(fontSize: 12),
+                        )
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: MediaQuery.of(context).size.width * .25,
+                    height: MediaQuery.of(context).size.width * .25,
+                    margin: const EdgeInsets.all(5),
+                    child: Column(
+                      children: [
+                        Container(
+                          decoration: const BoxDecoration(
+                              color: Colors.amber,
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(15))),
+                          width: MediaQuery.of(context).size.width * 0.15,
+                          height: MediaQuery.of(context).size.width * 0.15,
+                        ),
+                        const Text(
+                          "Хит продаж",
+                          style: TextStyle(fontSize: 12),
+                        )
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: MediaQuery.of(context).size.width * .25,
+                    height: MediaQuery.of(context).size.width * 0.33,
+                    margin: const EdgeInsets.all(5),
+                    child: Column(
+                      children: [
+                        Container(
+                          decoration: const BoxDecoration(
+                              color: Colors.amber,
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(15))),
+                          width: MediaQuery.of(context).size.width * 0.15,
+                          height: MediaQuery.of(context).size.width * 0.15,
+                        ),
+                        const Text(
+                          "Вы покупали",
+                          style: TextStyle(fontSize: 12),
+                        )
+                      ],
+                    ),
+                  )
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: GridView.builder(
+                padding: const EdgeInsets.all(0),
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 150,
+                    childAspectRatio: 1,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10),
+                itemCount: categories.length,
+                itemBuilder: (BuildContext ctx, index) {
+                  return CategoryItem(
+                      category_id: categories[index]["category_id"],
+                      name: categories[index]["name"],
+                      image: categories[index]["photo"]);
+                },
+              ),
+            ),
+            const SizedBox(
+              height: 200,
+            )
+          ],
+        ),
       ),
-    ));
+    );
   }
 }
 
@@ -270,14 +279,18 @@ class _CategoryItemState extends State<CategoryItem> {
   Future<void> _getColors() async {
     if (widget.image!.isNotEmpty) {
       PaletteGenerator paletteGenerator =
-          await PaletteGenerator.fromImageProvider(NetworkImage(
-        widget.image!,
-      ));
-      setState(() {
-        FirstColor = paletteGenerator.vibrantColor!.color;
-        SecondColor = paletteGenerator.darkVibrantColor!.color;
-        textBG = paletteGenerator.darkMutedColor!.color;
-      });
+          await PaletteGenerator.fromImageProvider(
+        NetworkImage(
+          widget.image!,
+        ),
+      );
+      setState(
+        () {
+          FirstColor = paletteGenerator.vibrantColor!.color;
+          SecondColor = paletteGenerator.darkVibrantColor!.color;
+          textBG = paletteGenerator.darkMutedColor!.color;
+        },
+      );
     }
   }
 
@@ -291,69 +304,72 @@ class _CategoryItemState extends State<CategoryItem> {
   @override
   Widget build(BuildContext context) {
     return TextButton(
-        style: TextButton.styleFrom(padding: const EdgeInsets.all(0)),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => CategoryPage(
-                      category_id: widget.category_id,
-                      category_name: widget.name,
-                      scroll: 0,
-                    )),
-          );
-        },
-        child: Stack(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
-                  gradient: LinearGradient(
-                      colors: [FirstColor, SecondColor],
-                      transform: const GradientRotation(2))),
+      style: TextButton.styleFrom(padding: const EdgeInsets.all(0)),
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CategoryPage(
+              category_id: widget.category_id,
+              category_name: widget.name,
+              scroll: 0,
             ),
-            Container(
-              clipBehavior: Clip.antiAliasWithSaveLayer,
-              decoration:
-                  BoxDecoration(borderRadius: BorderRadius.circular(15)),
-              width: double.infinity,
-              height: double.infinity,
+          ),
+        );
+      },
+      child: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+                gradient: LinearGradient(
+                    colors: [FirstColor, SecondColor],
+                    transform: const GradientRotation(2))),
+          ),
+          Container(
+            clipBehavior: Clip.antiAliasWithSaveLayer,
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(15)),
+            width: double.infinity,
+            height: double.infinity,
+            alignment: Alignment.bottomCenter,
+            child: Transform.rotate(
+              // origin: Offset(-50, 0),
               alignment: Alignment.bottomCenter,
-              child: Transform.rotate(
-                  // origin: Offset(-50, 0),
-                  alignment: Alignment.bottomCenter,
-                  angle: 0.5,
-                  child: widget.image!.isNotEmpty
-                      ? Image.network(
-                          widget.image!,
-                          fit: BoxFit.fitHeight,
-                          width: 500,
-                          height: 500,
-                        )
-                      : Container()),
+              angle: 0.5,
+              child: widget.image!.isNotEmpty
+                  ? Image.network(
+                      widget.image!,
+                      fit: BoxFit.fitHeight,
+                      width: 500,
+                      height: 500,
+                    )
+                  : Container(),
             ),
-            Container(
-                padding: const EdgeInsets.all(15),
-                alignment: Alignment.topLeft,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.all(Radius.circular(5))),
-                child: Container(
-                  decoration: BoxDecoration(
-                      color: textBG,
-                      borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(5),
-                          bottomRight: Radius.circular(5))),
-                  child: Text(
-                    widget.name,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      height: 1.2,
-                      // background: Paint()..color = textBG)
-                    ),
-                  ),
-                )),
-          ],
-        ));
+          ),
+          Container(
+            padding: const EdgeInsets.all(15),
+            alignment: Alignment.topLeft,
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(5))),
+            child: Container(
+              decoration: BoxDecoration(
+                  color: textBG,
+                  borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(5),
+                      bottomRight: Radius.circular(5))),
+              child: Text(
+                widget.name,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  height: 1.2,
+                  // background: Paint()..color = textBG)
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
