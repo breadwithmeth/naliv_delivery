@@ -25,7 +25,7 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           "Поиск",
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
@@ -33,44 +33,44 @@ class _SearchPageState extends State<SearchPage> {
       body: Column(
         children: [
           Container(
-            margin: EdgeInsets.all(10),
-            padding: EdgeInsets.all(20),
+            margin: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
                 boxShadow: [
                   BoxShadow(
                       color: Colors.black.withOpacity(0.1),
-                      offset: Offset(5, 5),
+                      offset: const Offset(5, 5),
                       blurRadius: 10)
                 ],
                 color: Colors.grey.shade100,
-                borderRadius: BorderRadius.all(Radius.circular(15))),
+                borderRadius: const BorderRadius.all(Radius.circular(10))),
             child: Column(
               children: [
                 TextField(
                   controller: _keyword,
                   autofocus: true,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                       labelText: "Поиск",
                       filled: true,
                       fillColor: Colors.white,
                       focusedBorder: OutlineInputBorder(
                           borderSide: BorderSide(width: 2, color: Colors.amber),
-                          borderRadius: BorderRadius.all(Radius.circular(30))),
+                          borderRadius: BorderRadius.all(Radius.circular(10))),
                       enabledBorder: OutlineInputBorder(
                           borderSide: BorderSide(width: 2, color: Colors.grey),
-                          borderRadius: BorderRadius.all(Radius.circular(30))),
+                          borderRadius: BorderRadius.all(Radius.circular(10))),
                       border: OutlineInputBorder(
                           borderSide: BorderSide(width: 5, color: Colors.black),
-                          borderRadius: BorderRadius.all(Radius.circular(30)))),
+                          borderRadius: BorderRadius.all(Radius.circular(10)))),
                 ),
-                SizedBox(
+                const SizedBox(
                   height: 10,
                 ),
                 ElevatedButton(
                     onPressed: () {
                       _search();
                     },
-                    child: Row(
+                    child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       mainAxisSize: MainAxisSize.max,
                       children: [Text("Найти")],

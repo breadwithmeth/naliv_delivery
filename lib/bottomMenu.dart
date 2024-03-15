@@ -106,10 +106,9 @@ class _BottomMenuState extends State<BottomMenu> {
               },
               child: Container(
                 margin: const EdgeInsets.symmetric(vertical: 15),
-                padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.1),
-                    borderRadius: const BorderRadius.all(Radius.circular(30))),
+                    borderRadius: const BorderRadius.all(Radius.circular(10))),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [

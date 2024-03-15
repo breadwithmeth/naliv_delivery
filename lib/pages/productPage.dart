@@ -387,13 +387,9 @@ class _ProductPageState extends State<ProductPage> {
                         ),
                         Row(
                           mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          mainAxisAlignment: MainAxisAlignment.end,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            const Text(
-                              "Арт: 1234567",
-                              style: TextStyle(fontSize: 10),
-                            ),
                             Container(
                               margin: const EdgeInsets.all(5),
                               child: item.isNotEmpty
