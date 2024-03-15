@@ -108,7 +108,7 @@ class _HomePageState extends State<HomePage>
                 padding: const EdgeInsets.all(10),
                 decoration: const BoxDecoration(
                     color: Colors.black12,
-                    borderRadius: BorderRadius.all(Radius.circular(15))),
+                    borderRadius: BorderRadius.all(Radius.circular(10))),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -143,7 +143,7 @@ class _HomePageState extends State<HomePage>
                   ],
                 )),
           ),
-          Container(
+          SizedBox(
               height: 150,
               width: MediaQuery.of(context).size.width,
               child: PageView.builder(
@@ -159,7 +159,7 @@ class _HomePageState extends State<HomePage>
                   return Container(
                     decoration: BoxDecoration(
                         borderRadius:
-                            const BorderRadius.all(Radius.circular(15)),
+                            const BorderRadius.all(Radius.circular(10)),
                         image: DecorationImage(
                             opacity: 0.5,
                             image: NetworkImage(images[index]["image"]),
@@ -210,7 +210,7 @@ class _HomePageState extends State<HomePage>
                         decoration: const BoxDecoration(
                             color: Colors.amber,
                             borderRadius:
-                                BorderRadius.all(Radius.circular(15))),
+                                BorderRadius.all(Radius.circular(10))),
                         width: MediaQuery.of(context).size.width * 0.15,
                         height: MediaQuery.of(context).size.width * 0.15,
                       ),
@@ -231,7 +231,7 @@ class _HomePageState extends State<HomePage>
                         decoration: const BoxDecoration(
                             color: Colors.amber,
                             borderRadius:
-                                BorderRadius.all(Radius.circular(15))),
+                                BorderRadius.all(Radius.circular(10))),
                         width: MediaQuery.of(context).size.width * 0.15,
                         height: MediaQuery.of(context).size.width * 0.15,
                       ),
@@ -252,7 +252,7 @@ class _HomePageState extends State<HomePage>
                         decoration: const BoxDecoration(
                             color: Colors.amber,
                             borderRadius:
-                                BorderRadius.all(Radius.circular(15))),
+                                BorderRadius.all(Radius.circular(10))),
                         width: MediaQuery.of(context).size.width * 0.15,
                         height: MediaQuery.of(context).size.width * 0.15,
                       ),
@@ -273,7 +273,7 @@ class _HomePageState extends State<HomePage>
                         decoration: const BoxDecoration(
                             color: Colors.amber,
                             borderRadius:
-                                BorderRadius.all(Radius.circular(15))),
+                                BorderRadius.all(Radius.circular(10))),
                         width: MediaQuery.of(context).size.width * 0.15,
                         height: MediaQuery.of(context).size.width * 0.15,
                       ),
@@ -378,14 +378,14 @@ class _CategoryItemState extends State<CategoryItem> {
         children: [
           Container(
             decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.circular(10),
                 gradient: LinearGradient(
                     colors: [FirstColor, SecondColor],
                     transform: const GradientRotation(2))),
           ),
           Container(
             clipBehavior: Clip.antiAliasWithSaveLayer,
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(15)),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
             width: double.infinity,
             height: double.infinity,
             alignment: Alignment.bottomCenter,

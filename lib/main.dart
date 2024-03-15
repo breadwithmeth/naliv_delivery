@@ -45,10 +45,16 @@ class _MainState extends State<Main> {
     return MaterialApp(
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.yellow,
-              background: Colors.white,
-              error: Colors.red,
-              onTertiary: Colors.black),
+            seedColor: Colors.amber,
+            background: Colors.white,
+            onBackground: Colors.black,
+            error: Colors.red,
+            primary: Colors.orange,
+            onPrimary: Colors.black,
+            onError: Colors.white,
+            secondary: Colors.grey.shade300,
+            onSecondary: Colors.black,
+          ),
           useMaterial3: true,
           brightness: Brightness.light,
           pageTransitionsTheme: const PageTransitionsTheme(builders: {
@@ -64,14 +70,14 @@ class _MainState extends State<Main> {
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-                // shape: const RoundedRectangleBorder(
-                //     borderRadius: BorderRadius.all(Radius.circular(10))),
-                // backgroundColor: Colors.black,
-                backgroundColor: Color(0xFFFFCA3C),
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                // foregroundColor: Colors.white
-                ),
+              // shape: const RoundedRectangleBorder(
+              //     borderRadius: BorderRadius.all(Radius.circular(10))),
+              // backgroundColor: Colors.black,
+              backgroundColor: Color(0xFFFFCA3C),
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(vertical: 15),
+              // foregroundColor: Colors.white
+            ),
           ),
           textTheme: const TextTheme(
               bodyMedium: TextStyle(color: gray1),
@@ -82,3 +88,5 @@ class _MainState extends State<Main> {
         home: _redirect);
   }
 }
+
+// Стандартное закруление Radius.circular(15);
