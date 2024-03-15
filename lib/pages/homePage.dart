@@ -99,16 +99,16 @@ class _HomePageState extends State<HomePage>
             onTap: () {
               Navigator.pushReplacement(context, MaterialPageRoute(
                 builder: (context) {
-                  return BusinessSelectStartPage();
+                  return const BusinessSelectStartPage();
                 },
               ));
             },
             child: Container(
-                margin: EdgeInsets.all(10),
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
+                margin: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
                     color: Colors.black12,
-                    borderRadius: BorderRadius.all(Radius.circular(30))),
+                    borderRadius: BorderRadius.all(Radius.circular(15))),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -121,7 +121,7 @@ class _HomePageState extends State<HomePage>
                           children: [
                             Text(
                               _business?["name"] ?? "",
-                              style: TextStyle(
+                              style: const TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.w700),
                             )
@@ -131,7 +131,7 @@ class _HomePageState extends State<HomePage>
                           children: [
                             Text(
                               _business?["address"] ?? "",
-                              style: TextStyle(
+                              style: const TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.w700),
                             )
@@ -139,7 +139,7 @@ class _HomePageState extends State<HomePage>
                         )
                       ],
                     ),
-                    Icon(Icons.arrow_forward_ios)
+                    const Icon(Icons.arrow_forward_ios)
                   ],
                 )),
           ),
@@ -159,7 +159,7 @@ class _HomePageState extends State<HomePage>
                   return Container(
                     decoration: BoxDecoration(
                         borderRadius:
-                            const BorderRadius.all(Radius.circular(10)),
+                            const BorderRadius.all(Radius.circular(15)),
                         image: DecorationImage(
                             opacity: 0.5,
                             image: NetworkImage(images[index]["image"]),
@@ -224,7 +224,7 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: MediaQuery.of(context).size.width * .25,
                   height: MediaQuery.of(context).size.width * .25,
-                  margin: EdgeInsets.all(5),
+                  margin: const EdgeInsets.all(5),
                   child: Column(
                     children: [
                       Container(

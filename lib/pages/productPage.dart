@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
+import 'package:naliv_delivery/shared/buyButton.dart';
 import 'package:naliv_delivery/shared/likeButton.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -19,6 +20,8 @@ class _ProductPageState extends State<ProductPage> {
   Map<String, dynamic> item = {};
   List<Widget> groupItems = [];
   List<TableRow> properties = [];
+
+  late BuyButtonFullWidth _buyButtonFullWidth;
 
   final ScrollController _sc = ScrollController();
 
@@ -247,6 +250,8 @@ class _ProductPageState extends State<ProductPage> {
 
           propertiesWidget = propertiesT;
 
+          _buyButtonFullWidth = BuyButtonFullWidth(element: item);
+
           if (item.isNotEmpty) {
             _image = CachedNetworkImage(
               fit: BoxFit.fitHeight,
@@ -330,121 +335,7 @@ class _ProductPageState extends State<ProductPage> {
           margin: const EdgeInsets.all(5),
           padding: const EdgeInsets.all(4),
           width: MediaQuery.of(context).size.width,
-          child: amount != null
-              ? Container(
-                  decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius:
-                          const BorderRadius.all(Radius.circular(15))),
-                  padding: const EdgeInsets.all(10),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        alignment: Alignment.centerLeft,
-                        width: MediaQuery.of(context).size.width * 0.3,
-                        child: Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius:
-                                  const BorderRadius.all(Radius.circular(10))),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                padding: const EdgeInsets.all(0),
-                                onPressed: () async {
-                                  String? amount =
-                                      await removeFromCart(widget.item_id);
-                                  setState(() {
-                                    amount = amount;
-                                  });
-                                },
-                                icon: const Icon(Icons.remove),
-                              ),
-                              Text(
-                                amount.toString(),
-                                style: const TextStyle(color: Colors.black),
-                              ),
-                              IconButton(
-                                padding: const EdgeInsets.all(0),
-                                onPressed: () {
-                                  _addToCard();
-                                },
-                                icon: const Icon(Icons.add),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          item["prev_price"] != null
-                              ? Text(
-                                  item["prev_price"],
-                                  style: const TextStyle(
-                                      decoration: TextDecoration.lineThrough),
-                                )
-                              : Container(),
-                          const SizedBox(
-                            width: 5,
-                          ),
-                          Text(
-                            item["price"] ?? "",
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 26,
-                                color: Colors.black),
-                          )
-                        ],
-                      )
-                    ],
-                  ),
-                )
-              : ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.all(10),
-                      backgroundColor: Colors.grey.shade400),
-                  onPressed: () {
-                    _addToCard();
-                  },
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      const Text(
-                        "В корзину",
-                        style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 17,
-                            color: Colors.black),
-                      ),
-                      Row(
-                        children: [
-                          item["prev_price"] != null
-                              ? Text(
-                                  item["prev_price"],
-                                  style: TextStyle(
-                                      decoration: TextDecoration.lineThrough,
-                                      color: Colors.grey.shade500),
-                                )
-                              : Container(),
-                          const SizedBox(
-                            width: 5,
-                          ),
-                          Text(
-                            item["price"] ?? "",
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 26,
-                                color: Colors.black),
-                          )
-                        ],
-                      )
-                    ],
-                  )),
+          child: item.isNotEmpty ? _buyButtonFullWidth : null,
         ),
       ),
       backgroundColor: const Color(0xAAFAFAFA),
