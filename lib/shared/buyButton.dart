@@ -184,86 +184,135 @@ class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
   @override
   Widget build(BuildContext context) {
     return Flexible(
-        child: Stack(
-      children: [
-        element["amount"] != null
-            ? Container(
-                alignment: Alignment.centerLeft,
-                width: MediaQuery.of(context).size.width * 0.3,
-                child: Container(
-                  padding: const EdgeInsets.all(3),
+      child: Stack(
+        children: [
+          element["amount"] != null
+              ? Container(
                   decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
+                      color: Colors.grey.shade300,
                       borderRadius:
-                          const BorderRadius.all(Radius.circular(10))),
+                          const BorderRadius.all(Radius.circular(15))),
+                  padding: const EdgeInsets.all(10),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      IconButton(
-                        padding: const EdgeInsets.all(0),
-                        onPressed: () async {
-                          String? amount =
-                              await removeFromCart(element["item_id"]);
-                          setState(() {
-                            element["amount"] = amount;
-                          });
-                        },
-                        icon: const Icon(Icons.remove),
+                      Flexible(
+                        flex: 1,
+                        child: Container(
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                borderRadius: const BorderRadius.all(
+                                    Radius.circular(10))),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  padding: const EdgeInsets.all(0),
+                                  onPressed: !isLoading
+                                      ? () async {
+                                          String? amount = await removeFromCart(
+                                              element["item_id"]);
+                                          setState(() {
+                                            element["amount"] = amount;
+                                          });
+                                        }
+                                      : null,
+                                  icon: const Icon(Icons.remove),
+                                ),
+                                Text(
+                                  element["amount"].toString(),
+                                  style: const TextStyle(color: Colors.black),
+                                ),
+                                IconButton(
+                                  padding: const EdgeInsets.all(0),
+                                  onPressed: !isLoading
+                                      ? () {
+                                          _addToCard();
+                                        }
+                                      : null,
+                                  icon: const Icon(Icons.add),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                      Text(
-                        element["amount"].toString(),
-                        style: const TextStyle(color: Colors.black),
+                      Flexible(
+                        fit: FlexFit.loose,
+                        child: Row(
+                          children: [
+                            element["prev_price"] != null
+                                ? Text(
+                                    element["prev_price"],
+                                    style: const TextStyle(
+                                        decoration: TextDecoration.lineThrough),
+                                  )
+                                : Container(),
+                            const SizedBox(
+                              width: 5,
+                            ),
+                            Text(
+                              element["price"] ?? "",
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 26,
+                                  color: Colors.black),
+                            )
+                          ],
+                        ),
+                      )
+                    ],
+                  ),
+                )
+              : ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.all(10),
+                      backgroundColor: Colors.grey.shade400),
+                  onPressed: () {
+                    _addToCard();
+                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      const Text(
+                        "В корзину",
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 17,
+                            color: Colors.black),
                       ),
-                      IconButton(
-                        padding: const EdgeInsets.all(0),
-                        onPressed: () {
-                          _addToCard();
-                        },
-                        icon: const Icon(Icons.add),
+                      Row(
+                        children: [
+                          element["prev_price"] != null
+                              ? Text(
+                                  element["prev_price"],
+                                  style: TextStyle(
+                                      decoration: TextDecoration.lineThrough,
+                                      color: Colors.grey.shade500),
+                                )
+                              : Container(),
+                          const SizedBox(
+                            width: 5,
+                          ),
+                          Text(
+                            element["price"] ?? "",
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 26,
+                                color: Colors.black),
+                          )
+                        ],
                       ),
                     ],
                   ),
                 ),
-              )
-            : ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey.shade400),
-                onPressed: () {
-                  print(element);
-                  addToCart(element["item_id"]);
-                  refreshItemCard();
-                },
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    Text(
-                      "В корзину",
-                      style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 17,
-                          color: Colors.black),
-                    ),
-                  ],
-                )),
-        isLoading
-            ? ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey.shade400),
-                onPressed: () {
-                  refreshItemCard();
-                },
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    CircularProgressIndicator.adaptive(
-                      backgroundColor: Colors.white,
-                    )
-                  ],
-                ))
-            : Container()
-      ],
-    ));
+        ],
+      ),
+    );
   }
 }
