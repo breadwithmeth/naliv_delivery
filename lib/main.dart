@@ -45,7 +45,7 @@ class _MainState extends State<Main> {
     return MaterialApp(
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.amber,
+              seedColor: Colors.yellow,
               background: Colors.white,
               error: Colors.red,
               onTertiary: Colors.black),
