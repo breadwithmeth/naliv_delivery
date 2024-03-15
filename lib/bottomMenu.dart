@@ -1,3 +1,4 @@
+// import 'dart:ffi';
 import 'dart:async';
 import 'dart:ui';
 
@@ -84,14 +85,17 @@ class _BottomMenuState extends State<BottomMenu> {
 
   List<AppBar> appbars = [];
 
-  void _setAppbars(context, String logourl) {
+  void _setAppbars(
+      context, String logourl, String businessName, String businessAddress) {
     appbars.add(
       AppBar(
+          // scrolledUnderElevation: 100,
           automaticallyImplyLeading: true,
           // leading: IconButton(
           //   icon: Icon(Icons.menu),
           //   onPressed: () {},
           // ),
+
           title: TextButton(
               onPressed: () {
                 Navigator.push(context, MaterialPageRoute(
@@ -306,7 +310,7 @@ class _BottomMenuState extends State<BottomMenu> {
       setState(() {
         // _pageController.animateToPage(widget.page,
         //     duration: const Duration(seconds: 1), curve: Curves.easeInCirc);
-        _setAppbars(context, value["logo"]);
+        _setAppbars(context, value["logo"], value!['name'], value['address']);
         businessName = value!['name'];
         businessAddress = value['address'];
         currentBusiness = value;

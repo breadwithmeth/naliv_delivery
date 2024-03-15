@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/misc/colors.dart';
+import 'package:naliv_delivery/pages/businessSelectStartPage.dart';
 import 'package:naliv_delivery/pages/categoryPage.dart';
 import 'package:palette_generator/palette_generator.dart';
 
@@ -63,11 +64,19 @@ class _HomePageState extends State<HomePage>
 
   Future<void> _getCategories() async {
     List categories1 = await getCategories();
-    setState(
-      () {
-        categories = categories1;
-      },
-    );
+    setState(() {
+      categories = categories1;
+    });
+  }
+
+  Map<String, dynamic>? _business = {};
+  Future<void> _getCurrentBusiness() async {
+    Map<String, dynamic>? business = await getLastSelectedBusiness();
+    if (business != null) {
+      setState(() {
+        _business = business;
+      });
+    }
   }
 
   @override
@@ -75,17 +84,66 @@ class _HomePageState extends State<HomePage>
     // TODO: implement initState
     super.initState();
     _getCategories();
+    _getCurrentBusiness();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            SizedBox(
+        body: SingleChildScrollView(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          GestureDetector(
+            onTap: () {
+              Navigator.pushReplacement(context, MaterialPageRoute(
+                builder: (context) {
+                  return BusinessSelectStartPage();
+                },
+              ));
+            },
+            child: Container(
+                margin: EdgeInsets.all(10),
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                    color: Colors.black12,
+                    borderRadius: BorderRadius.all(Radius.circular(30))),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              _business?["name"] ?? "",
+                              style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w700),
+                            )
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Text(
+                              _business?["address"] ?? "",
+                              style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w700),
+                            )
+                          ],
+                        )
+                      ],
+                    ),
+                    Icon(Icons.arrow_forward_ios)
+                  ],
+                )),
+          ),
+          Container(
               height: 150,
               width: MediaQuery.of(context).size.width,
               child: PageView.builder(
@@ -126,137 +184,135 @@ class _HomePageState extends State<HomePage>
                 controller: _pageController,
                 padEnds: false,
                 pageSnapping: false,
-              ),
-            ),
-            Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: indicators(images.length, activePage)),
-            const SizedBox(
-              height: 10,
-            ),
-            SizedBox(
-              width: MediaQuery.of(context).size.width,
-              // height: 170,
-              child: GridView(
-                primary: false,
-                shrinkWrap: true,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4),
-                children: [
-                  Container(
-                    width: MediaQuery.of(context).size.width * 0.25,
-                    height: MediaQuery.of(context).size.width * 0.25,
-                    margin: const EdgeInsets.all(5),
-                    child: Column(
-                      children: [
-                        Container(
-                          decoration: const BoxDecoration(
-                              color: Colors.amber,
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(15))),
-                          width: MediaQuery.of(context).size.width * 0.15,
-                          height: MediaQuery.of(context).size.width * 0.15,
-                        ),
-                        const Text(
-                          "Новинки",
-                          style: TextStyle(fontSize: 12),
-                        )
-                      ],
-                    ),
+              )),
+          Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: indicators(images.length, activePage)),
+          const SizedBox(
+            height: 10,
+          ),
+          SizedBox(
+            width: MediaQuery.of(context).size.width,
+            // height: 170,
+            child: GridView(
+              primary: false,
+              shrinkWrap: true,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4),
+              children: [
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.25,
+                  height: MediaQuery.of(context).size.width * 0.25,
+                  margin: const EdgeInsets.all(5),
+                  child: Column(
+                    children: [
+                      Container(
+                        decoration: const BoxDecoration(
+                            color: Colors.amber,
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(15))),
+                        width: MediaQuery.of(context).size.width * 0.15,
+                        height: MediaQuery.of(context).size.width * 0.15,
+                      ),
+                      const Text(
+                        "Новинки",
+                        style: TextStyle(fontSize: 12),
+                      )
+                    ],
                   ),
-                  Container(
-                    width: MediaQuery.of(context).size.width * .25,
-                    height: MediaQuery.of(context).size.width * .25,
-                    margin: const EdgeInsets.all(5),
-                    child: Column(
-                      children: [
-                        Container(
-                          decoration: const BoxDecoration(
-                              color: Colors.amber,
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(15))),
-                          width: MediaQuery.of(context).size.width * 0.15,
-                          height: MediaQuery.of(context).size.width * 0.15,
-                        ),
-                        const Text(
-                          "Со скидкой",
-                          style: TextStyle(fontSize: 12),
-                        )
-                      ],
-                    ),
+                ),
+                Container(
+                  width: MediaQuery.of(context).size.width * .25,
+                  height: MediaQuery.of(context).size.width * .25,
+                  margin: EdgeInsets.all(5),
+                  child: Column(
+                    children: [
+                      Container(
+                        decoration: const BoxDecoration(
+                            color: Colors.amber,
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(15))),
+                        width: MediaQuery.of(context).size.width * 0.15,
+                        height: MediaQuery.of(context).size.width * 0.15,
+                      ),
+                      const Text(
+                        "Со скидкой",
+                        style: TextStyle(fontSize: 12),
+                      )
+                    ],
                   ),
-                  Container(
-                    width: MediaQuery.of(context).size.width * .25,
-                    height: MediaQuery.of(context).size.width * .25,
-                    margin: const EdgeInsets.all(5),
-                    child: Column(
-                      children: [
-                        Container(
-                          decoration: const BoxDecoration(
-                              color: Colors.amber,
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(15))),
-                          width: MediaQuery.of(context).size.width * 0.15,
-                          height: MediaQuery.of(context).size.width * 0.15,
-                        ),
-                        const Text(
-                          "Хит продаж",
-                          style: TextStyle(fontSize: 12),
-                        )
-                      ],
-                    ),
+                ),
+                Container(
+                  width: MediaQuery.of(context).size.width * .25,
+                  height: MediaQuery.of(context).size.width * .25,
+                  margin: const EdgeInsets.all(5),
+                  child: Column(
+                    children: [
+                      Container(
+                        decoration: const BoxDecoration(
+                            color: Colors.amber,
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(15))),
+                        width: MediaQuery.of(context).size.width * 0.15,
+                        height: MediaQuery.of(context).size.width * 0.15,
+                      ),
+                      const Text(
+                        "Хит продаж",
+                        style: TextStyle(fontSize: 12),
+                      )
+                    ],
                   ),
-                  Container(
-                    width: MediaQuery.of(context).size.width * .25,
-                    height: MediaQuery.of(context).size.width * 0.33,
-                    margin: const EdgeInsets.all(5),
-                    child: Column(
-                      children: [
-                        Container(
-                          decoration: const BoxDecoration(
-                              color: Colors.amber,
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(15))),
-                          width: MediaQuery.of(context).size.width * 0.15,
-                          height: MediaQuery.of(context).size.width * 0.15,
-                        ),
-                        const Text(
-                          "Вы покупали",
-                          style: TextStyle(fontSize: 12),
-                        )
-                      ],
-                    ),
-                  )
-                ],
-              ),
+                ),
+                Container(
+                  width: MediaQuery.of(context).size.width * .25,
+                  height: MediaQuery.of(context).size.width * 0.33,
+                  margin: const EdgeInsets.all(5),
+                  child: Column(
+                    children: [
+                      Container(
+                        decoration: const BoxDecoration(
+                            color: Colors.amber,
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(15))),
+                        width: MediaQuery.of(context).size.width * 0.15,
+                        height: MediaQuery.of(context).size.width * 0.15,
+                      ),
+                      const Text(
+                        "Вы покупали",
+                        style: TextStyle(fontSize: 12),
+                      )
+                    ],
+                  ),
+                )
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: GridView.builder(
-                padding: const EdgeInsets.all(0),
-                physics: const NeverScrollableScrollPhysics(),
-                shrinkWrap: true,
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 150,
-                    childAspectRatio: 1,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10),
-                itemCount: categories.length,
-                itemBuilder: (BuildContext ctx, index) {
-                  return CategoryItem(
-                      category_id: categories[index]["category_id"],
-                      name: categories[index]["name"],
-                      image: categories[index]["photo"]);
-                },
-              ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(10),
+            child: GridView.builder(
+              padding: const EdgeInsets.all(0),
+              physics: const NeverScrollableScrollPhysics(),
+              shrinkWrap: true,
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 150,
+                  childAspectRatio: 1,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10),
+              itemCount: categories.length,
+              itemBuilder: (BuildContext ctx, index) {
+                return CategoryItem(
+                    category_id: categories[index]["category_id"],
+                    name: categories[index]["name"],
+                    image: categories[index]["photo"]);
+              },
             ),
-            const SizedBox(
-              height: 200,
-            )
-          ],
-        ),
+          ),
+          const SizedBox(
+            height: 200,
+          )
+        ],
       ),
-    );
+    ));
   }
 }
 
