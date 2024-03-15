@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/bottomMenu.dart';
 import 'package:naliv_delivery/misc/api.dart';
@@ -179,13 +180,28 @@ class _ItemCardState extends State<ItemCard> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                width: MediaQuery.of(context).size.width * 0.25,
-                child: Image.network(
-                  'https://naliv.kz/img/' + element["photo"],
+                Container(
+                  alignment: Alignment.center,
                   width: MediaQuery.of(context).size.width * 0.25,
-                  fit: BoxFit.fill,
-                ),),
+                  child: CachedNetworkImage(
+                    fit: BoxFit.fitHeight,
+                    imageUrl: 'https://naliv.kz/img${element["photo"]}',
+                    placeholder: ((context, url) {
+                      return const Expanded(child: CircularProgressIndicator());
+                    }),
+                    errorWidget: ((context, url, error) {
+                      return const Expanded(
+                          child: FittedBox(child: Text("Нет изображения")));
+                    }),
+                  ),
+                ),
+                // SizedBox(
+                // width: MediaQuery.of(context).size.width * 0.25,
+                // child: Image.network(
+                //   'https://naliv.kz/img/' + element["photo"],
+                //   width: MediaQuery.of(context).size.width * 0.25,
+                //   fit: BoxFit.fill,
+                // ),),
                 SizedBox(
                   width: MediaQuery.of(context).size.width * 0.6,
                   child: Column(
@@ -281,13 +297,6 @@ class _ItemCardState extends State<ItemCard> {
                 )
               ],
             ),
-            const SizedBox(
-              height: 15,
-            ),
-            Container(
-              height: 1,
-              color: Colors.grey.shade200,
-            )
           ],
         ),
       ),

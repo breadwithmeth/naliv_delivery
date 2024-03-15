@@ -96,23 +96,23 @@ class _BottomMenuState extends State<BottomMenu> {
               onPressed: () {
                 Navigator.push(context, MaterialPageRoute(
                   builder: (context) {
-                    return SearchPage();
+                    return const SearchPage();
                   },
                 ));
               },
               child: Container(
-                margin: EdgeInsets.symmetric(vertical: 15),
-                padding: EdgeInsets.all(5),
+                margin: const EdgeInsets.symmetric(vertical: 15),
+                padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.1),
-                    borderRadius: BorderRadius.all(Radius.circular(30))),
+                    borderRadius: const BorderRadius.all(Radius.circular(30))),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Spacer(
+                    const Spacer(
                       flex: 3,
                     ),
-                    Text(
+                    const Text(
                       "Найти",
                       style: TextStyle(
                           fontWeight: FontWeight.w500, color: Colors.black),
@@ -136,8 +136,8 @@ class _BottomMenuState extends State<BottomMenu> {
                     //   ),
                     // ),
                     Container(
-                        padding: EdgeInsets.all(10),
-                        child: Icon(
+                        padding: const EdgeInsets.all(10),
+                        child: const Icon(
                           Icons.search,
                           color: Colors.black,
                         )),
@@ -259,7 +259,7 @@ class _BottomMenuState extends State<BottomMenu> {
     Image businessImage = Image.network(image);
 
     businessImage.image
-        .resolve(ImageConfiguration())
+        .resolve(const ImageConfiguration())
         .addListener(ImageStreamListener(
       (image, synchronousCall) {
         if (mounted) {
@@ -325,8 +325,6 @@ class _BottomMenuState extends State<BottomMenu> {
     }
   }
 
-  StreamController _dataStreamController = StreamController();
-
   Future<void> loadData() async {
     await _getLastSelectedBusiness();
   }
@@ -340,7 +338,6 @@ class _BottomMenuState extends State<BottomMenu> {
     _getBusinesses();
     _getUser();
     setState(() {});
-    super.initState();
   }
 
   @override
@@ -366,7 +363,8 @@ class _BottomMenuState extends State<BottomMenu> {
         items: _bottomNavigationBarItems,
         onTap: (value) {
           _pageController.animateToPage(value,
-              duration: Duration(microseconds: 200), curve: Curves.bounceIn);
+              duration: const Duration(microseconds: 200),
+              curve: Curves.bounceIn);
         },
       ),
       appBar: appbars.isNotEmpty ? appbars[_page] : AppBar(),

@@ -12,7 +12,7 @@ class BuyButton extends StatefulWidget {
 
 class _BuyButtonState extends State<BuyButton> {
   Map element = {};
-  bool isLoad = true;
+  bool isLoading = true;
   @override
   void initState() {
     // TODO: implement initState
@@ -20,7 +20,7 @@ class _BuyButtonState extends State<BuyButton> {
     refreshItemCard();
     setState(() {
       element = widget.element;
-      isLoad = false;
+      isLoading = false;
     });
   }
 
@@ -35,13 +35,13 @@ class _BuyButtonState extends State<BuyButton> {
 
   Future<void> _addToCard() async {
     setState(() {
-      isLoad = true;
+      isLoading = true;
     });
     String? amount = await addToCart(element["item_id"]).then((value) {
       print(value);
       setState(() {
         element["amount"] = value;
-        isLoad = false;
+        isLoading = false;
       });
       return null;
     });
@@ -50,81 +50,90 @@ class _BuyButtonState extends State<BuyButton> {
   @override
   Widget build(BuildContext context) {
     return Flexible(
-        child: Stack(
-      children: [
-        element["amount"] != null
-            ? Container(
-                alignment: Alignment.centerLeft,
-                width: MediaQuery.of(context).size.width * 0.3,
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: const BorderRadius.all(Radius.circular(10))),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+      child: Stack(
+        children: [
+          element["amount"] != null
+              ? Container(
+                  alignment: Alignment.centerLeft,
+                  width: MediaQuery.of(context).size.width * 0.3,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(10))),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          padding: const EdgeInsets.all(0),
+                          onPressed: !isLoading
+                              ? () async {
+                                  String? amount =
+                                      await removeFromCart(element["item_id"]);
+                                  setState(() {
+                                    element["amount"] = amount;
+                                  });
+                                }
+                              : null,
+                          icon: const Icon(Icons.remove),
+                        ),
+                        Text(
+                          element["amount"].toString(),
+                          style: const TextStyle(color: Colors.black),
+                        ),
+                        IconButton(
+                          padding: const EdgeInsets.all(0),
+                          onPressed: !isLoading
+                              ? () {
+                                  _addToCard();
+                                }
+                              : null,
+                          icon: const Icon(Icons.add),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade400),
+                  onPressed: () {
+                    _addToCard();
+                  },
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.max,
                     children: [
-                      IconButton(
-                        padding: const EdgeInsets.all(0),
-                        onPressed: () async {
-                          String? amount =
-                              await removeFromCart(element["item_id"]);
-                          setState(() {
-                            element["amount"] = amount;
-                          });
-                        },
-                        icon: const Icon(Icons.remove),
-                      ),
                       Text(
-                        element["amount"].toString(),
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                      IconButton(
-                        padding: const EdgeInsets.all(0),
-                        onPressed: () {
-                          _addToCard();
-                        },
-                        icon: const Icon(Icons.add),
+                        "В корзину",
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 17,
+                            color: Colors.black),
                       ),
                     ],
                   ),
                 ),
-              )
-            : ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey.shade400),
-                onPressed: () {
-                  _addToCard();
-                },
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    Text(
-                      "В корзину",
-                      style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 17,
-                          color: Colors.black),
-                    ),
-                  ],
-                )),
-        isLoad
-            ? Container(
-                height: 80,
-                color: Colors.white,
-                child: GestureDetector(
-                    onTap: () {
-                      refreshItemCard();
-                    },
-                    child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.max,
-                    children: [CircularProgressIndicator()],)),
-              )
-            : Container()
-      ],
-    ));
+          // isLoading
+          //     ? Container(
+          //         height: 80,
+          //         color: Colors.white,
+          //         child: GestureDetector(
+          //           onTap: () {
+          //             refreshItemCard();
+          //           },
+          //           child: const Row(
+          //             mainAxisAlignment: MainAxisAlignment.center,
+          //             mainAxisSize: MainAxisSize.max,
+          //             children: [CircularProgressIndicator()],
+          //           ),
+          //         ),
+          //       )
+          //     : Container()
+        ],
+      ),
+    );
   }
 }
 
@@ -138,14 +147,14 @@ class BuyButtonFullWidth extends StatefulWidget {
 
 class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
   Map element = {};
-  bool isLoad = true;
+  bool isLoading = true;
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     setState(() {
       element = widget.element;
-      isLoad = false;
+      isLoading = false;
     });
   }
 
@@ -160,13 +169,13 @@ class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
 
   Future<void> _addToCard() async {
     setState(() {
-      isLoad = true;
+      isLoading = true;
     });
     String? amount = await addToCart(element["item_id"]).then((value) {
       print(value);
       setState(() {
         element["amount"] = value;
-        isLoad = false;
+        isLoading = false;
       });
       return null;
     });
@@ -185,7 +194,8 @@ class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
                   padding: const EdgeInsets.all(3),
                   decoration: BoxDecoration(
                       color: Colors.grey.shade200,
-                      borderRadius: const BorderRadius.all(Radius.circular(10))),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(10))),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -236,7 +246,7 @@ class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
                     ),
                   ],
                 )),
-        isLoad
+        isLoading
             ? ElevatedButton(
                 style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.grey.shade400),

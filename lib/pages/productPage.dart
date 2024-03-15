@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/shared/likeButton.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProductPage extends StatefulWidget {
   const ProductPage(
@@ -15,7 +16,7 @@ class ProductPage extends StatefulWidget {
 
 class _ProductPageState extends State<ProductPage> {
   Widget _image = Container();
-  Map<String, dynamic>? item = {};
+  Map<String, dynamic> item = {};
   List<Widget> groupItems = [];
   List<TableRow> properties = [];
 
@@ -32,9 +33,9 @@ class _ProductPageState extends State<ProductPage> {
   ];
 
   Future<void> _getItem() async {
-    Map<String, dynamic>? item = await getItem(widget.item_id);
+    item = await getItem(widget.item_id);
     print(item);
-    if (item != null) {
+    if (item.isNotEmpty) {
       List<Widget> groupItems = [];
       List<TableRow> properties = [];
       List<Widget> propertiesT = [];
@@ -43,29 +44,36 @@ class _ProductPageState extends State<ProductPage> {
         List temp = item["group"];
         for (var element in temp) {
           print(element);
-          groupItems.add(GestureDetector(
-            onTap: () {
-              Navigator.pushReplacement(context,
-                  MaterialPageRoute(builder: (context) {
-                return ProductPage(
-                    item_id: element["item_id"],
-                    returnWidget: widget.returnWidget);
-              }));
-            },
-            child: Container(
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-              margin: const EdgeInsets.all(5),
-              decoration: BoxDecoration(
-                  color: Colors.grey.shade400,
-                  borderRadius: const BorderRadius.all(Radius.circular(5))),
-              child: Text(
-                element["amount"],
-                style:
-                    const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+          groupItems.add(
+            GestureDetector(
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) {
+                      return ProductPage(
+                          item_id: element["item_id"],
+                          returnWidget: widget.returnWidget);
+                    },
+                  ),
+                );
+              },
+              child: Container(
+                alignment: Alignment.center,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                margin: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                    color: Colors.grey.shade400,
+                    borderRadius: const BorderRadius.all(Radius.circular(5))),
+                child: Text(
+                  element["amount"],
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w700),
+                ),
               ),
             ),
-          ));
+          );
         }
       }
 
@@ -73,7 +81,8 @@ class _ProductPageState extends State<ProductPage> {
         List temp = item["properties"];
 
         for (var element in temp) {
-          propertiesT.add(Container(
+          propertiesT.add(
+            Container(
               padding: const EdgeInsets.all(5),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -94,11 +103,14 @@ class _ProductPageState extends State<ProductPage> {
                     width: 10,
                   )
                 ],
-              )));
+              ),
+            ),
+          );
         }
 
         if (item["country"] != null) {
-          propertiesT.add(Container(
+          propertiesT.add(
+            Container(
               padding: const EdgeInsets.all(5),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -119,116 +131,141 @@ class _ProductPageState extends State<ProductPage> {
                     width: 10,
                   )
                 ],
-              )));
+              ),
+            ),
+          );
         }
 
         for (var element in temp) {
-          properties.add(TableRow(children: [
-            TableCell(
-              child: Container(
-                padding: const EdgeInsets.all(5),
-                child: Text(
-                  element["name"],
-                  style: const TextStyle(color: Colors.black, fontSize: 14),
+          properties.add(
+            TableRow(
+              children: [
+                TableCell(
+                  child: Container(
+                    padding: const EdgeInsets.all(5),
+                    child: Text(
+                      element["name"],
+                      style: const TextStyle(color: Colors.black, fontSize: 14),
+                    ),
+                  ),
                 ),
-              ),
+                TableCell(
+                  child: Container(
+                    padding: const EdgeInsets.all(5),
+                    child: Text(
+                      element["amount"] + element["unit"],
+                      style: const TextStyle(color: Colors.black, fontSize: 14),
+                    ),
+                  ),
+                )
+              ],
             ),
-            TableCell(
-              child: Container(
-                padding: const EdgeInsets.all(5),
-                child: Text(
-                  element["amount"] + element["unit"],
-                  style: const TextStyle(color: Colors.black, fontSize: 14),
-                ),
-              ),
-            )
-          ]));
-        }
-      }
-      properties.addAll([
-        TableRow(children: [
-          TableCell(
-            child: Container(
-              padding: const EdgeInsets.all(5),
-              child: const Text(
-                "Страна",
-                style: TextStyle(color: Colors.black, fontSize: 14),
-              ),
-            ),
-          ),
-          TableCell(
-            child: Container(
-              padding: const EdgeInsets.all(5),
-              child: Text(
-                item["country"] ?? "",
-                style: const TextStyle(color: Colors.black, fontSize: 14),
-              ),
-            ),
-          )
-        ]),
-        TableRow(children: [
-          TableCell(
-            child: Container(
-              padding: const EdgeInsets.all(5),
-              child: const Text(
-                "Брэнд",
-                style: TextStyle(color: Colors.black, fontSize: 14),
-              ),
-            ),
-          ),
-          TableCell(
-            child: Container(
-              padding: const EdgeInsets.all(5),
-              child: Text(
-                item["b_name"] ?? "",
-                style: const TextStyle(color: Colors.black, fontSize: 14),
-              ),
-            ),
-          )
-        ]),
-        TableRow(children: [
-          TableCell(
-            child: Container(
-              padding: const EdgeInsets.all(5),
-              child: const Text(
-                "Производитель",
-                style: TextStyle(color: Colors.black, fontSize: 14),
-              ),
-            ),
-          ),
-          TableCell(
-            child: Container(
-              padding: const EdgeInsets.all(5),
-              child: Text(
-                item["m_name"] ?? "",
-                style: const TextStyle(color: Colors.black, fontSize: 14),
-              ),
-            ),
-          )
-        ]),
-      ]);
-
-      setState(() {
-        item = item;
-        amount = item?["amount"];
-        properties = properties;
-        TabText = [
-          item!["description"] ?? "",
-          item!["b_desc"] ?? "",
-          item!["m_desc"] ?? ""
-        ];
-        groupItems = groupItems;
-
-        propertiesWidget = propertiesT;
-
-        if (item != null) {
-          _image = Image.network(
-            'https://naliv.kz/img/${item!["photo"]}',
-            fit: BoxFit.cover,
-            // width: MediaQuery.of(context).size.width * 0.8,
           );
         }
-      });
+      }
+      properties.addAll(
+        [
+          TableRow(
+            children: [
+              TableCell(
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  child: const Text(
+                    "Страна",
+                    style: TextStyle(color: Colors.black, fontSize: 14),
+                  ),
+                ),
+              ),
+              TableCell(
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  child: Text(
+                    item["country"] ?? "",
+                    style: const TextStyle(color: Colors.black, fontSize: 14),
+                  ),
+                ),
+              )
+            ],
+          ),
+          TableRow(
+            children: [
+              TableCell(
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  child: const Text(
+                    "Брэнд",
+                    style: TextStyle(color: Colors.black, fontSize: 14),
+                  ),
+                ),
+              ),
+              TableCell(
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  child: Text(
+                    item["b_name"] ?? "",
+                    style: const TextStyle(color: Colors.black, fontSize: 14),
+                  ),
+                ),
+              )
+            ],
+          ),
+          TableRow(
+            children: [
+              TableCell(
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  child: const Text(
+                    "Производитель",
+                    style: TextStyle(color: Colors.black, fontSize: 14),
+                  ),
+                ),
+              ),
+              TableCell(
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  child: Text(
+                    item["m_name"] ?? "",
+                    style: const TextStyle(color: Colors.black, fontSize: 14),
+                  ),
+                ),
+              )
+            ],
+          ),
+        ],
+      );
+
+      setState(
+        () {
+          amount = item["amount"];
+          properties = properties;
+          TabText = [
+            item["description"] ?? "",
+            item["b_desc"] ?? "",
+            item["m_desc"] ?? ""
+          ];
+          groupItems = groupItems;
+
+          propertiesWidget = propertiesT;
+
+          if (item.isNotEmpty) {
+            _image = CachedNetworkImage(
+              fit: BoxFit.fitHeight,
+              imageUrl: 'https://naliv.kz/img/${item["photo"]}',
+              placeholder: ((context, url) {
+                return const Expanded(child: CircularProgressIndicator());
+              }),
+              errorWidget: ((context, url, error) {
+                return const Expanded(child: Text("Нет изображения"));
+              }),
+            );
+            // _image = Image.network(
+            //   'https://naliv.kz/img/${item["photo"]}',
+            //   fit: BoxFit.cover,
+            //   // width: MediaQuery.of(context).size.width * 0.8,
+            // );
+          }
+        },
+      );
     }
   }
 
@@ -244,7 +281,7 @@ class _ProductPageState extends State<ProductPage> {
 
   // // Future<void> refreshItemCard() async {
   // //   if (item["item_id"] != null) {
-  // //     Map<String, dynamic>? _element = await getItem(item!["item_id"]);
+  // //     Map<String, dynamic>? _element = await getItem(item["item_id"]);
   // //     setState(() {
   // //       item = _element!;
   // //     });
@@ -271,414 +308,416 @@ class _ProductPageState extends State<ProductPage> {
     // TODO: implement initState
     super.initState();
     _getItem();
-    Timer(const Duration(seconds: 3), () {});
   }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-        top: false,
-        child: Scaffold(
-          appBar: AppBar(
-            toolbarHeight: 0,
-          ),
-          floatingActionButtonLocation:
-              FloatingActionButtonLocation.centerFloat,
-          floatingActionButton: GestureDetector(
-            child: Container(
-              height: 80,
-              decoration: const BoxDecoration(
-                  // color: Colors.grey.shade400,
-                  borderRadius: BorderRadius.all(Radius.circular(15))),
-              margin: const EdgeInsets.all(5),
-              padding: const EdgeInsets.all(4),
-              width: MediaQuery.of(context).size.width,
-              child: amount != null
-                  ? Container(
-                      decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: const BorderRadius.all(Radius.circular(15))),
-                      padding: const EdgeInsets.all(10),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            alignment: Alignment.centerLeft,
-                            width: MediaQuery.of(context).size.width * 0.3,
-                            child: Container(
-                              padding: const EdgeInsets.all(3),
-                              decoration: BoxDecoration(
-                                  color: Colors.grey.shade200,
-                                  borderRadius:
-                                      const BorderRadius.all(Radius.circular(10))),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    padding: const EdgeInsets.all(0),
-                                    onPressed: () async {
-                                      String? amount =
-                                          await removeFromCart(widget.item_id);
-                                      setState(() {
-                                        amount = amount;
-                                      });
-                                    },
-                                    icon: const Icon(Icons.remove),
-                                  ),
-                                  Text(
-                                    amount.toString(),
-                                    style: const TextStyle(color: Colors.black),
-                                  ),
-                                  IconButton(
-                                    padding: const EdgeInsets.all(0),
-                                    onPressed: () {
-                                      _addToCard();
-                                    },
-                                    icon: const Icon(Icons.add),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              item?["prev_price"] != null
-                                  ? Text(
-                                      item?["prev_price"],
-                                      style: const TextStyle(
-                                          decoration:
-                                              TextDecoration.lineThrough),
-                                    )
-                                  : Container(),
-                              const SizedBox(
-                                width: 5,
-                              ),
-                              Text(
-                                item?["price"] ?? "",
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 26,
-                                    color: Colors.black),
-                              )
-                            ],
-                          )
-                        ],
-                      ),
-                    )
-                  : ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.all(10),
-                          backgroundColor: Colors.grey.shade400),
-                      onPressed: () {
-                        _addToCard();
-                      },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.max,
-                        children: [
-                          const Text(
-                            "В корзину",
-                            style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 17,
-                                color: Colors.black),
-                          ),
-                          Row(
-                            children: [
-                              item?["prev_price"] != null
-                                  ? Text(
-                                      item?["prev_price"],
-                                      style: TextStyle(
-                                          decoration:
-                                              TextDecoration.lineThrough,
-                                          color: Colors.grey.shade500),
-                                    )
-                                  : Container(),
-                              const SizedBox(
-                                width: 5,
-                              ),
-                              Text(
-                                item?["price"] ?? "",
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 26,
-                                    color: Colors.black),
-                              )
-                            ],
-                          )
-                        ],
-                      )),
-            ),
-          ),
-          backgroundColor: const Color(0xAAFAFAFA),
-          body: Container(
-            color: Colors.white,
-            child: ListView(
-              controller: _sc,
-              children: [
-                Container(
+    return _productPage(context);
+  }
+
+  Scaffold _productPage(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        toolbarHeight: 0,
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: GestureDetector(
+        child: Container(
+          height: 80,
+          decoration: const BoxDecoration(
+              // color: Colors.grey.shade400,
+              borderRadius: BorderRadius.all(Radius.circular(15))),
+          margin: const EdgeInsets.all(5),
+          padding: const EdgeInsets.all(4),
+          width: MediaQuery.of(context).size.width,
+          child: amount != null
+              ? Container(
+                  decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(15))),
                   padding: const EdgeInsets.all(10),
-                  width: MediaQuery.of(context).size.width,
-                  height: MediaQuery.of(context).size.width,
-                  child: Stack(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        width: double.maxFinite,
-                        padding: const EdgeInsets.all(40),
-                        child: _image,
+                        alignment: Alignment.centerLeft,
+                        width: MediaQuery.of(context).size.width * 0.3,
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(10))),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                padding: const EdgeInsets.all(0),
+                                onPressed: () async {
+                                  String? amount =
+                                      await removeFromCart(widget.item_id);
+                                  setState(() {
+                                    amount = amount;
+                                  });
+                                },
+                                icon: const Icon(Icons.remove),
+                              ),
+                              Text(
+                                amount.toString(),
+                                style: const TextStyle(color: Colors.black),
+                              ),
+                              IconButton(
+                                padding: const EdgeInsets.all(0),
+                                onPressed: () {
+                                  _addToCard();
+                                },
+                                icon: const Icon(Icons.add),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width,
-                        height: MediaQuery.of(context).size.width,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.max,
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                IconButton(
-                                  onPressed: () {
-                                    Navigator.pushReplacement(context,
-                                        MaterialPageRoute(
-                                      builder: (context) {
-                                        return widget.returnWidget;
-                                      },
-                                    ));
-                                  },
-                                  icon: const Icon(
-                                    Icons.arrow_back_ios,
-                                  ),
-                                ),
-                                IconButton(
-                                  onPressed: () {},
-                                  icon: const Icon(Icons.share_outlined),
-                                ),
-                              ],
-                            ),
-                            Row(
-                              mainAxisSize: MainAxisSize.max,
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                const Text(
-                                  "Арт: 1234567",
-                                  style: TextStyle(fontSize: 10),
-                                ),
-                                Container(
-                                  margin: const EdgeInsets.all(5),
-                                  child: LikeButton(
-                                    item_id: item!["item_id"],
-                                    is_liked: item!["is_liked"],
-                                  ),
+                      Row(
+                        children: [
+                          item["prev_price"] != null
+                              ? Text(
+                                  item["prev_price"],
+                                  style: const TextStyle(
+                                      decoration: TextDecoration.lineThrough),
                                 )
-                              ],
+                              : Container(),
+                          const SizedBox(
+                            width: 5,
+                          ),
+                          Text(
+                            item["price"] ?? "",
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 26,
+                                color: Colors.black),
+                          )
+                        ],
+                      )
+                    ],
+                  ),
+                )
+              : ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.all(10),
+                      backgroundColor: Colors.grey.shade400),
+                  onPressed: () {
+                    _addToCard();
+                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      const Text(
+                        "В корзину",
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 17,
+                            color: Colors.black),
+                      ),
+                      Row(
+                        children: [
+                          item["prev_price"] != null
+                              ? Text(
+                                  item["prev_price"],
+                                  style: TextStyle(
+                                      decoration: TextDecoration.lineThrough,
+                                      color: Colors.grey.shade500),
+                                )
+                              : Container(),
+                          const SizedBox(
+                            width: 5,
+                          ),
+                          Text(
+                            item["price"] ?? "",
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 26,
+                                color: Colors.black),
+                          )
+                        ],
+                      )
+                    ],
+                  )),
+        ),
+      ),
+      backgroundColor: const Color(0xAAFAFAFA),
+      body: Container(
+        color: Colors.white,
+        child: ListView(
+          controller: _sc,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              width: MediaQuery.of(context).size.width,
+              height: MediaQuery.of(context).size.width,
+              child: Stack(
+                children: [
+                  Container(
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.only(bottom: 30),
+                    child: Expanded(child: _image),
+                  ),
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width,
+                    height: MediaQuery.of(context).size.width,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.max,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                Navigator.pushReplacement(context,
+                                    MaterialPageRoute(
+                                  builder: (context) {
+                                    return widget.returnWidget;
+                                  },
+                                ));
+                              },
+                              icon: const Icon(
+                                Icons.arrow_back_ios,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () {},
+                              icon: const Icon(Icons.share_outlined),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.max,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Text(
+                              "Арт: 1234567",
+                              style: TextStyle(fontSize: 10),
+                            ),
+                            Container(
+                              margin: const EdgeInsets.all(5),
+                              child: item.isNotEmpty
+                                  ? LikeButton(
+                                      item_id: item["item_id"],
+                                      is_liked: item["is_liked"],
+                                    )
+                                  : Container(),
                             )
                           ],
-                        ),
-                      )
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                  child: Row(
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.only(right: 10),
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: const BorderRadius.all(Radius.circular(5))),
-                        child: const Text(
-                          "Новинка",
-                          style: TextStyle(color: Colors.black),
-                        ),
-                      ),
-                      Container(
-                        margin: const EdgeInsets.only(right: 10),
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: const BorderRadius.all(Radius.circular(5))),
-                        child: const Text(
-                          "Новинка",
-                          style: TextStyle(color: Colors.black),
-                        ),
-                      ),
-                      Container(
-                        margin: const EdgeInsets.only(right: 10),
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: const BorderRadius.all(Radius.circular(5))),
-                        child: const Text(
-                          "Новинка",
-                          style: TextStyle(color: Colors.black),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                  child: Text(
-                    item!["name"] ?? "",
-                    style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black),
-                  ),
-                ),
-                const SizedBox(
-                  height: 5,
-                ),
-                Container(
-                    width: MediaQuery.of(context).size.width,
-                    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                    child: Wrap(
-                      children: propertiesWidget,
-                    )),
-                item!["group"] != null
-                    ? Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        height: 50,
-                        width: MediaQuery.of(context).size.width,
-                        child: ListView(
-                            primary: false,
-                            shrinkWrap: true,
-                            scrollDirection: Axis.horizontal,
-                            children: groupItems),
-                      )
-                    : Container(),
-                const SizedBox(
-                  height: 5,
-                ),
-                Stack(
-                  children: [
-                    Container(
-                      height: 25,
-                      padding: const EdgeInsets.symmetric(horizontal: 15),
-                      decoration: BoxDecoration(
-                          boxShadow: [
-                            BoxShadow(
-                                color: Colors.grey.withOpacity(0.15),
-                                offset: const Offset(0, -1),
-                                blurRadius: 15,
-                                spreadRadius: 1)
-                          ],
-                          border: Border(
-                              bottom: BorderSide(
-                                  color: Colors.grey.shade200, width: 3))),
-                      child: const Row(
-                        children: [],
-                      ),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        GestureDetector(
-                          child: Container(
-                            margin: const EdgeInsets.only(left: 15),
-                            decoration: BoxDecoration(
-                                border: Border(
-                                    bottom: BorderSide(
-                                        width: 3,
-                                        color: currentTab == 0
-                                            ? Colors.black
-                                            : Colors.grey.shade200))),
-                            child: const Text(
-                              "Описание",
-                              style:
-                                  TextStyle(color: Colors.black, fontSize: 16),
-                            ),
-                          ),
-                          onTap: () {
-                            setState(() {
-                              currentTab = 0;
-                            });
-                          },
-                        ),
-                        GestureDetector(
-                          child: Container(
-                            margin: const EdgeInsets.only(left: 15),
-                            height: 25,
-                            decoration: BoxDecoration(
-                                border: Border(
-                                    bottom: BorderSide(
-                                        width: 3,
-                                        color: currentTab == 1
-                                            ? Colors.black
-                                            : Colors.grey.shade200))),
-                            child: const Text(
-                              "О бренде",
-                              style:
-                                  TextStyle(color: Colors.black, fontSize: 16),
-                            ),
-                          ),
-                          onTap: () {
-                            setState(() {
-                              currentTab = 1;
-                            });
-                          },
-                        ),
-                        GestureDetector(
-                          child: Container(
-                            margin: const EdgeInsets.only(left: 15),
-                            height: 25,
-                            decoration: BoxDecoration(
-                                border: Border(
-                                    bottom: BorderSide(
-                                        width: 3,
-                                        color: currentTab == 2
-                                            ? Colors.black
-                                            : Colors.grey.shade200))),
-                            child: const Text(
-                              "Производитель",
-                              style:
-                                  TextStyle(color: Colors.black, fontSize: 16),
-                            ),
-                          ),
-                          onTap: () {
-                            setState(() {
-                              currentTab = 2;
-                            });
-                          },
-                        ),
+                        )
                       ],
-                    )
-                  ],
-                ),
+                    ),
+                  )
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+              child: Row(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(right: 10),
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(5))),
+                    child: const Text(
+                      "Новинка",
+                      style: TextStyle(color: Colors.black),
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(right: 10),
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(5))),
+                    child: const Text(
+                      "Новинка",
+                      style: TextStyle(color: Colors.black),
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(right: 10),
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(5))),
+                    child: const Text(
+                      "Новинка",
+                      style: TextStyle(color: Colors.black),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+              child: Text(
+                item["name"] ?? "",
+                style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black),
+              ),
+            ),
+            const SizedBox(
+              height: 5,
+            ),
+            Container(
+                width: MediaQuery.of(context).size.width,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                child: Wrap(
+                  children: propertiesWidget,
+                )),
+            item["group"] != null
+                ? Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    height: 50,
+                    width: MediaQuery.of(context).size.width,
+                    child: ListView(
+                        primary: false,
+                        shrinkWrap: true,
+                        scrollDirection: Axis.horizontal,
+                        children: groupItems),
+                  )
+                : Container(),
+            const SizedBox(
+              height: 5,
+            ),
+            Stack(
+              children: [
                 Container(
-                  padding: const EdgeInsets.all(15),
-                  child: Text(TabText[currentTab]),
-                ),
-                Container(
-                    padding: const EdgeInsets.all(15),
-                    child: Table(
-                      columnWidths: const {
-                        0: FlexColumnWidth(),
-                        1: FlexColumnWidth()
-                      },
-                      border: TableBorder(
-                          horizontalInside:
-                              BorderSide(width: 1, color: Colors.grey.shade400),
+                  height: 25,
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.grey.withOpacity(0.15),
+                            offset: const Offset(0, -1),
+                            blurRadius: 15,
+                            spreadRadius: 1)
+                      ],
+                      border: Border(
                           bottom: BorderSide(
-                              width: 1, color: Colors.grey.shade400)),
-                      children: properties,
-                    )),
-                Container(
-                  alignment: Alignment.center,
-                  child: const CircularProgressIndicator(),
+                              color: Colors.grey.shade200, width: 3))),
+                  child: const Row(
+                    children: [],
+                  ),
                 ),
-                const SizedBox(
-                  height: 100,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      child: Container(
+                        margin: const EdgeInsets.only(left: 15),
+                        decoration: BoxDecoration(
+                            border: Border(
+                                bottom: BorderSide(
+                                    width: 3,
+                                    color: currentTab == 0
+                                        ? Colors.black
+                                        : Colors.grey.shade200))),
+                        child: const Text(
+                          "Описание",
+                          style: TextStyle(color: Colors.black, fontSize: 16),
+                        ),
+                      ),
+                      onTap: () {
+                        setState(() {
+                          currentTab = 0;
+                        });
+                      },
+                    ),
+                    GestureDetector(
+                      child: Container(
+                        margin: const EdgeInsets.only(left: 15),
+                        height: 25,
+                        decoration: BoxDecoration(
+                            border: Border(
+                                bottom: BorderSide(
+                                    width: 3,
+                                    color: currentTab == 1
+                                        ? Colors.black
+                                        : Colors.grey.shade200))),
+                        child: const Text(
+                          "О бренде",
+                          style: TextStyle(color: Colors.black, fontSize: 16),
+                        ),
+                      ),
+                      onTap: () {
+                        setState(() {
+                          currentTab = 1;
+                        });
+                      },
+                    ),
+                    GestureDetector(
+                      child: Container(
+                        margin: const EdgeInsets.only(left: 15),
+                        height: 25,
+                        decoration: BoxDecoration(
+                            border: Border(
+                                bottom: BorderSide(
+                                    width: 3,
+                                    color: currentTab == 2
+                                        ? Colors.black
+                                        : Colors.grey.shade200))),
+                        child: const Text(
+                          "Производитель",
+                          style: TextStyle(color: Colors.black, fontSize: 16),
+                        ),
+                      ),
+                      onTap: () {
+                        setState(() {
+                          currentTab = 2;
+                        });
+                      },
+                    ),
+                  ],
                 )
               ],
             ),
-          ),
-        ));
+            Container(
+              padding: const EdgeInsets.all(15),
+              child: Text(TabText[currentTab]),
+            ),
+            Container(
+                padding: const EdgeInsets.all(15),
+                child: Table(
+                  columnWidths: const {
+                    0: FlexColumnWidth(),
+                    1: FlexColumnWidth()
+                  },
+                  border: TableBorder(
+                      horizontalInside:
+                          BorderSide(width: 1, color: Colors.grey.shade400),
+                      bottom:
+                          BorderSide(width: 1, color: Colors.grey.shade400)),
+                  children: properties,
+                )),
+            Container(
+              alignment: Alignment.center,
+              child: const CircularProgressIndicator(),
+            ),
+            const SizedBox(
+              height: 100,
+            )
+          ],
+        ),
+      ),
+    );
   }
 }

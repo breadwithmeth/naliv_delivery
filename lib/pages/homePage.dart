@@ -100,7 +100,8 @@ class _HomePageState extends State<HomePage>
                 itemBuilder: (context, index) {
                   return Container(
                     decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.all(Radius.circular(10)),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(10)),
                         image: DecorationImage(
                             opacity: 0.5,
                             image: NetworkImage(images[index]["image"]),
@@ -349,17 +350,17 @@ class _CategoryItemState extends State<CategoryItem> {
           Container(
             padding: const EdgeInsets.all(15),
             alignment: Alignment.topLeft,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.circular(5))),
             child: Container(
               decoration: BoxDecoration(
                   color: textBG,
-                  borderRadius: BorderRadius.only(
+                  borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(5),
                       bottomRight: Radius.circular(5))),
               child: Text(
                 widget.name,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 14,
                   height: 1.2,

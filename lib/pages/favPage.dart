@@ -16,7 +16,7 @@ class _FavPageState extends State<FavPage> {
   List items = [];
 
   Future<void> _getItems() async {
-    List items = await getLiked();
+    List _items = await getLiked();
     List<Widget> itemsWidget = [];
     for (var element in items) {
       itemsWidget.add(GestureDetector(
@@ -56,7 +56,7 @@ class _FavPageState extends State<FavPage> {
       ));
     }
     setState(() {
-      items = items;
+      items = _items;
     });
   }
 

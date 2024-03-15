@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -331,10 +332,10 @@ class _CategoryPageState extends State<CategoryPage> {
         return _listViewCategories();
         break;
       case 1:
-        return Placeholder();
+        return const Placeholder();
         break;
       case 2:
-        return Placeholder();
+        return const Placeholder();
         break;
       default:
         throw Exception("Category view mode out of range");
@@ -344,21 +345,21 @@ class _CategoryPageState extends State<CategoryPage> {
   Icon _getCategoriesIconWithLayout() {
     switch (_categoryViewMode) {
       case 0:
-        return Icon(
+        return const Icon(
           Icons.view_list_rounded,
           color: Colors.black,
           key: Key('0'),
         );
         break;
       case 1:
-        return Icon(
+        return const Icon(
           Icons.grid_view_rounded,
           color: Colors.black,
           key: Key('1'),
         );
         break;
       case 2:
-        return Icon(
+        return const Icon(
           Icons.square_rounded,
           color: Colors.black,
           key: Key('2'),
@@ -408,15 +409,14 @@ class _CategoryPageState extends State<CategoryPage> {
                             onPressed: () {
                               Navigator.push(context,
                                   MaterialPageRoute(builder: (context) {
-                                return  BottomMenu(
-                                );
+                                return const BottomMenu();
                               }));
                             },
-                            child: Row(
+                            child: const Row(
                               mainAxisAlignment: MainAxisAlignment.start,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.arrow_back_ios_new_rounded,
                                   color: Colors.black,
                                 ),
@@ -738,7 +738,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                   )),
                             );
                           },
-                          child: Expanded(
+                          child: const Expanded(
                             flex: 1,
                             child: Icon(
                               Icons.filter_list_rounded,
@@ -870,6 +870,7 @@ class _ItemCardState extends State<ItemCard> {
   List<InlineSpan> propertiesWidget = [];
   late BuyButton _buyButton;
   late int chack;
+
   @override
   void initState() {
     // TODO: implement initState
@@ -942,20 +943,28 @@ class _ItemCardState extends State<ItemCard> {
             mainAxisSize: MainAxisSize.max,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Image.network(
-                'https://naliv.kz/img/$element["photo"]',
+              CachedNetworkImage(
+                imageUrl: 'https://naliv.kz/img/${element["photo"]}',
                 width: MediaQuery.of(context).size.width * 0.4,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
+                // height: MediaQuery.of(context).size.width * 0.7,
+                fit: BoxFit.fitHeight,
+                placeholder: (context, url) {
                   return Container(
-                      alignment: Alignment.center,
-                      width: MediaQuery.of(context).size.width * 0.4,
-                      height: MediaQuery.of(context).size.width * 0.4,
-                      child: const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(),
-                      ));
+                    alignment: Alignment.center,
+                    width: MediaQuery.of(context).size.width * 0.4,
+                    height: MediaQuery.of(context).size.width * 0.4,
+                    child: const CircularProgressIndicator(),
+                  );
+                },
+                errorWidget: (context, url, error) {
+                  return Container(
+                    alignment: Alignment.center,
+                    width: MediaQuery.of(context).size.width * 0.4,
+                    height: MediaQuery.of(context).size.width * 0.4,
+                    child: const Expanded(
+                      child: Text("Нет изображения"),
+                    ),
+                  );
                 },
               ),
               const SizedBox(

@@ -272,7 +272,7 @@ Future<Map> getFilters(String categoryId) async {
   return data;
 }
 
-Future<Map<String, dynamic>?> getItem(String itemId, {List? filter}) async {
+Future<Map<String, dynamic>> getItem(String itemId, {List? filter}) async {
   String? token = await getToken();
   if (token == null) {
     return {};
@@ -283,10 +283,13 @@ Future<Map<String, dynamic>?> getItem(String itemId, {List? filter}) async {
     headers: {"Content-Type": "application/json", "AUTH": token},
     body: json.encode({'item_id': itemId, 'filter': filter}),
   );
-
   // List<dynamic> list = json.decode(response.body);
-  Map<String, dynamic>? data = json.decode(utf8.decode(response.bodyBytes));
-  return data;
+  Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+  if (data.isEmpty) {
+    return {};
+  } else {
+    return data;
+  }
 }
 
 Future<String?> addToCart(String itemId) async {
