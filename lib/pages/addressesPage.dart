@@ -1,6 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/pages/pickAddressPage.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class AddressesPage extends StatefulWidget {
   const AddressesPage({super.key});
@@ -9,121 +10,153 @@ class AddressesPage extends StatefulWidget {
   State<AddressesPage> createState() => _AddressesPageState();
 }
 
-class _AddressesPageState extends State<AddressesPage> {
-  List addresses = [];
+class _AddressesPageState extends State<AddressesPage>
+    with TickerProviderStateMixin {
+  // double _sheetPosition = 0.25;
 
-  Future<void> _getAddresses() async {
-    List addresses = await getAddresses();
-    setState(() {
-      addresses = addresses;
-    });
-  }
+  // Future<void> _showBottomSheet() async {
+  //   await showModalBottomSheet<Widget>(
+  //     isDismissible: false,
+  //     enableDrag: false,
+  //     context: context,
+  //     builder: (context) {
+  //       return GestureDetector(
+  //         onTap: () {
+  //           print(object)
+  //         },
+  //         onVerticalDragUpdate: (details) {
+  //           print(details);
+  //         },
+  //         child: Container(
+  //           height: 100,
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
+  double _cHeight = 100;
 
   @override
   void initState() {
     // TODO: implement initState
-    _getAddresses();
+
     super.initState();
+    // _showBottomSheet();
   }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-        child: Scaffold(
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: GestureDetector(
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          margin: const EdgeInsets.all(10),
-          width: MediaQuery.of(context).size.width,
-          decoration: BoxDecoration(
-              color: Colors.grey.shade400,
-              borderRadius: const BorderRadius.all(Radius.circular(10))),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                "Добавить адрес",
-                style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18),
-              ),
-            ],
+    return Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: true,
+          title: Column(
+            children: [Text("Выбрать город")],
           ),
         ),
-        onTap: () {          Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const PickAddressPage()),
-              );},
-      ),
-      body: Column(
-        children: [
-          ListView.builder(
-            primary: false,
-            shrinkWrap: true,
-            itemCount: addresses.length,
-            itemBuilder: (context, index) {
-              return Container(
-                margin: const EdgeInsets.all(10),
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 25),
-                decoration: BoxDecoration(
-                    color: addresses[index]["is_selected"] == "1"
-                        ? Colors.grey.shade700
-                        : Colors.white,
-                    borderRadius: const BorderRadius.all(Radius.circular(10))),
-                child: Column(
+        // bottomSheet: BottomSheet(
+        //   showDragHandle: true,
+        //   animationController: BottomSheet.createAnimationController(this),
+        //   onClosing: () {},
+        //   builder: (context) {
+        //     return Container(height: double.infinity,);
+        //   },
+        // ),
+        body: Stack(
+          children: [
+            Column(
+              children: [
+                Flexible(
+                    child: FlutterMap(
+                  options: MapOptions(
+                    initialCenter: LatLng(51.509364, -0.128928),
+                    initialZoom: 9.2,
+                  ),
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          addresses[index]["name"],
-                          style: TextStyle(
-                              color: addresses[index]["is_selected"] == "1"
-                                  ? Colors.white
-                                  : Colors.black),
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.example.app',
+                    ),
+                    RichAttributionWidget(
+                      attributions: [
+                        TextSourceAttribution(
+                          'OpenStreetMap contributors',
+                          // onTap: () => launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
                         ),
-                        addresses[index]["is_selected"] == "1"
-                            ? const Icon(
-                                Icons.check_box_outlined,
-                                color: Colors.white,
-                              )
-                            : Container()
                       ],
                     ),
-                    const SizedBox(
-                      height: 5,
-                    ),
-                    RichText(
-                      text: TextSpan(
-                          style: const TextStyle(
-                              textBaseline: TextBaseline.ideographic,
-                              fontSize: 12,
-                              color: Colors.black),
-                          children: [
-                            TextSpan(
-                                text: addresses[index]["city_name"],
-                                style: TextStyle(color: Colors.grey.shade500)),
-                            WidgetSpan(
-                                child: Icon(
-                              Icons.arrow_forward_ios,
-                              size: 12,
-                              color: Colors.grey.shade500,
-                            )),
-                            TextSpan(
-                                text: addresses[index]["address"],
-                                style: TextStyle(color: Colors.grey.shade500)),
-                          ]),
-                    ),
                   ],
+                )),
+              ],
+            ),
+            Column(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                AnimatedContainer(
+                  curve: Curves.easeInCubic,
+                  duration: Duration(milliseconds: 100),
+                  height: _cHeight,
+                  width: MediaQuery.of(context).size.width,
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.all(Radius.circular(15))),
+                  child: Column(
+                    children: [
+                      GestureDetector(
+                        child: Container( 
+                          color: Colors.black,
+                          padding: EdgeInsets.all(10),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.max,
+                            children: [
+                             Icon(Icons.circle)
+                            ],
+                          ),
+                        ),
+                        onVerticalDragEnd: (details) {
+                          double cHeight = 0;
+                          if (_cHeight >
+                              MediaQuery.of(context).size.height * 0.5) {
+                            cHeight = MediaQuery.of(context).size.height * 0.8;
+                          } else {
+                            cHeight = MediaQuery.of(context).size.height * 0.2;
+                          }
+                          setState(() {
+                            _cHeight = cHeight;
+                          });
+                        },
+                        onVerticalDragUpdate: (details) {
+                          double cHeight = MediaQuery.of(context).size.height -
+                              details.globalPosition.dy;
+
+                          setState(() {
+                            _cHeight = cHeight;
+                          });
+                          print(details.globalPosition);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              );
-            },
-          )
-        ],
-      ),
-    ));
+                // Draggable(
+                //   dragAnchorStrategy: (draggable, context, position) {
+                //   return
+                //     Offset(position., position.dy);
+                //   },
+                //   onDragUpdate: (details) {
+                //     print(details);
+                //   },
+                //   child: Icon(Icons.upcoming),
+                //   feedback: Icon(
+                //     Icons.circle,
+                //     size: 46,
+                //   ),
+                // ),
+              ],
+            )
+          ],
+        ));
   }
 }

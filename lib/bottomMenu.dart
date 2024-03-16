@@ -89,6 +89,7 @@ class _BottomMenuState extends State<BottomMenu> {
       context, String logourl, String businessName, String businessAddress) {
     appbars.add(
       AppBar(
+          titleSpacing: 10,
           // scrolledUnderElevation: 100,
           automaticallyImplyLeading: true,
           // leading: IconButton(
