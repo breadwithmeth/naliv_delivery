@@ -459,7 +459,6 @@ Future<List> getAddresses() async {
   print(utf8.decode(response.bodyBytes));
   // List<dynamic> list = json.decode(response.body);
   List data = json.decode(utf8.decode(response.bodyBytes));
-  print(data);
   return data;
 }
 

@@ -67,6 +67,10 @@ class _HomePageState extends State<HomePage>
 
   int activePage = 0;
 
+  List _addresses = [];
+
+  bool _isAppBarCollapsed = true;
+
   Future<void> _getCategories() async {
     List categories1 = await getCategories();
     setState(() {
@@ -84,26 +88,40 @@ class _HomePageState extends State<HomePage>
     }
   }
 
+  Future<void> _getAddresses() async {
+    List addresses = await getAddresses();
+    print(addresses);
+    setState(() {
+      _addresses = addresses;
+    });
+  }
+
+  _getCurrentAddress() {}
+
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     _getCategories();
     _getCurrentBusiness();
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      _getAddresses();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
         floatingActionButton: FloatingActionButton(
-          child: Icon(Icons.shopping_basket_rounded),
-        onPressed: () {
-          Navigator.push(context, MaterialPageRoute(
-            builder: (context) {
-              return CartPage();
-            },
-          ));
-        }),
+            child: Icon(Icons.shopping_basket_rounded),
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(
+                builder: (context) {
+                  return CartPage();
+                },
+              ));
+            }),
         drawer: Drawer(
             child: SafeArea(
           child: Column(
@@ -344,290 +362,347 @@ class _HomePageState extends State<HomePage>
             ],
           ),
         )),
-        appBar: AppBar(
-            titleSpacing: 10,
-            // scrolledUnderElevation: 100,
-            automaticallyImplyLeading: true,
-            // leading: IconButton(
-            //   icon: Icon(Icons.menu),
-            //   onPressed: () {},
-            // ),
+        // appBar: AppBar(
+        //     titleSpacing: 10,
+        //     // scrolledUnderElevation: 100,
+        //     automaticallyImplyLeading: true,
+        //     // leading: IconButton(
+        //     //   icon: Icon(Icons.menu),
+        //     //   onPressed: () {},
+        //     // ),
 
-            title: TextButton(
-                onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(
-                    builder: (context) {
-                      return const SearchPage();
-                    },
-                  ));
-                },
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 15),
-                  decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.1),
-                      borderRadius:
-                          const BorderRadius.all(Radius.circular(10))),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      const Spacer(
-                        flex: 3,
-                      ),
-                      const Text(
-                        "Найти",
-                        style: TextStyle(
-                            fontWeight: FontWeight.w500, color: Colors.black),
-                      ),
-                      // Expanded(
-                      //   flex: 2,
-                      //   child: Image.network(
-                      //     logourl,
-                      //     fit: BoxFit.contain,
-                      //     frameBuilder: (BuildContext context, Widget child,
-                      //         int? frame, bool? wasSynchronouslyLoaded) {
-                      //       return Padding(
-                      //         padding: const EdgeInsets.all(8.0),
-                      //         child: child,
-                      //       );
-                      //     },
-                      //     loadingBuilder: (BuildContext context, Widget child,
-                      //         ImageChunkEvent? loadingProgress) {
-                      //       return Center(child: child);
-                      //     },
-                      //   ),
-                      // ),
-                      Container(
-                          padding: const EdgeInsets.all(10),
-                          child: const Icon(
-                            Icons.search,
-                            color: Colors.black,
-                          )),
-                    ],
-                  ),
-                ))),
-        body: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              GestureDetector(
-                onTap: () {
-                  Navigator.pushReplacement(context, MaterialPageRoute(
-                    builder: (context) {
-                      return const BusinessSelectStartPage();
-                    },
-                  ));
-                },
-                child: Container(
-                    margin: const EdgeInsets.all(10),
-                    padding: const EdgeInsets.all(10),
-                    decoration: const BoxDecoration(
-                        color: Colors.black12,
-                        borderRadius: BorderRadius.all(Radius.circular(10))),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.start,
+        //     title:),
+        body: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
+              // stretch: true,
+              // stretchTriggerOffset: 300.0,
+              // expandedHeight: MediaQuery.of(context).size.height * 0.4,
+              pinned: true,
+              floating: true,
+              // snap: true,
+              automaticallyImplyLeading: !_isAppBarCollapsed,
+              title: _isAppBarCollapsed
+                  ? null
+                  : TextButton(
+                      onPressed: () {
+                        Navigator.push(context, MaterialPageRoute(
+                          builder: (context) {
+                            return const SearchPage();
+                          },
+                        ));
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(vertical: 15),
+                        decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.1),
+                            borderRadius:
+                                const BorderRadius.all(Radius.circular(10))),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            Row(
+                            const Spacer(
+                              flex: 3,
+                            ),
+                            const Text(
+                              "Найти",
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black),
+                            ),
+                            // Expanded(
+                            //   flex: 2,
+                            //   child: Image.network(
+                            //     logourl,
+                            //     fit: BoxFit.contain,
+                            //     frameBuilder: (BuildContext context, Widget child,
+                            //         int? frame, bool? wasSynchronouslyLoaded) {
+                            //       return Padding(
+                            //         padding: const EdgeInsets.all(8.0),
+                            //         child: child,
+                            //       );
+                            //     },
+                            //     loadingBuilder: (BuildContext context, Widget child,
+                            //         ImageChunkEvent? loadingProgress) {
+                            //       return Center(child: child);
+                            //     },
+                            //   ),
+                            // ),
+                            Container(
+                                padding: const EdgeInsets.all(10),
+                                child: const Icon(
+                                  Icons.search,
+                                  color: Colors.black,
+                                )),
+                          ],
+                        ),
+                      )),
+            ),
+            SliverToBoxAdapter(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  Image.network(
+                    _business!["logo"],
+                    fit: BoxFit.cover,
+                  ),
+                  _addresses.firstWhere(
+                            (element) => element["is_selected"] == "1",
+                            orElse: () {
+                              return null;
+                            },
+                          ) ==
+                          null
+                      ? GestureDetector(
+                          child: Container(
+                              margin: const EdgeInsets.all(10),
+                              padding: const EdgeInsets.all(10),
+                              decoration: const BoxDecoration(
+                                  color: Colors.black12,
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(10))),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    "Выберите адрес доставки",
+                                    style: TextStyle(
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.w700),
+                                  ),
+                                ],
+                              )),
+                        )
+                      : Container(),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pushReplacement(context, MaterialPageRoute(
+                        builder: (context) {
+                          return const BusinessSelectStartPage();
+                        },
+                      ));
+                    },
+                    child: Container(
+                        margin: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(10),
+                        decoration: const BoxDecoration(
+                            color: Colors.black12,
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(10))),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              mainAxisSize: MainAxisSize.max,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  _business?["name"] ?? "",
-                                  style: const TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.w700),
+                                Row(
+                                  children: [
+                                    Text(
+                                      _business?["name"] ?? "",
+                                      style: const TextStyle(
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.w700),
+                                    )
+                                  ],
+                                ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      _business?["address"] ?? "",
+                                      style: const TextStyle(
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.w700),
+                                    )
+                                  ],
                                 )
                               ],
                             ),
-                            Row(
-                              children: [
-                                Text(
-                                  _business?["address"] ?? "",
-                                  style: const TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.w700),
-                                )
-                              ],
-                            )
+                            const Icon(Icons.arrow_forward_ios)
                           ],
-                        ),
-                        const Icon(Icons.arrow_forward_ios)
-                      ],
-                    )),
-              ),
-              SizedBox(
-                  height: 150,
-                  width: MediaQuery.of(context).size.width,
-                  child: PageView.builder(
-                    onPageChanged: (value) {
-                      setState(
-                        () {
-                          activePage = value;
+                        )),
+                  ),
+                  SizedBox(
+                      height: 150,
+                      width: MediaQuery.of(context).size.width,
+                      child: PageView.builder(
+                        onPageChanged: (value) {
+                          setState(
+                            () {
+                              activePage = value;
+                            },
+                          );
                         },
-                      );
-                    },
-                    itemCount: images.length,
-                    itemBuilder: (context, index) {
-                      return Container(
-                        decoration: BoxDecoration(
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(10)),
-                            image: DecorationImage(
-                                opacity: 0.5,
-                                image: NetworkImage(images[index]["image"]),
-                                fit: BoxFit.cover)),
-                        margin: const EdgeInsets.all(10),
-                        padding: const EdgeInsets.all(10),
-                        child: TextButton(
-                          style: TextButton.styleFrom(
-                              alignment: Alignment.topLeft),
-                          child: Text(
-                            images[index]["text"],
-                            style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black),
+                        itemCount: images.length,
+                        itemBuilder: (context, index) {
+                          return Container(
+                            decoration: BoxDecoration(
+                                borderRadius:
+                                    const BorderRadius.all(Radius.circular(10)),
+                                image: DecorationImage(
+                                    opacity: 0.5,
+                                    image: NetworkImage(images[index]["image"]),
+                                    fit: BoxFit.cover)),
+                            margin: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(10),
+                            child: TextButton(
+                              style: TextButton.styleFrom(
+                                  alignment: Alignment.topLeft),
+                              child: Text(
+                                images[index]["text"],
+                                style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.black),
+                              ),
+                              onPressed: () {
+                                print("object");
+                              },
+                            ),
+                          );
+                        },
+                        controller: _pageController,
+                        padEnds: false,
+                        pageSnapping: false,
+                      )),
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: indicators(images.length, activePage)),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width,
+                    // height: 170,
+                    child: GridView(
+                      primary: false,
+                      shrinkWrap: true,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 4),
+                      children: [
+                        Container(
+                          width: MediaQuery.of(context).size.width * 0.25,
+                          height: MediaQuery.of(context).size.width * 0.25,
+                          margin: const EdgeInsets.all(5),
+                          child: Column(
+                            children: [
+                              Container(
+                                decoration: const BoxDecoration(
+                                    color: Colors.amber,
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(10))),
+                                width: MediaQuery.of(context).size.width * 0.15,
+                                height:
+                                    MediaQuery.of(context).size.width * 0.15,
+                              ),
+                              const Text(
+                                "Новинки",
+                                style: TextStyle(fontSize: 12),
+                              )
+                            ],
                           ),
-                          onPressed: () {
-                            print("object");
-                          },
                         ),
-                      );
-                    },
-                    controller: _pageController,
-                    padEnds: false,
-                    pageSnapping: false,
-                  )),
-              Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: indicators(images.length, activePage)),
-              const SizedBox(
-                height: 10,
-              ),
-              SizedBox(
-                width: MediaQuery.of(context).size.width,
-                // height: 170,
-                child: GridView(
-                  primary: false,
-                  shrinkWrap: true,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 4),
-                  children: [
-                    Container(
-                      width: MediaQuery.of(context).size.width * 0.25,
-                      height: MediaQuery.of(context).size.width * 0.25,
-                      margin: const EdgeInsets.all(5),
-                      child: Column(
-                        children: [
-                          Container(
-                            decoration: const BoxDecoration(
-                                color: Colors.amber,
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(10))),
-                            width: MediaQuery.of(context).size.width * 0.15,
-                            height: MediaQuery.of(context).size.width * 0.15,
+                        Container(
+                          width: MediaQuery.of(context).size.width * .25,
+                          height: MediaQuery.of(context).size.width * .25,
+                          margin: const EdgeInsets.all(5),
+                          child: Column(
+                            children: [
+                              Container(
+                                decoration: const BoxDecoration(
+                                    color: Colors.amber,
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(10))),
+                                width: MediaQuery.of(context).size.width * 0.15,
+                                height:
+                                    MediaQuery.of(context).size.width * 0.15,
+                              ),
+                              const Text(
+                                "Со скидкой",
+                                style: TextStyle(fontSize: 12),
+                              )
+                            ],
                           ),
-                          const Text(
-                            "Новинки",
-                            style: TextStyle(fontSize: 12),
-                          )
-                        ],
-                      ),
+                        ),
+                        Container(
+                          width: MediaQuery.of(context).size.width * .25,
+                          height: MediaQuery.of(context).size.width * .25,
+                          margin: const EdgeInsets.all(5),
+                          child: Column(
+                            children: [
+                              Container(
+                                decoration: const BoxDecoration(
+                                    color: Colors.amber,
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(10))),
+                                width: MediaQuery.of(context).size.width * 0.15,
+                                height:
+                                    MediaQuery.of(context).size.width * 0.15,
+                              ),
+                              const Text(
+                                "Хит продаж",
+                                style: TextStyle(fontSize: 12),
+                              )
+                            ],
+                          ),
+                        ),
+                        Container(
+                          width: MediaQuery.of(context).size.width * .25,
+                          height: MediaQuery.of(context).size.width * 0.33,
+                          margin: const EdgeInsets.all(5),
+                          child: Column(
+                            children: [
+                              Container(
+                                decoration: const BoxDecoration(
+                                    color: Colors.amber,
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(10))),
+                                width: MediaQuery.of(context).size.width * 0.15,
+                                height:
+                                    MediaQuery.of(context).size.width * 0.15,
+                              ),
+                              const Text(
+                                "Вы покупали",
+                                style: TextStyle(fontSize: 12),
+                              )
+                            ],
+                          ),
+                        )
+                      ],
                     ),
-                    Container(
-                      width: MediaQuery.of(context).size.width * .25,
-                      height: MediaQuery.of(context).size.width * .25,
-                      margin: const EdgeInsets.all(5),
-                      child: Column(
-                        children: [
-                          Container(
-                            decoration: const BoxDecoration(
-                                color: Colors.amber,
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(10))),
-                            width: MediaQuery.of(context).size.width * 0.15,
-                            height: MediaQuery.of(context).size.width * 0.15,
-                          ),
-                          const Text(
-                            "Со скидкой",
-                            style: TextStyle(fontSize: 12),
-                          )
-                        ],
-                      ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: GridView.builder(
+                      padding: const EdgeInsets.all(0),
+                      physics: const NeverScrollableScrollPhysics(),
+                      shrinkWrap: true,
+                      gridDelegate:
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                              maxCrossAxisExtent: 150,
+                              childAspectRatio: 1,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 10),
+                      itemCount: categories.length,
+                      itemBuilder: (BuildContext ctx, index) {
+                        return CategoryItem(
+                            category_id: categories[index]["category_id"],
+                            name: categories[index]["name"],
+                            image: categories[index]["photo"]);
+                      },
                     ),
-                    Container(
-                      width: MediaQuery.of(context).size.width * .25,
-                      height: MediaQuery.of(context).size.width * .25,
-                      margin: const EdgeInsets.all(5),
-                      child: Column(
-                        children: [
-                          Container(
-                            decoration: const BoxDecoration(
-                                color: Colors.amber,
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(10))),
-                            width: MediaQuery.of(context).size.width * 0.15,
-                            height: MediaQuery.of(context).size.width * 0.15,
-                          ),
-                          const Text(
-                            "Хит продаж",
-                            style: TextStyle(fontSize: 12),
-                          )
-                        ],
-                      ),
-                    ),
-                    Container(
-                      width: MediaQuery.of(context).size.width * .25,
-                      height: MediaQuery.of(context).size.width * 0.33,
-                      margin: const EdgeInsets.all(5),
-                      child: Column(
-                        children: [
-                          Container(
-                            decoration: const BoxDecoration(
-                                color: Colors.amber,
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(10))),
-                            width: MediaQuery.of(context).size.width * 0.15,
-                            height: MediaQuery.of(context).size.width * 0.15,
-                          ),
-                          const Text(
-                            "Вы покупали",
-                            style: TextStyle(fontSize: 12),
-                          )
-                        ],
-                      ),
-                    )
-                  ],
-                ),
+                  ),
+                  const SizedBox(
+                    height: 200,
+                  )
+                ],
               ),
-              Padding(
-                padding: const EdgeInsets.all(10),
-                child: GridView.builder(
-                  padding: const EdgeInsets.all(0),
-                  physics: const NeverScrollableScrollPhysics(),
-                  shrinkWrap: true,
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 150,
-                      childAspectRatio: 1,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10),
-                  itemCount: categories.length,
-                  itemBuilder: (BuildContext ctx, index) {
-                    return CategoryItem(
-                        category_id: categories[index]["category_id"],
-                        name: categories[index]["name"],
-                        image: categories[index]["photo"]);
-                  },
-                ),
-              ),
-              const SizedBox(
-                height: 200,
-              )
-            ],
-          ),
+            )
+          ],
         ));
   }
 }

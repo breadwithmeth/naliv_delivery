@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -36,12 +38,23 @@ class _AddressesPageState extends State<AddressesPage>
   // }
   double _cHeight = 100;
 
+  bool _isExtended = false;
+
+  void _initcHeight() {
+    setState(() {
+      _cHeight = MediaQuery.of(context).size.height * 0.2;
+    });
+  }
+
   @override
   void initState() {
     // TODO: implement initState
 
     super.initState();
     // _showBottomSheet();
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      _initcHeight();
+    });
   }
 
   @override
@@ -93,23 +106,18 @@ class _AddressesPageState extends State<AddressesPage>
               mainAxisSize: MainAxisSize.max,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                AnimatedContainer(
-                  curve: Curves.easeInCubic,
-                  duration: Duration(milliseconds: 150),
-                  height: _cHeight,
-                  clipBehavior: Clip.antiAlias,
-                  width: MediaQuery.of(context).size.width,
-                  decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(30),
-                          topRight: Radius.circular(30))),
-                  child: Column(
+                GestureDetector(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.max,
                     children: [
-                      GestureDetector(
+                      Flexible(
                         child: Container(
-                          color: Colors.blueGrey.shade50,
-                          width: MediaQuery.of(context).size.width,
+                          width: double.infinity,
+                          margin: EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                              color: Colors.amber.withOpacity(1),
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(50))),
                           // height: 20,
                           // decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30))),
                           padding: EdgeInsets.all(10),
@@ -119,7 +127,7 @@ class _AddressesPageState extends State<AddressesPage>
                             children: [
                               Container(
                                 decoration: BoxDecoration(
-                                    color: Colors.grey.shade400,
+                                    color: Colors.white,
                                     borderRadius:
                                         BorderRadius.all(Radius.circular(30))),
                                 width: 50,
@@ -128,32 +136,74 @@ class _AddressesPageState extends State<AddressesPage>
                             ],
                           ),
                         ),
-                        onVerticalDragEnd: (details) {
-                          double cHeight = 0;
-                          if (_cHeight >
-                              MediaQuery.of(context).size.height * 0.5) {
-                            cHeight = MediaQuery.of(context).size.height * 0.8;
-                          } else {
-                            cHeight = MediaQuery.of(context).size.height * 0.2;
-                          }
-                          setState(() {
-                            _cHeight = cHeight;
-                          });
-                        },
-                        onVerticalDragUpdate: (details) {
-                          double cHeight = MediaQuery.of(context).size.height -
-                              details.globalPosition.dy;
-                          if (MediaQuery.of(context).size.height -
-                                  details.globalPosition.dy <
-                              50) {
-                            cHeight = 50;
-                          }
-                          setState(() {
-                            _cHeight = cHeight;
-                          });
-                          print(details.globalPosition);
-                        },
                       ),
+                      _isExtended
+                          ? IconButton(
+                              color: Colors.white,
+                              style: IconButton.styleFrom(
+                                  backgroundColor: Colors.amber),
+                              onPressed: () {
+                                setState(() {
+                                  _cHeight =
+                                      MediaQuery.of(context).size.height * 0.2;
+                                  _isExtended = false;
+                                });
+                              },
+                              icon: Icon(Icons.close))
+                          : Container()
+                    ],
+                  ),
+                  onVerticalDragEnd: (details) {
+                    double cHeight = 0;
+                    bool isExtended;
+                    if (_cHeight > MediaQuery.of(context).size.height * 0.5) {
+                      cHeight = MediaQuery.of(context).size.height * 0.8;
+                      isExtended = true;
+                    } else {
+                      cHeight = MediaQuery.of(context).size.height * 0.2;
+                      isExtended = false;
+                    }
+                    setState(() {
+                      _cHeight = cHeight;
+                      _isExtended = isExtended;
+                    });
+                  },
+                  onVerticalDragUpdate: (details) {
+                    double cHeight = MediaQuery.of(context).size.height -
+                        details.globalPosition.dy;
+                    if (MediaQuery.of(context).size.height -
+                            details.globalPosition.dy <
+                        50) {
+                      cHeight = 50;
+                    }
+                    if (MediaQuery.of(context).size.height -
+                            details.globalPosition.dy >
+                        MediaQuery.of(context).size.height * 0.8) {
+                      cHeight = MediaQuery.of(context).size.height * 0.8;
+                    }
+                    setState(() {
+                      _cHeight = cHeight;
+                    });
+                    print(details.globalPosition);
+                  },
+                ),
+
+                AnimatedContainer(
+                  clipBehavior: Clip.antiAlias,
+                  curve: Curves.easeInCubic,
+                  duration: Duration(milliseconds: 200),
+                  height: _cHeight,
+                  // clipBehavior: Clip.antiAlias,
+                  width: MediaQuery.of(context).size.width,
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(30),
+                          topRight: Radius.circular(30))),
+
+                  child: Column(
+                    children: [
+                      
                     ],
                   ),
                 ),
