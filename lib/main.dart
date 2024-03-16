@@ -49,7 +49,7 @@ class _MainState extends State<Main> {
             background: Colors.white,
             onBackground: Colors.black,
             error: Colors.red,
-            primary: Colors.orange,
+            primary: Colors.amber.shade400,
             onPrimary: Colors.black,
             onError: Colors.white,
             secondary: Colors.grey.shade300,
