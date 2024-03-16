@@ -96,14 +96,14 @@ class _HomePageState extends State<HomePage>
   Widget build(BuildContext context) {
     return Scaffold(
         floatingActionButton: FloatingActionButton(
-          child: Icon(Icons.shopping_basket_rounded),
-        onPressed: () {
-          Navigator.push(context, MaterialPageRoute(
-            builder: (context) {
-              return CartPage();
-            },
-          ));
-        }),
+            child: Icon(Icons.shopping_basket_rounded),
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(
+                builder: (context) {
+                  return CartPage();
+                },
+              ));
+            }),
         drawer: Drawer(
             child: SafeArea(
           child: Column(
@@ -345,66 +345,68 @@ class _HomePageState extends State<HomePage>
           ),
         )),
         appBar: AppBar(
-            titleSpacing: 10,
-            // scrolledUnderElevation: 100,
-            automaticallyImplyLeading: true,
-            // leading: IconButton(
-            //   icon: Icon(Icons.menu),
-            //   onPressed: () {},
-            // ),
+          titleSpacing: 10,
+          // scrolledUnderElevation: 100,
+          automaticallyImplyLeading: true,
+          // leading: IconButton(
+          //   icon: Icon(Icons.menu),
+          //   onPressed: () {},
+          // ),
 
-            title: TextButton(
-                onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(
-                    builder: (context) {
-                      return const SearchPage();
-                    },
-                  ));
+          title: TextButton(
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(
+                builder: (context) {
+                  return const SearchPage();
                 },
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 15),
-                  decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.1),
-                      borderRadius:
-                          const BorderRadius.all(Radius.circular(10))),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      const Spacer(
-                        flex: 3,
-                      ),
-                      const Text(
-                        "Найти",
-                        style: TextStyle(
-                            fontWeight: FontWeight.w500, color: Colors.black),
-                      ),
-                      // Expanded(
-                      //   flex: 2,
-                      //   child: Image.network(
-                      //     logourl,
-                      //     fit: BoxFit.contain,
-                      //     frameBuilder: (BuildContext context, Widget child,
-                      //         int? frame, bool? wasSynchronouslyLoaded) {
-                      //       return Padding(
-                      //         padding: const EdgeInsets.all(8.0),
-                      //         child: child,
-                      //       );
-                      //     },
-                      //     loadingBuilder: (BuildContext context, Widget child,
-                      //         ImageChunkEvent? loadingProgress) {
-                      //       return Center(child: child);
-                      //     },
-                      //   ),
-                      // ),
-                      Container(
-                          padding: const EdgeInsets.all(10),
-                          child: const Icon(
-                            Icons.search,
-                            color: Colors.black,
-                          )),
-                    ],
+              ));
+            },
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 15),
+              decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.1),
+                  borderRadius: const BorderRadius.all(Radius.circular(10))),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  const Spacer(
+                    flex: 3,
                   ),
-                ))),
+                  const Text(
+                    "Найти",
+                    style: TextStyle(
+                        fontWeight: FontWeight.w500, color: Colors.black),
+                  ),
+                  // Expanded(
+                  //   flex: 2,
+                  //   child: Image.network(
+                  //     logourl,
+                  //     fit: BoxFit.contain,
+                  //     frameBuilder: (BuildContext context, Widget child,
+                  //         int? frame, bool? wasSynchronouslyLoaded) {
+                  //       return Padding(
+                  //         padding: const EdgeInsets.all(8.0),
+                  //         child: child,
+                  //       );
+                  //     },
+                  //     loadingBuilder: (BuildContext context, Widget child,
+                  //         ImageChunkEvent? loadingProgress) {
+                  //       return Center(child: child);
+                  //     },
+                  //   ),
+                  // ),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    child: const Icon(
+                      Icons.search,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
         body: SingleChildScrollView(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,

@@ -384,385 +384,380 @@ class _CategoryPageState extends State<CategoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Scaffold(
-          appBar: AppBar(
-            scrolledUnderElevation: 0.0,
-            backgroundColor: Colors.white,
-            toolbarHeight: 120,
-            automaticallyImplyLeading: true,
-            titleSpacing: 0,
-            title: Container(
-              padding: const EdgeInsets.all(10),
-              child: Column(
+    return Scaffold(
+      appBar: AppBar(
+        scrolledUnderElevation: 0.0,
+        backgroundColor: Colors.white,
+        automaticallyImplyLeading: false,
+        toolbarHeight: 120,
+        titleSpacing: 0,
+        title: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10.0),
+              child: Row(
+                mainAxisSize: MainAxisSize.max,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      top: 15,
-                    ),
-                    child: Row(
-                      children: [
-                       
-                        Expanded(
-                          flex: 6,
-                          child: TextFormField(
-                            scrollPadding: const EdgeInsets.all(0),
-                            controller: search,
-                            onFieldSubmitted: (search) {
-                              if (search.isNotEmpty) {
-                                print(search);
-                                setState(() {
-                                  selectedFilters["search"] = search;
-                                });
-                              }
-                              _getItems();
-                            },
-                            style: const TextStyle(fontSize: 20),
-                            textAlignVertical: TextAlignVertical.top,
-                            decoration: InputDecoration(
-                                contentPadding: const EdgeInsets.all(10),
-                                suffix: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    GestureDetector(
-                                      child: const Icon(Icons.search),
-                                      onTap: () {
-                                        if (search.text.isNotEmpty) {
-                                          print(search);
-                                          setState(() {
-                                            selectedFilters["search"] =
-                                                search.text;
-                                          });
-                                        }
-                                        _getItems();
-                                      },
-                                    ),
-                                    GestureDetector(
-                                      child: const Icon(Icons.cancel),
-                                      onTap: () {
-                                        setState(() {
-                                          search.text = "";
-                                          selectedFilters = {};
-                                        });
-
-                                        _getItems();
-                                      },
-                                    ),
-                                  ],
-                                ),
-                                label: const Row(
-                                  children: [
-                                    Icon(
-                                      Icons.search,
-                                      color: gray1,
-                                    ),
-                                    Padding(
-                                      padding: EdgeInsets.only(left: 5),
-                                      child: Text(
-                                        "Найти...",
-                                        style: TextStyle(
-                                            color: gray1,
-                                            fontWeight: FontWeight.w500),
-                                      ),
-                                    )
-                                  ],
-                                ),
-                                floatingLabelBehavior:
-                                    FloatingLabelBehavior.never,
-                                border: const OutlineInputBorder(
-                                    borderSide: BorderSide.none,
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(30))),
-                                focusedBorder: const OutlineInputBorder(
-                                    borderSide: BorderSide.none,
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(30))),
-                                focusColor: gray1,
-                                hoverColor: gray1,
-                                fillColor: Colors.grey.shade200,
-                                filled: true,
-                                isDense: true),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 5,
-                  ),
-                  // Row(
-                  //   mainAxisAlignment: MainAxisAlignment.start,
-                  //   children: [
-                  //     Text(
-                  //       "Караганда ",
-                  //       style: TextStyle(fontSize: 12, color: gray1),
-                  //     ),
-                  //     Icon(
-                  //       Icons.arrow_forward_ios,
-                  //       size: 6,
-                  //     ),
-                  //     Text(
-                  //       " Караганда",
-                  //       style: TextStyle(fontSize: 12, color: gray1),
-                  //     )
-                  //   ],
-                  // ),
-                  // SizedBox(
-                  //   height: 10,
-                  // ),
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 4,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 8, horizontal: 10),
-                          child: Text(
-                            widget.category_name ?? "",
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 20,
-                                color: Colors.black),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: TextButton(
+                  Flexible(
+                    flex: 1,
+                    child: Builder(
+                      builder: (context) {
+                        return IconButton(
                           onPressed: () {
-                            print(_sc.position);
-                            setFilters();
-                            showDialog(
-                              useSafeArea: false,
-                              barrierColor: Colors.transparent,
-                              context: context,
-                              builder: (context) => Dialog(
-                                  shape: const RoundedRectangleBorder(),
-                                  shadowColor: Colors.black38,
-                                  backgroundColor:
-                                      Colors.white.withOpacity(0.9),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(20),
-                                    decoration: const BoxDecoration(
-                                      color: Colors.transparent,
-                                    ),
-                                    clipBehavior: Clip.hardEdge,
-                                    height: MediaQuery.of(context).size.height *
-                                        0.7,
-                                    child: BackdropFilter(
-                                      filter: ImageFilter.blur(
-                                          sigmaX: 5, sigmaY: 5),
-                                      child: Container(
-                                        color: Colors.transparent,
-                                        height:
-                                            MediaQuery.of(context).size.height *
-                                                0.7,
-                                        child: SingleChildScrollView(
-                                            child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.center,
-                                              children: [
-                                                const Text(
-                                                  "Фильтры",
-                                                  style: TextStyle(
-                                                      color: Colors.black,
-                                                      fontSize: 22,
-                                                      fontWeight:
-                                                          FontWeight.w700),
-                                                ),
-                                                IconButton(
-                                                    onPressed: () {
-                                                      Navigator.pop(context);
-                                                    },
-                                                    icon:
-                                                        const Icon(Icons.close))
-                                              ],
-                                            ),
-                                            Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: propertyWidget,
-                                            ),
-                                            Container(
-                                              width: MediaQuery.of(context)
-                                                      .size
-                                                      .width *
-                                                  0.8,
-                                              margin:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 5),
-                                              padding: const EdgeInsets.all(10),
-                                              decoration: BoxDecoration(
-                                                  color: Colors.grey.shade100,
-                                                  borderRadius:
-                                                      const BorderRadius.all(
-                                                          Radius.circular(20))),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  const Text(
-                                                    "Бренды",
-                                                    style: TextStyle(
-                                                        color: Colors.black,
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.w700),
-                                                  ),
-                                                  Wrap(
-                                                      spacing: 5,
-                                                      children: brandsWidget)
-                                                ],
-                                              ),
-                                            ),
-                                            Container(
-                                              width: MediaQuery.of(context)
-                                                      .size
-                                                      .width *
-                                                  0.8,
-                                              margin:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 5),
-                                              padding: const EdgeInsets.all(10),
-                                              decoration: BoxDecoration(
-                                                  color: Colors.grey.shade100,
-                                                  borderRadius:
-                                                      const BorderRadius.all(
-                                                          Radius.circular(20))),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  const Text(
-                                                    "Производители",
-                                                    style: TextStyle(
-                                                        color: Colors.black,
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.w700),
-                                                  ),
-                                                  Wrap(
-                                                      spacing: 5,
-                                                      children:
-                                                          manufacturersWidget)
-                                                ],
-                                              ),
-                                            ),
-                                            Container(
-                                              width: MediaQuery.of(context)
-                                                      .size
-                                                      .width *
-                                                  0.8,
-                                              margin:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 5),
-                                              padding: const EdgeInsets.all(10),
-                                              decoration: BoxDecoration(
-                                                  color: Colors.grey.shade100,
-                                                  borderRadius:
-                                                      const BorderRadius.all(
-                                                          Radius.circular(20))),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  const Text(
-                                                    "Страны",
-                                                    style: TextStyle(
-                                                        color: Colors.black,
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.w700),
-                                                  ),
-                                                  Wrap(
-                                                      spacing: 5,
-                                                      children: countriesWidget)
-                                                ],
-                                              ),
-                                            ),
-                                            ElevatedButton(
-                                              onPressed: () {
-                                                _applyFilters();
-                                              },
-                                              child: Row(
-                                                children: [
-                                                  Container(
-                                                    padding:
-                                                        const EdgeInsets.all(5),
-                                                    child: const Text(
-                                                        "Подтвердить"),
-                                                  )
-                                                ],
-                                              ),
-                                            )
-                                          ],
-                                        )),
-                                      ),
-                                    ),
-                                  )),
-                            );
+                            Navigator.maybePop(context);
                           },
-                          child: const Expanded(
-                            flex: 1,
-                            child: Icon(
-                              Icons.filter_list_rounded,
-                              color: Colors.black,
+                          icon: const Icon(Icons.arrow_back_rounded),
+                        );
+                      },
+                    ),
+                  ),
+                  Flexible(
+                    flex: 5,
+                    child: TextFormField(
+                      scrollPadding: const EdgeInsets.all(0),
+                      controller: search,
+                      onFieldSubmitted: (search) {
+                        if (search.isNotEmpty) {
+                          print(search);
+                          setState(() {
+                            selectedFilters["search"] = search;
+                          });
+                        }
+                        _getItems();
+                      },
+                      textAlignVertical: TextAlignVertical.top,
+                      decoration: InputDecoration(
+                          // contentPadding: const EdgeInsets.all(10),
+                          suffix: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              GestureDetector(
+                                child: const Icon(Icons.search),
+                                onTap: () {
+                                  if (search.text.isNotEmpty) {
+                                    print(search);
+                                    setState(() {
+                                      selectedFilters["search"] = search.text;
+                                    });
+                                  }
+                                  _getItems();
+                                },
+                              ),
+                              GestureDetector(
+                                child: const Icon(Icons.cancel),
+                                onTap: () {
+                                  setState(() {
+                                    search.text = "";
+                                    selectedFilters = {};
+                                  });
+
+                                  _getItems();
+                                },
+                              ),
+                            ],
+                          ),
+                          label: Container(
+                            // margin: const EdgeInsets.symmetric(vertical: 15),
+                            decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.1),
+                                borderRadius: const BorderRadius.all(
+                                    Radius.circular(10))),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                const Spacer(
+                                  flex: 3,
+                                ),
+                                const Text(
+                                  "Найти",
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 14,
+                                      color: Colors.black),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  child: const Icon(
+                                    Icons.search,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 1,
-                        child: TextButton(
-                          onPressed: () => {
-                            if (_categoryViewMode != 2)
-                              {
-                                setState(() {
-                                  _categoryViewMode += 1;
-                                })
-                              }
-                            else
-                              {
-                                setState(() {
-                                  _categoryViewMode = 0;
-                                })
-                              }
-                          },
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 200),
-                            transitionBuilder: (child, animation) {
-                              return ScaleTransition(
-                                scale: animation,
-                                child: child,
-                              );
-                            },
-                            child: _getCategoriesIconWithLayout(),
+                          floatingLabelBehavior: FloatingLabelBehavior.never,
+                          border: const OutlineInputBorder(
+                            borderSide: BorderSide.none,
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(10),
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
-                  )
+                          focusedBorder: const OutlineInputBorder(
+                            borderSide: BorderSide.none,
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(10),
+                            ),
+                          ),
+                          filled: false,
+                          isDense: true),
+                    ),
+                  ),
                 ],
               ),
             ),
-          ),
-          body: _getCategoriesWithLayoutMode(),
-          // ListView(
-          //   controller: _sc,
-          //   children: itemsWidget,
-          // )
+            const SizedBox(
+              height: 5,
+            ),
+            // Row(
+            //   mainAxisAlignment: MainAxisAlignment.start,
+            //   children: [
+            //     Text(
+            //       "Караганда ",
+            //       style: TextStyle(fontSize: 12, color: gray1),
+            //     ),
+            //     Icon(
+            //       Icons.arrow_forward_ios,
+            //       size: 6,
+            //     ),
+            //     Text(
+            //       " Караганда",
+            //       style: TextStyle(fontSize: 12, color: gray1),
+            //     )
+            //   ],
+            // ),
+            // SizedBox(
+            //   height: 10,
+            // ),
+            Row(
+              children: [
+                Expanded(
+                  flex: 4,
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                    child: Text(
+                      widget.category_name ?? "",
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 20,
+                          color: Colors.black),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      print(_sc.position);
+                      setFilters();
+                      showDialog(
+                        useSafeArea: false,
+                        barrierColor: Colors.transparent,
+                        context: context,
+                        builder: (context) => Dialog(
+                            shape: const RoundedRectangleBorder(),
+                            shadowColor: Colors.black38,
+                            backgroundColor: Colors.white.withOpacity(0.9),
+                            child: Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: const BoxDecoration(
+                                color: Colors.transparent,
+                              ),
+                              clipBehavior: Clip.hardEdge,
+                              height: MediaQuery.of(context).size.height * 0.7,
+                              child: BackdropFilter(
+                                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                                child: Container(
+                                  color: Colors.transparent,
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.7,
+                                  child: SingleChildScrollView(
+                                      child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          const Text(
+                                            "Фильтры",
+                                            style: TextStyle(
+                                                color: Colors.black,
+                                                fontSize: 22,
+                                                fontWeight: FontWeight.w700),
+                                          ),
+                                          IconButton(
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                              },
+                                              icon: const Icon(Icons.close))
+                                        ],
+                                      ),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: propertyWidget,
+                                      ),
+                                      Container(
+                                        width:
+                                            MediaQuery.of(context).size.width *
+                                                0.8,
+                                        margin: const EdgeInsets.symmetric(
+                                            vertical: 5),
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                            color: Colors.grey.shade100,
+                                            borderRadius:
+                                                const BorderRadius.all(
+                                                    Radius.circular(20))),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              "Бренды",
+                                              style: TextStyle(
+                                                  color: Colors.black,
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w700),
+                                            ),
+                                            Wrap(
+                                                spacing: 5,
+                                                children: brandsWidget)
+                                          ],
+                                        ),
+                                      ),
+                                      Container(
+                                        width:
+                                            MediaQuery.of(context).size.width *
+                                                0.8,
+                                        margin: const EdgeInsets.symmetric(
+                                            vertical: 5),
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                            color: Colors.grey.shade100,
+                                            borderRadius:
+                                                const BorderRadius.all(
+                                                    Radius.circular(20))),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              "Производители",
+                                              style: TextStyle(
+                                                  color: Colors.black,
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w700),
+                                            ),
+                                            Wrap(
+                                                spacing: 5,
+                                                children: manufacturersWidget)
+                                          ],
+                                        ),
+                                      ),
+                                      Container(
+                                        width:
+                                            MediaQuery.of(context).size.width *
+                                                0.8,
+                                        margin: const EdgeInsets.symmetric(
+                                            vertical: 5),
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                            color: Colors.grey.shade100,
+                                            borderRadius:
+                                                const BorderRadius.all(
+                                                    Radius.circular(20))),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              "Страны",
+                                              style: TextStyle(
+                                                  color: Colors.black,
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w700),
+                                            ),
+                                            Wrap(
+                                                spacing: 5,
+                                                children: countriesWidget)
+                                          ],
+                                        ),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          _applyFilters();
+                                        },
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.all(5),
+                                              child: const Text("Подтвердить"),
+                                            )
+                                          ],
+                                        ),
+                                      )
+                                    ],
+                                  )),
+                                ),
+                              ),
+                            )),
+                      );
+                    },
+                    child: const Expanded(
+                      flex: 1,
+                      child: Icon(
+                        Icons.filter_list_rounded,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: TextButton(
+                    onPressed: () => {
+                      if (_categoryViewMode != 2)
+                        {
+                          setState(() {
+                            _categoryViewMode += 1;
+                          })
+                        }
+                      else
+                        {
+                          setState(() {
+                            _categoryViewMode = 0;
+                          })
+                        }
+                    },
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      transitionBuilder: (child, animation) {
+                        return ScaleTransition(
+                          scale: animation,
+                          child: child,
+                        );
+                      },
+                      child: _getCategoriesIconWithLayout(),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          ],
         ),
-        loadingScreen
-      ],
+      ),
+      body: _getCategoriesWithLayoutMode(),
+      // ListView(
+      //   controller: _sc,
+      //   children: itemsWidget,
+      // ),
     );
   }
 
@@ -772,6 +767,17 @@ class _CategoryPageState extends State<CategoryPage> {
       itemCount: itemsL.length,
       itemBuilder: (context, index) => GestureDetector(
         key: Key(itemsL[index]["item_id"]),
+        onTap: () {
+          showModalBottomSheet(
+            context: context,
+            clipBehavior: Clip.antiAlias,
+            useSafeArea: true,
+            isScrollControlled: true,
+            builder: (context) {
+              return ProductPage(item_id: itemsL[index]["item_id"]);
+            },
+          );
+        },
         child: Column(
           children: [
             ItemCard(
@@ -789,41 +795,41 @@ class _CategoryPageState extends State<CategoryPage> {
             ),
           ],
         ),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => ProductPage(
-                      item_id: itemsL[index]["item_id"],
-                      returnWidget: CategoryPage(
-                        category_id: widget.category_id,
-                        category_name: widget.category_name,
-                        scroll: widget.scroll,
-                      ),
-                    )),
-          ).then((value) {
-            print("===================OFFSET===================");
-            double currentsc = _sc.offset;
-            print(currentsc);
-            _getItems();
-            _sc.animateTo(20,
-                duration: const Duration(microseconds: 300),
-                curve: Curves.bounceIn);
-            // updateItemCard(itemsWidget
-            //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
-            // print("индекс");
-
-            // print(itemsWidget
-            //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
-            // print("индекс");
-            // setState(() {
-            //   // itemsWidget[itemsWidget.indexWhere(
-            //   //         (_gd) => _gd.key == Key(element["item_id"]))] =
-            //   //     GestureDetector();
-            // });
-          });
-        },
       ),
+      // onTap: () {
+      //   Navigator.push(
+      //     context,
+      //     MaterialPageRoute(
+      //         builder: (context) => ProductPage(
+      //               item_id: itemsL[index]["item_id"],
+      //               returnWidget: CategoryPage(
+      //                 category_id: widget.category_id,
+      //                 category_name: widget.category_name,
+      //                 scroll: widget.scroll,
+      //               ),
+      //             )),
+      //   ).then((value) {
+      //     print("===================OFFSET===================");
+      //     double currentsc = _sc.offset;
+      //     print(currentsc);
+      //     _getItems();
+      //     _sc.animateTo(20,
+      //         duration: const Duration(microseconds: 300),
+      //         curve: Curves.bounceIn);
+      //     // updateItemCard(itemsWidget
+      //     //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
+      //     // print("индекс");
+
+      //     // print(itemsWidget
+      //     //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
+      //     // print("индекс");
+      //     // setState(() {
+      //     //   // itemsWidget[itemsWidget.indexWhere(
+      //     //   //         (_gd) => _gd.key == Key(element["item_id"]))] =
+      //     //   //     GestureDetector();
+      //     // });
+      //   });
+      // },
     );
   }
 }
@@ -912,10 +918,11 @@ class _ItemCardState extends State<ItemCard> {
   @override
   Widget build(BuildContext context) {
     chack = widget.chack;
-    return Container(
-      margin: const EdgeInsets.all(10),
+    return SizedBox(
+      // margin: const EdgeInsets.all(10),
       height: MediaQuery.of(context).size.width * 0.6,
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.max,
         children: [
           Flexible(
@@ -927,16 +934,16 @@ class _ItemCardState extends State<ItemCard> {
               placeholder: (context, url) {
                 return Container(
                   alignment: Alignment.center,
+                  color: Colors.white,
                   width: MediaQuery.of(context).size.width * 0.4,
-                  height: MediaQuery.of(context).size.width * 0.4,
                   child: const CircularProgressIndicator(),
                 );
               },
               errorWidget: (context, url, error) {
                 return Container(
                   alignment: Alignment.center,
+                  color: Colors.white,
                   width: MediaQuery.of(context).size.width * 0.4,
-                  height: MediaQuery.of(context).size.width * 0.4,
                   child: const Expanded(
                     child: Text("Нет изображения"),
                   ),
@@ -1037,30 +1044,23 @@ class _ItemCardState extends State<ItemCard> {
                       ],
                     ),
                   ),
-                  Flexible(
-                    child: SizedBox(
-                      width: MediaQuery.of(context).size.width * 0.5,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        mainAxisSize: MainAxisSize.max,
-                        children: [
-                          Flexible(
-                            flex: 5,
-                            child: _buyButton,
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        Flexible(
+                          flex: 5,
+                          child: _buyButton,
+                        ),
+                        Flexible(
+                          flex: 1,
+                          child: LikeButton(
+                            is_liked: element["is_liked"],
+                            item_id: element["item_id"],
                           ),
-                          Flexible(
-                            flex: 1,
-                            child: Container(
-                              alignment: Alignment.centerRight,
-                              width: MediaQuery.of(context).size.width * 0.1,
-                              child: LikeButton(
-                                is_liked: element["is_liked"],
-                                item_id: element["item_id"],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
