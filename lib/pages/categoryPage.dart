@@ -391,7 +391,7 @@ class _CategoryPageState extends State<CategoryPage> {
             scrolledUnderElevation: 0.0,
             backgroundColor: Colors.white,
             toolbarHeight: 120,
-            automaticallyImplyLeading: false,
+            automaticallyImplyLeading: true,
             titleSpacing: 0,
             title: Container(
               padding: const EdgeInsets.all(10),
@@ -403,34 +403,7 @@ class _CategoryPageState extends State<CategoryPage> {
                     ),
                     child: Row(
                       children: [
-                        Expanded(
-                          flex: 1,
-                          child: TextButton(
-                            onPressed: () {
-                              Navigator.push(context,
-                                  MaterialPageRoute(builder: (context) {
-                                return const BottomMenu();
-                              }));
-                            },
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(
-                                  Icons.arrow_back_ios_new_rounded,
-                                  color: Colors.black,
-                                ),
-                                // Text(
-                                //   widget.category_name ?? "",
-                                //   style: const TextStyle(
-                                //       fontWeight: FontWeight.w700,
-                                //       fontSize: 20,
-                                //       color: Colors.black),
-                                // )
-                              ],
-                            ),
-                          ),
-                        ),
+                       
                         Expanded(
                           flex: 6,
                           child: TextFormField(

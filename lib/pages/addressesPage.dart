@@ -95,23 +95,36 @@ class _AddressesPageState extends State<AddressesPage>
               children: [
                 AnimatedContainer(
                   curve: Curves.easeInCubic,
-                  duration: Duration(milliseconds: 100),
+                  duration: Duration(milliseconds: 150),
                   height: _cHeight,
+                  clipBehavior: Clip.antiAlias,
                   width: MediaQuery.of(context).size.width,
                   decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.all(Radius.circular(15))),
+                      borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(30),
+                          topRight: Radius.circular(30))),
                   child: Column(
                     children: [
                       GestureDetector(
-                        child: Container( 
-                          color: Colors.black,
+                        child: Container(
+                          color: Colors.blueGrey.shade50,
+                          width: MediaQuery.of(context).size.width,
+                          // height: 20,
+                          // decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30))),
                           padding: EdgeInsets.all(10),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             mainAxisSize: MainAxisSize.max,
                             children: [
-                             Icon(Icons.circle)
+                              Container(
+                                decoration: BoxDecoration(
+                                    color: Colors.grey.shade400,
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(30))),
+                                width: 50,
+                                height: 10,
+                              )
                             ],
                           ),
                         ),
@@ -130,7 +143,11 @@ class _AddressesPageState extends State<AddressesPage>
                         onVerticalDragUpdate: (details) {
                           double cHeight = MediaQuery.of(context).size.height -
                               details.globalPosition.dy;
-
+                          if (MediaQuery.of(context).size.height -
+                                  details.globalPosition.dy <
+                              50) {
+                            cHeight = 50;
+                          }
                           setState(() {
                             _cHeight = cHeight;
                           });

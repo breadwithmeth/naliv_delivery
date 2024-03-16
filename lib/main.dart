@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/bottomMenu.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/misc/colors.dart';
+import 'package:naliv_delivery/pages/homePage.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
 
 void main() {
@@ -31,7 +32,7 @@ class _MainState extends State<Main> {
     String? token = await getToken();
     if (token != null) {
       setState(() {
-        _redirect = BottomMenu();
+        _redirect = HomePage();
       });
     } else {
       setState(() {

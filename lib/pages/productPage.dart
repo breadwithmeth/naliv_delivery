@@ -368,12 +368,7 @@ class _ProductPageState extends State<ProductPage> {
                           children: [
                             IconButton(
                               onPressed: () {
-                                Navigator.pushReplacement(context,
-                                    MaterialPageRoute(
-                                  builder: (context) {
-                                    return widget.returnWidget;
-                                  },
-                                ));
+                                Navigator.pop(context);
                               },
                               icon: const Icon(
                                 Icons.arrow_back_ios,
