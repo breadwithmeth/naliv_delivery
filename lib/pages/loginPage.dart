@@ -199,8 +199,17 @@ class _LoginPageState extends State<LoginPage> {
                     // Spacer(),
                     !isCodeSend
                         ? ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.all(18)),
+                            style: ButtonStyle(
+                              backgroundColor: MaterialStatePropertyAll(
+                                  Theme.of(context).colorScheme.primary),
+                              shape: const MaterialStatePropertyAll(
+                                RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(10),
+                                  ),
+                                ),
+                              ),
+                            ),
                             onPressed: () async {
                               print(_phone_number.text.length);
                               if (_phone_number.text.length == 10) {
@@ -223,10 +232,20 @@ class _LoginPageState extends State<LoginPage> {
                               //   );
                               // }
                             },
-                            child: const Row(
+                            child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               mainAxisSize: MainAxisSize.max,
-                              children: [Text("Получить код подтверждения")],
+                              children: [
+                                Text(
+                                  "Получить код подтверждения",
+                                  style: TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.onPrimary,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
                             ))
                         : ElevatedButton(
                             style: ElevatedButton.styleFrom(
