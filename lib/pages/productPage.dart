@@ -1,10 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/shared/buyButton.dart';
 import 'package:naliv_delivery/shared/likeButton.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shimmer/shimmer.dart';
 
 class ProductPage extends StatefulWidget {
   const ProductPage({super.key, required this.item_id});
@@ -287,20 +290,7 @@ class _ProductPageState extends State<ProductPage> {
   // //   }
   // // }
 
-  Future<void> _addToCard() async {
-    // setState(() {
-    //   isLoad = true;
-    // });
-    String? amount1 = await addToCart(widget.item_id).then((value) {
-      print(value);
-      setState(() {
-        amount = value;
-      });
-      return null;
-    });
-  }
-
-  void _getRecomendations() {}
+  // void _getRecomendations() {}
 
   @override
   void initState() {
@@ -316,6 +306,7 @@ class _ProductPageState extends State<ProductPage> {
       expand: false,
       initialChildSize: 1,
       maxChildSize: 1,
+      minChildSize: 0.65,
       shouldCloseOnMinExtent: true,
       snapAnimationDuration: const Duration(milliseconds: 150),
       builder: ((context, scrollController) {
@@ -334,11 +325,26 @@ class _ProductPageState extends State<ProductPage> {
           height: 80,
           decoration: const BoxDecoration(
               // color: Colors.grey.shade400,
-              borderRadius: BorderRadius.all(Radius.circular(15))),
+              borderRadius: BorderRadius.all(Radius.circular(10))),
           margin: const EdgeInsets.all(5),
           padding: const EdgeInsets.all(4),
           width: MediaQuery.of(context).size.width,
-          child: item.isNotEmpty ? _buyButtonFullWidth : null,
+          child: item.isNotEmpty
+              ? _buyButtonFullWidth
+              : Shimmer.fromColors(
+                  baseColor:
+                      Theme.of(context).colorScheme.secondary.withOpacity(0.05),
+                  highlightColor: Theme.of(context).colorScheme.secondary,
+                  child: Container(
+                    width: MediaQuery.of(context).size.width,
+                    height: 50,
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                      color: Colors.white,
+                    ),
+                    child: null,
+                  ),
+                ),
         ),
       ),
       body: ListView(
@@ -441,16 +447,28 @@ class _ProductPageState extends State<ProductPage> {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-            child: Text(
-              item["name"] ?? "",
-              style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black),
-            ),
-          ),
+          item.isNotEmpty
+              ? Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                  child: Text(
+                    item["name"] ?? "",
+                    style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black),
+                  ),
+                )
+              : Shimmer.fromColors(
+                  baseColor:
+                      Theme.of(context).colorScheme.secondary.withOpacity(0.05),
+                  highlightColor: Theme.of(context).colorScheme.secondary,
+                  child: Container(
+                    width: MediaQuery.of(context).size.width * 0.8,
+                    height: 40,
+                    color: Colors.white,
+                  ),
+                ),
           const SizedBox(
             height: 5,
           ),
@@ -582,10 +600,6 @@ class _ProductPageState extends State<ProductPage> {
                   bottom: BorderSide(width: 1, color: Colors.grey.shade400)),
               children: properties,
             ),
-          ),
-          Container(
-            alignment: Alignment.center,
-            child: const CircularProgressIndicator(),
           ),
           const SizedBox(
             height: 100,

@@ -1,7 +1,10 @@
-import 'dart:math';
-
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
+import 'package:naliv_delivery/pages/productPage.dart';
+import 'package:naliv_delivery/shared/buyButton.dart';
+import 'package:naliv_delivery/shared/itemCards.dart';
+import 'package:naliv_delivery/shared/likeButton.dart';
 
 class SearchResultPage extends StatefulWidget {
   const SearchResultPage({super.key, required this.search});
@@ -11,7 +14,8 @@ class SearchResultPage extends StatefulWidget {
 }
 
 class _SearchResultPageState extends State<SearchResultPage> {
-  Widget itemsList = Container();
+  ScrollController _sc = ScrollController();
+  Widget itemsist = Container();
   int snapshotLenght = 0;
 
   @override
@@ -26,7 +30,7 @@ class _SearchResultPageState extends State<SearchResultPage> {
           //     ),
           //     onPressed: () {
           //       setState(() {
-          //         itemsList = Container();
+          //         itemsist = Container();
           //       });
           //     },
           //   ),
@@ -36,7 +40,7 @@ class _SearchResultPageState extends State<SearchResultPage> {
                 floatingLabelAlignment: FloatingLabelAlignment.start,
                 floatingLabelBehavior: FloatingLabelBehavior.never,
                 label: IconButton(
-                  icon: Icon(
+                  icon: const Icon(
                     Icons.search,
                     color: Colors.black,
                   ),
@@ -46,57 +50,113 @@ class _SearchResultPageState extends State<SearchResultPage> {
                 ),
                 fillColor: Colors.black12,
                 filled: true,
-                focusedBorder: OutlineInputBorder(
+                focusedBorder: const OutlineInputBorder(
                     borderRadius: BorderRadius.all(Radius.circular(60)),
                     borderSide: BorderSide(color: Colors.white, width: 0)),
-                enabledBorder: OutlineInputBorder(
+                enabledBorder: const OutlineInputBorder(
                     borderRadius: BorderRadius.all(Radius.circular(60)),
                     borderSide: BorderSide(color: Colors.white, width: 0)),
-                border: OutlineInputBorder(
+                border: const OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.white, width: 0))),
           ),
         ),
-        body: ListView.builder(
-            // itemCount: snapshotLenght,
-            itemBuilder: (context, index) {
-             
-              return KeepAliveFutureBuilder(
-                future: getItemsMain(index, widget.search),
-                builder: (context, snapshot) {
-                  List? items = snapshot.data;
-                  if (items!.length < index) {
-                    
-                  }
-                  if (snapshot.hasError) {
-                    return Container();
-                  } else if (snapshot.connectionState ==
-                      ConnectionState.waiting) {
-                    return Container(
-                      height: MediaQuery.of(context).size.height,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [CircularProgressIndicator()],
-                        mainAxisSize: MainAxisSize.max,
-                      ),
-                    );
-                  } else {
-                    return ListView.builder(
-                      shrinkWrap: true,
-                      primary: false,
-                      itemCount: items!.length,
-                      prototypeItem: ListTile(
-                        title: Text(items[1]["name"]),
-                      ),
-                      itemBuilder: (context, index1) {
-                        return ListTile(
-                          title: Text(items[index1]["name"]),
+        body: ListView.builder(itemBuilder: ((context, index) {
+          return KeepAliveFutureBuilder(
+              future: getItemsMain(index, widget.search),
+              builder: ((context, snapshot) {
+                List? items = snapshot.data;
+                if (items!.length < index) {}
+                if (snapshot.hasError) {
+                  return const Placeholder();
+                } else if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
+                  return SizedBox(
+                    height: MediaQuery.of(context).size.height,
+                    child: const Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.max,
+                      children: [CircularProgressIndicator()],
+                    ),
+                  );
+                } else {
+                  return ListView.builder(
+                    controller: _sc,
+                    itemCount: items.length,
+                    itemBuilder: (context, index) => GestureDetector(
+                      key: Key(items[index]["item_id"]),
+                      onTap: () {
+                        showModalBottomSheet(
+                          context: context,
+                          clipBehavior: Clip.antiAlias,
+                          useSafeArea: true,
+                          isScrollControlled: true,
+                          builder: (context) {
+                            return ProductPage(
+                                item_id: items[index]["item_id"]);
+                          },
                         );
                       },
-                    );
-                  }
-                },
-              );
-            }));
+                      child: Column(
+                        children: [
+                          ItemCard(
+                            item_id: items[index]["item_id"],
+                            category_id: "",
+                            category_name: "",
+                            element: items[index],
+                            scroll: 0,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Divider(
+                              color: Theme.of(context).colorScheme.secondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+              }));
+        }))
+        // body: ListView.builder(
+        //   // itemCount: snapshotLenght,
+        //   itemBuilder: (context, index) {
+        //     return KeepAliveFutureBuilder(
+        //       future: getItemsMain(index, widget.search),
+        //       builder: (context, snapshot) {
+        //         List? items = snapshot.data;
+        //         if (items!.length < index) {}
+        //         if (snapshot.hasError) {
+        //           return Container();
+        //         } else if (snapshot.connectionState == ConnectionState.waiting) {
+        //           return SizedBox(
+        //             height: MediaQuery.of(context).size.height,
+        //             child: const Column(
+        //               mainAxisAlignment: MainAxisAlignment.start,
+        //               mainAxisSize: MainAxisSize.max,
+        //               children: [CircularProgressIndicator()],
+        //             ),
+        //           );
+        //         } else {
+        //           return ListView.builder(
+        //             shrinkWrap: true,
+        //             primary: false,
+        //             itemCount: items!.length,
+        //             prototypeItem: ListTile(
+        //               title: Text(items[1]["name"]),
+        //             ),
+        //             itemBuilder: (context, index1) {
+        //               return ListTile(
+        //                 title: Text(items[index1]["name"]),
+        //               );
+        //             },
+        //           );
+        //         }
+        //       },
+        //     );
+        //   },
+        // ),
+        );
   }
 }
 
