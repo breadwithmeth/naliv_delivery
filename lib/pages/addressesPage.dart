@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
@@ -259,29 +260,37 @@ class _AddressesPageState extends State<AddressesPage>
                                             ),
                                             Row(
                                               children: [
-                                                Text(
-                                                  widget.addresses[index]
-                                                      ["address"],
-                                                  style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                      color: Colors.black,
-                                                      fontSize: 16),
-                                                ),
-                                                Icon(
-                                                  Icons.arrow_forward_ios,
-                                                  size: 16,
-                                                ),
-                                                Text(
-                                                  "кв./офис " +
-                                                      widget.addresses[index]
-                                                          ["apartment"],
-                                                  style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                      color: Colors.black,
-                                                      fontSize: 16),
-                                                ),
+                                                Expanded(
+                                                  child: Wrap(
+                                                    crossAxisAlignment: WrapCrossAlignment.center,
+                                                    children: [
+                                                      Text(
+                                                        widget.addresses[index]
+                                                            ["address"],
+                                                        style: TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                            color: Colors.black,
+                                                            fontSize: 16),
+                                                      ),
+                                                      Icon(
+                                                        Icons.arrow_forward_ios,
+                                                        size: 16,
+                                                      ),
+                                                      Text(
+                                                        "кв./офис " +
+                                                            widget.addresses[
+                                                                    index]
+                                                                ["apartment"],
+                                                        style: TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                            color: Colors.black,
+                                                            fontSize: 16),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
                                               ],
                                             ),
                                             SizedBox(
