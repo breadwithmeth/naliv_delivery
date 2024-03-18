@@ -112,11 +112,11 @@ class _ProfilePageState extends State<ProfilePage> {
                   style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 20)),
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const AddressesPage()),
-                    );
+                    // Navigator.push(
+                    //   context,
+                    //   MaterialPageRoute(
+                    //       builder: (context) => const AddressesPage()),
+                    // );
                   },
                   child: const Row(
                     crossAxisAlignment: CrossAxisAlignment.center,

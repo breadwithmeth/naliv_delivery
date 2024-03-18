@@ -60,7 +60,10 @@ class _SearchResultPageState extends State<SearchResultPage> {
                     borderSide: BorderSide(color: Colors.white, width: 0))),
           ),
         ),
-        body: ListView.builder(itemBuilder: ((context, index) {
+        body: ListView.builder(
+        shrinkWrap: true,
+        primary: false,
+        itemBuilder: ((context, index) {
           return KeepAliveFutureBuilder(
               future: getItemsMain(index, widget.search),
               builder: ((context, snapshot) {
@@ -82,6 +85,8 @@ class _SearchResultPageState extends State<SearchResultPage> {
                   return ListView.builder(
                     controller: _sc,
                     itemCount: items.length,
+                    primary: false,
+                    shrinkWrap: true,
                     itemBuilder: (context, index) => GestureDetector(
                       key: Key(items[index]["item_id"]),
                       onTap: () {
