@@ -403,7 +403,6 @@ class _CategoryPageState extends State<CategoryPage> {
                     ),
                     child: Row(
                       children: [
-                       
                         Expanded(
                           flex: 6,
                           child: TextFormField(

@@ -69,7 +69,7 @@ class _HomePageState extends State<HomePage>
 
   List _addresses = [];
 
-  bool _isAppBarCollapsed = true;
+  Map _currentAddress = {};
 
   Future<void> _getCategories() async {
     List categories1 = await getCategories();
@@ -93,6 +93,12 @@ class _HomePageState extends State<HomePage>
     print(addresses);
     setState(() {
       _addresses = addresses;
+      _currentAddress = _addresses.firstWhere(
+        (element) => element["is_selected"] == "1",
+        orElse: () {
+          return null;
+        },
+      );
     });
   }
 
@@ -214,8 +220,11 @@ class _HomePageState extends State<HomePage>
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const AddressesPage()),
-                        );
+                              builder: (context) => AddressesPage(
+                                    addresses: _addresses,
+                                    isExtended: true,
+                                  )),
+                        ).then((value) => print(_getAddresses()));
                       },
                       child: const Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -377,78 +386,73 @@ class _HomePageState extends State<HomePage>
             SliverAppBar(
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.transparent,
-              // stretch: true,
+              stretch: true,
               // stretchTriggerOffset: 300.0,
-              // expandedHeight: MediaQuery.of(context).size.height * 0.4,
               pinned: true,
-              floating: true,
+              // floating: true,
               // snap: true,
-              automaticallyImplyLeading: !_isAppBarCollapsed,
-              title: _isAppBarCollapsed
-                  ? null
-                  : TextButton(
-                      onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(
-                          builder: (context) {
-                            return const SearchPage();
-                          },
-                        ));
+              title: TextButton(
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(
+                      builder: (context) {
+                        return const SearchPage();
                       },
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 15),
-                        decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.1),
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(10))),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            const Spacer(
-                              flex: 3,
-                            ),
-                            const Text(
-                              "Найти",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.black),
-                            ),
-                            // Expanded(
-                            //   flex: 2,
-                            //   child: Image.network(
-                            //     logourl,
-                            //     fit: BoxFit.contain,
-                            //     frameBuilder: (BuildContext context, Widget child,
-                            //         int? frame, bool? wasSynchronouslyLoaded) {
-                            //       return Padding(
-                            //         padding: const EdgeInsets.all(8.0),
-                            //         child: child,
-                            //       );
-                            //     },
-                            //     loadingBuilder: (BuildContext context, Widget child,
-                            //         ImageChunkEvent? loadingProgress) {
-                            //       return Center(child: child);
-                            //     },
-                            //   ),
-                            // ),
-                            Container(
-                                padding: const EdgeInsets.all(10),
-                                child: const Icon(
-                                  Icons.search,
-                                  color: Colors.black,
-                                )),
-                          ],
+                    ));
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 15),
+                    decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.1),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(10))),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        const Spacer(
+                          flex: 3,
                         ),
-                      )),
+                        const Text(
+                          "Найти",
+                          style: TextStyle(
+                              fontWeight: FontWeight.w500, color: Colors.black),
+                        ),
+                        // Expanded(
+                        //   flex: 2,
+                        //   child: Image.network(
+                        //     logourl,
+                        //     fit: BoxFit.contain,
+                        //     frameBuilder: (BuildContext context, Widget child,
+                        //         int? frame, bool? wasSynchronouslyLoaded) {
+                        //       return Padding(
+                        //         padding: const EdgeInsets.all(8.0),
+                        //         child: child,
+                        //       );
+                        //     },
+                        //     loadingBuilder: (BuildContext context, Widget child,
+                        //         ImageChunkEvent? loadingProgress) {
+                        //       return Center(child: child);
+                        //     },
+                        //   ),
+                        // ),
+                        Container(
+                            padding: const EdgeInsets.all(10),
+                            child: const Icon(
+                              Icons.search,
+                              color: Colors.black,
+                            )),
+                      ],
+                    ),
+                  )),
             ),
             SliverToBoxAdapter(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  Image.network(
-                    _business!["logo"],
-                    fit: BoxFit.cover,
-                  ),
+                  // Image.network(
+                  //   _business!["logo"],
+                  //   fit: BoxFit.cover,
+                  // ),
                   _addresses.firstWhere(
                             (element) => element["is_selected"] == "1",
                             orElse: () {
@@ -475,7 +479,25 @@ class _HomePageState extends State<HomePage>
                                 ],
                               )),
                         )
-                      : Container(),
+                      : GestureDetector(
+                          child: Container(
+                              margin: const EdgeInsets.all(10),
+                              padding: const EdgeInsets.all(10),
+                              decoration: const BoxDecoration(
+                                  // color: Colors.black12,
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(10))),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    _currentAddress["address"],
+                                    style: TextStyle(
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.w700),
+                                  ),
+                                ],
+                              )),
+                        ),
                   GestureDetector(
                     onTap: () {
                       Navigator.pushReplacement(context, MaterialPageRoute(

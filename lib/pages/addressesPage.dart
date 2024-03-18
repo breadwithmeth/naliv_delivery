@@ -2,12 +2,16 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:naliv_delivery/misc/api.dart';
 
 class AddressesPage extends StatefulWidget {
-  const AddressesPage({super.key});
-
+  const AddressesPage(
+      {super.key, required this.addresses, required this.isExtended});
+  final List addresses;
+  final bool isExtended;
   @override
   State<AddressesPage> createState() => _AddressesPageState();
 }
@@ -41,9 +45,17 @@ class _AddressesPageState extends State<AddressesPage>
   bool _isExtended = false;
 
   void _initcHeight() {
-    setState(() {
-      _cHeight = MediaQuery.of(context).size.height * 0.2;
-    });
+    if (widget.isExtended) {
+      setState(() {
+        _cHeight = MediaQuery.of(context).size.height * 0.8;
+        _isExtended = widget.isExtended;
+      });
+    } else {
+      setState(() {
+        _cHeight = MediaQuery.of(context).size.height * 0.2;
+        _isExtended = widget.isExtended;
+      });
+    }
   }
 
   @override
@@ -61,9 +73,10 @@ class _AddressesPageState extends State<AddressesPage>
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
+          surfaceTintColor: Colors.white,
           automaticallyImplyLeading: true,
           title: Column(
-            children: [Text("Выбрать город")],
+            children: [Text("Выбрать адрес")],
           ),
         ),
         // bottomSheet: BottomSheet(
@@ -189,24 +202,154 @@ class _AddressesPageState extends State<AddressesPage>
                 ),
 
                 AnimatedContainer(
-                  clipBehavior: Clip.antiAlias,
-                  curve: Curves.easeInCubic,
-                  duration: Duration(milliseconds: 200),
-                  height: _cHeight,
-                  // clipBehavior: Clip.antiAlias,
-                  width: MediaQuery.of(context).size.width,
-                  decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(30),
-                          topRight: Radius.circular(30))),
-
-                  child: Column(
-                    children: [
-                      
-                    ],
-                  ),
-                ),
+                    clipBehavior: Clip.antiAlias,
+                    curve: Curves.easeInCubic,
+                    duration: Duration(milliseconds: 200),
+                    height: _cHeight,
+                    // clipBehavior: Clip.antiAlias,
+                    width: MediaQuery.of(context).size.width,
+                    decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(30),
+                            topRight: Radius.circular(30))),
+                    child: _isExtended
+                        ? SingleChildScrollView(
+                            child: Column(
+                              children: [
+                                SizedBox(
+                                  height: 30,
+                                ),
+                                ListView.builder(
+                                  primary: false,
+                                  shrinkWrap: true,
+                                  itemCount: widget.addresses.length,
+                                  itemBuilder: (context, index) {
+                                    return GestureDetector(
+                                      onTap: () async {
+                                        await selectAddress(widget
+                                                .addresses[index]["address_id"])
+                                            .then((value) =>
+                                                Navigator.pop(context));
+                                      },
+                                      child: Container(
+                                        padding: EdgeInsets.all(20),
+                                        margin: EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(10)),
+                                            border: Border.all(
+                                                color: Colors.grey.shade400),
+                                            color: Colors.white),
+                                        child: Column(
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Text(
+                                                  widget.addresses[index]
+                                                          ["name"] +
+                                                      " ",
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: Colors.black,
+                                                      fontSize: 24),
+                                                ),
+                                              ],
+                                            ),
+                                            Row(
+                                              children: [
+                                                Text(
+                                                  widget.addresses[index]
+                                                      ["address"],
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: Colors.black,
+                                                      fontSize: 16),
+                                                ),
+                                                Icon(
+                                                  Icons.arrow_forward_ios,
+                                                  size: 16,
+                                                ),
+                                                Text(
+                                                  "кв./офис " +
+                                                      widget.addresses[index]
+                                                          ["apartment"],
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: Colors.black,
+                                                      fontSize: 16),
+                                                ),
+                                              ],
+                                            ),
+                                            SizedBox(
+                                              height: 10,
+                                            ),
+                                            Row(
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    Text(
+                                                      "Этаж: ",
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                          color: Colors.black,
+                                                          fontSize: 16),
+                                                    ),
+                                                    Text(
+                                                      widget.addresses[index]
+                                                          ["floor"],
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                          color: Colors.black,
+                                                          fontSize: 16),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                            SizedBox(
+                                              height: 10,
+                                            ),
+                                            Row(
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    Text(
+                                                      "Вход: ",
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                          color: Colors.black,
+                                                          fontSize: 16),
+                                                    ),
+                                                    Text(
+                                                      widget.addresses[index]
+                                                          ["entrance"],
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                          color: Colors.black,
+                                                          fontSize: 16),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            )
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                )
+                              ],
+                            ),
+                          )
+                        : Container()),
                 // Draggable(
                 //   dragAnchorStrategy: (draggable, context, position) {
                 //   return
