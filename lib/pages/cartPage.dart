@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
 import 'package:naliv_delivery/pages/orderPage.dart';
+import 'package:naliv_delivery/pages/productPage.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 
 class CartPage extends StatefulWidget {
@@ -11,9 +12,11 @@ class CartPage extends StatefulWidget {
   State<CartPage> createState() => _CartPageState();
 }
 
-class _CartPageState extends State<CartPage> {
+class _CartPageState extends State<CartPage>
+    with SingleTickerProviderStateMixin {
   late List items = [];
   late Map<String, dynamic> cartInfo = {};
+  late AnimationController animController;
 
   Future<void> _getCart() async {
     List cart = await getCart();
@@ -35,10 +38,19 @@ class _CartPageState extends State<CartPage> {
     return Future(() => result!);
   }
 
+  void _setAnimationController() {
+    animController = BottomSheet.createAnimationController(this);
+
+    animController.duration = const Duration(milliseconds: 450);
+    animController.reverseDuration = const Duration(milliseconds: 450);
+    animController.drive(CurveTween(curve: Curves.bounceInOut));
+  }
+
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
+    _setAnimationController();
     _getCart();
   }
 
@@ -114,12 +126,27 @@ class _CartPageState extends State<CartPage> {
                       ],
                     ),
                   ),
-                  child: ItemCard(
-                    element: item,
-                    item_id: item["item_id"],
-                    category_id: "",
-                    category_name: "",
-                    scroll: 0,
+                  child: GestureDetector(
+                    key: Key(items[index]["item_id"]),
+                    child: ItemCardMinimized(
+                      item_id: items[index]["item_id"],
+                      element: items[index],
+                      category_id: "",
+                      category_name: "",
+                      scroll: 0,
+                    ),
+                    onTap: () {
+                      showModalBottomSheet(
+                        transitionAnimationController: animController,
+                        context: context,
+                        clipBehavior: Clip.antiAlias,
+                        useSafeArea: true,
+                        isScrollControlled: true,
+                        builder: (context) {
+                          return ProductPage(item_id: items[index]["item_id"]);
+                        },
+                      );
+                    },
                   ),
                 );
               },
