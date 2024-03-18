@@ -238,7 +238,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
               itemBuilder: (context, index) {
                 final item = items[index];
 
-                return ItemCard(
+                return ItemCardMinimized(
                   element: item,
                   item_id: item["item_id"],
                   category_id: "",
