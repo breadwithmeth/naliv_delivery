@@ -1,16 +1,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/shared/buyButton.dart';
 import 'package:naliv_delivery/shared/likeButton.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shimmer/shimmer.dart';
 
 class ProductPage extends StatefulWidget {
-  const ProductPage(
-      {super.key, required this.item_id, required this.returnWidget});
+  const ProductPage({super.key, required this.item_id});
   final String item_id;
-  final Widget returnWidget;
   @override
   State<ProductPage> createState() => _ProductPageState();
 }
@@ -22,8 +23,6 @@ class _ProductPageState extends State<ProductPage> {
   List<TableRow> properties = [];
 
   late BuyButtonFullWidth _buyButtonFullWidth;
-
-  final ScrollController _sc = ScrollController();
 
   List<Widget> propertiesWidget = [];
 
@@ -54,9 +53,7 @@ class _ProductPageState extends State<ProductPage> {
                   context,
                   MaterialPageRoute(
                     builder: (context) {
-                      return ProductPage(
-                          item_id: element["item_id"],
-                          returnWidget: widget.returnWidget);
+                      return ProductPage(item_id: element["item_id"]);
                     },
                   ),
                 );
@@ -293,20 +290,7 @@ class _ProductPageState extends State<ProductPage> {
   // //   }
   // // }
 
-  Future<void> _addToCard() async {
-    // setState(() {
-    //   isLoad = true;
-    // });
-    String? amount1 = await addToCart(widget.item_id).then((value) {
-      print(value);
-      setState(() {
-        amount = value;
-      });
-      return null;
-    });
-  }
-
-  void _getRecomendations() {}
+  // void _getRecomendations() {}
 
   @override
   void initState() {
@@ -317,288 +301,310 @@ class _ProductPageState extends State<ProductPage> {
 
   @override
   Widget build(BuildContext context) {
-    return _productPage(context);
+    return DraggableScrollableSheet(
+      snap: true,
+      expand: false,
+      initialChildSize: 1,
+      maxChildSize: 1,
+      minChildSize: 0.65,
+      shouldCloseOnMinExtent: true,
+      snapAnimationDuration: const Duration(milliseconds: 150),
+      builder: ((context, scrollController) {
+        return _productPage(context, scrollController);
+      }),
+    );
   }
 
-  Scaffold _productPage(BuildContext context) {
+  Scaffold _productPage(
+      BuildContext context, ScrollController scrollController) {
     return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 0,
-      ),
+      // color: Colors.white,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: GestureDetector(
         child: Container(
           height: 80,
           decoration: const BoxDecoration(
               // color: Colors.grey.shade400,
-              borderRadius: BorderRadius.all(Radius.circular(15))),
+              borderRadius: BorderRadius.all(Radius.circular(10))),
           margin: const EdgeInsets.all(5),
           padding: const EdgeInsets.all(4),
           width: MediaQuery.of(context).size.width,
-          child: item.isNotEmpty ? _buyButtonFullWidth : null,
-        ),
-      ),
-      backgroundColor: const Color(0xAAFAFAFA),
-      body: Container(
-        color: Colors.white,
-        child: ListView(
-          controller: _sc,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              width: MediaQuery.of(context).size.width,
-              height: MediaQuery.of(context).size.width,
-              child: Stack(
-                children: [
-                  Container(
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.only(bottom: 30),
-                    child: Expanded(child: _image),
-                  ),
-                  SizedBox(
+          child: item.isNotEmpty
+              ? _buyButtonFullWidth
+              : Shimmer.fromColors(
+                  baseColor:
+                      Theme.of(context).colorScheme.secondary.withOpacity(0.05),
+                  highlightColor: Theme.of(context).colorScheme.secondary,
+                  child: Container(
                     width: MediaQuery.of(context).size.width,
-                    height: MediaQuery.of(context).size.width,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            IconButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                              },
-                              icon: const Icon(
-                                Icons.arrow_back_ios,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () {},
-                              icon: const Icon(Icons.share_outlined),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Container(
-                              margin: const EdgeInsets.all(5),
-                              child: item.isNotEmpty
-                                  ? LikeButton(
-                                      item_id: item["item_id"],
-                                      is_liked: item["is_liked"],
-                                    )
-                                  : Container(),
-                            )
-                          ],
-                        )
-                      ],
-                    ),
-                  )
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-              child: Row(
-                children: [
-                  Container(
-                    margin: const EdgeInsets.only(right: 10),
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(5))),
-                    child: const Text(
-                      "Новинка",
-                      style: TextStyle(color: Colors.black),
-                    ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.only(right: 10),
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(5))),
-                    child: const Text(
-                      "Новинка",
-                      style: TextStyle(color: Colors.black),
-                    ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.only(right: 10),
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(5))),
-                    child: const Text(
-                      "Новинка",
-                      style: TextStyle(color: Colors.black),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-              child: Text(
-                item["name"] ?? "",
-                style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black),
-              ),
-            ),
-            const SizedBox(
-              height: 5,
-            ),
-            Container(
-                width: MediaQuery.of(context).size.width,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                child: Wrap(
-                  children: propertiesWidget,
-                )),
-            item["group"] != null
-                ? Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
                     height: 50,
-                    width: MediaQuery.of(context).size.width,
-                    child: ListView(
-                        primary: false,
-                        shrinkWrap: true,
-                        scrollDirection: Axis.horizontal,
-                        children: groupItems),
-                  )
-                : Container(),
-            const SizedBox(
-              height: 5,
-            ),
-            Stack(
-              children: [
-                Container(
-                  height: 25,
-                  padding: const EdgeInsets.symmetric(horizontal: 15),
-                  decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.grey.withOpacity(0.15),
-                            offset: const Offset(0, -1),
-                            blurRadius: 15,
-                            spreadRadius: 1)
-                      ],
-                      border: Border(
-                          bottom: BorderSide(
-                              color: Colors.grey.shade200, width: 3))),
-                  child: const Row(
-                    children: [],
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                      color: Colors.white,
+                    ),
+                    child: null,
                   ),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    GestureDetector(
-                      child: Container(
-                        margin: const EdgeInsets.only(left: 15),
-                        decoration: BoxDecoration(
-                            border: Border(
-                                bottom: BorderSide(
-                                    width: 3,
-                                    color: currentTab == 0
-                                        ? Colors.black
-                                        : Colors.grey.shade200))),
-                        child: const Text(
-                          "Описание",
-                          style: TextStyle(color: Colors.black, fontSize: 16),
-                        ),
+        ),
+      ),
+      body: ListView(
+        controller: scrollController,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            width: MediaQuery.of(context).size.width,
+            height: MediaQuery.of(context).size.width,
+            child: Stack(
+              children: [
+                Container(
+                  alignment: Alignment.center,
+                  child: Expanded(child: _image),
+                ),
+                SizedBox(
+                  width: MediaQuery.of(context).size.width,
+                  height: MediaQuery.of(context).size.width,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.max,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            icon: const Icon(
+                              Icons.arrow_back_ios,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () {},
+                            icon: const Icon(Icons.share_outlined),
+                          ),
+                        ],
                       ),
-                      onTap: () {
-                        setState(() {
-                          currentTab = 0;
-                        });
-                      },
-                    ),
-                    GestureDetector(
-                      child: Container(
-                        margin: const EdgeInsets.only(left: 15),
-                        height: 25,
-                        decoration: BoxDecoration(
-                            border: Border(
-                                bottom: BorderSide(
-                                    width: 3,
-                                    color: currentTab == 1
-                                        ? Colors.black
-                                        : Colors.grey.shade200))),
-                        child: const Text(
-                          "О бренде",
-                          style: TextStyle(color: Colors.black, fontSize: 16),
-                        ),
-                      ),
-                      onTap: () {
-                        setState(() {
-                          currentTab = 1;
-                        });
-                      },
-                    ),
-                    GestureDetector(
-                      child: Container(
-                        margin: const EdgeInsets.only(left: 15),
-                        height: 25,
-                        decoration: BoxDecoration(
-                            border: Border(
-                                bottom: BorderSide(
-                                    width: 3,
-                                    color: currentTab == 2
-                                        ? Colors.black
-                                        : Colors.grey.shade200))),
-                        child: const Text(
-                          "Производитель",
-                          style: TextStyle(color: Colors.black, fontSize: 16),
-                        ),
-                      ),
-                      onTap: () {
-                        setState(() {
-                          currentTab = 2;
-                        });
-                      },
-                    ),
-                  ],
+                      Row(
+                        mainAxisSize: MainAxisSize.max,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.all(5),
+                            child: item.isNotEmpty
+                                ? LikeButton(
+                                    item_id: item["item_id"],
+                                    is_liked: item["is_liked"],
+                                  )
+                                : Container(),
+                          )
+                        ],
+                      )
+                    ],
+                  ),
                 )
               ],
             ),
-            Container(
-              padding: const EdgeInsets.all(15),
-              child: Text(TabText[currentTab]),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+            child: Row(
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(right: 10),
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: const BorderRadius.all(Radius.circular(5))),
+                  child: const Text(
+                    "Новинка",
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ),
+                Container(
+                  margin: const EdgeInsets.only(right: 10),
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: const BorderRadius.all(Radius.circular(5))),
+                  child: const Text(
+                    "Новинка",
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ),
+                Container(
+                  margin: const EdgeInsets.only(right: 10),
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: const BorderRadius.all(Radius.circular(5))),
+                  child: const Text(
+                    "Новинка",
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
             ),
-            Container(
-                padding: const EdgeInsets.all(15),
-                child: Table(
-                  columnWidths: const {
-                    0: FlexColumnWidth(),
-                    1: FlexColumnWidth()
-                  },
-                  border: TableBorder(
-                      horizontalInside:
-                          BorderSide(width: 1, color: Colors.grey.shade400),
-                      bottom:
-                          BorderSide(width: 1, color: Colors.grey.shade400)),
-                  children: properties,
-                )),
-            Container(
-              alignment: Alignment.center,
-              child: const CircularProgressIndicator(),
+          ),
+          item.isNotEmpty
+              ? Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                  child: Text(
+                    item["name"] ?? "",
+                    style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black),
+                  ),
+                )
+              : Shimmer.fromColors(
+                  baseColor:
+                      Theme.of(context).colorScheme.secondary.withOpacity(0.05),
+                  highlightColor: Theme.of(context).colorScheme.secondary,
+                  child: Container(
+                    width: MediaQuery.of(context).size.width * 0.8,
+                    height: 40,
+                    color: Colors.white,
+                  ),
+                ),
+          const SizedBox(
+            height: 5,
+          ),
+          Container(
+            width: MediaQuery.of(context).size.width,
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+            child: Wrap(
+              children: propertiesWidget,
             ),
-            const SizedBox(
-              height: 100,
-            )
-          ],
-        ),
+          ),
+          item["group"] != null
+              ? Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  height: 50,
+                  width: MediaQuery.of(context).size.width,
+                  child: ListView(
+                      primary: false,
+                      shrinkWrap: true,
+                      scrollDirection: Axis.horizontal,
+                      children: groupItems),
+                )
+              : Container(),
+          const SizedBox(
+            height: 5,
+          ),
+          Stack(
+            children: [
+              Container(
+                height: 25,
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.grey.withOpacity(0.15),
+                          offset: const Offset(0, -1),
+                          blurRadius: 15,
+                          spreadRadius: 1)
+                    ],
+                    border: Border(
+                        bottom:
+                            BorderSide(color: Colors.grey.shade200, width: 3))),
+                child: const Row(
+                  children: [],
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  GestureDetector(
+                    child: Container(
+                      margin: const EdgeInsets.only(left: 15),
+                      decoration: BoxDecoration(
+                          border: Border(
+                              bottom: BorderSide(
+                                  width: 3,
+                                  color: currentTab == 0
+                                      ? Colors.black
+                                      : Colors.grey.shade200))),
+                      child: const Text(
+                        "Описание",
+                        style: TextStyle(color: Colors.black, fontSize: 16),
+                      ),
+                    ),
+                    onTap: () {
+                      setState(() {
+                        currentTab = 0;
+                      });
+                    },
+                  ),
+                  GestureDetector(
+                    child: Container(
+                      margin: const EdgeInsets.only(left: 15),
+                      height: 25,
+                      decoration: BoxDecoration(
+                          border: Border(
+                              bottom: BorderSide(
+                                  width: 3,
+                                  color: currentTab == 1
+                                      ? Colors.black
+                                      : Colors.grey.shade200))),
+                      child: const Text(
+                        "О бренде",
+                        style: TextStyle(color: Colors.black, fontSize: 16),
+                      ),
+                    ),
+                    onTap: () {
+                      setState(() {
+                        currentTab = 1;
+                      });
+                    },
+                  ),
+                  GestureDetector(
+                    child: Container(
+                      margin: const EdgeInsets.only(left: 15),
+                      height: 25,
+                      decoration: BoxDecoration(
+                          border: Border(
+                              bottom: BorderSide(
+                                  width: 3,
+                                  color: currentTab == 2
+                                      ? Colors.black
+                                      : Colors.grey.shade200))),
+                      child: const Text(
+                        "Производитель",
+                        style: TextStyle(color: Colors.black, fontSize: 16),
+                      ),
+                    ),
+                    onTap: () {
+                      setState(() {
+                        currentTab = 2;
+                      });
+                    },
+                  ),
+                ],
+              )
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.all(15),
+            child: Text(TabText[currentTab]),
+          ),
+          Container(
+            padding: const EdgeInsets.all(15),
+            child: Table(
+              columnWidths: const {0: FlexColumnWidth(), 1: FlexColumnWidth()},
+              border: TableBorder(
+                  horizontalInside:
+                      BorderSide(width: 1, color: Colors.grey.shade400),
+                  bottom: BorderSide(width: 1, color: Colors.grey.shade400)),
+              children: properties,
+            ),
+          ),
+          const SizedBox(
+            height: 100,
+          )
+        ],
       ),
     );
   }

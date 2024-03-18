@@ -1,10 +1,13 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/categoryPage.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/misc/colors.dart';
 import 'package:naliv_delivery/pages/addressesPage.dart';
 import 'package:naliv_delivery/pages/businessSelectStartPage.dart';
 import 'package:naliv_delivery/pages/cartPage.dart';
-import 'package:naliv_delivery/pages/categoryPage.dart';
+import 'package:naliv_delivery/pages/favPage.dart';
 import 'package:naliv_delivery/pages/loginPage.dart';
 import 'package:naliv_delivery/pages/searchPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
@@ -743,10 +746,19 @@ class CategoryItem extends StatefulWidget {
 }
 
 class _CategoryItemState extends State<CategoryItem> {
-  Color FirstColor = Colors.white;
-  Color SecondColor = Colors.blueGrey;
+  Color firstColor = Colors.white;
+  Color secondColor = Colors.blueGrey;
   Color textBG = Colors.black;
   Future<void> _getColors() async {
+    switch (widget.category_id) {
+      case '1':
+        firstColor = Colors.green;
+        secondColor = Colors.lightGreen;
+        textBG = Colors.lightGreen.shade200;
+        break;
+      default:
+        print("Default switch case in gradient HomePage");
+    }
     if (widget.image!.isNotEmpty) {
       PaletteGenerator paletteGenerator =
           await PaletteGenerator.fromImageProvider(
@@ -756,8 +768,8 @@ class _CategoryItemState extends State<CategoryItem> {
       );
       setState(
         () {
-          FirstColor = paletteGenerator.vibrantColor!.color;
-          SecondColor = paletteGenerator.darkVibrantColor!.color;
+          firstColor = paletteGenerator.vibrantColor!.color;
+          secondColor = paletteGenerator.darkVibrantColor!.color;
           textBG = paletteGenerator.darkMutedColor!.color;
         },
       );
@@ -776,6 +788,7 @@ class _CategoryItemState extends State<CategoryItem> {
     return TextButton(
       style: TextButton.styleFrom(padding: const EdgeInsets.all(0)),
       onPressed: () {
+        print("CATEGORY_ID IS ${widget.category_id}");
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -793,7 +806,7 @@ class _CategoryItemState extends State<CategoryItem> {
             decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
                 gradient: LinearGradient(
-                    colors: [FirstColor, SecondColor],
+                    colors: [firstColor, secondColor],
                     transform: const GradientRotation(2))),
           ),
           Container(

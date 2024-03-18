@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/orderConfirmation.dart';
+import 'package:naliv_delivery/shared/itemCards.dart';
 
 import '../misc/api.dart';
 
@@ -18,7 +19,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   Map<String, dynamic> cartInfo = {};
   Widget? currentAddressWidget;
   List<Widget> addressesWidget = [];
-    Map? currentAddress;
+  Map? currentAddress;
 
   Future<void> _getCart() async {
     List cart = await getCart();
@@ -45,7 +46,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                 backgroundColor: element["is_selected"] == "1"
                     ? Colors.grey.shade200
                     : Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 5)),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 20, horizontal: 5)),
             onPressed: () {
               selectAddress(element["address_id"]);
               Timer(const Duration(microseconds: 300), () {
@@ -85,7 +87,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
     }
 
     setState(() {
-      
       addressesWidget = addressesWidget;
     });
   }
@@ -221,24 +222,32 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
             ),
           ),
           Container(
-              decoration: BoxDecoration(
-                  border: Border.all(
-                    width: 2,
-                    color: Colors.grey.shade100,
-                  ),
-                  color: Colors.white,
-                  borderRadius: const BorderRadius.all(Radius.circular(10))),
-              margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
-              padding: const EdgeInsets.all(5),
-              child: ListView.builder(
-                  primary: false,
-                  shrinkWrap: true,
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    final item = items[index];
+            decoration: BoxDecoration(
+                border: Border.all(
+                  width: 2,
+                  color: Colors.grey.shade100,
+                ),
+                color: Colors.white,
+                borderRadius: const BorderRadius.all(Radius.circular(10))),
+            margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
+            padding: const EdgeInsets.all(5),
+            child: ListView.builder(
+              primary: false,
+              shrinkWrap: true,
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                final item = items[index];
 
-                    return ItemCard(element: item);
-                  })),
+                return ItemCard(
+                  element: item,
+                  item_id: item["item_id"],
+                  category_id: "",
+                  category_name: "",
+                  scroll: 0,
+                );
+              },
+            ),
+          ),
           delivery
               ? Container(
                   decoration: BoxDecoration(
@@ -247,8 +256,10 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                         color: Colors.grey.shade100,
                       ),
                       color: Colors.white,
-                      borderRadius: const BorderRadius.all(Radius.circular(10))),
-                  margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(10))),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
                   padding: const EdgeInsets.all(15),
                   child: Column(
                     children: [currentAddressWidget ?? Container()],
@@ -292,7 +303,11 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => OrderConfirmation(delivery: delivery, items: items, address: currentAddress,),
+                          builder: (context) => OrderConfirmation(
+                            delivery: delivery,
+                            items: items,
+                            address: currentAddress,
+                          ),
                         ));
                   },
                   child: const Row(
@@ -302,140 +317,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                   )))
         ],
       ),
-    );
-  }
-}
-
-class ItemCard extends StatefulWidget {
-  const ItemCard({super.key, required this.element});
-  final Map<String, dynamic> element;
-  @override
-  State<ItemCard> createState() => _ItemCardState();
-}
-
-class _ItemCardState extends State<ItemCard> {
-  Map<String, dynamic> element = {};
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    setState(() {
-      element = widget.element;
-    });
-  }
-
-  Future<void> refreshItemCard() async {
-    if (element["item_id"] != null) {
-      Map<String, dynamic>? element = await getItem(widget.element["item_id"]);
-      setState(() {
-        element = element!;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      child: Container(
-        alignment: Alignment.center,
-        padding: const EdgeInsets.all(10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            SizedBox(
-                width: MediaQuery.of(context).size.width * 0.4,
-                child: Text(
-                  element["name"],
-                  style: const TextStyle(
-                      textBaseline: TextBaseline.alphabetic,
-                      fontSize: 16,
-                      color: Colors.black),
-                )),
-            // LikeButton(
-            //   item_id: element["item_id"],
-            //   is_liked: element["is_liked"],
-            // ),
-            Container(
-                child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text(
-                  element['amount'] ?? "",
-                ),
-                const Text(
-                  " x ",
-                ),
-                Text(
-                  element['price'] ?? "",
-                ),
-                const Text(
-                  "₸",
-                ),
-                const SizedBox(
-                  width: 5,
-                ),
-                Text(
-                  element['sum'] ?? "",
-                  style: const TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 24),
-                ),
-                Text(
-                  "₸",
-                  style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 24),
-                ),
-              ],
-            ))
-            // Row(
-            //   children: [
-            //     Text(
-            //       element['price'] ?? "",
-            //       style: TextStyle(
-            //           color: Colors.black,
-            //           fontWeight: FontWeight.w600,
-            //           fontSize: 24),
-            //     ),
-            //     Text(
-            //       "₸",
-            //       style: TextStyle(
-            //           color: Colors.grey.shade600,
-            //           fontWeight: FontWeight.w600,
-            //           fontSize: 24),
-            //     ),
-            //     Text(
-            //       " x ",
-            //       style: TextStyle(
-            //           color: Colors.grey.shade600,
-            //           fontWeight: FontWeight.w600,
-            //           fontSize: 24),
-            //     ),
-            //     Text(
-            //       element['amount'],
-            //       style: TextStyle(
-            //           color: Colors.grey.shade600,
-            //           fontWeight: FontWeight.w600,
-            //           fontSize: 24),
-            //     )
-            //   ],
-            // ),
-          ],
-        ),
-      ),
-      onTap: () {
-        // Navigator.push(
-        //   context,
-        //   MaterialPageRoute(
-        //       builder: (context) => ProductPage(
-        //             item_id: element["item_id"],
-        //           )),
-        // );
-      },
     );
   }
 }

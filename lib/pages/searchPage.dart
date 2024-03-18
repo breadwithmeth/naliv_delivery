@@ -67,14 +67,27 @@ class _SearchPageState extends State<SearchPage> {
                   height: 10,
                 ),
                 ElevatedButton(
-                    onPressed: () {
-                      _search();
-                    },
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.max,
-                      children: [Text("Найти")],
-                    ))
+                  style: ButtonStyle(
+                    backgroundColor: MaterialStatePropertyAll(
+                        Theme.of(context).colorScheme.secondary),
+                    shape: const MaterialStatePropertyAll(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(10),
+                        ),
+                      ),
+                    ),
+                    elevation: const MaterialStatePropertyAll(0.0),
+                  ),
+                  onPressed: () {
+                    _search();
+                  },
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.max,
+                    children: [Text("Найти")],
+                  ),
+                )
               ],
             ),
           ),

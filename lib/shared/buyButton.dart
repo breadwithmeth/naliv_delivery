@@ -33,18 +33,46 @@ class _BuyButtonState extends State<BuyButton> {
     }
   }
 
-  Future<void> _addToCard() async {
+  Future<String?> _removeFromCart() async {
     setState(() {
       isLoading = true;
     });
-    String? amount = await addToCart(element["item_id"]).then((value) {
-      print(value);
-      setState(() {
-        element["amount"] = value;
-        isLoading = false;
-      });
-      return null;
+    String? amount = await removeFromCart(element["item_id"]).then(
+      (value) {
+        print(value);
+        return value;
+      },
+    ).onError(
+      (error, stackTrace) {
+        throw Exception("buyButton _addToCart failed");
+      },
+    );
+    setState(() {
+      element["amount"] = amount;
+      isLoading = false;
     });
+    return null;
+  }
+
+  Future<String?> _addToCart() async {
+    setState(() {
+      isLoading = true;
+    });
+    String? amount = await addToCart(element["item_id"]).then(
+      (value) {
+        print(value);
+        return value;
+      },
+    ).onError(
+      (error, stackTrace) {
+        throw Exception("buyButton _addToCart failed");
+      },
+    );
+    setState(() {
+      element["amount"] = amount;
+      isLoading = false;
+    });
+    return null;
   }
 
   @override
@@ -70,11 +98,7 @@ class _BuyButtonState extends State<BuyButton> {
                             padding: const EdgeInsets.all(0),
                             onPressed: !isLoading
                                 ? () async {
-                                    String? amount = await removeFromCart(
-                                        element["item_id"]);
-                                    setState(() {
-                                      element["amount"] = amount;
-                                    });
+                                    await _removeFromCart();
                                   }
                                 : null,
                             icon: const Icon(Icons.remove),
@@ -94,8 +118,8 @@ class _BuyButtonState extends State<BuyButton> {
                           child: IconButton(
                             padding: const EdgeInsets.all(0),
                             onPressed: !isLoading
-                                ? () {
-                                    _addToCard();
+                                ? () async {
+                                    await _addToCart();
                                   }
                                 : null,
                             icon: const Icon(Icons.add),
@@ -122,8 +146,8 @@ class _BuyButtonState extends State<BuyButton> {
                       ),
                       elevation: const MaterialStatePropertyAll(0.0),
                     ),
-                    onPressed: () {
-                      _addToCard();
+                    onPressed: () async {
+                      await _addToCart();
                     },
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -173,15 +197,6 @@ class BuyButtonFullWidth extends StatefulWidget {
 class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
   Map element = {};
   bool isLoading = true;
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    setState(() {
-      element = widget.element;
-      isLoading = false;
-    });
-  }
 
   Future<void> refreshItemCard() async {
     if (element["item_id"] != null) {
@@ -192,17 +207,55 @@ class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
     }
   }
 
-  Future<void> _addToCard() async {
+  Future<String?> _removeFromCart() async {
     setState(() {
       isLoading = true;
     });
-    String? amount = await addToCart(element["item_id"]).then((value) {
-      print(value);
-      setState(() {
-        element["amount"] = value;
-        isLoading = false;
-      });
-      return null;
+    String? amount = await removeFromCart(element["item_id"]).then(
+      (value) {
+        print(value);
+        return value;
+      },
+    ).onError(
+      (error, stackTrace) {
+        throw Exception("buyButton _addToCart failed");
+      },
+    );
+    setState(() {
+      element["amount"] = amount;
+      isLoading = false;
+    });
+    return null;
+  }
+
+  Future<String?> _addToCart() async {
+    setState(() {
+      isLoading = true;
+    });
+    String? amount = await addToCart(element["item_id"]).then(
+      (value) {
+        print(value);
+        return value;
+      },
+    ).onError(
+      (error, stackTrace) {
+        throw Exception("buyButton _addToCart failed");
+      },
+    );
+    setState(() {
+      element["amount"] = amount;
+      isLoading = false;
+    });
+    return null;
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    setState(() {
+      element = widget.element;
+      isLoading = false;
     });
   }
 
@@ -236,11 +289,7 @@ class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
                                 padding: const EdgeInsets.all(0),
                                 onPressed: !isLoading
                                     ? () async {
-                                        String? amount = await removeFromCart(
-                                            element["item_id"]);
-                                        setState(() {
-                                          element["amount"] = amount;
-                                        });
+                                        await _removeFromCart();
                                       }
                                     : null,
                                 icon: const Icon(Icons.remove),
@@ -260,8 +309,8 @@ class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
                               child: IconButton(
                                 padding: const EdgeInsets.all(0),
                                 onPressed: !isLoading
-                                    ? () {
-                                        _addToCard();
+                                    ? () async {
+                                        await _addToCart();
                                       }
                                     : null,
                                 icon: const Icon(Icons.add),
@@ -328,7 +377,7 @@ class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
                 ),
                 onPressed: !isLoading
                     ? () {
-                        _addToCard();
+                        _addToCart();
                       }
                     : null,
                 child: Container(

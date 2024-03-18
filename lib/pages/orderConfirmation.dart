@@ -2,8 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/orderPage.dart';
+import 'package:naliv_delivery/shared/itemCards.dart';
 
-import 'createOrder.dart';
+// import 'createOrder.dart';
 
 class OrderConfirmation extends StatefulWidget {
   const OrderConfirmation(
@@ -31,7 +32,11 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
       });
     });
     Timer(const Duration(seconds: 6), () {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const OrderPage(),));
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const OrderPage(),
+          ));
     });
   }
 
@@ -61,24 +66,32 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
               ],
             ),
             Container(
-                decoration: BoxDecoration(
-                    border: Border.all(
-                      width: 2,
-                      color: Colors.grey.shade100,
-                    ),
-                    color: Colors.white,
-                    borderRadius: const BorderRadius.all(Radius.circular(10))),
-                margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
-                padding: const EdgeInsets.all(5),
-                child: ListView.builder(
-                    primary: false,
-                    shrinkWrap: true,
-                    itemCount: widget.items.length,
-                    itemBuilder: (context, index) {
-                      final item = widget.items[index];
+              decoration: BoxDecoration(
+                  border: Border.all(
+                    width: 2,
+                    color: Colors.grey.shade100,
+                  ),
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.all(Radius.circular(10))),
+              margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
+              padding: const EdgeInsets.all(5),
+              child: ListView.builder(
+                primary: false,
+                shrinkWrap: true,
+                itemCount: widget.items.length,
+                itemBuilder: (context, index) {
+                  final item = widget.items[index];
 
-                      return ItemCard(element: item);
-                    })),
+                  return ItemCard(
+                    element: item,
+                    item_id: item["item_id"],
+                    category_id: "",
+                    category_name: "",
+                    scroll: 0,
+                  );
+                },
+              ),
+            ),
             Text(widget.delivery ? "Доставка" : "Самовывоз"),
             widget.delivery
                 ? Container(
@@ -88,8 +101,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                           color: Colors.grey.shade100,
                         ),
                         color: Colors.white,
-                        borderRadius: const BorderRadius.all(Radius.circular(10))),
-                    margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(10))),
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
                     padding: const EdgeInsets.all(15),
                     child: Column(
                       children: [
