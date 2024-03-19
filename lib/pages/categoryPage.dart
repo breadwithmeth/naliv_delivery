@@ -1,12 +1,9 @@
 import 'dart:ui';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
-import 'package:naliv_delivery/shared/buyButton.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
-import 'package:naliv_delivery/shared/likeButton.dart';
 
 class CategoryPage extends StatefulWidget {
   const CategoryPage(
@@ -23,6 +20,7 @@ class CategoryPage extends StatefulWidget {
 
 class _CategoryPageState extends State<CategoryPage> {
   Widget items = Container();
+  final Duration animDuration = const Duration(milliseconds: 125);
   Map filters = {};
   List properties = [];
   List<PropertyItem> propertiesWidget = [];
@@ -381,8 +379,6 @@ class _CategoryPageState extends State<CategoryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        scrolledUnderElevation: 0.0,
-        backgroundColor: Colors.white,
         automaticallyImplyLeading: false,
         toolbarHeight: 120,
         titleSpacing: 0,
@@ -732,7 +728,7 @@ class _CategoryPageState extends State<CategoryPage> {
                         }
                     },
                     child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
+                      duration: animDuration,
                       transitionBuilder: (child, animation) {
                         return ScaleTransition(
                           scale: animation,

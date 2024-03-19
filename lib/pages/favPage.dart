@@ -13,6 +13,7 @@ class FavPage extends StatefulWidget {
 
 class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
   late AnimationController animController;
+  final Duration animDuration = const Duration(milliseconds: 125);
   List items = [];
 
   Future<void> _getItems() async {
@@ -21,7 +22,7 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
     for (var element in items) {
       itemsWidget.add(GestureDetector(
         key: Key(element["item_id"]),
-        child: ItemCard(
+        child: ItemCardMedium(
           item_id: element["item_id"],
           element: element,
           category_id: "",
@@ -60,7 +61,7 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
   void _setAnimationController() {
     animController = BottomSheet.createAnimationController(this);
 
-    animController.duration = const Duration(milliseconds: 450);
+    animController.duration = animDuration;
     animController.reverseDuration = const Duration(milliseconds: 450);
     animController.drive(CurveTween(curve: Curves.bounceInOut));
   }
@@ -76,7 +77,19 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        title: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Избранное",
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+      ),
       body: items.isNotEmpty
           ? ListView.builder(
               primary: false,
@@ -86,12 +99,22 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
                 // final item = items[index];
                 return GestureDetector(
                   key: Key(items[index]["item_id"]),
-                  child: ItemCard(
-                    item_id: items[index]["item_id"],
-                    element: items[index],
-                    category_id: "",
-                    category_name: "",
-                    scroll: 0,
+                  child: Column(
+                    children: [
+                      ItemCardMedium(
+                        item_id: items[index]["item_id"],
+                        element: items[index],
+                        category_id: "",
+                        category_name: "",
+                        scroll: 0,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Divider(
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
+                      ),
+                    ],
                   ),
                   onTap: () {
                     showModalBottomSheet(

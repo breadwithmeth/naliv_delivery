@@ -17,6 +17,7 @@ class _CartPageState extends State<CartPage>
   late List items = [];
   late Map<String, dynamic> cartInfo = {};
   late AnimationController animController;
+  final Duration animDuration = const Duration(milliseconds: 250);
 
   Future<void> _getCart() async {
     List cart = await getCart();
@@ -41,9 +42,9 @@ class _CartPageState extends State<CartPage>
   void _setAnimationController() {
     animController = BottomSheet.createAnimationController(this);
 
-    animController.duration = const Duration(milliseconds: 450);
-    animController.reverseDuration = const Duration(milliseconds: 450);
-    animController.drive(CurveTween(curve: Curves.bounceInOut));
+    animController.duration = animDuration;
+    animController.reverseDuration = animDuration;
+    animController.drive(CurveTween(curve: Curves.easeIn));
   }
 
   @override
@@ -81,7 +82,19 @@ class _CartPageState extends State<CartPage>
         }),
         child: const Text("Оформить заказ"),
       ),
-      appBar: AppBar(),
+      appBar: AppBar(
+        title: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Корзина",
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+      ),
       body: items.isNotEmpty
           ? ListView.builder(
               primary: false,
@@ -89,65 +102,76 @@ class _CartPageState extends State<CartPage>
               itemCount: items.length,
               itemBuilder: (context, index) {
                 final item = items[index];
-                return Dismissible(
-                  // Each Dismissible must contain a Key. Keys allow Flutter to
-                  // uniquely identify widgets.
-                  key: Key(item["item_id"]),
-                  confirmDismiss: (direction) {
-                    return _deleteFromCart(item["item_id"]);
-                  },
-                  // Provide a function that tells the app
-                  // what to do after an item has been swiped away.
+                return Column(
+                  children: [
+                    Dismissible(
+                      // Each Dismissible must contain a Key. Keys allow Flutter to
+                      // uniquely identify widgets.
+                      key: Key(item["item_id"]),
+                      confirmDismiss: (direction) {
+                        return _deleteFromCart(item["item_id"]);
+                      },
+                      // Provide a function that tells the app
+                      // what to do after an item has been swiped away.
 
-                  // Show a red background as the item is swiped away.
-                  background: SizedBox(
-                    width: 100,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: MediaQuery.of(context).size.width * 0.7,
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.only(right: 10),
-                          color: Colors.grey.shade100,
+                      // Show a red background as the item is swiped away.
+                      background: SizedBox(
+                        width: 100,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: MediaQuery.of(context).size.width * 0.7,
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.only(right: 10),
+                              color: Colors.grey.shade100,
+                            ),
+                            Container(
+                              width: MediaQuery.of(context).size.width * 0.3,
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.only(right: 10),
+                              color: Colors.grey.shade100,
+                              child: const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [Icon(Icons.delete), Text("Удалить")],
+                              ),
+                            )
+                          ],
                         ),
-                        Container(
-                          width: MediaQuery.of(context).size.width * 0.3,
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.only(right: 10),
-                          color: Colors.grey.shade100,
-                          child: const Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [Icon(Icons.delete), Text("Удалить")],
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-                  child: GestureDetector(
-                    key: Key(items[index]["item_id"]),
-                    child: ItemCardMinimized(
-                      item_id: items[index]["item_id"],
-                      element: items[index],
-                      category_id: "",
-                      category_name: "",
-                      scroll: 0,
-                    ),
-                    onTap: () {
-                      showModalBottomSheet(
-                        transitionAnimationController: animController,
-                        context: context,
-                        clipBehavior: Clip.antiAlias,
-                        useSafeArea: true,
-                        isScrollControlled: true,
-                        builder: (context) {
-                          return ProductPage(item_id: items[index]["item_id"]);
+                      ),
+                      child: GestureDetector(
+                        key: Key(items[index]["item_id"]),
+                        child: ItemCardMedium(
+                          item_id: items[index]["item_id"],
+                          element: items[index],
+                          category_id: "",
+                          category_name: "",
+                          scroll: 0,
+                        ),
+                        onTap: () {
+                          showModalBottomSheet(
+                            transitionAnimationController: animController,
+                            context: context,
+                            clipBehavior: Clip.antiAlias,
+                            useSafeArea: true,
+                            isScrollControlled: true,
+                            builder: (context) {
+                              return ProductPage(
+                                  item_id: items[index]["item_id"]);
+                            },
+                          );
                         },
-                      );
-                    },
-                  ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Divider(
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                    ),
+                  ],
                 );
               },
             )

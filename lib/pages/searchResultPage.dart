@@ -61,68 +61,72 @@ class _SearchResultPageState extends State<SearchResultPage> {
           ),
         ),
         body: ListView.builder(
-        shrinkWrap: true,
-        primary: false,
-        itemBuilder: ((context, index) {
-          return KeepAliveFutureBuilder(
-              future: getItemsMain(index, widget.search),
-              builder: ((context, snapshot) {
-                List? items = snapshot.data;
-                if (items!.length < index) {}
-                if (snapshot.hasError) {
-                  return const Placeholder();
-                } else if (snapshot.connectionState ==
-                    ConnectionState.waiting) {
-                  return SizedBox(
-                    height: MediaQuery.of(context).size.height,
-                    child: const Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.max,
-                      children: [CircularProgressIndicator()],
-                    ),
-                  );
-                } else {
-                  return ListView.builder(
-                    controller: _sc,
-                    itemCount: items.length,
-                    primary: false,
-                    shrinkWrap: true,
-                    itemBuilder: (context, index) => GestureDetector(
-                      key: Key(items[index]["item_id"]),
-                      onTap: () {
-                        showModalBottomSheet(
-                          context: context,
-                          clipBehavior: Clip.antiAlias,
-                          useSafeArea: true,
-                          isScrollControlled: true,
-                          builder: (context) {
-                            return ProductPage(
-                                item_id: items[index]["item_id"]);
+            shrinkWrap: true,
+            primary: false,
+            itemBuilder: ((context, index) {
+              return KeepAliveFutureBuilder(
+                  future: getItemsMain(index, widget.search),
+                  builder: ((context, snapshot) {
+                    List? items = snapshot.data;
+                    if (items!.length < index) {
+                      return const Placeholder();
+                    }
+                    if (snapshot.hasError) {
+                      return const Placeholder();
+                    } else if (snapshot.connectionState ==
+                        ConnectionState.waiting) {
+                      return SizedBox(
+                        height: MediaQuery.of(context).size.height,
+                        child: const Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.max,
+                          children: [CircularProgressIndicator()],
+                        ),
+                      );
+                    } else {
+                      return ListView.builder(
+                        controller: _sc,
+                        itemCount: items.length,
+                        primary: false,
+                        shrinkWrap: true,
+                        itemBuilder: (context, index) => GestureDetector(
+                          key: Key(items[index]["item_id"]),
+                          onTap: () {
+                            showModalBottomSheet(
+                              context: context,
+                              clipBehavior: Clip.antiAlias,
+                              useSafeArea: true,
+                              isScrollControlled: true,
+                              builder: (context) {
+                                return ProductPage(
+                                    item_id: items[index]["item_id"]);
+                              },
+                            );
                           },
-                        );
-                      },
-                      child: Column(
-                        children: [
-                          ItemCard(
-                            item_id: items[index]["item_id"],
-                            category_id: "",
-                            category_name: "",
-                            element: items[index],
-                            scroll: 0,
+                          child: Column(
+                            children: [
+                              ItemCardMedium(
+                                item_id: items[index]["item_id"],
+                                category_id: "",
+                                category_name: "",
+                                element: items[index],
+                                scroll: 0,
+                              ),
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
+                                child: Divider(
+                                  color:
+                                      Theme.of(context).colorScheme.secondary,
+                                ),
+                              ),
+                            ],
                           ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Divider(
-                              color: Theme.of(context).colorScheme.secondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-              }));
-        }))
+                        ),
+                      );
+                    }
+                  }));
+            }))
         // body: ListView.builder(
         //   // itemCount: snapshotLenght,
         //   itemBuilder: (context, index) {

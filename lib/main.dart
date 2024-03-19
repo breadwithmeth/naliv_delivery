@@ -65,7 +65,12 @@ class _MainState extends State<Main> {
           bottomNavigationBarTheme: const BottomNavigationBarThemeData(),
           scaffoldBackgroundColor: Colors.white,
           appBarTheme: const AppBarTheme(
+            shadowColor: Color(0x70FFFFFF),
             backgroundColor: Colors.white,
+            surfaceTintColor: Colors.white,
+            elevation: 4,
+            scrolledUnderElevation: 4,
+            // backgroundColor: Colors.white,
             // shadowColor: Colors.grey.withOpacity(0.2),
             // foregroundColor: Colors.black
           ),
