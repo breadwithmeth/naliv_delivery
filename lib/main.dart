@@ -31,8 +31,12 @@ class _MainState extends State<Main> {
   Future<void> _checkAuth() async {
     String? token = await getToken();
     if (token != null) {
-      setState(() {
-        _redirect = HomePage();
+      determinePosition().then((value) {
+        setCityAuto(value.latitude, value.longitude).then((value) {
+          setState(() {
+            _redirect = HomePage();
+          });
+        });
       });
     } else {
       setState(() {
