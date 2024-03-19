@@ -1,4 +1,7 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
 
 import '../misc/api.dart';
 
@@ -44,7 +47,7 @@ class _BuyButtonState extends State<BuyButton> {
       },
     ).onError(
       (error, stackTrace) {
-        throw Exception("buyButton _addToCart failed");
+        throw Exception("buyButton _removeFromCart failed");
       },
     );
     setState(() {
@@ -82,86 +85,83 @@ class _BuyButtonState extends State<BuyButton> {
       mainAxisSize: MainAxisSize.max,
       children: [
         element["amount"] != null
-            ? Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Container(
-                    decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(10))),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        Flexible(
-                          child: IconButton(
-                            padding: const EdgeInsets.all(0),
-                            onPressed: !isLoading
-                                ? () async {
-                                    await _removeFromCart();
-                                  }
-                                : null,
-                            icon: const Icon(Icons.remove),
-                          ),
+            ? Flexible(
+                child: Container(
+                  decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(10))),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Flexible(
+                        child: IconButton(
+                          padding: const EdgeInsets.all(0),
+                          onPressed: !isLoading
+                              ? () async {
+                                  await _removeFromCart();
+                                }
+                              : null,
+                          icon: const Icon(Icons.remove),
                         ),
-                        Flexible(
-                          child: Text(
-                            element["amount"].toString(),
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        Flexible(
-                          child: IconButton(
-                            padding: const EdgeInsets.all(0),
-                            onPressed: !isLoading
-                                ? () async {
-                                    await _addToCart();
-                                  }
-                                : null,
-                            icon: const Icon(Icons.add),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              )
-            : Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: ElevatedButton(
-                    style: ButtonStyle(
-                      backgroundColor: MaterialStatePropertyAll(
-                          Theme.of(context).colorScheme.secondary),
-                      shape: const MaterialStatePropertyAll(
-                        RoundedRectangleBorder(
-                          borderRadius: BorderRadius.all(
-                            Radius.circular(10),
+                      ),
+                      Flexible(
+                        child: Text(
+                          element["amount"].toString(),
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-                      elevation: const MaterialStatePropertyAll(0.0),
+                      Flexible(
+                        child: IconButton(
+                          padding: const EdgeInsets.all(0),
+                          onPressed: !isLoading
+                              ? () async {
+                                  await _addToCart();
+                                }
+                              : null,
+                          icon: const Icon(Icons.add),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            : Flexible(
+                child: ElevatedButton(
+                  style: ButtonStyle(
+                    backgroundColor: MaterialStatePropertyAll(
+                        Theme.of(context).colorScheme.secondary),
+                    shape: const MaterialStatePropertyAll(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(10),
+                        ),
+                      ),
                     ),
-                    onPressed: () async {
-                      await _addToCart();
-                    },
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        Text(
+                    elevation: const MaterialStatePropertyAll(0.0),
+                  ),
+                  onPressed: () async {
+                    await _addToCart();
+                  },
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.fitWidth,
+                        child: Text(
                           "В корзину",
                           style: TextStyle(
                               fontWeight: FontWeight.w900,
                               fontSize: 16,
                               color: Colors.black),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -218,7 +218,7 @@ class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
       },
     ).onError(
       (error, stackTrace) {
-        throw Exception("buyButton _addToCart failed");
+        throw Exception("buyButton _removeFromCart failed");
       },
     );
     setState(() {
@@ -292,7 +292,11 @@ class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
                                         await _removeFromCart();
                                       }
                                     : null,
-                                icon: const Icon(Icons.remove),
+                                icon: const Icon(
+                                  Icons.remove_rounded,
+                                  color: Colors.black,
+                                  grade: 2.5,
+                                ),
                               ),
                             ),
                             Flexible(
@@ -308,12 +312,25 @@ class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
                             Flexible(
                               child: IconButton(
                                 padding: const EdgeInsets.all(0),
+                                // style: IconButton.styleFrom(
+                                //   shape: const RoundedRectangleBorder(
+                                //     borderRadius:
+                                //         BorderRadius.all(Radius.circular(12)),
+                                //   ),
+                                //   side: const BorderSide(
+                                //     width: 2.6,
+                                //     strokeAlign: -7.0,
+                                //   ),
+                                // ),
                                 onPressed: !isLoading
                                     ? () async {
                                         await _addToCart();
                                       }
                                     : null,
-                                icon: const Icon(Icons.add),
+                                icon: const Icon(
+                                  Icons.add_rounded,
+                                  color: Colors.black,
+                                ),
                               ),
                             ),
                           ],

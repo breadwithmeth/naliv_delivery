@@ -123,11 +123,11 @@ class _HomePageState extends State<HomePage>
     super.build(context);
     return Scaffold(
         floatingActionButton: FloatingActionButton(
-            child: Icon(Icons.shopping_basket_rounded),
+            child: const Icon(Icons.shopping_basket_rounded),
             onPressed: () {
               Navigator.push(context, MaterialPageRoute(
                 builder: (context) {
-                  return CartPage();
+                  return const CartPage();
                 },
               ));
             }),
@@ -270,6 +270,38 @@ class _HomePageState extends State<HomePage>
                             "Карты оплаты",
                             style: TextStyle(
                                 color: Colors.grey,
+                                fontWeight: FontWeight.w400,
+                                fontSize: 20),
+                          )
+                        ],
+                      ),
+                    ),
+                    const Divider(),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 20)),
+                      onPressed: () {
+                        Navigator.push(context, MaterialPageRoute(
+                          builder: (context) {
+                            return const FavPage();
+                          },
+                        ));
+                      },
+                      child: const Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.favorite_border_rounded,
+                            size: 24,
+                            color: Colors.black,
+                          ),
+                          SizedBox(
+                            width: 10,
+                          ),
+                          Text(
+                            "Избранное",
+                            style: TextStyle(
+                                color: Colors.black,
                                 fontWeight: FontWeight.w400,
                                 fontSize: 20),
                           )
@@ -471,7 +503,7 @@ class _HomePageState extends State<HomePage>
                                   color: Colors.black12,
                                   borderRadius:
                                       BorderRadius.all(Radius.circular(10))),
-                              child: Row(
+                              child: const Row(
                                 children: [
                                   Text(
                                     "Выберите адрес доставки",
@@ -494,7 +526,7 @@ class _HomePageState extends State<HomePage>
                                 children: [
                                   Text(
                                     _currentAddress["address"],
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                         color: Colors.black,
                                         fontWeight: FontWeight.w700),
                                   ),

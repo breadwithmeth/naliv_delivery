@@ -10,6 +10,7 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   TextEditingController _keyword = TextEditingController();
+  bool isTextInField = false;
 
   void _search() {
     Navigator.pushReplacement(context, MaterialPageRoute(
@@ -47,6 +48,13 @@ class _SearchPageState extends State<SearchPage> {
             child: Column(
               children: [
                 TextField(
+                  onChanged: ((value) {
+                    setState(() {
+                      _keyword.text.isNotEmpty
+                          ? isTextInField = true
+                          : isTextInField = false;
+                    });
+                  }),
                   controller: _keyword,
                   autofocus: true,
                   decoration: const InputDecoration(
@@ -67,21 +75,20 @@ class _SearchPageState extends State<SearchPage> {
                   height: 10,
                 ),
                 ElevatedButton(
-                  style: ButtonStyle(
-                    backgroundColor: MaterialStatePropertyAll(
-                        Theme.of(context).colorScheme.secondary),
-                    shape: const MaterialStatePropertyAll(
-                      RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(
-                          Radius.circular(10),
-                        ),
-                      ),
-                    ),
-                    elevation: const MaterialStatePropertyAll(0.0),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    disabledBackgroundColor:
+                        Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                    shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(10))),
+                    disabledForegroundColor: Colors.black.withOpacity(0.5),
+                    elevation: 0.0,
                   ),
-                  onPressed: () {
-                    _search();
-                  },
+                  onPressed: _keyword.text.isNotEmpty
+                      ? () {
+                          _search();
+                        }
+                      : null,
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.max,

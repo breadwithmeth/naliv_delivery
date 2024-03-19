@@ -300,13 +300,18 @@ class _ProductPageState extends State<ProductPage> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
       snap: true,
       expand: false,
       initialChildSize: 1,
       maxChildSize: 1,
-      minChildSize: 0.65,
+      minChildSize: 0.9,
       shouldCloseOnMinExtent: true,
       snapAnimationDuration: const Duration(milliseconds: 150),
       builder: ((context, scrollController) {

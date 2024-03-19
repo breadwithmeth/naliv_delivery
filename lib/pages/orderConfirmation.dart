@@ -82,7 +82,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                 itemBuilder: (context, index) {
                   final item = widget.items[index];
 
-                  return ItemCardMinimized(
+                  return ItemCardMedium(
                     element: item,
                     item_id: item["item_id"],
                     category_id: "",
