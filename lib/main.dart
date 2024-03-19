@@ -34,7 +34,7 @@ class _MainState extends State<Main> {
       determinePosition().then((value) {
         setCityAuto(value.latitude, value.longitude).then((value) {
           setState(() {
-            _redirect = HomePage();
+            _redirect = const HomePage();
           });
         });
       });

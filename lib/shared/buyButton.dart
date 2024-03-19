@@ -1,8 +1,4 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
-
 import '../misc/api.dart';
 
 class BuyButton extends StatefulWidget {
@@ -15,17 +11,7 @@ class BuyButton extends StatefulWidget {
 
 class _BuyButtonState extends State<BuyButton> {
   Map element = {};
-  bool isLoading = true;
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    refreshItemCard();
-    setState(() {
-      element = widget.element;
-      isLoading = false;
-    });
-  }
+  int cacheAmount = 0;
 
   Future<void> refreshItemCard() async {
     if (element["item_id"] != null) {
@@ -36,46 +22,58 @@ class _BuyButtonState extends State<BuyButton> {
     }
   }
 
-  Future<String?> _removeFromCart() async {
+  // TODO: Create changeCartAmount inside api.dart
+  // Future<String?> _finalizeCartAmount() async {
+  //   String? finalAmount = await changeCartAmount(element["item_id"], cacheAmount).then(
+  //     (value) {
+  //       print(value);
+  //       return value;
+  //     },
+  //   ).onError(
+  //     (error, stackTrace) {
+  //       throw Exception("buyButton _addToCart failed");
+  //     },
+  //   );
+  // }
+
+  void _changeCartAmount(int amount) {
     setState(() {
-      isLoading = true;
+      if (amount >= 0) {
+        cacheAmount = amount;
+      }
     });
-    String? amount = await removeFromCart(element["item_id"]).then(
-      (value) {
-        print(value);
-        return value;
-      },
-    ).onError(
-      (error, stackTrace) {
-        throw Exception("buyButton _removeFromCart failed");
-      },
-    );
-    setState(() {
-      element["amount"] = amount;
-      isLoading = false;
-    });
-    return null;
   }
 
-  Future<String?> _addToCart() async {
+  void _removeFromCart() {
     setState(() {
-      isLoading = true;
+      if (cacheAmount > 0) {
+        cacheAmount--;
+      }
     });
-    String? amount = await addToCart(element["item_id"]).then(
-      (value) {
-        print(value);
-        return value;
-      },
-    ).onError(
-      (error, stackTrace) {
-        throw Exception("buyButton _addToCart failed");
-      },
-    );
+  }
+
+  void _addToCart() {
     setState(() {
-      element["amount"] = amount;
-      isLoading = false;
+      if (cacheAmount < 1000) {
+        cacheAmount++;
+      }
     });
-    return null;
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    // refreshItemCard();
+    setState(() {
+      element = widget.element;
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    // _finalizeCartAmount.then();
   }
 
   @override
@@ -84,7 +82,7 @@ class _BuyButtonState extends State<BuyButton> {
       mainAxisAlignment: MainAxisAlignment.start,
       mainAxisSize: MainAxisSize.max,
       children: [
-        element["amount"] != null
+        cacheAmount != 0
             ? Flexible(
                 child: Container(
                   decoration: BoxDecoration(
@@ -97,17 +95,15 @@ class _BuyButtonState extends State<BuyButton> {
                       Flexible(
                         child: IconButton(
                           padding: const EdgeInsets.all(0),
-                          onPressed: !isLoading
-                              ? () async {
-                                  await _removeFromCart();
-                                }
-                              : null,
+                          onPressed: () {
+                            _removeFromCart();
+                          },
                           icon: const Icon(Icons.remove),
                         ),
                       ),
                       Flexible(
                         child: Text(
-                          element["amount"].toString(),
+                          cacheAmount.toString(),
                           style: const TextStyle(
                             color: Colors.black,
                             fontSize: 16,
@@ -116,14 +112,14 @@ class _BuyButtonState extends State<BuyButton> {
                         ),
                       ),
                       Flexible(
-                        child: IconButton(
-                          padding: const EdgeInsets.all(0),
-                          onPressed: !isLoading
-                              ? () async {
-                                  await _addToCart();
-                                }
-                              : null,
-                          icon: const Icon(Icons.add),
+                        child: GestureDetector(
+                          child: IconButton(
+                            padding: const EdgeInsets.all(0),
+                            onPressed: () {
+                              _addToCart();
+                            },
+                            icon: const Icon(Icons.add),
+                          ),
                         ),
                       ),
                     ],
@@ -132,20 +128,20 @@ class _BuyButtonState extends State<BuyButton> {
               )
             : Flexible(
                 child: ElevatedButton(
-                  style: ButtonStyle(
-                    backgroundColor: MaterialStatePropertyAll(
-                        Theme.of(context).colorScheme.secondary),
-                    shape: const MaterialStatePropertyAll(
-                      RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(
-                          Radius.circular(10),
-                        ),
+                  style: ElevatedButton.styleFrom(
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(
+                        Radius.circular(10),
                       ),
                     ),
-                    elevation: const MaterialStatePropertyAll(0.0),
+                    backgroundColor: Theme.of(context).colorScheme.secondary,
+                    disabledBackgroundColor: Theme.of(context)
+                        .colorScheme
+                        .secondary
+                        .withOpacity(0.5),
                   ),
-                  onPressed: () async {
-                    await _addToCart();
+                  onPressed: () {
+                    _addToCart();
                   },
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -196,74 +192,67 @@ class BuyButtonFullWidth extends StatefulWidget {
 
 class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
   Map element = {};
-  bool isLoading = true;
+  int cacheAmount = 0;
 
-  Future<void> refreshItemCard() async {
-    if (element["item_id"] != null) {
-      Map<String, dynamic>? element = await getItem(widget.element["item_id"]);
-      setState(() {
-        element = element!;
-      });
-    }
+  // TODO: Create changeCartAmount inside api.dart
+  // Future<String?> _finalizeCartAmount() async {
+  //   String? finalAmount = await changeCartAmount(element["item_id"], cacheAmount).then(
+  //     (value) {
+  //       print(value);
+  //       return value;
+  //     },
+  //   ).onError(
+  //     (error, stackTrace) {
+  //       throw Exception("buyButton _addToCart failed");
+  //     },
+  //   );
+  // }
+
+  void _changeCartAmount(int amount) {
+    setState(() {
+      if (amount >= 0) {
+        cacheAmount = amount;
+      }
+    });
   }
 
-  Future<String?> _removeFromCart() async {
+  void _removeFromCart() {
     setState(() {
-      isLoading = true;
+      if (cacheAmount > 0) {
+        cacheAmount--;
+      }
     });
-    String? amount = await removeFromCart(element["item_id"]).then(
-      (value) {
-        print(value);
-        return value;
-      },
-    ).onError(
-      (error, stackTrace) {
-        throw Exception("buyButton _removeFromCart failed");
-      },
-    );
-    setState(() {
-      element["amount"] = amount;
-      isLoading = false;
-    });
-    return null;
   }
 
-  Future<String?> _addToCart() async {
+  void _addToCart() {
     setState(() {
-      isLoading = true;
+      if (cacheAmount < 1000) {
+        cacheAmount++;
+      }
     });
-    String? amount = await addToCart(element["item_id"]).then(
-      (value) {
-        print(value);
-        return value;
-      },
-    ).onError(
-      (error, stackTrace) {
-        throw Exception("buyButton _addToCart failed");
-      },
-    );
-    setState(() {
-      element["amount"] = amount;
-      isLoading = false;
-    });
-    return null;
   }
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
+    // refreshItemCard();
     setState(() {
       element = widget.element;
-      isLoading = false;
     });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    // _finalizeCartAmount.then();
   }
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        element["amount"] != null
+        cacheAmount != 0
             ? Container(
                 decoration: BoxDecoration(
                     color: Colors.grey.shade300,
@@ -287,11 +276,9 @@ class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
                             Flexible(
                               child: IconButton(
                                 padding: const EdgeInsets.all(0),
-                                onPressed: !isLoading
-                                    ? () async {
-                                        await _removeFromCart();
-                                      }
-                                    : null,
+                                onPressed: () {
+                                  _removeFromCart();
+                                },
                                 icon: const Icon(
                                   Icons.remove_rounded,
                                   color: Colors.black,
@@ -301,7 +288,7 @@ class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
                             ),
                             Flexible(
                               child: Text(
-                                element["amount"].toString(),
+                                cacheAmount.toString(),
                                 style: const TextStyle(
                                   color: Colors.black,
                                   fontSize: 16,
@@ -322,11 +309,9 @@ class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
                                 //     strokeAlign: -7.0,
                                 //   ),
                                 // ),
-                                onPressed: !isLoading
-                                    ? () async {
-                                        await _addToCart();
-                                      }
-                                    : null,
+                                onPressed: () {
+                                  _addToCart();
+                                },
                                 icon: const Icon(
                                   Icons.add_rounded,
                                   color: Colors.black,
@@ -380,23 +365,19 @@ class _BuyButtonFullWidthState extends State<BuyButtonFullWidth> {
                 //   padding: const EdgeInsets.all(10),
                 //   backgroundColor: Colors.grey.shade400,
                 // ),
-                style: ButtonStyle(
-                  backgroundColor: MaterialStatePropertyAll(
-                      Theme.of(context).colorScheme.secondary),
-                  shape: const MaterialStatePropertyAll(
-                    RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(
-                        Radius.circular(10),
-                      ),
+                style: ElevatedButton.styleFrom(
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.all(
+                      Radius.circular(10),
                     ),
                   ),
-                  elevation: const MaterialStatePropertyAll(0.0),
+                  backgroundColor: Theme.of(context).colorScheme.secondary,
+                  disabledBackgroundColor:
+                      Theme.of(context).colorScheme.secondary.withOpacity(0.8),
                 ),
-                onPressed: !isLoading
-                    ? () {
-                        _addToCart();
-                      }
-                    : null,
+                onPressed: () {
+                  _addToCart();
+                },
                 child: Container(
                   decoration: const BoxDecoration(
                       borderRadius: BorderRadius.all(Radius.circular(10))),

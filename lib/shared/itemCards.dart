@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/shared/buyButton.dart';
 import 'package:naliv_delivery/shared/likeButton.dart';
+import 'package:naliv_delivery/shared/numberPicker.dart';
 
 // class ItemCard extends StatefulWidget {
 //   ItemCard(
@@ -274,6 +275,7 @@ class _ItemCardState extends State<ItemCard> {
   List<InlineSpan> propertiesWidget = [];
   late BuyButton _buyButton;
   late int chack;
+  bool isNumPickerActive = false;
 
   @override
   void initState() {
@@ -468,12 +470,32 @@ class _ItemCardState extends State<ItemCard> {
                   ),
                   Flexible(
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       mainAxisSize: MainAxisSize.max,
                       children: [
-                        Flexible(
-                          child: _buyButton,
-                        ),
+                        // Flexible(
+                        //   child: GestureDetector(
+                        //     onLongPress: (() {
+                        //       setState(() {
+                        //         isNumPickerActive = true;
+                        //       });
+                        //     }),
+                        //     onLongPressUp: (() {
+                        //       setState(() {
+                        //         isNumPickerActive = false;
+                        //       });
+                        //     }),
+                        //     child: Stack(
+                        //       children: [
+                        //         _buyButton,
+                        //         isNumPickerActive
+                        //             ? const NumberPicker(amount: 50)
+                        //             : Container(),
+                        //       ],
+                        //     ),
+                        //   ),
+                        // ),
                         Flexible(
                           child: LikeButton(
                             is_liked: element["is_liked"],
@@ -627,87 +649,93 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Flexible(
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Flexible(
-                          flex: 5,
-                          child: RichText(
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            text: TextSpan(
-                              style: const TextStyle(
-                                textBaseline: TextBaseline.alphabetic,
-                                fontSize: 14,
-                                color: Colors.black,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Flexible(
+                              flex: 5,
+                              child: RichText(
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                text: TextSpan(
+                                  style: const TextStyle(
+                                    textBaseline: TextBaseline.alphabetic,
+                                    fontSize: 14,
+                                    color: Colors.black,
+                                  ),
+                                  children: [
+                                    TextSpan(text: element["name"]),
+                                    element["country"] != null
+                                        ? WidgetSpan(
+                                            child: Container(
+                                              padding: const EdgeInsets.all(5),
+                                              decoration: BoxDecoration(
+                                                  color: Colors.grey.shade200,
+                                                  borderRadius:
+                                                      const BorderRadius.all(
+                                                          Radius.circular(10))),
+                                              child: Text(
+                                                element["country"] ?? "",
+                                                style: const TextStyle(
+                                                    color: Colors.black,
+                                                    fontWeight:
+                                                        FontWeight.w600),
+                                              ),
+                                            ),
+                                          )
+                                        : const TextSpan()
+                                  ],
+                                ),
                               ),
-                              children: [
-                                TextSpan(text: element["name"]),
-                                element["country"] != null
-                                    ? WidgetSpan(
-                                        child: Container(
-                                          padding: const EdgeInsets.all(5),
-                                          decoration: BoxDecoration(
-                                              color: Colors.grey.shade200,
-                                              borderRadius:
-                                                  const BorderRadius.all(
-                                                      Radius.circular(10))),
-                                          child: Text(
-                                            element["country"] ?? "",
-                                            style: const TextStyle(
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.w600),
-                                          ),
-                                        ),
-                                      )
-                                    : const TextSpan()
-                              ],
                             ),
-                          ),
+                            Flexible(
+                              flex: 1,
+                              child: LikeButton(
+                                is_liked: element["is_liked"],
+                                item_id: element["item_id"],
+                              ),
+                            ),
+                          ],
                         ),
-                        Flexible(
-                          flex: 1,
-                          child: LikeButton(
-                            is_liked: element["is_liked"],
-                            item_id: element["item_id"],
-                          ),
-                        ),
+                        const Text("0 шт в наличии"),
                       ],
                     ),
                   ),
                   Flexible(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Flexible(
                           flex: 5,
                           child: Column(
                             children: [
                               element["prev_price"] != null
-                                  ? Padding(
-                                      padding: const EdgeInsets.only(left: 5),
-                                      child: Row(
-                                        children: [
-                                          Text(
-                                            element["prev_price"],
-                                            style: TextStyle(
-                                                decoration:
-                                                    TextDecoration.lineThrough,
-                                                decorationColor:
-                                                    Colors.grey.shade500,
-                                                decorationThickness: 1.85,
-                                                color: Colors.grey.shade500,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w500),
-                                          ),
-                                          Text(
-                                            "₸",
-                                            style: TextStyle(
-                                                color: Colors.grey.shade600,
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 12),
-                                          )
-                                        ],
-                                      ),
+                                  ? Row(
+                                      children: [
+                                        Text(
+                                          element["prev_price"],
+                                          style: TextStyle(
+                                              decoration:
+                                                  TextDecoration.lineThrough,
+                                              decorationColor:
+                                                  Colors.grey.shade500,
+                                              decorationThickness: 1.85,
+                                              color: Colors.grey.shade500,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500),
+                                        ),
+                                        Text(
+                                          "₸",
+                                          style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 12),
+                                        )
+                                      ],
                                     )
                                   : Container(),
                               Row(
@@ -731,10 +759,10 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                             ],
                           ),
                         ),
-                        Flexible(
-                          flex: 3,
-                          child: _buyButton,
-                        ),
+                        // Flexible(
+                        //   flex: 4,
+                        //   child: _buyButton,
+                        // ),
                       ],
                     ),
                   ),
@@ -965,23 +993,23 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                       ],
                     ),
                   ),
-                  Flexible(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        Flexible(
-                          child: _buyButton,
-                        ),
-                        Flexible(
-                          child: LikeButton(
-                            is_liked: element["is_liked"],
-                            item_id: element["item_id"],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // Flexible(
+                  //   child: Row(
+                  //     mainAxisAlignment: MainAxisAlignment.end,
+                  //     mainAxisSize: MainAxisSize.max,
+                  //     children: [
+                  //       // Flexible(
+                  //       //   child: _buyButton,
+                  //       // ),
+                  //       Flexible(
+                  //         child: LikeButton(
+                  //           is_liked: element["is_liked"],
+                  //           item_id: element["item_id"],
+                  //         ),
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
                 ],
               ),
             ),
