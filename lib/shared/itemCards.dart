@@ -627,87 +627,109 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Flexible(
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Flexible(
-                          flex: 5,
-                          child: RichText(
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            text: TextSpan(
-                              style: const TextStyle(
-                                textBaseline: TextBaseline.alphabetic,
-                                fontSize: 14,
-                                color: Colors.black,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              flex: 5,
+                              child: Row(
+                                children: [
+                                  Text(
+                                    element["name"],
+                                    softWrap: true,
+                                    maxLines: 2,
+                                    style: const TextStyle(
+                                        overflow: TextOverflow.ellipsis),
+                                  ),
+                                  element["country"] != null
+                                      ? Container(
+                                          child: Text(element["country"]),
+                                        )
+                                      : Container(),
+                                ],
                               ),
-                              children: [
-                                TextSpan(text: element["name"]),
-                                element["country"] != null
-                                    ? WidgetSpan(
-                                        child: Container(
-                                          padding: const EdgeInsets.all(5),
-                                          decoration: BoxDecoration(
-                                              color: Colors.grey.shade200,
-                                              borderRadius:
-                                                  const BorderRadius.all(
-                                                      Radius.circular(10))),
-                                          child: Text(
-                                            element["country"] ?? "",
-                                            style: const TextStyle(
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.w600),
-                                          ),
-                                        ),
-                                      )
-                                    : const TextSpan()
-                              ],
+                              // child: RichText(
+                              //   maxLines: 2,
+                              //   overflow: TextOverflow.ellipsis,
+                              //   text: TextSpan(
+                              //     style: const TextStyle(
+                              //       textBaseline: TextBaseline.alphabetic,
+                              //       fontSize: 14,
+                              //       color: Colors.black,
+                              //     ),
+                              //     children: [
+                              //       TextSpan(text: element["name"]),
+                              //       element["country"] != null
+                              //           ? WidgetSpan(
+                              //               child: Container(
+                              //                 padding: const EdgeInsets.all(5),
+                              //                 decoration: BoxDecoration(
+                              //                     color: Colors.grey.shade200,
+                              //                     borderRadius:
+                              //                         const BorderRadius.all(
+                              //                             Radius.circular(10))),
+                              //                 child: Text(
+                              //                   element["country"] ?? "",
+                              //                   style: const TextStyle(
+                              //                       color: Colors.black,
+                              //                       fontWeight:
+                              //                           FontWeight.w600),
+                              //                 ),
+                              //               ),
+                              //             )
+                              //           : const TextSpan()
+                              //     ],
+                              //   ),
+                              // ),
                             ),
-                          ),
+                            Flexible(
+                              flex: 1,
+                              child: LikeButton(
+                                is_liked: element["is_liked"],
+                                item_id: element["item_id"],
+                              ),
+                            ),
+                          ],
                         ),
-                        Flexible(
-                          flex: 1,
-                          child: LikeButton(
-                            is_liked: element["is_liked"],
-                            item_id: element["item_id"],
-                          ),
-                        ),
+                        const Text("0 шт в наличии"),
                       ],
                     ),
                   ),
                   Flexible(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Flexible(
                           flex: 5,
                           child: Column(
                             children: [
                               element["prev_price"] != null
-                                  ? Padding(
-                                      padding: const EdgeInsets.only(left: 5),
-                                      child: Row(
-                                        children: [
-                                          Text(
-                                            element["prev_price"],
-                                            style: TextStyle(
-                                                decoration:
-                                                    TextDecoration.lineThrough,
-                                                decorationColor:
-                                                    Colors.grey.shade500,
-                                                decorationThickness: 1.85,
-                                                color: Colors.grey.shade500,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w500),
-                                          ),
-                                          Text(
-                                            "₸",
-                                            style: TextStyle(
-                                                color: Colors.grey.shade600,
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 12),
-                                          )
-                                        ],
-                                      ),
+                                  ? Row(
+                                      children: [
+                                        Text(
+                                          element["prev_price"],
+                                          style: TextStyle(
+                                              decoration:
+                                                  TextDecoration.lineThrough,
+                                              decorationColor:
+                                                  Colors.grey.shade500,
+                                              decorationThickness: 1.85,
+                                              color: Colors.grey.shade500,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500),
+                                        ),
+                                        Text(
+                                          "₸",
+                                          style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 12),
+                                        )
+                                      ],
                                     )
                                   : Container(),
                               Row(
@@ -732,7 +754,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                           ),
                         ),
                         Flexible(
-                          flex: 3,
+                          flex: 4,
                           child: _buyButton,
                         ),
                       ],
