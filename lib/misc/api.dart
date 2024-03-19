@@ -611,3 +611,20 @@ Future<bool> verify(String phoneNumber, String code) async {
     return isset;
   }
 }
+
+Future<Map?> getGeoData(String search) async {
+  String? token = await getToken();
+  if (token == null) {
+    return null;
+  }
+  var url = Uri.https(URL_API, 'api/user/getAddressGeoData.php');
+  var response = await http.post(
+    url,
+    body: json.encode({"search": search}),
+    headers: {"Content-Type": "application/json", "AUTH": token},
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  Map? data = json.decode(utf8.decode(response.bodyBytes));
+  return data;
+}
