@@ -124,6 +124,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
     return Scaffold(
       appBar: AppBar(),
       body: Column(
+        mainAxisSize: MainAxisSize.max,
         children: [
           const SizedBox(
             height: 5,
@@ -222,6 +223,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
             ),
           ),
           Container(
+            height: MediaQuery.of(context).size.height * 0.8,
             decoration: BoxDecoration(
                 border: Border.all(
                   width: 2,
@@ -289,32 +291,34 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
               padding: const EdgeInsets.all(15),
               child: const Text("а здесь эквайринг")),
           Container(
-              decoration: BoxDecoration(
-                  border: Border.all(
-                    width: 2,
-                    color: Colors.grey.shade100,
-                  ),
-                  color: Colors.white,
-                  borderRadius: const BorderRadius.all(Radius.circular(10))),
-              margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
-              padding: const EdgeInsets.all(15),
-              child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => OrderConfirmation(
-                            delivery: delivery,
-                            items: items,
-                            address: currentAddress,
-                          ),
-                        ));
-                  },
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.max,
-                    children: [Text("Подтвердить заказ")],
-                  )))
+            decoration: BoxDecoration(
+                border: Border.all(
+                  width: 2,
+                  color: Colors.grey.shade100,
+                ),
+                color: Colors.white,
+                borderRadius: const BorderRadius.all(Radius.circular(10))),
+            margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
+            padding: const EdgeInsets.all(15),
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => OrderConfirmation(
+                        delivery: delivery,
+                        items: items,
+                        address: currentAddress,
+                      ),
+                    ));
+              },
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.max,
+                children: [Text("Подтвердить заказ")],
+              ),
+            ),
+          ),
         ],
       ),
     );

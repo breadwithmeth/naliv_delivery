@@ -1,5 +1,8 @@
+import 'dart:ui';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:naliv_delivery/pages/categoryPage.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:naliv_delivery/misc/api.dart';
@@ -11,7 +14,6 @@ import 'package:naliv_delivery/pages/favPage.dart';
 import 'package:naliv_delivery/pages/loginPage.dart';
 import 'package:naliv_delivery/pages/searchPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
-import 'package:palette_generator/palette_generator.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -74,10 +76,16 @@ class _HomePageState extends State<HomePage>
 
   Map _currentAddress = {};
 
+  bool categoryIsLoading = true;
+
   Future<void> _getCategories() async {
+    setState(() {
+      categoryIsLoading = true;
+    });
     List categories1 = await getCategories();
     setState(() {
       categories = categories1;
+      categoryIsLoading = false;
     });
   }
 
@@ -427,57 +435,58 @@ class _HomePageState extends State<HomePage>
               // floating: true,
               // snap: true,
               title: TextButton(
-                  onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(
-                      builder: (context) {
-                        return const SearchPage();
-                      },
-                    ));
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 15),
-                    decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.1),
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(10))),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        const Spacer(
-                          flex: 3,
-                        ),
-                        const Text(
-                          "Найти",
-                          style: TextStyle(
-                              fontWeight: FontWeight.w500, color: Colors.black),
-                        ),
-                        // Expanded(
-                        //   flex: 2,
-                        //   child: Image.network(
-                        //     logourl,
-                        //     fit: BoxFit.contain,
-                        //     frameBuilder: (BuildContext context, Widget child,
-                        //         int? frame, bool? wasSynchronouslyLoaded) {
-                        //       return Padding(
-                        //         padding: const EdgeInsets.all(8.0),
-                        //         child: child,
-                        //       );
-                        //     },
-                        //     loadingBuilder: (BuildContext context, Widget child,
-                        //         ImageChunkEvent? loadingProgress) {
-                        //       return Center(child: child);
-                        //     },
-                        //   ),
-                        // ),
-                        Container(
-                            padding: const EdgeInsets.all(10),
-                            child: const Icon(
-                              Icons.search,
-                              color: Colors.black,
-                            )),
-                      ],
-                    ),
-                  )),
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(
+                    builder: (context) {
+                      return const SearchPage();
+                    },
+                  ));
+                },
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 15),
+                  decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.1),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(10))),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      const Spacer(
+                        flex: 3,
+                      ),
+                      const Text(
+                        "Найти",
+                        style: TextStyle(
+                            fontWeight: FontWeight.w500, color: Colors.black),
+                      ),
+                      // Expanded(
+                      //   flex: 2,
+                      //   child: Image.network(
+                      //     logourl,
+                      //     fit: BoxFit.contain,
+                      //     frameBuilder: (BuildContext context, Widget child,
+                      //         int? frame, bool? wasSynchronouslyLoaded) {
+                      //       return Padding(
+                      //         padding: const EdgeInsets.all(8.0),
+                      //         child: child,
+                      //       );
+                      //     },
+                      //     loadingBuilder: (BuildContext context, Widget child,
+                      //         ImageChunkEvent? loadingProgress) {
+                      //       return Center(child: child);
+                      //     },
+                      //   ),
+                      // ),
+                      Container(
+                          padding: const EdgeInsets.all(10),
+                          child: const Icon(
+                            Icons.search,
+                            color: Colors.black,
+                          )),
+                    ],
+                  ),
+                ),
+              ),
             ),
             SliverToBoxAdapter(
               child: Column(
@@ -732,27 +741,63 @@ class _HomePageState extends State<HomePage>
                       ],
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: GridView.builder(
-                      padding: const EdgeInsets.all(0),
-                      physics: const NeverScrollableScrollPhysics(),
-                      shrinkWrap: true,
-                      gridDelegate:
-                          const SliverGridDelegateWithMaxCrossAxisExtent(
-                              maxCrossAxisExtent: 150,
-                              childAspectRatio: 1,
-                              crossAxisSpacing: 10,
-                              mainAxisSpacing: 10),
-                      itemCount: categories.length,
-                      itemBuilder: (BuildContext ctx, index) {
-                        return CategoryItem(
-                            category_id: categories[index]["category_id"],
-                            name: categories[index]["name"],
-                            image: categories[index]["photo"]);
-                      },
-                    ),
-                  ),
+                  categoryIsLoading
+                      ? Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: GridView.builder(
+                            padding: const EdgeInsets.all(0),
+                            physics: const NeverScrollableScrollPhysics(),
+                            shrinkWrap: true,
+                            gridDelegate:
+                                const SliverGridDelegateWithMaxCrossAxisExtent(
+                                    maxCrossAxisExtent: 150,
+                                    childAspectRatio: 1,
+                                    crossAxisSpacing: 10,
+                                    mainAxisSpacing: 10),
+                            itemCount: 6,
+                            itemBuilder: (BuildContext ctx, index) {
+                              return Shimmer.fromColors(
+                                baseColor: Theme.of(context)
+                                    .colorScheme
+                                    .secondary
+                                    .withOpacity(0.05),
+                                highlightColor:
+                                    Theme.of(context).colorScheme.secondary,
+                                child: Container(
+                                  width: MediaQuery.of(context).size.width,
+                                  height: 50,
+                                  decoration: const BoxDecoration(
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(10)),
+                                    color: Colors.white,
+                                  ),
+                                  child: null,
+                                ),
+                              );
+                            },
+                          ),
+                        )
+                      : Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: GridView.builder(
+                            padding: const EdgeInsets.all(0),
+                            physics: const NeverScrollableScrollPhysics(),
+                            shrinkWrap: true,
+                            gridDelegate:
+                                const SliverGridDelegateWithMaxCrossAxisExtent(
+                                    maxCrossAxisExtent: 150,
+                                    childAspectRatio: 1,
+                                    crossAxisSpacing: 10,
+                                    mainAxisSpacing: 10),
+                            itemCount: categories.length,
+                            itemBuilder: (BuildContext ctx, index) {
+                              return CategoryItem(
+                                  category_id: categories[index]["category_id"],
+                                  name: categories[index]["name"],
+                                  image: categories[index]["photo"]);
+                            },
+                          ),
+                        ),
                   const SizedBox(
                     height: 200,
                   )
@@ -780,31 +825,47 @@ class CategoryItem extends StatefulWidget {
 class _CategoryItemState extends State<CategoryItem> {
   Color firstColor = Colors.white;
   Color secondColor = Colors.blueGrey;
-  Color textBG = Colors.black;
+  late Image imageBG = Image.asset('assets/vectors/wine.png');
+  Alignment? _alignment;
+  Color textBG = Colors.white.withOpacity(0);
   Future<void> _getColors() async {
     switch (widget.category_id) {
+      // Beer
       case '1':
-        firstColor = Colors.green;
-        secondColor = Colors.lightGreen;
-        textBG = Colors.lightGreen.shade200;
+        setState(() {
+          firstColor = const Color(0xFFFFDE67);
+          secondColor = const Color(0xFFF5A265);
+          imageBG = Image.asset('assets/vectors/beer.png');
+        });
+        break;
+      // Whiskey
+      case '8':
+        setState(() {
+          firstColor = const Color(0xFF898989);
+          secondColor = const Color(0xFF464343);
+          imageBG = Image.asset('assets/vectors/whiskey.png');
+          _alignment = Alignment.topLeft;
+        });
+        break;
+      // Wine
+      case '13':
+        setState(() {
+          firstColor = const Color(0xFFFF8CB6);
+          secondColor = const Color(0xFFE3427C);
+          imageBG = Image.asset('assets/vectors/wine.png');
+        });
+        break;
+      // Vodka
+      case '14':
+        setState(() {
+          firstColor = const Color(0xFFC4DCDF);
+          secondColor = const Color(0xFF8C9698);
+          imageBG = Image.asset('assets/vectors/vodka.png');
+        });
         break;
       default:
         print("Default switch case in gradient HomePage");
-    }
-    if (widget.image!.isNotEmpty) {
-      PaletteGenerator paletteGenerator =
-          await PaletteGenerator.fromImageProvider(
-        NetworkImage(
-          widget.image!,
-        ),
-      );
-      setState(
-        () {
-          firstColor = paletteGenerator.vibrantColor!.color;
-          secondColor = paletteGenerator.darkVibrantColor!.color;
-          textBG = paletteGenerator.darkMutedColor!.color;
-        },
-      );
+        break;
     }
   }
 
@@ -812,7 +873,9 @@ class _CategoryItemState extends State<CategoryItem> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    _getColors();
+    Future.delayed(Duration.zero, () async {
+      await _getColors();
+    });
   }
 
   @override
@@ -841,25 +904,93 @@ class _CategoryItemState extends State<CategoryItem> {
                     colors: [firstColor, secondColor],
                     transform: const GradientRotation(2))),
           ),
+          _alignment == null
+              ? Container(
+                  alignment: Alignment.topRight,
+                  child: imageBG,
+                )
+              : Container(
+                  alignment: _alignment,
+                  child: imageBG,
+                ),
           Container(
             clipBehavior: Clip.antiAliasWithSaveLayer,
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
             width: double.infinity,
             height: double.infinity,
-            alignment: Alignment.bottomCenter,
+            alignment: Alignment.bottomLeft,
             child: Transform.rotate(
-              // origin: Offset(-50, 0),
-              alignment: Alignment.bottomCenter,
-              angle: 0.5,
-              child: widget.image!.isNotEmpty
-                  ? Image.network(
-                      widget.image!,
+                // origin: Offset(-50, 0),
+                alignment: Alignment.bottomCenter,
+                angle: 0.5,
+                child: Stack(
+                  children: <Widget>[
+                    Transform.translate(
+                      offset: const Offset(15.0, -6.0),
+                      child: ImageFiltered(
+                        imageFilter: ImageFilter.blur(sigmaY: 14, sigmaX: 14),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: Colors.transparent,
+                              width: 0,
+                            ),
+                          ),
+                          child: Opacity(
+                            opacity: 0.8,
+                            child: ColorFiltered(
+                              colorFilter: const ColorFilter.mode(
+                                  Colors.black, BlendMode.srcATop),
+                              child: CachedNetworkImage(
+                                imageUrl: widget.image!,
+                                cacheManager: CacheManager(Config(
+                                  "itemImage",
+                                  stalePeriod: const Duration(days: 7),
+                                  //one week cache period
+                                )),
+                                fit: BoxFit.fitHeight,
+                                width: 500,
+                                height: 500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    CachedNetworkImage(
+                      imageUrl: widget.image!,
+                      cacheManager: CacheManager(Config(
+                        "itemImage",
+                        stalePeriod: const Duration(days: 7),
+                        //one week cache period
+                      )),
                       fit: BoxFit.fitHeight,
                       width: 500,
                       height: 500,
-                    )
-                  : Container(),
-            ),
+                      errorWidget: (context, url, error) {
+                        return Container(
+                          alignment: Alignment.center,
+                          width: 20,
+                          height: 10,
+                          child: const Text(
+                            "Нет изображения",
+                            style: TextStyle(color: Colors.black),
+                            textAlign: TextAlign.center,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                )
+                // child: widget.image!.isNotEmpty
+                //     ? CachedNetworkImage(
+                //         imageUrl: widget.image!,
+                //         fit: BoxFit.fitHeight,
+                //         width: 500,
+                //         height: 500,
+                //       )
+                //     : Container(),
+                ),
           ),
           Container(
             padding: const EdgeInsets.all(15),
@@ -874,12 +1005,19 @@ class _CategoryItemState extends State<CategoryItem> {
                       bottomRight: Radius.circular(5))),
               child: Text(
                 widget.name,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  height: 1.2,
-                  // background: Paint()..color = textBG)
-                ),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    height: 1.2,
+                    shadows: [
+                      Shadow(
+                        blurRadius: 8,
+                        color: Colors.black.withOpacity(0.3),
+                        offset: const Offset(0, 2),
+                      )
+                    ]
+                    // background: Paint()..color = textBG)
+                    ),
               ),
             ),
           ),

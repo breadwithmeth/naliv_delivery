@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/bottomMenu.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/misc/colors.dart';
 import 'package:naliv_delivery/pages/homePage.dart';
@@ -97,13 +96,16 @@ class _MainState extends State<Main> {
   Future<void> _checkAuth() async {
     String? token = await getToken();
     if (token != null) {
-      determinePosition().then((value) {
-        setCityAuto(value.latitude, value.longitude).then((value) {
-          setState(() {
-            _redirect = const HomePage();
-          });
-        });
+      setState(() {
+        _redirect = const HomePage();
       });
+      // determinePosition().then((value) {
+      //   setCityAuto(value.latitude, value.longitude).then((value) {
+      //     setState(() {
+      //       _redirect = const HomePage();
+      //     });
+      //   });
+      // });
     } else {
       setState(() {
         _redirect = const StartPage();

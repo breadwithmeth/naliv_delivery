@@ -363,6 +363,19 @@ class _CategoryPageState extends State<CategoryPage> {
     }
   }
 
+  // void _cacheItemsImages() {
+  //   print(
+  //       "PRECACHED ITEMS ___(${itemsL.length}) ________________________________");
+  //   for (Map item in itemsL) {
+  //     if (item["photo"] != null) {
+  //       if (item["photo"].toString().isNotEmpty) {
+  //         precacheImage(
+  //             NetworkImage('https://naliv.kz/img/${item["photo"]}'), context);
+  //       }
+  //     }
+  //   }
+  // }
+
   @override
   void initState() {
     print(widget.category_id);
@@ -370,6 +383,10 @@ class _CategoryPageState extends State<CategoryPage> {
     // TODO: implement initState
     super.initState();
     _getItems();
+    // _getItems().then((value) {
+    //   _cacheItemsImages();
+    // });
+
     _getFilters();
     _sc = ScrollController();
     _sc.addListener(_scrollListener);
@@ -419,81 +436,82 @@ class _CategoryPageState extends State<CategoryPage> {
                       },
                       textAlignVertical: TextAlignVertical.top,
                       decoration: InputDecoration(
-                          // contentPadding: const EdgeInsets.all(10),
-                          suffix: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              GestureDetector(
-                                child: const Icon(Icons.search),
-                                onTap: () {
-                                  if (search.text.isNotEmpty) {
-                                    print(search);
-                                    setState(() {
-                                      selectedFilters["search"] = search.text;
-                                    });
-                                  }
-                                  _getItems();
-                                },
-                              ),
-                              GestureDetector(
-                                child: const Icon(Icons.cancel),
-                                onTap: () {
+                        // contentPadding: const EdgeInsets.all(10),
+                        suffix: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            GestureDetector(
+                              child: const Icon(Icons.search),
+                              onTap: () {
+                                if (search.text.isNotEmpty) {
+                                  print(search);
                                   setState(() {
-                                    search.text = "";
-                                    selectedFilters = {};
+                                    selectedFilters["search"] = search.text;
                                   });
+                                }
+                                _getItems();
+                              },
+                            ),
+                            GestureDetector(
+                              child: const Icon(Icons.cancel),
+                              onTap: () {
+                                setState(() {
+                                  search.text = "";
+                                  selectedFilters = {};
+                                });
 
-                                  _getItems();
-                                },
+                                _getItems();
+                              },
+                            ),
+                          ],
+                        ),
+                        label: Container(
+                          // margin: const EdgeInsets.symmetric(vertical: 15),
+                          decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.1),
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(10))),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              const Spacer(
+                                flex: 3,
+                              ),
+                              const Text(
+                                "Найти",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 14,
+                                    color: Colors.black),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                child: const Icon(
+                                  Icons.search,
+                                  color: Colors.black,
+                                ),
                               ),
                             ],
                           ),
-                          label: Container(
-                            // margin: const EdgeInsets.symmetric(vertical: 15),
-                            decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.1),
-                                borderRadius: const BorderRadius.all(
-                                    Radius.circular(10))),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                const Spacer(
-                                  flex: 3,
-                                ),
-                                const Text(
-                                  "Найти",
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 14,
-                                      color: Colors.black),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  child: const Icon(
-                                    Icons.search,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ],
-                            ),
+                        ),
+                        floatingLabelBehavior: FloatingLabelBehavior.never,
+                        border: const OutlineInputBorder(
+                          borderSide: BorderSide.none,
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(10),
                           ),
-                          floatingLabelBehavior: FloatingLabelBehavior.never,
-                          border: const OutlineInputBorder(
-                            borderSide: BorderSide.none,
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(10),
-                            ),
+                        ),
+                        focusedBorder: const OutlineInputBorder(
+                          borderSide: BorderSide.none,
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(10),
                           ),
-                          focusedBorder: const OutlineInputBorder(
-                            borderSide: BorderSide.none,
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(10),
-                            ),
-                          ),
-                          filled: false,
-                          isDense: true),
+                        ),
+                        filled: false,
+                        isDense: true,
+                      ),
                     ),
                   ),
                 ],
@@ -548,24 +566,24 @@ class _CategoryPageState extends State<CategoryPage> {
                         barrierColor: Colors.transparent,
                         context: context,
                         builder: (context) => Dialog(
-                            shape: const RoundedRectangleBorder(),
-                            shadowColor: Colors.black38,
-                            backgroundColor: Colors.white.withOpacity(0.9),
-                            child: Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: const BoxDecoration(
+                          shape: const RoundedRectangleBorder(),
+                          shadowColor: Colors.black38,
+                          backgroundColor: Colors.white.withOpacity(0.9),
+                          child: Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: const BoxDecoration(
+                              color: Colors.transparent,
+                            ),
+                            clipBehavior: Clip.hardEdge,
+                            height: MediaQuery.of(context).size.height * 0.7,
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                              child: Container(
                                 color: Colors.transparent,
-                              ),
-                              clipBehavior: Clip.hardEdge,
-                              height: MediaQuery.of(context).size.height * 0.7,
-                              child: BackdropFilter(
-                                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                                child: Container(
-                                  color: Colors.transparent,
-                                  height:
-                                      MediaQuery.of(context).size.height * 0.7,
-                                  child: SingleChildScrollView(
-                                      child: Column(
+                                height:
+                                    MediaQuery.of(context).size.height * 0.7,
+                                child: SingleChildScrollView(
+                                  child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
@@ -695,10 +713,12 @@ class _CategoryPageState extends State<CategoryPage> {
                                         ),
                                       )
                                     ],
-                                  )),
+                                  ),
                                 ),
                               ),
-                            )),
+                            ),
+                          ),
+                        ),
                       );
                     },
                     child: const Expanded(

@@ -50,6 +50,7 @@ dependencies:
   location: ^5.0.3
   permission_handler: ^11.3.0
   google_fonts: ^6.2.1
+  flutter_cache_manager: ^3.3.1
 
 dev_dependencies:
   flutter_test:
@@ -101,6 +102,11 @@ flutter:
     - assets/s/s1.jpg
     - assets/s/s2.jpg
     - assets/s/s3.jpg
+    - assets/vectors/wine.png
+    - assets/vectors/beer.png
+    - assets/vectors/vodka.png
+    - assets/vectors/whiskey.png
+    - assets/vectors/shampane.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

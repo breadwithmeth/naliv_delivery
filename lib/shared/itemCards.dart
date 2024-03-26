@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/shared/buyButton.dart';
 import 'package:naliv_delivery/shared/likeButton.dart';
@@ -351,6 +352,11 @@ class _ItemCardState extends State<ItemCard> {
               // width: MediaQuery.of(context).size.width * 0.2,
               // height: MediaQuery.of(context).size.width * 0.7,
               fit: BoxFit.fitHeight,
+              cacheManager: CacheManager(Config(
+                "itemImage",
+                stalePeriod: const Duration(days: 7),
+                //one week cache period
+              )),
               placeholder: (context, url) {
                 return Container(
                   alignment: Alignment.center,
@@ -471,7 +477,7 @@ class _ItemCardState extends State<ItemCard> {
                   Flexible(
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.end,
                       mainAxisSize: MainAxisSize.max,
                       children: [
                         // Flexible(
@@ -616,6 +622,11 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
               // width: MediaQuery.of(context).size.width * 0.2,
               // height: MediaQuery.of(context).size.width * 0.7,
               fit: BoxFit.fitHeight,
+              cacheManager: CacheManager(Config(
+                "itemImage",
+                stalePeriod: const Duration(days: 7),
+                //one week cache period
+              )),
               placeholder: (context, url) {
                 return Container(
                   alignment: Alignment.center,
@@ -876,6 +887,11 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
               // width: MediaQuery.of(context).size.width * 0.2,
               // height: MediaQuery.of(context).size.width * 0.7,
               fit: BoxFit.fitHeight,
+              cacheManager: CacheManager(Config(
+                "itemImage",
+                stalePeriod: const Duration(days: 7),
+                //one week cache period
+              )),
               placeholder: (context, url) {
                 return Container(
                   alignment: Alignment.center,
