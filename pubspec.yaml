@@ -48,6 +48,8 @@ dependencies:
   flutter_map: ^6.1.0
   flutter_launcher_icons: ^0.13.1
   location: ^5.0.3
+  permission_handler: ^11.3.0
+  google_fonts: ^6.2.1
   flutter_cache_manager: ^3.3.1
   numberpicker: ^2.1.2
 
