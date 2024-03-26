@@ -2,7 +2,9 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
+import 'package:naliv_delivery/pages/cartPage.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
+import 'package:naliv_delivery/pages/searchPage.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 
 class CategoryPage extends StatefulWidget {
@@ -395,6 +397,25 @@ class _CategoryPageState extends State<CategoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: SizedBox(
+        width: 65,
+        height: 65,
+        child: FloatingActionButton(
+          shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(10))),
+          child: const Icon(Icons.shopping_basket_rounded),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) {
+                  return const CartPage();
+                },
+              ),
+            );
+          },
+        ),
+      ),
       appBar: AppBar(
         automaticallyImplyLeading: false,
         toolbarHeight: 120,
@@ -422,95 +443,60 @@ class _CategoryPageState extends State<CategoryPage> {
                   ),
                   Flexible(
                     flex: 5,
-                    child: TextFormField(
-                      scrollPadding: const EdgeInsets.all(0),
-                      controller: search,
-                      onFieldSubmitted: (search) {
-                        if (search.isNotEmpty) {
-                          print(search);
-                          setState(() {
-                            selectedFilters["search"] = search;
-                          });
-                        }
-                        _getItems();
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.push(context, MaterialPageRoute(
+                          builder: (context) {
+                            return const SearchPage();
+                          },
+                        ));
                       },
-                      textAlignVertical: TextAlignVertical.top,
-                      decoration: InputDecoration(
-                        // contentPadding: const EdgeInsets.all(10),
-                        suffix: Row(
-                          mainAxisSize: MainAxisSize.min,
+                      style: TextButton.styleFrom(
+                          foregroundColor: Colors.white.withOpacity(0)),
+                      child: Container(
+                        decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.1),
+                            borderRadius:
+                                const BorderRadius.all(Radius.circular(10))),
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.end,
-                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            GestureDetector(
-                              child: const Icon(Icons.search),
-                              onTap: () {
-                                if (search.text.isNotEmpty) {
-                                  print(search);
-                                  setState(() {
-                                    selectedFilters["search"] = search.text;
-                                  });
-                                }
-                                _getItems();
-                              },
+                            const Spacer(
+                              flex: 3,
                             ),
-                            GestureDetector(
-                              child: const Icon(Icons.cancel),
-                              onTap: () {
-                                setState(() {
-                                  search.text = "";
-                                  selectedFilters = {};
-                                });
-
-                                _getItems();
-                              },
+                            const Text(
+                              "Найти",
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black),
+                            ),
+                            // Expanded(
+                            //   flex: 2,
+                            //   child: Image.network(
+                            //     logourl,
+                            //     fit: BoxFit.contain,
+                            //     frameBuilder: (BuildContext context, Widget child,
+                            //         int? frame, bool? wasSynchronouslyLoaded) {
+                            //       return Padding(
+                            //         padding: const EdgeInsets.all(8.0),
+                            //         child: child,
+                            //       );
+                            //     },
+                            //     loadingBuilder: (BuildContext context, Widget child,
+                            //         ImageChunkEvent? loadingProgress) {
+                            //       return Center(child: child);
+                            //     },
+                            //   ),
+                            // ),
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              child: const Icon(
+                                Icons.search,
+                                color: Colors.black,
+                              ),
                             ),
                           ],
                         ),
-                        label: Container(
-                          // margin: const EdgeInsets.symmetric(vertical: 15),
-                          decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.1),
-                              borderRadius:
-                                  const BorderRadius.all(Radius.circular(10))),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              const Spacer(
-                                flex: 3,
-                              ),
-                              const Text(
-                                "Найти",
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 14,
-                                    color: Colors.black),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                child: const Icon(
-                                  Icons.search,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        floatingLabelBehavior: FloatingLabelBehavior.never,
-                        border: const OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                          borderRadius: BorderRadius.all(
-                            Radius.circular(10),
-                          ),
-                        ),
-                        focusedBorder: const OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                          borderRadius: BorderRadius.all(
-                            Radius.circular(10),
-                          ),
-                        ),
-                        filled: false,
-                        isDense: true,
                       ),
                     ),
                   ),
@@ -546,7 +532,7 @@ class _CategoryPageState extends State<CategoryPage> {
                   flex: 4,
                   child: Padding(
                     padding:
-                        const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 25),
                     child: Text(
                       widget.category_name ?? "",
                       style: const TextStyle(

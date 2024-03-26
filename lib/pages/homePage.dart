@@ -29,6 +29,8 @@ class _HomePageState extends State<HomePage>
   final PageController _pageController =
       PageController(viewportFraction: 0.7, initialPage: 0);
 
+  GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   List<Map> images = [
     // {
     //   "text":
@@ -113,6 +115,14 @@ class _HomePageState extends State<HomePage>
     });
   }
 
+  toggleDrawer() async {
+    if (_scaffoldKey.currentState!.isDrawerOpen) {
+      _scaffoldKey.currentState!.openEndDrawer();
+    } else {
+      _scaffoldKey.currentState!.openDrawer();
+    }
+  }
+
   _getCurrentAddress() {}
 
   @override
@@ -130,15 +140,26 @@ class _HomePageState extends State<HomePage>
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-        floatingActionButton: FloatingActionButton(
+        key: _scaffoldKey,
+        floatingActionButton: SizedBox(
+          width: 65,
+          height: 65,
+          child: FloatingActionButton(
+            shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(10))),
             child: const Icon(Icons.shopping_basket_rounded),
             onPressed: () {
-              Navigator.push(context, MaterialPageRoute(
-                builder: (context) {
-                  return const CartPage();
-                },
-              ));
-            }),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) {
+                    return const CartPage();
+                  },
+                ),
+              );
+            },
+          ),
+        ),
         drawer: Drawer(
             child: SafeArea(
           child: Column(
@@ -201,7 +222,11 @@ class _HomePageState extends State<HomePage>
                     TextButton(
                       style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 20)),
-                      onPressed: () {},
+                      onPressed: () {
+                        setState(() {
+                          toggleDrawer();
+                        });
+                      },
                       child: const Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
@@ -228,6 +253,9 @@ class _HomePageState extends State<HomePage>
                       style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 20)),
                       onPressed: () {
+                        setState(() {
+                          toggleDrawer();
+                        });
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -262,7 +290,11 @@ class _HomePageState extends State<HomePage>
                     TextButton(
                       style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 20)),
-                      onPressed: () {},
+                      onPressed: () {
+                        setState(() {
+                          toggleDrawer();
+                        });
+                      },
                       child: const Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
@@ -289,6 +321,9 @@ class _HomePageState extends State<HomePage>
                       style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 20)),
                       onPressed: () {
+                        setState(() {
+                          toggleDrawer();
+                        });
                         Navigator.push(context, MaterialPageRoute(
                           builder: (context) {
                             return const FavPage();
@@ -321,6 +356,9 @@ class _HomePageState extends State<HomePage>
                       style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 20)),
                       onPressed: () {
+                        setState(() {
+                          toggleDrawer();
+                        });
                         Navigator.push(context, MaterialPageRoute(
                           builder: (context) {
                             return const SettingsPage();
@@ -352,7 +390,11 @@ class _HomePageState extends State<HomePage>
                     TextButton(
                       style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 20)),
-                      onPressed: () {},
+                      onPressed: () {
+                        setState(() {
+                          toggleDrawer();
+                        });
+                      },
                       child: const Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
@@ -379,6 +421,9 @@ class _HomePageState extends State<HomePage>
                       style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 20)),
                       onPressed: () {
+                        setState(() {
+                          toggleDrawer();
+                        });
                         print(123);
                         logout();
                         Navigator.pushReplacement(context, MaterialPageRoute(
@@ -442,6 +487,8 @@ class _HomePageState extends State<HomePage>
                     },
                   ));
                 },
+                style: TextButton.styleFrom(
+                    foregroundColor: Colors.white.withOpacity(0)),
                 child: Container(
                   margin: const EdgeInsets.symmetric(vertical: 15),
                   decoration: BoxDecoration(
@@ -478,11 +525,12 @@ class _HomePageState extends State<HomePage>
                       //   ),
                       // ),
                       Container(
-                          padding: const EdgeInsets.all(10),
-                          child: const Icon(
-                            Icons.search,
-                            color: Colors.black,
-                          )),
+                        padding: const EdgeInsets.all(10),
+                        child: const Icon(
+                          Icons.search,
+                          color: Colors.black,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -970,7 +1018,7 @@ class _CategoryItemState extends State<CategoryItem> {
                       errorWidget: (context, url, error) {
                         return Container(
                           alignment: Alignment.center,
-                          width: 20,
+                          width: 10,
                           height: 10,
                           child: const Text(
                             "Нет изображения",

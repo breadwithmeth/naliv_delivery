@@ -24,10 +24,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (context) => LoginPage(
-                  login: _login.text,
-                  password: _password.text,
-                )),
+          builder: (context) => LoginPage(
+            login: _login.text,
+            password: _password.text,
+          ),
+        ),
       );
     }
   }

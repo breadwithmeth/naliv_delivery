@@ -49,6 +49,7 @@ dependencies:
   flutter_launcher_icons: ^0.13.1
   location: ^5.0.3
   flutter_cache_manager: ^3.3.1
+  numberpicker: ^2.1.2
 
 dev_dependencies:
   flutter_test:
