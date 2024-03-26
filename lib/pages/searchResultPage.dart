@@ -17,9 +17,35 @@ class _SearchResultPageState extends State<SearchResultPage> {
   ScrollController _sc = ScrollController();
   Widget itemsist = Container();
   int snapshotLenght = 0;
+  bool _isSearchDone = false;
+  int _itemCount = 0;
+
+  Future<List?> _getEmptyList() async {
+    print(123);
+    return null;
+  }
+
+  Future<List> _getItems(int page) async {
+    List items = await getItemsMain(page, widget.search);
+    if (items.isEmpty) {
+      _sc.dispose();
+      setState(() {
+        _isSearchDone = true;
+      });
+      return [];
+    } else {
+      setState(() {
+        _itemCount++;
+      });
+      print(_itemCount);
+      return items;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    bool isSearchDone = false;
+
     return Scaffold(
         appBar: AppBar(
           // actions: [
@@ -61,18 +87,23 @@ class _SearchResultPageState extends State<SearchResultPage> {
           ),
         ),
         body: ListView.builder(
+            controller: _sc,
             shrinkWrap: true,
             primary: false,
+            itemCount: 1,
             itemBuilder: ((context, index) {
+              print(isSearchDone);
+
               return KeepAliveFutureBuilder(
-                  future: getItemsMain(index, widget.search),
+                  future: _getItems(index),
                   builder: ((context, snapshot) {
                     List? items = snapshot.data;
-                    if (items!.length < index) {
-                      return const Placeholder();
-                    }
+
+                    // if (items!.length < index) {
+                    //   return Container();
+                    // }
                     if (snapshot.hasError) {
-                      return const Placeholder();
+                      return Container();
                     } else if (snapshot.connectionState ==
                         ConnectionState.waiting) {
                       return SizedBox(
@@ -83,47 +114,60 @@ class _SearchResultPageState extends State<SearchResultPage> {
                           children: [CircularProgressIndicator()],
                         ),
                       );
-                    } else {
-                      return ListView.builder(
-                        controller: _sc,
-                        itemCount: items.length,
-                        primary: false,
-                        shrinkWrap: true,
-                        itemBuilder: (context, index) => GestureDetector(
-                          key: Key(items[index]["item_id"]),
-                          onTap: () {
-                            showModalBottomSheet(
-                              context: context,
-                              clipBehavior: Clip.antiAlias,
-                              useSafeArea: true,
-                              isScrollControlled: true,
-                              builder: (context) {
-                                return ProductPage(
-                                    item_id: items[index]["item_id"]);
-                              },
-                            );
-                          },
-                          child: Column(
-                            children: [
-                              ItemCardMedium(
-                                item_id: items[index]["item_id"],
-                                category_id: "",
-                                category_name: "",
-                                element: items[index],
-                                scroll: 0,
-                              ),
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 16),
-                                child: Divider(
-                                  color:
-                                      Theme.of(context).colorScheme.secondary,
+                    } else if (snapshot.connectionState ==
+                        ConnectionState.done) {
+                      if (snapshot.data == null) {
+                        isSearchDone = true;
+                        return Container();
+                      } else if (items == null) {
+                        return Container();
+                      } else if (items.isEmpty) {
+                        isSearchDone = true;
+                        return Container();
+                      } else {
+                        return ListView.builder(
+                          controller: _sc,
+                          itemCount: items.length,
+                          primary: false,
+                          shrinkWrap: true,
+                          itemBuilder: (context, index) => GestureDetector(
+                            key: Key(items[index]["item_id"]),
+                            onTap: () {
+                              showModalBottomSheet(
+                                context: context,
+                                clipBehavior: Clip.antiAlias,
+                                useSafeArea: true,
+                                isScrollControlled: true,
+                                builder: (context) {
+                                  return ProductPage(
+                                      item_id: items[index]["item_id"]);
+                                },
+                              );
+                            },
+                            child: Column(
+                              children: [
+                                ItemCardMedium(
+                                  item_id: items[index]["item_id"],
+                                  category_id: "",
+                                  category_name: "",
+                                  element: items[index],
+                                  scroll: 0,
                                 ),
-                              ),
-                            ],
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                  child: Divider(
+                                    color:
+                                        Theme.of(context).colorScheme.secondary,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
+                        );
+                      }
+                    } else {
+                      return Container();
                     }
                   }));
             }))
