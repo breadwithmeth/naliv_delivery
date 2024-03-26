@@ -427,57 +427,58 @@ class _HomePageState extends State<HomePage>
               // floating: true,
               // snap: true,
               title: TextButton(
-                  onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(
-                      builder: (context) {
-                        return const SearchPage();
-                      },
-                    ));
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 15),
-                    decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.1),
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(10))),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        const Spacer(
-                          flex: 3,
-                        ),
-                        const Text(
-                          "Найти",
-                          style: TextStyle(
-                              fontWeight: FontWeight.w500, color: Colors.black),
-                        ),
-                        // Expanded(
-                        //   flex: 2,
-                        //   child: Image.network(
-                        //     logourl,
-                        //     fit: BoxFit.contain,
-                        //     frameBuilder: (BuildContext context, Widget child,
-                        //         int? frame, bool? wasSynchronouslyLoaded) {
-                        //       return Padding(
-                        //         padding: const EdgeInsets.all(8.0),
-                        //         child: child,
-                        //       );
-                        //     },
-                        //     loadingBuilder: (BuildContext context, Widget child,
-                        //         ImageChunkEvent? loadingProgress) {
-                        //       return Center(child: child);
-                        //     },
-                        //   ),
-                        // ),
-                        Container(
-                            padding: const EdgeInsets.all(10),
-                            child: const Icon(
-                              Icons.search,
-                              color: Colors.black,
-                            )),
-                      ],
-                    ),
-                  )),
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(
+                    builder: (context) {
+                      return const SearchPage();
+                    },
+                  ));
+                },
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 15),
+                  decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.1),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(10))),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      const Spacer(
+                        flex: 3,
+                      ),
+                      const Text(
+                        "Найти",
+                        style: TextStyle(
+                            fontWeight: FontWeight.w500, color: Colors.black),
+                      ),
+                      // Expanded(
+                      //   flex: 2,
+                      //   child: Image.network(
+                      //     logourl,
+                      //     fit: BoxFit.contain,
+                      //     frameBuilder: (BuildContext context, Widget child,
+                      //         int? frame, bool? wasSynchronouslyLoaded) {
+                      //       return Padding(
+                      //         padding: const EdgeInsets.all(8.0),
+                      //         child: child,
+                      //       );
+                      //     },
+                      //     loadingBuilder: (BuildContext context, Widget child,
+                      //         ImageChunkEvent? loadingProgress) {
+                      //       return Center(child: child);
+                      //     },
+                      //   ),
+                      // ),
+                      Container(
+                          padding: const EdgeInsets.all(10),
+                          child: const Icon(
+                            Icons.search,
+                            color: Colors.black,
+                          )),
+                    ],
+                  ),
+                ),
+              ),
             ),
             SliverToBoxAdapter(
               child: Column(
@@ -784,27 +785,22 @@ class _CategoryItemState extends State<CategoryItem> {
   Future<void> _getColors() async {
     switch (widget.category_id) {
       case '1':
-        firstColor = Colors.green;
-        secondColor = Colors.lightGreen;
-        textBG = Colors.lightGreen.shade200;
+        setState(() {
+          firstColor = const Color(0xFFFFDE67);
+          secondColor = const Color(0xFFF5A265);
+          textBG = Colors.white.withOpacity(0);
+        });
+        break;
+      case '8':
+        setState(() {
+          firstColor = Colors.brown.shade300;
+          secondColor = Colors.brown.shade400;
+          textBG = Colors.white.withOpacity(0);
+        });
         break;
       default:
         print("Default switch case in gradient HomePage");
-    }
-    if (widget.image!.isNotEmpty) {
-      PaletteGenerator paletteGenerator =
-          await PaletteGenerator.fromImageProvider(
-        NetworkImage(
-          widget.image!,
-        ),
-      );
-      setState(
-        () {
-          firstColor = paletteGenerator.vibrantColor!.color;
-          secondColor = paletteGenerator.darkVibrantColor!.color;
-          textBG = paletteGenerator.darkMutedColor!.color;
-        },
-      );
+        break;
     }
   }
 
