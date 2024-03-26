@@ -363,6 +363,19 @@ class _CategoryPageState extends State<CategoryPage> {
     }
   }
 
+  // void _cacheItemsImages() {
+  //   print(
+  //       "PRECACHED ITEMS ___(${itemsL.length}) ________________________________");
+  //   for (Map item in itemsL) {
+  //     if (item["photo"] != null) {
+  //       if (item["photo"].toString().isNotEmpty) {
+  //         precacheImage(
+  //             NetworkImage('https://naliv.kz/img/${item["photo"]}'), context);
+  //       }
+  //     }
+  //   }
+  // }
+
   @override
   void initState() {
     print(widget.category_id);
@@ -370,6 +383,10 @@ class _CategoryPageState extends State<CategoryPage> {
     // TODO: implement initState
     super.initState();
     _getItems();
+    // _getItems().then((value) {
+    //   _cacheItemsImages();
+    // });
+
     _getFilters();
     _sc = ScrollController();
     _sc.addListener(_scrollListener);

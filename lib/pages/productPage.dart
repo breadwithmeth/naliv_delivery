@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/shared/buyButton.dart';
 import 'package:naliv_delivery/shared/likeButton.dart';
@@ -252,6 +253,11 @@ class _ProductPageState extends State<ProductPage> {
           if (item.isNotEmpty) {
             _image = CachedNetworkImage(
               fit: BoxFit.fitHeight,
+              cacheManager: CacheManager(Config(
+                "itemImage",
+                stalePeriod: const Duration(days: 7),
+                //one week cache period
+              )),
               imageUrl: 'https://naliv.kz/img/${item["photo"]}',
               placeholder: ((context, url) {
                 return const Expanded(child: CircularProgressIndicator());
