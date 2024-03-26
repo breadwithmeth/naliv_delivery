@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
 import 'package:naliv_delivery/pages/orderPage.dart';
@@ -16,6 +17,7 @@ class _CartPageState extends State<CartPage>
     with SingleTickerProviderStateMixin {
   late List items = [];
   late Map<String, dynamic> cartInfo = {};
+  late String sum = "0";
   late AnimationController animController;
   final Duration animDuration = const Duration(milliseconds: 250);
 
@@ -24,10 +26,12 @@ class _CartPageState extends State<CartPage>
     print(cart);
 
     Map<String, dynamic>? cartInfo = await getCartInfo();
+    print(cartInfo);
 
     setState(() {
       items = cart;
       cartInfo = cartInfo!;
+      sum = cartInfo!["sum"];
     });
   }
 
@@ -58,29 +62,77 @@ class _CartPageState extends State<CartPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: ElevatedButton(
-        style: ButtonStyle(
-          backgroundColor:
-              MaterialStatePropertyAll(Theme.of(context).colorScheme.secondary),
-          shape: const MaterialStatePropertyAll(
-            RoundedRectangleBorder(
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.all(
                 Radius.circular(10),
               ),
             ),
+            backgroundColor: Theme.of(context).colorScheme.secondary,
+            disabledBackgroundColor:
+                Theme.of(context).colorScheme.secondary.withOpacity(0.8),
           ),
-          elevation: const MaterialStatePropertyAll(0.0),
+          onPressed: (() {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: ((context) {
+                return const CreateOrderPage();
+              })),
+            );
+          }),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Flexible(
+                  child: Text(
+                    "Оформить заказ",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 18,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+                Flexible(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      Flexible(
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 7, right: 5),
+                          child: Text(
+                            sum, // TODO: HERE IS SUM OF CART
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 26,
+                                color: Colors.black),
+                          ),
+                        ),
+                      ),
+                      Flexible(
+                        child: Text(
+                          "₸",
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 30,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-        onPressed: (() {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: ((context) {
-              return const CreateOrderPage();
-            })),
-          );
-        }),
-        child: const Text("Оформить заказ"),
       ),
       appBar: AppBar(
         title: const Row(
@@ -96,84 +148,103 @@ class _CartPageState extends State<CartPage>
         ),
       ),
       body: items.isNotEmpty
-          ? ListView.builder(
-              primary: false,
-              shrinkWrap: true,
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                final item = items[index];
-                return Column(
-                  children: [
-                    Dismissible(
-                      // Each Dismissible must contain a Key. Keys allow Flutter to
-                      // uniquely identify widgets.
-                      key: Key(item["item_id"]),
-                      confirmDismiss: (direction) {
-                        return _deleteFromCart(item["item_id"]);
-                      },
-                      // Provide a function that tells the app
-                      // what to do after an item has been swiped away.
+          ? ListView(
+              children: [
+                ListView.builder(
+                  primary: false,
+                  shrinkWrap: true,
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return Column(
+                      children: [
+                        Dismissible(
+                          // Each Dismissible must contain a Key. Keys allow Flutter to
+                          // uniquely identify widgets.
+                          key: Key(item["item_id"]),
+                          confirmDismiss: (direction) {
+                            return _deleteFromCart(item["item_id"]);
+                          },
+                          // Provide a function that tells the app
+                          // what to do after an item has been swiped away.
 
-                      // Show a red background as the item is swiped away.
-                      background: SizedBox(
-                        width: 100,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: MediaQuery.of(context).size.width * 0.7,
-                              alignment: Alignment.center,
-                              padding: const EdgeInsets.only(right: 10),
-                              color: Colors.grey.shade100,
+                          // Show a red background as the item is swiped away.
+                          background: SizedBox(
+                            width: 100,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.7,
+                                  alignment: Alignment.center,
+                                  padding: const EdgeInsets.only(right: 10),
+                                  color: Colors.grey.shade100,
+                                ),
+                                Container(
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.3,
+                                  alignment: Alignment.center,
+                                  padding: const EdgeInsets.only(right: 10),
+                                  color: Colors.grey.shade100,
+                                  child: const Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.delete),
+                                      Text("Удалить")
+                                    ],
+                                  ),
+                                )
+                              ],
                             ),
-                            Container(
-                              width: MediaQuery.of(context).size.width * 0.3,
-                              alignment: Alignment.center,
-                              padding: const EdgeInsets.only(right: 10),
-                              color: Colors.grey.shade100,
-                              child: const Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [Icon(Icons.delete), Text("Удалить")],
+                          ),
+                          child: Column(
+                            children: [
+                              GestureDetector(
+                                key: Key(items[index]["item_id"]),
+                                child: ItemCardMinimal(
+                                  item_id: items[index]["item_id"],
+                                  element: items[index],
+                                  category_id: "",
+                                  category_name: "",
+                                  scroll: 0,
+                                ),
+                                onTap: () {
+                                  showModalBottomSheet(
+                                    transitionAnimationController:
+                                        animController,
+                                    context: context,
+                                    clipBehavior: Clip.antiAlias,
+                                    useSafeArea: true,
+                                    isScrollControlled: true,
+                                    builder: (context) {
+                                      return ProductPage(
+                                          item_id: items[index]["item_id"]);
+                                    },
+                                  );
+                                },
                               ),
-                            )
-                          ],
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
+                                child: Divider(
+                                  color:
+                                      Theme.of(context).colorScheme.secondary,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      child: GestureDetector(
-                        key: Key(items[index]["item_id"]),
-                        child: ItemCardMedium(
-                          item_id: items[index]["item_id"],
-                          element: items[index],
-                          category_id: "",
-                          category_name: "",
-                          scroll: 0,
-                        ),
-                        onTap: () {
-                          showModalBottomSheet(
-                            transitionAnimationController: animController,
-                            context: context,
-                            clipBehavior: Clip.antiAlias,
-                            useSafeArea: true,
-                            isScrollControlled: true,
-                            builder: (context) {
-                              return ProductPage(
-                                  item_id: items[index]["item_id"]);
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Divider(
-                        color: Theme.of(context).colorScheme.secondary,
-                      ),
-                    ),
-                  ],
-                );
-              },
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(
+                  height: 200,
+                )
+              ],
             )
           : Container(
               alignment: Alignment.center,

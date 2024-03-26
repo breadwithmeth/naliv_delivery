@@ -292,7 +292,7 @@ Future<Map<String, dynamic>> getItem(String itemId, {List? filter}) async {
   }
 }
 
-Future<String?> addToCart(String itemId) async {
+Future<String?> addToCart(String itemId, int amount) async {
   String? token = await getToken();
   print("ADD TO CARD");
   if (token == null) {
@@ -301,7 +301,7 @@ Future<String?> addToCart(String itemId) async {
   var url = Uri.https(URL_API, 'api/item/addToCart.php');
   var response = await http.post(
     url,
-    body: json.encode({'item_id': itemId}),
+    body: json.encode({'item_id': itemId, 'amount': amount}),
     headers: {"Content-Type": "application/json", "AUTH": token},
   );
   String? data;

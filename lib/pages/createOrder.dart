@@ -123,8 +123,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(),
-      body: Column(
-        mainAxisSize: MainAxisSize.max,
+      body: ListView(
         children: [
           const SizedBox(
             height: 5,
@@ -140,90 +139,88 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
               mainAxisSize: MainAxisSize.max,
               children: [
                 Flexible(
-                    flex: 1,
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          delivery = true;
-                        });
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
+                  flex: 1,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        delivery = true;
+                      });
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                          color: delivery ? Colors.white : Colors.grey.shade100,
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(10))),
+                      padding: const EdgeInsets.all(10),
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.delivery_dining,
                             color:
-                                delivery ? Colors.white : Colors.grey.shade100,
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(10))),
-                        padding: const EdgeInsets.all(10),
-                        alignment: Alignment.center,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.delivery_dining,
-                              color: delivery
-                                  ? Colors.black
-                                  : Colors.grey.shade400,
-                            ),
-                            const SizedBox(
-                              width: 5,
-                            ),
-                            Text(
-                              "Доставка",
-                              style: TextStyle(
-                                  color: delivery
-                                      ? Colors.black
-                                      : Colors.grey.shade400,
-                                  fontWeight: FontWeight.w700),
-                            )
-                          ],
-                        ),
+                                delivery ? Colors.black : Colors.grey.shade400,
+                          ),
+                          const SizedBox(
+                            width: 5,
+                          ),
+                          Text(
+                            "Доставка",
+                            style: TextStyle(
+                                color: delivery
+                                    ? Colors.black
+                                    : Colors.grey.shade400,
+                                fontWeight: FontWeight.w700),
+                          )
+                        ],
                       ),
-                    )),
+                    ),
+                  ),
+                ),
                 Flexible(
-                    flex: 1,
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          delivery = false;
-                        });
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
+                  flex: 1,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        delivery = false;
+                      });
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                          color: delivery ? Colors.grey.shade100 : Colors.white,
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(10))),
+                      padding: const EdgeInsets.all(10),
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.store,
                             color:
-                                delivery ? Colors.grey.shade100 : Colors.white,
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(10))),
-                        padding: const EdgeInsets.all(10),
-                        alignment: Alignment.center,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.store,
-                              color: delivery
-                                  ? Colors.grey.shade400
-                                  : Colors.black,
-                            ),
-                            const SizedBox(
-                              width: 5,
-                            ),
-                            Text(
-                              "Самовывоз",
-                              style: TextStyle(
-                                  color: delivery
-                                      ? Colors.grey.shade400
-                                      : Colors.black,
-                                  fontWeight: FontWeight.w700),
-                            )
-                          ],
-                        ),
+                                delivery ? Colors.grey.shade400 : Colors.black,
+                          ),
+                          const SizedBox(
+                            width: 5,
+                          ),
+                          Text(
+                            "Самовывоз",
+                            style: TextStyle(
+                                color: delivery
+                                    ? Colors.grey.shade400
+                                    : Colors.black,
+                                fontWeight: FontWeight.w700),
+                          )
+                        ],
                       ),
-                    )),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
           Container(
-            height: MediaQuery.of(context).size.height * 0.8,
+            height: MediaQuery.of(context).size.height * 0.5,
             decoration: BoxDecoration(
                 border: Border.all(
                   width: 2,
@@ -240,7 +237,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
               itemBuilder: (context, index) {
                 final item = items[index];
 
-                return ItemCardMedium(
+                return ItemCardMinimal(
                   element: item,
                   item_id: item["item_id"],
                   category_id: "",
@@ -303,14 +300,15 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
             child: ElevatedButton(
               onPressed: () {
                 Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => OrderConfirmation(
-                        delivery: delivery,
-                        items: items,
-                        address: currentAddress,
-                      ),
-                    ));
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => OrderConfirmation(
+                      delivery: delivery,
+                      items: items,
+                      address: currentAddress,
+                    ),
+                  ),
+                );
               },
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,

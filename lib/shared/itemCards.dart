@@ -702,13 +702,6 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                 ),
                               ),
                             ),
-                            Flexible(
-                              flex: 1,
-                              child: LikeButton(
-                                is_liked: element["is_liked"],
-                                item_id: element["item_id"],
-                              ),
-                            ),
                           ],
                         ),
                         const Text("0 шт в наличии"),
@@ -766,6 +759,17 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                         fontSize: 16),
                                   )
                                 ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        Flexible(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              LikeButton(
+                                is_liked: element["is_liked"],
+                                item_id: element["item_id"],
                               ),
                             ],
                           ),
@@ -959,7 +963,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                   ),
                   Flexible(
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Row(
                           children: [
@@ -976,36 +980,61 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                   color: Colors.grey.shade600,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 16),
-                            )
+                            ),
+                            element["prev_price"] != null
+                                ? Padding(
+                                    padding: const EdgeInsets.only(left: 5),
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          element["prev_price"],
+                                          style: TextStyle(
+                                              decoration:
+                                                  TextDecoration.lineThrough,
+                                              decorationColor:
+                                                  Colors.grey.shade500,
+                                              decorationThickness: 1.85,
+                                              color: Colors.grey.shade500,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500),
+                                        ),
+                                        Text(
+                                          "₸",
+                                          style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 12),
+                                        )
+                                      ],
+                                    ),
+                                  )
+                                : Container(),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Text(
+                                "x",
+                                style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16),
+                              ),
+                            ),
+                            Text(
+                              element["amount"],
+                              style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16),
+                            ),
                           ],
                         ),
-                        element["prev_price"] != null
-                            ? Padding(
-                                padding: const EdgeInsets.only(left: 5),
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      element["prev_price"],
-                                      style: TextStyle(
-                                          decoration:
-                                              TextDecoration.lineThrough,
-                                          decorationColor: Colors.grey.shade500,
-                                          decorationThickness: 1.85,
-                                          color: Colors.grey.shade500,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500),
-                                    ),
-                                    Text(
-                                      "₸",
-                                      style: TextStyle(
-                                          color: Colors.grey.shade600,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 12),
-                                    )
-                                  ],
-                                ),
-                              )
-                            : Container(),
+                        Flexible(
+                          flex: 1,
+                          child: LikeButton(
+                            is_liked: element["is_liked"],
+                            item_id: element["item_id"],
+                          ),
+                        ),
                       ],
                     ),
                   ),

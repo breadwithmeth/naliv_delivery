@@ -249,31 +249,32 @@ class _ProductPageState extends State<ProductPage> {
           propertiesWidget = propertiesT;
 
           _buyButtonFullWidth = BuyButtonFullWidth(element: item);
-
-          if (item.isNotEmpty) {
-            _image = CachedNetworkImage(
-              fit: BoxFit.fitHeight,
-              cacheManager: CacheManager(Config(
-                "itemImage",
-                stalePeriod: const Duration(days: 7),
-                //one week cache period
-              )),
-              imageUrl: 'https://naliv.kz/img/${item["photo"]}',
-              placeholder: ((context, url) {
-                return const Expanded(child: CircularProgressIndicator());
-              }),
-              errorWidget: ((context, url, error) {
-                return const Expanded(child: Text("Нет изображения"));
-              }),
-            );
-            // _image = Image.network(
-            //   'https://naliv.kz/img/${item["photo"]}',
-            //   fit: BoxFit.cover,
-            //   // width: MediaQuery.of(context).size.width * 0.8,
-            // );
-          }
         },
       );
+      setState(() {
+        if (item.isNotEmpty) {
+          _image = CachedNetworkImage(
+            fit: BoxFit.fitHeight,
+            cacheManager: CacheManager(Config(
+              "itemImage",
+              stalePeriod: const Duration(days: 7),
+              //one week cache period
+            )),
+            imageUrl: 'https://naliv.kz/img/${item["photo"]}',
+            placeholder: ((context, url) {
+              return const Expanded(child: CircularProgressIndicator());
+            }),
+            errorWidget: ((context, url, error) {
+              return const Expanded(child: Text("Нет изображения"));
+            }),
+          );
+          // _image = Image.network(
+          //   'https://naliv.kz/img/${item["photo"]}',
+          //   fit: BoxFit.cover,
+          //   // width: MediaQuery.of(context).size.width * 0.8,
+          // );
+        }
+      });
     }
   }
 
