@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/shared/likeButton.dart';
@@ -364,39 +365,37 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
         children: [
           Flexible(
             flex: 2,
-            child: Container(
-              color: Colors.amber,
-              child: CachedNetworkImage(
-                imageUrl: element["thumb"],
-                // width: MediaQuery.of(context).size.width * 0.2,
-                // height: MediaQuery.of(context).size.width * 0.7,
-                fit: BoxFit.fitHeight,
-                cacheManager: CacheManager(Config(
-                  "itemImage",
-                  stalePeriod: const Duration(days: 7),
-                  //one week cache period
-                )),
-                placeholder: (context, url) {
-                  return Container(
-                    alignment: Alignment.center,
-                    color: Colors.white,
-                    // width: MediaQuery.of(context).size.width * 0.2,
-                    child: const CircularProgressIndicator(),
-                  );
-                },
-                errorWidget: (context, url, error) {
-                  return Container(
-                    alignment: Alignment.center,
-                    // width: MediaQuery.of(context).size.width * 0.2,
-                    child: const Expanded(
-                      child: Text(
-                        "Нет изображения",
-                        textAlign: TextAlign.center,
-                      ),
+            child: CachedNetworkImage(
+              height: double.infinity,
+              imageUrl: element["thumb"],
+              // width: MediaQuery.of(context).size.width * 0.2,
+              // height: MediaQuery.of(context).size.width * 0.7,
+              fit: BoxFit.cover,
+              cacheManager: CacheManager(Config(
+                "itemImage",
+                stalePeriod: const Duration(days: 700),
+                //one week cache period
+              )),
+              placeholder: (context, url) {
+                return Container(
+                  alignment: Alignment.center,
+                  color: Colors.white,
+                  // width: MediaQuery.of(context).size.width * 0.2,
+                  child: const CircularProgressIndicator(),
+                );
+              },
+              errorWidget: (context, url, error) {
+                return Container(
+                  alignment: Alignment.center,
+                  // width: MediaQuery.of(context).size.width * 0.2,
+                  child: const Expanded(
+                    child: Text(
+                      "Нет изображения",
+                      textAlign: TextAlign.center,
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
           ),
           Flexible(
@@ -454,7 +453,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                             ),
                           ],
                         ),
-                        const Text("0 шт в наличии"),
+                        Text("${element["in_stock"] ?? "0"} шт в наличии"),
                       ],
                     ),
                   ),

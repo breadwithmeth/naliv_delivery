@@ -17,6 +17,7 @@ class _SearchPageState extends State<SearchPage> {
       builder: (context) {
         return SearchResultPage(
           search: _keyword.text,
+          page: 0,
         );
       },
     ));
