@@ -115,16 +115,13 @@ class _DealPageState extends State<DealPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.7,
-                    child: const Text(
+                  Flexible(child: Text(
                       "Я, при входе на данный ресурс, подтверждаю, что мне исполнился 21 год. Я подтверждаю, что прочитал и полностью ознакомился с вышеперечисленными документами, включая все правила, условия и политики, действующие на данном ресурсе.",
                       style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
                           color: Colors.black),
-                    ),
-                  ),
+                    ),),
                   Container(
                       child: Checkbox(
                     activeColor: Colors.black,
