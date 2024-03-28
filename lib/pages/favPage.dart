@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/cartPage.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 
@@ -77,6 +78,28 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: SizedBox(
+        width: 65,
+        height: 65,
+        child: FloatingActionButton(
+          shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(3))),
+          child: Icon(
+            Icons.shopping_basket_rounded,
+            color: Theme.of(context).colorScheme.onPrimary,
+          ),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) {
+                  return const CartPage();
+                },
+              ),
+            );
+          },
+        ),
+      ),
       appBar: AppBar(
         title: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -132,10 +155,7 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
               },
             )
           : const Center(
-              child: Text(
-                "Вы пока не добавили товары в этом магазине",
-                style: TextStyle(color: Colors.black),
-              ),
+              child: Text("Вы пока не добавили товары в этом магазине"),
             ),
     );
   }

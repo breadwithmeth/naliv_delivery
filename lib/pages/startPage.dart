@@ -93,14 +93,7 @@ class _StartPageState extends State<StartPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
               child: TextButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(
-                      Radius.circular(10),
-                    ),
-                  ),
-                ),
+                style: ElevatedButton.styleFrom(),
                 onPressed: () {
                   // Navigator.pushReplacement(context, MaterialPageRoute(
                   //   builder: (context) {

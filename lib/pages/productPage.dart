@@ -1,13 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/shared/buyButton.dart';
+import 'package:naliv_delivery/pages/cartPage.dart';
 import 'package:naliv_delivery/shared/likeButton.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:numberpicker/numberpicker.dart';
 import 'package:shimmer/shimmer.dart';
 
 class ProductPage extends StatefulWidget {
@@ -22,8 +21,6 @@ class _ProductPageState extends State<ProductPage> {
   Map<String, dynamic> item = {};
   List<Widget> groupItems = [];
   List<TableRow> properties = [];
-
-  late BuyButtonFullWidth _buyButtonFullWidth;
 
   List<Widget> propertiesWidget = [];
 
@@ -247,8 +244,6 @@ class _ProductPageState extends State<ProductPage> {
           groupItems = groupItems;
 
           propertiesWidget = propertiesT;
-
-          _buyButtonFullWidth = BuyButtonFullWidth(element: item);
         },
       );
       setState(() {
@@ -299,11 +294,59 @@ class _ProductPageState extends State<ProductPage> {
 
   // void _getRecomendations() {}
 
+  // BUTTON VARIABLES/FUNCS START
+
+  int cacheAmount = 0;
+  bool isNumPickActive = false;
+  bool isAmountConfirmed = false;
+
+  Future<String?> _finalizeCartAmount() async {
+    String? finalAmount;
+    await changeCartItem(item["item_id"], cacheAmount).then(
+      (value) {
+        print(value);
+        finalAmount = value;
+      },
+    ).onError(
+      (error, stackTrace) {
+        throw Exception("buyButton _addToCart failed");
+      },
+    );
+    return finalAmount;
+  }
+
+  void _removeFromCart() {
+    setState(() {
+      isAmountConfirmed = false;
+      if (cacheAmount > 0) {
+        cacheAmount--;
+      }
+    });
+  }
+
+  void _addToCart() {
+    setState(() {
+      isAmountConfirmed = false;
+      if (cacheAmount < 1000) {
+        cacheAmount++;
+      }
+    });
+  }
+
+  // BUTTON VARIABLES/FUNCS END
+
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     _getItem();
+    setState(() {
+      if (item["amount"] != null) {
+        cacheAmount = int.parse(item["amount"]);
+      } else {
+        cacheAmount = 0;
+      }
+    });
   }
 
   @override
@@ -342,7 +385,283 @@ class _ProductPageState extends State<ProductPage> {
           padding: const EdgeInsets.all(4),
           width: MediaQuery.of(context).size.width,
           child: item.isNotEmpty
-              ? _buyButtonFullWidth
+              ? cacheAmount != 0
+                  ? Container(
+                      decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(3))),
+                      padding: const EdgeInsets.symmetric(horizontal: 15),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          GestureDetector(
+                            onLongPress: (() {
+                              setState(() {
+                                isNumPickActive = true;
+                              });
+                            }),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
+                                  child: IconButton(
+                                    padding: const EdgeInsets.all(0),
+                                    onPressed: () {
+                                      _removeFromCart();
+                                    },
+                                    icon: Icon(
+                                      Icons.remove_rounded,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimary,
+                                    ),
+                                  ),
+                                ),
+                                isNumPickActive
+                                    ? Flexible(
+                                        child: GestureDetector(
+                                          onTap: (() {
+                                            setState(() {
+                                              isNumPickActive = false;
+                                            });
+                                          }),
+                                          child: NumberPicker(
+                                            value: cacheAmount,
+                                            textStyle: TextStyle(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onPrimary,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                            selectedTextStyle: const TextStyle(
+                                              color: Colors.blue,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                            itemHeight: 25,
+                                            itemWidth: 25,
+                                            minValue: 0,
+                                            maxValue:
+                                                20, // TODO: CHANGE IT TO AMOUNT FROM BACK-END
+                                            onChanged: (value) => setState(() {
+                                              cacheAmount = value;
+                                              if (value == 0) {
+                                                isNumPickActive = false;
+                                              }
+                                            }),
+                                          ),
+                                        ),
+                                      )
+                                    : Flexible(
+                                        child: Text(
+                                          cacheAmount.toString(),
+                                          style: TextStyle(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onPrimary,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                Flexible(
+                                  child: IconButton(
+                                    padding: const EdgeInsets.all(0),
+                                    // style: IconButton.styleFrom(
+                                    //   shape: const RoundedRectangleBorder(
+                                    //     borderRadius:
+                                    //         BorderRadius.all(Radius.circular(12)),
+                                    //   ),
+                                    //   side: const BorderSide(
+                                    //     width: 2.6,
+                                    //     strokeAlign: -7.0,
+                                    //   ),
+                                    // ),
+                                    onPressed: () {
+                                      _addToCart();
+                                    },
+                                    icon: Icon(
+                                      Icons.add_rounded,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              item["prev_price"] != null
+                                  ? Text(
+                                      item["prev_price"],
+                                      style: TextStyle(
+                                          decoration:
+                                              TextDecoration.lineThrough,
+                                          decorationColor: Theme.of(context)
+                                              .colorScheme
+                                              .onPrimary,
+                                          decorationThickness: 1.85,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onPrimary,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500),
+                                    )
+                                  : Container(),
+                              Padding(
+                                padding:
+                                    const EdgeInsets.only(left: 7, right: 5),
+                                child: Text(
+                                  item["price"] ?? "",
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 26,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimary),
+                                ),
+                              ),
+                              Text(
+                                "₸",
+                                style: TextStyle(
+                                  color:
+                                      Theme.of(context).colorScheme.onPrimary,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 30,
+                                ),
+                              ),
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 200),
+                                transitionBuilder: (child, animation) {
+                                  return ScaleTransition(
+                                    scale: animation,
+                                    child: child,
+                                  );
+                                },
+                                child: !isAmountConfirmed
+                                    ? IconButton(
+                                        key: const Key("add_cart"),
+                                        onPressed: () {
+                                          _finalizeCartAmount();
+                                          setState(() {
+                                            isAmountConfirmed = true;
+                                          });
+                                          // Navigator.push(context,
+                                          //     MaterialPageRoute(builder: (context) {
+                                          //   return const CartPage();
+                                          // }));
+                                        },
+                                        icon: Icon(
+                                          Icons.add_shopping_cart_rounded,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onPrimary,
+                                        ),
+                                      )
+                                    : IconButton(
+                                        key: const Key("go_cart"),
+                                        onPressed: () {
+                                          // _finalizeCartAmount();
+                                          Navigator.push(context,
+                                              MaterialPageRoute(
+                                                  builder: (context) {
+                                            return const CartPage();
+                                          }));
+                                        },
+                                        icon: Icon(
+                                          Icons.shopping_cart_checkout_rounded,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onPrimary,
+                                        ),
+                                      ),
+                              ),
+                            ],
+                          )
+                        ],
+                      ),
+                    )
+                  : ElevatedButton(
+                      // style: ElevatedButton.styleFrom(
+                      //   padding: const EdgeInsets.all(10),
+                      //   backgroundColor: Colors.grey.shade400,
+                      // ),
+                      onPressed: () {
+                        _addToCart();
+                      },
+                      child: Container(
+                        decoration: const BoxDecoration(
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(10))),
+                        padding: const EdgeInsets.symmetric(horizontal: 15),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.max,
+                          children: [
+                            Text(
+                              "В корзину",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 18,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
+                            ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                item["prev_price"] != null
+                                    ? Text(
+                                        item["prev_price"],
+                                        style: TextStyle(
+                                            decoration:
+                                                TextDecoration.lineThrough,
+                                            decorationColor: Theme.of(context)
+                                                .colorScheme
+                                                .onPrimary,
+                                            decorationThickness: 1.85,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onPrimary,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500),
+                                      )
+                                    : Container(),
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.only(left: 7, right: 5),
+                                  child: Text(
+                                    item["price"] ?? "",
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 26,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimary),
+                                  ),
+                                ),
+                                Text(
+                                  "₸",
+                                  style: TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.onPrimary,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 30,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
               : Shimmer.fromColors(
                   baseColor:
                       Theme.of(context).colorScheme.secondary.withOpacity(0.05),
@@ -351,7 +670,7 @@ class _ProductPageState extends State<ProductPage> {
                     width: MediaQuery.of(context).size.width,
                     height: 50,
                     decoration: const BoxDecoration(
-                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                      borderRadius: BorderRadius.all(Radius.circular(3)),
                       color: Colors.white,
                     ),
                     child: null,

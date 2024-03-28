@@ -199,17 +199,6 @@ class _LoginPageState extends State<LoginPage> {
                     // Spacer(),
                     !isCodeSend
                         ? ElevatedButton(
-                            style: ButtonStyle(
-                              backgroundColor: MaterialStatePropertyAll(
-                                  Theme.of(context).colorScheme.primary),
-                              shape: const MaterialStatePropertyAll(
-                                RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.all(
-                                    Radius.circular(10),
-                                  ),
-                                ),
-                              ),
-                            ),
                             onPressed: () async {
                               print(_phone_number.text.length);
                               if (_phone_number.text.length == 10) {
@@ -248,8 +237,6 @@ class _LoginPageState extends State<LoginPage> {
                               ],
                             ))
                         : ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.all(18)),
                             onPressed: () async {
                               await verify(_number, _one_time_code.text)
                                   .then((value) => {
