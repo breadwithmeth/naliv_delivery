@@ -99,7 +99,7 @@ import 'package:naliv_delivery/shared/numberPicker.dart';
 //         children: [
 //           Flexible(
 //             child: CachedNetworkImage(
-//               imageUrl: 'https://naliv.kz/img/${element["photo"]}',
+//               imageUrl: 'https://naliv.kz/img/${element["thumb"]}',
 //               width: MediaQuery.of(context).size.width * 0.4,
 //               // height: MediaQuery.of(context).size.width * 0.7,
 //               fit: BoxFit.fitWidth,
@@ -340,6 +340,7 @@ class _ItemCardState extends State<ItemCard> {
       // margin: const EdgeInsets.all(10),
       width: MediaQuery.of(context).size.width,
       height: MediaQuery.of(context).size.height * 0.28,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         mainAxisSize: MainAxisSize.max,
@@ -347,7 +348,7 @@ class _ItemCardState extends State<ItemCard> {
           Flexible(
             flex: 3,
             child: CachedNetworkImage(
-              imageUrl: 'https://naliv.kz/img/${element["photo"]}',
+              imageUrl: 'https://naliv.kz/img/${element["thumb"]}',
               width: double.infinity,
               // width: MediaQuery.of(context).size.width * 0.2,
               // height: MediaQuery.of(context).size.width * 0.7,
@@ -617,7 +618,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
           Flexible(
             flex: 2,
             child: CachedNetworkImage(
-              imageUrl: 'https://naliv.kz/img/${element["photo"]}',
+              imageUrl: 'https://naliv.kz/img/${element["thumb"]}',
               width: double.infinity,
               // width: MediaQuery.of(context).size.width * 0.2,
               // height: MediaQuery.of(context).size.width * 0.7,
@@ -886,7 +887,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
           Flexible(
             flex: 2,
             child: CachedNetworkImage(
-              imageUrl: 'https://naliv.kz/img/${element["photo"]}',
+              imageUrl: 'https://naliv.kz/img/${element["thumb"]}',
               width: double.infinity,
               // width: MediaQuery.of(context).size.width * 0.2,
               // height: MediaQuery.of(context).size.width * 0.7,

@@ -56,7 +56,9 @@ class _CartPageState extends State<CartPage>
     // TODO: implement initState
     super.initState();
     _setAnimationController();
-    _getCart();
+    Future.delayed(const Duration(milliseconds: 500), () async {
+      await _getCart();
+    });
   }
 
   @override

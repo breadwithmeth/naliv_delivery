@@ -135,10 +135,11 @@ class _MainState extends State<Main> {
             background: Colors.white,
             onBackground: Colors.black,
             error: Colors.red,
-            primary: Colors.amber.shade400,
-            onPrimary: Colors.black,
+            primary: Colors.black,
+            onPrimary: Colors.white,
             onError: Colors.white,
-            secondary: Colors.grey.shade300,
+            secondary: Colors.grey
+                .shade300, // TODO: Change this later? To make more sense with black/white style
             onSecondary: Colors.black,
           ),
           useMaterial3: true,
