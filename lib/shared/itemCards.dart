@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/shared/likeButton.dart';
@@ -364,15 +365,16 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
         children: [
           Flexible(
             flex: 2,
+            
             child: CachedNetworkImage(
+            height: double.infinity,
               imageUrl: element["thumb"],
-              width: double.infinity,
               // width: MediaQuery.of(context).size.width * 0.2,
               // height: MediaQuery.of(context).size.width * 0.7,
-              fit: BoxFit.fitHeight,
+              fit: BoxFit.cover,
               cacheManager: CacheManager(Config(
                 "itemImage",
-                stalePeriod: const Duration(days: 7),
+                stalePeriod: const Duration(days: 700),
                 //one week cache period
               )),
               placeholder: (context, url) {

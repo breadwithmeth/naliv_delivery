@@ -858,7 +858,7 @@ class _CategoryPageState extends State<CategoryPage> {
           },
           child: Column(
             children: [
-              ItemCard(
+              ItemCardMedium(
                 item_id: itemsL[index]["item_id"],
                 element: itemsL[index],
                 category_id: widget.category_id,
