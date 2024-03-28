@@ -364,37 +364,39 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
         children: [
           Flexible(
             flex: 2,
-            child: CachedNetworkImage(
-              imageUrl: element["thumb"],
-              width: double.infinity,
-              // width: MediaQuery.of(context).size.width * 0.2,
-              // height: MediaQuery.of(context).size.width * 0.7,
-              fit: BoxFit.fitHeight,
-              cacheManager: CacheManager(Config(
-                "itemImage",
-                stalePeriod: const Duration(days: 7),
-                //one week cache period
-              )),
-              placeholder: (context, url) {
-                return Container(
-                  alignment: Alignment.center,
-                  color: Colors.white,
-                  // width: MediaQuery.of(context).size.width * 0.2,
-                  child: const CircularProgressIndicator(),
-                );
-              },
-              errorWidget: (context, url, error) {
-                return Container(
-                  alignment: Alignment.center,
-                  // width: MediaQuery.of(context).size.width * 0.2,
-                  child: const Expanded(
-                    child: Text(
-                      "Нет изображения",
-                      textAlign: TextAlign.center,
+            child: Container(
+              color: Colors.amber,
+              child: CachedNetworkImage(
+                imageUrl: element["thumb"],
+                // width: MediaQuery.of(context).size.width * 0.2,
+                // height: MediaQuery.of(context).size.width * 0.7,
+                fit: BoxFit.fitHeight,
+                cacheManager: CacheManager(Config(
+                  "itemImage",
+                  stalePeriod: const Duration(days: 7),
+                  //one week cache period
+                )),
+                placeholder: (context, url) {
+                  return Container(
+                    alignment: Alignment.center,
+                    color: Colors.white,
+                    // width: MediaQuery.of(context).size.width * 0.2,
+                    child: const CircularProgressIndicator(),
+                  );
+                },
+                errorWidget: (context, url, error) {
+                  return Container(
+                    alignment: Alignment.center,
+                    // width: MediaQuery.of(context).size.width * 0.2,
+                    child: const Expanded(
+                      child: Text(
+                        "Нет изображения",
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
           Flexible(
