@@ -84,10 +84,11 @@ class _HomePageState extends State<HomePage>
     setState(() {
       categoryIsLoading = true;
     });
-    List categories1 = await getCategories();
-    setState(() {
-      categories = categories1;
-      categoryIsLoading = false;
+    await getCategories().then((value) {
+      setState(() {
+        categories = value;
+        categoryIsLoading = false;
+      });
     });
   }
 
