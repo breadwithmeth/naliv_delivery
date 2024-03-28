@@ -5,47 +5,167 @@ import 'package:naliv_delivery/pages/productPage.dart';
 import 'package:naliv_delivery/shared/buyButton.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:naliv_delivery/shared/likeButton.dart';
+import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 
 class SearchResultPage extends StatefulWidget {
-  const SearchResultPage({super.key, required this.search});
+  const SearchResultPage(
+      {super.key, required this.search, required this.page, this.result});
   final String search;
+  final int page;
+  final Widget? result;
   @override
   State<SearchResultPage> createState() => _SearchResultPageState();
 }
 
 class _SearchResultPageState extends State<SearchResultPage> {
-  ScrollController _sc = ScrollController();
-  Widget itemsist = Container();
-  int snapshotLenght = 0;
-  bool _isSearchDone = false;
-  int _itemCount = 0;
+  late bool _isLastPage;
+  late int _pageNumber;
+  late bool _error;
+  late bool _loading;
+  final int _numberOfPostsPerRequest = 30;
+  late List<Item> _items;
+  final int _nextPageTrigger = 3;
 
-  Future<List?> _getEmptyList() async {
-    print(123);
-    return null;
-  }
+  Future<void> _getItems() async {
+    try {
+      List? responseList = await getItemsMain(_pageNumber, widget.search);
+      if (responseList != null) {
+        List<Item> itemList = responseList.map((data) => Item(data)).toList();
 
-  Future<List> _getItems(int page) async {
-    List items = await getItemsMain(page, widget.search);
-    if (items.isEmpty) {
-      _sc.dispose();
+        setState(() {
+          _isLastPage = itemList.length < _numberOfPostsPerRequest;
+          _loading = false;
+          _pageNumber = _pageNumber + 1;
+          _items.addAll(itemList);
+        });
+        if (itemList.length == 0) {
+          setState(() {
+            _isLastPage = true;
+          });
+        }
+      }
+    } catch (e) {
+      print("error --> $e");
       setState(() {
-        _isSearchDone = true;
+        _loading = false;
+        _error = true;
       });
-      return [];
-    } else {
-      setState(() {
-        _itemCount++;
-      });
-      print(_itemCount);
-      return items;
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    bool isSearchDone = false;
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _pageNumber = 0;
+    _items = [];
+    _isLastPage = false;
+    _loading = true;
+    _error = false;
+    _getItems();
+  }
 
+  Widget buildPostsView() {
+    if (_items.isEmpty) {
+      if (_loading) {
+        return const Center(
+            child: Padding(
+          padding: EdgeInsets.all(8),
+          child: CircularProgressIndicator(),
+        ));
+      } else if (_error) {
+        return Center(child: errorDialog(size: 20));
+      }
+    }
+    return ListView.builder(
+        itemCount: _items.length + (_isLastPage ? 0 : 1),
+        itemBuilder: (context, index) {
+          if (index == _items.length - _nextPageTrigger) {
+            _getItems();
+          }
+          if (index == _items.length) {
+            if (_error) {
+              return Center(child: errorDialog(size: 15));
+            } else {
+              return const Center(
+                  child: Padding(
+                padding: EdgeInsets.all(8),
+                child: CircularProgressIndicator(),
+              ));
+            }
+          }
+          final Item item = _items[index];
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            key: Key(item.data["item_id"]),
+            onTap: () {
+              showModalBottomSheet(
+                context: context,
+                clipBehavior: Clip.antiAlias,
+                useSafeArea: true,
+                isScrollControlled: true,
+                builder: (context) {
+                  return ProductPage(item_id: item.data["item_id"]);
+                },
+              );
+            },
+            child: Column(
+              children: [
+                ItemCard(
+                  item_id: item.data["item_id"],
+                  element: item.data,
+                  category_id: "",
+                  category_name: "",
+                  scroll: 0,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Divider(
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                ),
+              ],
+            ),
+          );
+        });
+  }
+
+  Widget errorDialog({required double size}) {
+    return SizedBox(
+      height: 180,
+      width: 200,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'An error occurred when fetching the posts.',
+            style: TextStyle(
+                fontSize: size,
+                fontWeight: FontWeight.w500,
+                color: Colors.black),
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _loading = true;
+                  _error = false;
+                  _getItems();
+                });
+              },
+              child: const Text(
+                "Retry",
+                style: TextStyle(fontSize: 20, color: Colors.purpleAccent),
+              )),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
           // actions: [
@@ -56,7 +176,7 @@ class _SearchResultPageState extends State<SearchResultPage> {
           //     ),
           //     onPressed: () {
           //       setState(() {
-          //         itemsist = Container();
+          //         _itemsist = Container();
           //       });
           //     },
           //   ),
@@ -86,154 +206,12 @@ class _SearchResultPageState extends State<SearchResultPage> {
                     borderSide: BorderSide(color: Colors.white, width: 0))),
           ),
         ),
-        body: ListView.builder(
-            controller: _sc,
-            shrinkWrap: true,
-            primary: false,
-            itemCount: 1,
-            itemBuilder: ((context, index) {
-              print(isSearchDone);
-
-              return KeepAliveFutureBuilder(
-                  future: _getItems(index),
-                  builder: ((context, snapshot) {
-                    List? items = snapshot.data;
-
-                    // if (items!.length < index) {
-                    //   return Container();
-                    // }
-                    if (snapshot.hasError) {
-                      return Container();
-                    } else if (snapshot.connectionState ==
-                        ConnectionState.waiting) {
-                      return SizedBox(
-                        height: MediaQuery.of(context).size.height,
-                        child: const Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.max,
-                          children: [CircularProgressIndicator()],
-                        ),
-                      );
-                    } else if (snapshot.connectionState ==
-                        ConnectionState.done) {
-                      if (snapshot.data == null) {
-                        isSearchDone = true;
-                        return Container();
-                      } else if (items == null) {
-                        return Container();
-                      } else if (items.isEmpty) {
-                        isSearchDone = true;
-                        return Container();
-                      } else {
-                        return ListView.builder(
-                          controller: _sc,
-                          itemCount: items.length,
-                          primary: false,
-                          shrinkWrap: true,
-                          itemBuilder: (context, index) => GestureDetector(
-                            key: Key(items[index]["item_id"]),
-                            onTap: () {
-                              showModalBottomSheet(
-                                context: context,
-                                clipBehavior: Clip.antiAlias,
-                                useSafeArea: true,
-                                isScrollControlled: true,
-                                builder: (context) {
-                                  return ProductPage(
-                                      item_id: items[index]["item_id"]);
-                                },
-                              );
-                            },
-                            child: Column(
-                              children: [
-                                ItemCardMedium(
-                                  item_id: items[index]["item_id"],
-                                  category_id: "",
-                                  category_name: "",
-                                  element: items[index],
-                                  scroll: 0,
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16),
-                                  child: Divider(
-                                    color:
-                                        Theme.of(context).colorScheme.secondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-                    } else {
-                      return Container();
-                    }
-                  }));
-            }))
-        // body: ListView.builder(
-        //   // itemCount: snapshotLenght,
-        //   itemBuilder: (context, index) {
-        //     return KeepAliveFutureBuilder(
-        //       future: getItemsMain(index, widget.search),
-        //       builder: (context, snapshot) {
-        //         List? items = snapshot.data;
-        //         if (items!.length < index) {}
-        //         if (snapshot.hasError) {
-        //           return Container();
-        //         } else if (snapshot.connectionState == ConnectionState.waiting) {
-        //           return SizedBox(
-        //             height: MediaQuery.of(context).size.height,
-        //             child: const Column(
-        //               mainAxisAlignment: MainAxisAlignment.start,
-        //               mainAxisSize: MainAxisSize.max,
-        //               children: [CircularProgressIndicator()],
-        //             ),
-        //           );
-        //         } else {
-        //           return ListView.builder(
-        //             shrinkWrap: true,
-        //             primary: false,
-        //             itemCount: items!.length,
-        //             prototypeItem: ListTile(
-        //               title: Text(items[1]["name"]),
-        //             ),
-        //             itemBuilder: (context, index1) {
-        //               return ListTile(
-        //                 title: Text(items[index1]["name"]),
-        //               );
-        //             },
-        //           );
-        //         }
-        //       },
-        //     );
-        //   },
-        // ),
-        );
+        body: buildPostsView());
   }
 }
 
-class KeepAliveFutureBuilder extends StatefulWidget {
-  final Future future;
-  final AsyncWidgetBuilder builder;
+class Item {
+  final Map<String, dynamic> data;
 
-  KeepAliveFutureBuilder({required this.future, required this.builder});
-
-  @override
-  _KeepAliveFutureBuilderState createState() => _KeepAliveFutureBuilderState();
-}
-
-class _KeepAliveFutureBuilderState extends State<KeepAliveFutureBuilder>
-    with AutomaticKeepAliveClientMixin {
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    return FutureBuilder(
-      future: widget.future,
-      builder: widget.builder,
-    );
-  }
-
-  @override
-  bool get wantKeepAlive => true;
+  Item(this.data);
 }

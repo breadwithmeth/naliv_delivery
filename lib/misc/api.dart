@@ -209,7 +209,7 @@ Future<List> getCategories() async {
   return data;
 }
 
-Future<List> getItemsMain(int page, String search) async {
+Future<List?> getItemsMain(int page, String search) async {
   String? token = await getToken();
   if (token == null) {
     return [];
