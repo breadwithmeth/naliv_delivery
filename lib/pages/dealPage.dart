@@ -115,13 +115,15 @@ class _DealPageState extends State<DealPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Flexible(child: Text(
+                  Flexible(
+                    child: Text(
                       "Я, при входе на данный ресурс, подтверждаю, что мне исполнился 21 год. Я подтверждаю, что прочитал и полностью ознакомился с вышеперечисленными документами, включая все правила, условия и политики, действующие на данном ресурсе.",
                       style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
                           color: Colors.black),
-                    ),),
+                    ),
+                  ),
                   Container(
                       child: Checkbox(
                     activeColor: Colors.black,
@@ -138,16 +140,6 @@ class _DealPageState extends State<DealPage> {
                 height: 30,
               ),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  disabledBackgroundColor:
-                      Theme.of(context).colorScheme.secondary,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(
-                      Radius.circular(10),
-                    ),
-                  ),
-                ),
                 onPressed: is_agree!
                     ? () async {
                         bool agreed = await setAgreement();

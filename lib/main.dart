@@ -175,6 +175,14 @@ class _MainState extends State<Main> {
               // foregroundColor: Colors.white
             ),
           ),
+          floatingActionButtonTheme: const FloatingActionButtonThemeData(
+            backgroundColor: Colors.black,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(
+                Radius.circular(3),
+              ),
+            ),
+          ),
           textTheme: const TextTheme(
               bodyMedium: TextStyle(color: gray1),
               titleSmall: TextStyle(

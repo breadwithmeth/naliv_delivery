@@ -146,8 +146,11 @@ class _HomePageState extends State<HomePage>
           height: 65,
           child: FloatingActionButton(
             shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(10))),
-            child: const Icon(Icons.shopping_basket_rounded),
+                borderRadius: BorderRadius.all(Radius.circular(3))),
+            child: Icon(
+              Icons.shopping_basket_rounded,
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
             onPressed: () {
               Navigator.push(
                 context,
@@ -173,8 +176,9 @@ class _HomePageState extends State<HomePage>
                     children: [
                       CircleAvatar(
                         radius: MediaQuery.of(context).size.width * 0.10,
-                        backgroundImage: const NetworkImage(
-                            "https://air-fom.com/wp-content/uploads/2018/06/real_1920.jpg"),
+                        backgroundImage: const CachedNetworkImageProvider(
+                          "https://air-fom.com/wp-content/uploads/2018/06/real_1920.jpg",
+                        ),
                       ),
                       const SizedBox(
                         width: 10,
@@ -493,8 +497,7 @@ class _HomePageState extends State<HomePage>
                   margin: const EdgeInsets.symmetric(vertical: 15),
                   decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.1),
-                      borderRadius:
-                          const BorderRadius.all(Radius.circular(10))),
+                      borderRadius: const BorderRadius.all(Radius.circular(3))),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -559,7 +562,7 @@ class _HomePageState extends State<HomePage>
                               decoration: const BoxDecoration(
                                   color: Colors.black12,
                                   borderRadius:
-                                      BorderRadius.all(Radius.circular(10))),
+                                      BorderRadius.all(Radius.circular(3))),
                               child: const Row(
                                 children: [
                                   Text(
@@ -578,7 +581,7 @@ class _HomePageState extends State<HomePage>
                               decoration: const BoxDecoration(
                                   // color: Colors.black12,
                                   borderRadius:
-                                      BorderRadius.all(Radius.circular(10))),
+                                      BorderRadius.all(Radius.circular(3))),
                               child: Row(
                                 children: [
                                   Text(
@@ -603,8 +606,7 @@ class _HomePageState extends State<HomePage>
                         padding: const EdgeInsets.all(10),
                         decoration: const BoxDecoration(
                             color: Colors.black12,
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(10))),
+                            borderRadius: BorderRadius.all(Radius.circular(3))),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -655,7 +657,7 @@ class _HomePageState extends State<HomePage>
                           return Container(
                             decoration: BoxDecoration(
                                 borderRadius:
-                                    const BorderRadius.all(Radius.circular(10)),
+                                    const BorderRadius.all(Radius.circular(3)),
                                 image: DecorationImage(
                                     opacity: 0.5,
                                     image: NetworkImage(images[index]["image"]),
@@ -705,10 +707,11 @@ class _HomePageState extends State<HomePage>
                           child: Column(
                             children: [
                               Container(
-                                decoration: const BoxDecoration(
-                                    color: Colors.amber,
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(10))),
+                                decoration: BoxDecoration(
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    borderRadius: const BorderRadius.all(
+                                        Radius.circular(3))),
                                 width: MediaQuery.of(context).size.width * 0.15,
                                 height:
                                     MediaQuery.of(context).size.width * 0.15,
@@ -727,10 +730,11 @@ class _HomePageState extends State<HomePage>
                           child: Column(
                             children: [
                               Container(
-                                decoration: const BoxDecoration(
-                                    color: Colors.amber,
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(10))),
+                                decoration: BoxDecoration(
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    borderRadius: const BorderRadius.all(
+                                        Radius.circular(3))),
                                 width: MediaQuery.of(context).size.width * 0.15,
                                 height:
                                     MediaQuery.of(context).size.width * 0.15,
@@ -749,10 +753,11 @@ class _HomePageState extends State<HomePage>
                           child: Column(
                             children: [
                               Container(
-                                decoration: const BoxDecoration(
-                                    color: Colors.amber,
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(10))),
+                                decoration: BoxDecoration(
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    borderRadius: const BorderRadius.all(
+                                        Radius.circular(3))),
                                 width: MediaQuery.of(context).size.width * 0.15,
                                 height:
                                     MediaQuery.of(context).size.width * 0.15,
@@ -771,10 +776,11 @@ class _HomePageState extends State<HomePage>
                           child: Column(
                             children: [
                               Container(
-                                decoration: const BoxDecoration(
-                                    color: Colors.amber,
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(10))),
+                                decoration: BoxDecoration(
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    borderRadius: const BorderRadius.all(
+                                        Radius.circular(3))),
                                 width: MediaQuery.of(context).size.width * 0.15,
                                 height:
                                     MediaQuery.of(context).size.width * 0.15,
@@ -816,7 +822,7 @@ class _HomePageState extends State<HomePage>
                                   height: 50,
                                   decoration: const BoxDecoration(
                                     borderRadius:
-                                        BorderRadius.all(Radius.circular(10)),
+                                        BorderRadius.all(Radius.circular(3)),
                                     color: Colors.white,
                                   ),
                                   child: null,
@@ -947,7 +953,7 @@ class _CategoryItemState extends State<CategoryItem> {
         children: [
           Container(
             decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(3),
                 gradient: LinearGradient(
                     colors: [firstColor, secondColor],
                     transform: const GradientRotation(2))),
@@ -963,7 +969,7 @@ class _CategoryItemState extends State<CategoryItem> {
                 ),
           Container(
             clipBehavior: Clip.antiAliasWithSaveLayer,
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(3)),
             width: double.infinity,
             height: double.infinity,
             alignment: Alignment.bottomLeft,

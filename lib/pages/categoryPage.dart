@@ -1,11 +1,13 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/cartPage.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
 import 'package:naliv_delivery/pages/searchPage.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
+import 'package:shimmer/shimmer.dart';
 
 class CategoryPage extends StatefulWidget {
   const CategoryPage(
@@ -48,9 +50,12 @@ class _CategoryPageState extends State<CategoryPage> {
 
   Widget loadingScreen = Container();
 
+  bool isItemsLoadng = false;
+
   Future<void> _getItems() async {
     print("==================");
     setState(() {
+      isItemsLoadng = true;
       items = Container();
     });
     List items1;
@@ -68,6 +73,7 @@ class _CategoryPageState extends State<CategoryPage> {
     });
 
     setState(() {
+      isItemsLoadng = false;
       page += 1;
     });
 
@@ -402,8 +408,11 @@ class _CategoryPageState extends State<CategoryPage> {
         height: 65,
         child: FloatingActionButton(
           shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(10))),
-          child: const Icon(Icons.shopping_basket_rounded),
+              borderRadius: BorderRadius.all(Radius.circular(3))),
+          child: Icon(
+            Icons.shopping_basket_rounded,
+            color: Theme.of(context).colorScheme.onPrimary,
+          ),
           onPressed: () {
             Navigator.push(
               context,
@@ -457,7 +466,7 @@ class _CategoryPageState extends State<CategoryPage> {
                         decoration: BoxDecoration(
                             color: Colors.black.withOpacity(0.1),
                             borderRadius:
-                                const BorderRadius.all(Radius.circular(10))),
+                                const BorderRadius.all(Radius.circular(3))),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
@@ -759,75 +768,128 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   ListView _listViewCategories() {
-    return ListView.builder(
-      controller: _sc,
-      itemCount: itemsL.length,
-      itemBuilder: (context, index) => GestureDetector(
-        key: Key(itemsL[index]["item_id"]),
-        onTap: () {
-          showModalBottomSheet(
-            context: context,
-            clipBehavior: Clip.antiAlias,
-            useSafeArea: true,
-            isScrollControlled: true,
-            builder: (context) {
-              return ProductPage(item_id: itemsL[index]["item_id"]);
-            },
-          );
-        },
-        child: Column(
-          children: [
-            ItemCard(
-              item_id: itemsL[index]["item_id"],
-              element: itemsL[index],
-              category_id: widget.category_id,
-              category_name: widget.category_name!,
-              scroll: 0,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Divider(
-                color: Theme.of(context).colorScheme.secondary,
+    if (isItemsLoadng) {
+      return ListView.builder(
+          itemCount: 3,
+          itemBuilder: (context, index) {
+            return Column(
+              children: [
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 10),
+                  width: MediaQuery.of(context).size.width,
+                  height: MediaQuery.of(context).size.height * 0.28,
+                  //padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(3)),
+                    color: Colors.white,
+                  ),
+                  child: Shimmer.fromColors(
+                    baseColor: Theme.of(context)
+                        .colorScheme
+                        .secondary
+                        .withOpacity(0.05),
+                    highlightColor: Theme.of(context).colorScheme.secondary,
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Container(
+                            color: Colors.red,
+                          ),
+                        ),
+                        const Flexible(
+                          child: SizedBox(
+                            width: 20,
+                          ),
+                        ),
+                        Flexible(
+                          child: Container(
+                            color: Colors.amber,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Divider(
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                ),
+              ],
+            );
+          });
+    } else {
+      return ListView.builder(
+        controller: _sc,
+        itemCount: itemsL.length,
+        itemBuilder: (context, index) => GestureDetector(
+          key: Key(itemsL[index]["item_id"]),
+          onTap: () {
+            showModalBottomSheet(
+              context: context,
+              clipBehavior: Clip.antiAlias,
+              useSafeArea: true,
+              isScrollControlled: true,
+              builder: (context) {
+                return ProductPage(item_id: itemsL[index]["item_id"]);
+              },
+            );
+          },
+          child: Column(
+            children: [
+              ItemCard(
+                item_id: itemsL[index]["item_id"],
+                element: itemsL[index],
+                category_id: widget.category_id,
+                category_name: widget.category_name!,
+                scroll: 0,
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Divider(
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-      // onTap: () {
-      //   Navigator.push(
-      //     context,
-      //     MaterialPageRoute(
-      //         builder: (context) => ProductPage(
-      //               item_id: itemsL[index]["item_id"],
-      //               returnWidget: CategoryPage(
-      //                 category_id: widget.category_id,
-      //                 category_name: widget.category_name,
-      //                 scroll: widget.scroll,
-      //               ),
-      //             )),
-      //   ).then((value) {
-      //     print("===================OFFSET===================");
-      //     double currentsc = _sc.offset;
-      //     print(currentsc);
-      //     _getItems();
-      //     _sc.animateTo(20,
-      //         duration: const Duration(microseconds: 300),
-      //         curve: Curves.bounceIn);
-      //     // updateItemCard(itemsWidget
-      //     //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
-      //     // print("индекс");
+        // onTap: () {
+        //   Navigator.push(
+        //     context,
+        //     MaterialPageRoute(
+        //         builder: (context) => ProductPage(
+        //               item_id: itemsL[index]["item_id"],
+        //               returnWidget: CategoryPage(
+        //                 category_id: widget.category_id,
+        //                 category_name: widget.category_name,
+        //                 scroll: widget.scroll,
+        //               ),
+        //             )),
+        //   ).then((value) {
+        //     print("===================OFFSET===================");
+        //     double currentsc = _sc.offset;
+        //     print(currentsc);
+        //     _getItems();
+        //     _sc.animateTo(20,
+        //         duration: const Duration(microseconds: 300),
+        //         curve: Curves.bounceIn);
+        //     // updateItemCard(itemsWidget
+        //     //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
+        //     // print("индекс");
 
-      //     // print(itemsWidget
-      //     //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
-      //     // print("индекс");
-      //     // setState(() {
-      //     //   // itemsWidget[itemsWidget.indexWhere(
-      //     //   //         (_gd) => _gd.key == Key(element["item_id"]))] =
-      //     //   //     GestureDetector();
-      //     // });
-      //   });
-      // },
-    );
+        //     // print(itemsWidget
+        //     //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
+        //     // print("индекс");
+        //     // setState(() {
+        //     //   // itemsWidget[itemsWidget.indexWhere(
+        //     //   //         (_gd) => _gd.key == Key(element["item_id"]))] =
+        //     //   //     GestureDetector();
+        //     // });
+        //   });
+        // },
+      );
+    }
   }
 }
 

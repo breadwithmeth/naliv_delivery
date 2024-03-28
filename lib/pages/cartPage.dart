@@ -68,16 +68,6 @@ class _CartPageState extends State<CartPage>
       floatingActionButton: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 15),
         child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(
-                Radius.circular(10),
-              ),
-            ),
-            backgroundColor: Theme.of(context).colorScheme.secondary,
-            disabledBackgroundColor:
-                Theme.of(context).colorScheme.secondary.withOpacity(0.8),
-          ),
           onPressed: (() {
             Navigator.push(
               context,
@@ -91,30 +81,34 @@ class _CartPageState extends State<CartPage>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Flexible(
+                Flexible(
                   child: Text(
                     "Оформить заказ",
                     style: TextStyle(
                       fontWeight: FontWeight.w900,
-                      fontSize: 18,
-                      color: Colors.black,
+                      fontSize: 14,
+                      color: Theme.of(context).colorScheme.onPrimary,
                     ),
                   ),
                 ),
                 Flexible(
+                  fit: FlexFit.tight,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     mainAxisSize: MainAxisSize.max,
                     children: [
                       Flexible(
+                        fit: FlexFit.tight,
                         child: Padding(
                           padding: const EdgeInsets.only(left: 7, right: 5),
                           child: Text(
                             sum, // TODO: HERE IS SUM OF CART
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 26,
-                                color: Colors.black),
+                            textAlign: TextAlign.end,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 22,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
                           ),
                         ),
                       ),
@@ -122,9 +116,9 @@ class _CartPageState extends State<CartPage>
                         child: Text(
                           "₸",
                           style: TextStyle(
-                            color: Colors.grey.shade600,
+                            color: Theme.of(context).colorScheme.onPrimary,
                             fontWeight: FontWeight.w900,
-                            fontSize: 30,
+                            fontSize: 22,
                           ),
                         ),
                       ),

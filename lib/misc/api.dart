@@ -292,7 +292,7 @@ Future<Map<String, dynamic>> getItem(String itemId, {List? filter}) async {
   }
 }
 
-Future<String?> addToCart(String itemId, int amount) async {
+Future<String?> changeCartItem(String itemId, int amount) async {
   String? token = await getToken();
   print("ADD TO CARD");
   if (token == null) {
