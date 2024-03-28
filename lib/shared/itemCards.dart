@@ -365,9 +365,8 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
         children: [
           Flexible(
             flex: 2,
-            
             child: CachedNetworkImage(
-            height: double.infinity,
+              height: double.infinity,
               imageUrl: element["thumb"],
               // width: MediaQuery.of(context).size.width * 0.2,
               // height: MediaQuery.of(context).size.width * 0.7,
@@ -454,7 +453,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                             ),
                           ],
                         ),
-                        const Text("0 шт в наличии"),
+                        Text("${element["in_stock"] ?? "0"} шт в наличии"),
                       ],
                     ),
                   ),
