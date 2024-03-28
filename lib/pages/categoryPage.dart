@@ -792,18 +792,38 @@ class _CategoryPageState extends State<CategoryPage> {
                     child: Row(
                       children: [
                         Flexible(
-                          child: Container(
-                            color: Colors.red,
-                          ),
-                        ),
-                        const Flexible(
-                          child: SizedBox(
-                            width: 20,
+                          flex: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 10),
+                            child: Container(
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                         Flexible(
-                          child: Container(
-                            color: Colors.amber,
+                          flex: 3,
+                          child: Column(
+                            children: [
+                              Flexible(
+                                child: Container(
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Flexible(
+                                child: Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 10),
+                                  child: Container(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              Flexible(
+                                child: Container(
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
