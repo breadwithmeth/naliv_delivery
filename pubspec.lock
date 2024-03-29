@@ -211,14 +211,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.6.17+3"
-  flutter_plugin_android_lifecycle:
-    dependency: transitive
-    description:
-      name: flutter_plugin_android_lifecycle
-      sha256: "950e77c2bbe1692bc0874fc7fb491b96a4dc340457f4ea1641443d0a6c1ea360"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.0.15"
   flutter_staggered_grid_view:
     dependency: transitive
     description:
@@ -962,14 +954,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.2"
-  yandex_mapkit:
-    dependency: "direct main"
-    description:
-      name: yandex_mapkit
-      sha256: "9a197369a57a484872546c1d508f1c11e8366c9c2000269032d220dbf210cec5"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.3.3"
 sdks:
   dart: ">=3.2.0 <4.0.0"
   flutter: ">=3.19.2"
