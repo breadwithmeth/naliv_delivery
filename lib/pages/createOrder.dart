@@ -22,13 +22,14 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   Map? currentAddress;
 
   Future<void> _getCart() async {
-    List cart = await getCart();
-    print(cart);
+    // List cart = await getCart();
+    // print(cart);
 
     Map<String, dynamic>? cartInfo = await getCartInfo();
 
     setState(() {
-      items = cart;
+      // items = cart;
+      items = [];
       cartInfo = cartInfo!;
     });
   }

@@ -22,16 +22,16 @@ class _CartPageState extends State<CartPage>
   final Duration animDuration = const Duration(milliseconds: 250);
 
   Future<void> _getCart() async {
-    List cart = await getCart();
+    Map<String, dynamic> cart = await getCart();
     print(cart);
 
-    Map<String, dynamic>? cartInfo = await getCartInfo();
+    // Map<String, dynamic>? cartInfo = await getCartInfo();
     print(cartInfo);
 
     setState(() {
-      items = cart;
-      cartInfo = cartInfo!;
-      sum = cartInfo!["sum"];
+      items = cart["cart"];
+      cartInfo = cart;
+      sum = cart!["sum"];
     });
   }
 
