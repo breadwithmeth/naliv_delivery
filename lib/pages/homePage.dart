@@ -80,6 +80,8 @@ class _HomePageState extends State<HomePage>
 
   bool categoryIsLoading = true;
 
+  Map<String, dynamic>? user;
+
   Future<void> _getCategories() async {
     setState(() {
       categoryIsLoading = true;
@@ -116,12 +118,16 @@ class _HomePageState extends State<HomePage>
     });
   }
 
-  toggleDrawer() async {
+  void toggleDrawer() async {
     if (_scaffoldKey.currentState!.isDrawerOpen) {
       _scaffoldKey.currentState!.openEndDrawer();
     } else {
       _scaffoldKey.currentState!.openDrawer();
     }
+  }
+
+  void _getUser() async {
+    user = await getUser();
   }
 
   _getCurrentAddress() {}
@@ -132,6 +138,9 @@ class _HomePageState extends State<HomePage>
     super.initState();
     _getCategories();
     _getCurrentBusiness();
+    Future.delayed(Duration.zero).then((value) {
+      _getUser();
+    });
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       _getAddresses();
     });
@@ -185,35 +194,37 @@ class _HomePageState extends State<HomePage>
                         width: 10,
                       ),
                       // TODO: activate this code in production
-                      // SizedBox(
-                      //   width: MediaQuery.of(context).size.width * 0.3,
-                      //   child: Column(
-                      //     crossAxisAlignment: CrossAxisAlignment.start,
-                      //     children: [
-                      //       Text(
-                      //         user["name"] ?? "",
-                      //         style: const TextStyle(
-                      //             color: Colors.black,
-                      //             fontWeight: FontWeight.w500,
-                      //             fontSize: 16),
-                      //       ),
-                      //       Text(
-                      //         user["login"] ?? "",
-                      //         style: const TextStyle(
-                      //             color: Colors.black,
-                      //             fontWeight: FontWeight.w400,
-                      //             fontSize: 14),
-                      //       ),
-                      //       Text(
-                      //         user["user_id"] ?? "",
-                      //         style: TextStyle(
-                      //             color: Colors.grey.shade400,
-                      //             fontWeight: FontWeight.w400,
-                      //             fontSize: 14),
-                      //       )
-                      //     ],
-                      //   ),
-                      // )
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width * 0.3,
+                        child: user != null
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    user!["name"] ?? "Нет имени",
+                                    style: const TextStyle(
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 16),
+                                  ),
+                                  Text(
+                                    user!["login"] ?? "",
+                                    style: const TextStyle(
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.w400,
+                                        fontSize: 14),
+                                  ),
+                                  Text(
+                                    user!["user_id"] ?? "",
+                                    style: TextStyle(
+                                        color: Colors.grey.shade400,
+                                        fontWeight: FontWeight.w400,
+                                        fontSize: 14),
+                                  )
+                                ],
+                              )
+                            : Container(),
+                      )
                     ],
                   ),
                 ),
@@ -886,7 +897,8 @@ class _CategoryItemState extends State<CategoryItem> {
   late Image imageBG = Image.asset('assets/vectors/wine.png');
   Alignment? _alignment;
   Color textBG = Colors.white.withOpacity(0);
-  Future<void> _getColors() async {
+
+  void _getColors() {
     switch (widget.category_id) {
       // Beer
       case '1':
@@ -931,9 +943,7 @@ class _CategoryItemState extends State<CategoryItem> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    Future.delayed(Duration.zero, () async {
-      await _getColors();
-    });
+    _getColors();
   }
 
   @override

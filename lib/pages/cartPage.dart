@@ -57,13 +57,21 @@ class _CartPageState extends State<CartPage>
     });
   }
 
+  bool isCartLoading = false;
+
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     _setAnimationController();
     Future.delayed(const Duration(milliseconds: 0), () async {
+      setState(() {
+        isCartLoading = true;
+      });
       await _getCart();
+      setState(() {
+        isCartLoading = false;
+      });
     });
   }
 
@@ -75,11 +83,14 @@ class _CartPageState extends State<CartPage>
         padding: const EdgeInsets.symmetric(horizontal: 15),
         child: ElevatedButton(
           onPressed: () {
-            Navigator.push(context, MaterialPageRoute(
-              builder: ((context) {
-                return const CreateOrderPage();
-              }),
-            ));
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: ((context) {
+                  return const CreateOrderPage();
+                }),
+              ),
+            );
           },
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

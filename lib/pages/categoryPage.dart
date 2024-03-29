@@ -816,7 +816,7 @@ class _CategoryPageState extends State<CategoryPage> {
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 10),
                   width: MediaQuery.of(context).size.width,
-                  height: MediaQuery.of(context).size.height * 0.28,
+                  height: MediaQuery.of(context).size.height * 0.2,
                   //padding: const EdgeInsets.symmetric(horizontal: 10),
                   decoration: const BoxDecoration(
                     borderRadius: BorderRadius.all(Radius.circular(3)),

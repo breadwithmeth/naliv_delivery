@@ -450,7 +450,8 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                           ],
                         ),
                         Text(
-                            "${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт в наличии"),
+                          "${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт в наличии",
+                        ),
                       ],
                     ),
                   ),
@@ -634,11 +635,13 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
               // width: MediaQuery.of(context).size.width * 0.2,
               // height: MediaQuery.of(context).size.width * 0.7,
               fit: BoxFit.fitHeight,
-              cacheManager: CacheManager(Config(
-                "itemImage",
-                stalePeriod: const Duration(days: 7),
-                //one week cache period
-              )),
+              cacheManager: CacheManager(
+                Config(
+                  "itemImage",
+                  stalePeriod: const Duration(days: 7),
+                  //one week cache period
+                ),
+              ),
               placeholder: (context, url) {
                 return Container(
                   alignment: Alignment.center,
@@ -686,14 +689,17 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                   child: Container(
                                     padding: const EdgeInsets.all(5),
                                     decoration: BoxDecoration(
-                                        color: Colors.grey.shade200,
-                                        borderRadius: const BorderRadius.all(
-                                            Radius.circular(10))),
+                                      color: Colors.grey.shade200,
+                                      borderRadius: const BorderRadius.all(
+                                        Radius.circular(10),
+                                      ),
+                                    ),
                                     child: Text(
                                       element["country"] ?? "",
                                       style: const TextStyle(
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.w600),
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 )
