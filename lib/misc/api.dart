@@ -334,10 +334,10 @@ Future<String?> removeFromCart(String itemId) async {
   return data;
 }
 
-Future<List> getCart() async {
+Future<Map<String, dynamic> > getCart() async {
   String? token = await getToken();
   if (token == null) {
-    return [];
+    return {};
   }
   var url = Uri.https("naliv.kz", 'api/item/getCart.php');
   var response = await http.post(
@@ -346,7 +346,7 @@ Future<List> getCart() async {
   );
 
   // List<dynamic> list = json.decode(response.body);
-  List data = json.decode(utf8.decode(response.bodyBytes));
+  Map<String, dynamic>  data = json.decode(utf8.decode(response.bodyBytes));
   print(
       "DATA FROM GETCART IN API.DART__ DATA FROM GETCART IN API.DART__ DATA FROM GETCART IN API.DART");
   print(data);
