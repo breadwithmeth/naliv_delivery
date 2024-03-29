@@ -346,10 +346,10 @@ Future<Map<String, dynamic> > getCart() async {
   );
 
   // List<dynamic> list = json.decode(response.body);
+  print(response.bodyBytes);
   Map<String, dynamic>  data = json.decode(utf8.decode(response.bodyBytes));
   print(
       "DATA FROM GETCART IN API.DART__ DATA FROM GETCART IN API.DART__ DATA FROM GETCART IN API.DART");
-  print(data);
   return data;
 }
 
