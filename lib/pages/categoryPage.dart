@@ -68,14 +68,16 @@ class _CategoryPageState extends State<CategoryPage> {
           await getItems(widget.category_id, page, filters: selectedFilters);
     }
 
-    setState(() {
-      itemsL.addAll(items1);
-    });
+    if (mounted) {
+      setState(() {
+        itemsL.addAll(items1);
+      });
 
-    setState(() {
-      isItemsLoadng = false;
-      page += 1;
-    });
+      setState(() {
+        isItemsLoadng = false;
+        page += 1;
+      });
+    }
 
     // List<GestureDetector> _itemsWidget = [];
     // for (var i = 0; i < _items.length; i++) {

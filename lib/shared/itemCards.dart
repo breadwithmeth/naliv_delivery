@@ -369,11 +369,13 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
               // width: MediaQuery.of(context).size.width * 0.2,
               // height: MediaQuery.of(context).size.width * 0.7,
               fit: BoxFit.cover,
-              cacheManager: CacheManager(Config(
-                "itemImage",
-                stalePeriod: const Duration(days: 700),
-                //one week cache period
-              )),
+              cacheManager: CacheManager(
+                Config(
+                  "itemImage",
+                  stalePeriod: const Duration(days: 700),
+                  //one week cache period
+                ),
+              ),
               placeholder: (context, url) {
                 return Container(
                   alignment: Alignment.center,
