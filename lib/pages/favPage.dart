@@ -19,41 +19,54 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
 
   Future<void> _getItems() async {
     List _items = await getLiked();
-    List<Widget> itemsWidget = [];
-    for (var element in items) {
-      itemsWidget.add(GestureDetector(
-        key: Key(element["item_id"]),
-        child: ItemCardMedium(
-          item_id: element["item_id"],
-          element: element,
-          category_id: "",
-          category_name: "",
-          scroll: 0,
-        ),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => ProductPage(item_id: element["item_id"])),
-          ).then((value) {
-            print("===================OFFSET===================");
+    // List<Widget> itemsWidget = [];
 
-            // updateItemCard(itemsWidget
-            //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
-            // print("индекс");
+    // for (var element in items) {
+    // void updateDataAmount(String newDataAmount, int index) {
+    //   setState(() {
+    //     element["amount"] = newDataAmount;
+    //   });
+    // }
 
-            // print(itemsWidget
-            //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
-            // print("индекс");
-            // setState(() {
-            //   // itemsWidget[itemsWidget.indexWhere(
-            //   //         (_gd) => _gd.key == Key(element["item_id"]))] =
-            //   //     GestureDetector();
-            // });
-          });
-        },
-      ));
-    }
+    //   itemsWidget.add(GestureDetector(
+    //     behavior: HitTestBehavior.opaque,
+    //     key: Key(element["item_id"]),
+    //     child: ItemCardMedium(
+    //       item_id: element["item_id"],
+    //       element: element,
+    //       category_id: "",
+    //       category_name: "",
+    //       scroll: 0,
+    //     ),
+    //     onTap: () {
+    //       Navigator.push(
+    //         context,
+    //         MaterialPageRoute(
+    //           builder: (context) => ProductPage(
+    //             item: element,
+    //             index: items.indexOf(element),
+    //             returnDataAmount: updateDataAmount,
+    //           ),
+    //         ),
+    //       ).then((value) {
+    //         print("===================OFFSET===================");
+
+    //         // updateItemCard(itemsWidget
+    //         //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
+    //         // print("индекс");
+
+    //         // print(itemsWidget
+    //         //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
+    //         // print("индекс");
+    //         // setState(() {
+    //         //   // itemsWidget[itemsWidget.indexWhere(
+    //         //   //         (_gd) => _gd.key == Key(element["item_id"]))] =
+    //         //   //     GestureDetector();
+    //         // });
+    //       });
+    //     },
+    //   ));
+    // }
     setState(() {
       items = _items;
     });
@@ -65,6 +78,12 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
     animController.duration = animDuration;
     animController.reverseDuration = const Duration(milliseconds: 450);
     animController.drive(CurveTween(curve: Curves.bounceInOut));
+  }
+
+  void updateDataAmount(String newDataAmount, int index) {
+    setState(() {
+      items[index]["amount"] = newDataAmount;
+    });
   }
 
   @override
@@ -121,6 +140,7 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
               itemBuilder: (context, index) {
                 // final item = items[index];
                 return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   key: Key(items[index]["item_id"]),
                   child: Column(
                     children: [
@@ -147,7 +167,11 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
                       useSafeArea: true,
                       isScrollControlled: true,
                       builder: (context) {
-                        return ProductPage(item_id: items[index]["item_id"]);
+                        return ProductPage(
+                          item: items[index],
+                          index: index,
+                          returnDataAmount: updateDataAmount,
+                        );
                       },
                     );
                   },

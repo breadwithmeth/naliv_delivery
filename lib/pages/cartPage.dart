@@ -51,12 +51,18 @@ class _CartPageState extends State<CartPage>
     animController.drive(CurveTween(curve: Curves.easeIn));
   }
 
+  void updateDataAmount(String newDataAmount, int index) {
+    setState(() {
+      items[index]["amount"] = newDataAmount;
+    });
+  }
+
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     _setAnimationController();
-    Future.delayed(const Duration(milliseconds: 500), () async {
+    Future.delayed(const Duration(milliseconds: 0), () async {
       await _getCart();
     });
   }
@@ -68,65 +74,61 @@ class _CartPageState extends State<CartPage>
       floatingActionButton: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 15),
         child: ElevatedButton(
-          onPressed: (() {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: ((context) {
+          onPressed: () {
+            Navigator.push(context, MaterialPageRoute(
+              builder: ((context) {
                 return const CreateOrderPage();
-              })),
-            );
-          }),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(
-                  child: Text(
-                    "Оформить заказ",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 14,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
+              }),
+            ));
+          },
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(
+                  "Оформить заказ",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                    color: Theme.of(context).colorScheme.onPrimary,
                   ),
                 ),
-                Flexible(
-                  fit: FlexFit.tight,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      Flexible(
-                        fit: FlexFit.tight,
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 7, right: 5),
-                          child: Text(
-                            sum, // TODO: HERE IS SUM OF CART
-                            textAlign: TextAlign.end,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 22,
-                              color: Theme.of(context).colorScheme.onPrimary,
-                            ),
-                          ),
-                        ),
-                      ),
-                      Flexible(
+              ),
+              Flexible(
+                fit: FlexFit.tight,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Flexible(
+                      fit: FlexFit.tight,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 5),
                         child: Text(
-                          "₸",
+                          sum, // TODO: HERE IS SUM OF CART
+                          textAlign: TextAlign.end,
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w700,
                             fontSize: 22,
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    Flexible(
+                      child: Text(
+                        "₸",
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 22,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -199,6 +201,7 @@ class _CartPageState extends State<CartPage>
                           child: Column(
                             children: [
                               GestureDetector(
+                                behavior: HitTestBehavior.opaque,
                                 key: Key(items[index]["item_id"]),
                                 child: ItemCardMinimal(
                                   item_id: items[index]["item_id"],
@@ -217,7 +220,10 @@ class _CartPageState extends State<CartPage>
                                     isScrollControlled: true,
                                     builder: (context) {
                                       return ProductPage(
-                                          item_id: items[index]["item_id"]);
+                                        item: items[index],
+                                        index: index,
+                                        returnDataAmount: updateDataAmount,
+                                      );
                                     },
                                   );
                                 },

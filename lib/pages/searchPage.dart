@@ -1,4 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/pages/searchResultPage.dart';
 
 class SearchPage extends StatefulWidget {
@@ -45,57 +47,88 @@ class _SearchPageState extends State<SearchPage> {
                       blurRadius: 10)
                 ],
                 color: Colors.grey.shade100,
-                borderRadius: const BorderRadius.all(Radius.circular(10))),
+                borderRadius: const BorderRadius.all(Radius.circular(3))),
             child: Column(
               children: [
                 TextField(
                   onChanged: ((value) {
-                    setState(() {
-                      _keyword.text.isNotEmpty
-                          ? isTextInField = true
-                          : isTextInField = false;
-                    });
+                    // This is so complex because otherway the button will flicker non-stop on any change in TextField
+                    // because setState method will update isTextInField and that will trigger AnimatedSwitcher for search button to rebuild and that is causing flickering
+                    if (value.isNotEmpty) {
+                      if (isTextInField == true) {
+                        return;
+                      } else {
+                        setState(() {
+                          isTextInField = true;
+                        });
+                      }
+                    } else {
+                      if (isTextInField == false) {
+                        return;
+                      } else {
+                        setState(() {
+                          isTextInField = false;
+                        });
+                      }
+                    }
                   }),
                   controller: _keyword,
                   autofocus: true,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                       labelText: "Поиск",
                       filled: true,
                       fillColor: Colors.white,
                       focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(width: 2, color: Colors.amber),
-                          borderRadius: BorderRadius.all(Radius.circular(10))),
+                          borderSide: BorderSide(
+                              width: 2,
+                              color: Theme.of(context).colorScheme.primary),
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(3))),
                       enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(width: 2, color: Colors.grey),
-                          borderRadius: BorderRadius.all(Radius.circular(10))),
+                          borderSide: BorderSide(
+                              width: 2,
+                              color: Theme.of(context).colorScheme.primary),
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(3))),
                       border: OutlineInputBorder(
-                          borderSide: BorderSide(width: 5, color: Colors.black),
-                          borderRadius: BorderRadius.all(Radius.circular(10)))),
+                          borderSide: BorderSide(
+                              width: 5,
+                              color: Theme.of(context).colorScheme.primary),
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(3)))),
                 ),
                 const SizedBox(
                   height: 10,
                 ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    disabledBackgroundColor:
-                        Theme.of(context).colorScheme.primary.withOpacity(0.5),
-                    shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(10))),
-                    disabledForegroundColor: Colors.black.withOpacity(0.5),
-                    elevation: 0.0,
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 125),
+                  switchInCurve: Curves.easeIn,
+                  switchOutCurve: Curves.easeOut,
+                  child: ElevatedButton(
+                    key: UniqueKey(),
+                    style: ElevatedButton.styleFrom(
+                      textStyle: TextStyle(
+                        color: Theme.of(context).colorScheme.onPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    onPressed: isTextInField
+                        ? () {
+                            _search();
+                          }
+                        : null,
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        Text(
+                          "Найти",
+                        )
+                      ],
+                    ),
                   ),
-                  onPressed: _keyword.text.isNotEmpty
-                      ? () {
-                          _search();
-                        }
-                      : null,
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.max,
-                    children: [Text("Найти")],
-                  ),
-                )
+                ),
               ],
             ),
           ),

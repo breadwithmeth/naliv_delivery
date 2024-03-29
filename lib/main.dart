@@ -171,7 +171,6 @@ class _MainState extends State<Main> {
               // backgroundColor: Color(0xFFFFCA3C),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.all(20),
-
               // foregroundColor: Colors.white
             ),
           ),

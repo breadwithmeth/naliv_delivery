@@ -121,11 +121,9 @@ class _ItemCardState extends State<ItemCard> {
                 return Container(
                   alignment: Alignment.center,
                   // width: MediaQuery.of(context).size.width * 0.2,
-                  child: const Expanded(
-                    child: Text(
-                      "Нет изображения",
-                      textAlign: TextAlign.center,
-                    ),
+                  child: const Text(
+                    "Нет изображения",
+                    textAlign: TextAlign.center,
                   ),
                 );
               },
@@ -388,11 +386,9 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                 return Container(
                   alignment: Alignment.center,
                   // width: MediaQuery.of(context).size.width * 0.2,
-                  child: const Expanded(
-                    child: Text(
-                      "Нет изображения",
-                      textAlign: TextAlign.center,
-                    ),
+                  child: const Text(
+                    "Нет изображения",
+                    textAlign: TextAlign.center,
                   ),
                 );
               },
@@ -453,7 +449,8 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                             ),
                           ],
                         ),
-                        Text("${element["in_stock"] ?? "0"} шт в наличии"),
+                        Text(
+                            "${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт в наличии"),
                       ],
                     ),
                   ),
@@ -654,11 +651,9 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                 return Container(
                   alignment: Alignment.center,
                   // width: MediaQuery.of(context).size.width * 0.2,
-                  child: const Expanded(
-                    child: Text(
-                      "Нет изображения",
-                      textAlign: TextAlign.center,
-                    ),
+                  child: const Text(
+                    "Нет изображения",
+                    textAlign: TextAlign.center,
                   ),
                 );
               },

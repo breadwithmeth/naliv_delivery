@@ -1,11 +1,7 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
-import 'package:naliv_delivery/shared/buyButton.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
-import 'package:naliv_delivery/shared/likeButton.dart';
-import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 
 class SearchResultPage extends StatefulWidget {
   const SearchResultPage(
@@ -53,6 +49,12 @@ class _SearchResultPageState extends State<SearchResultPage> {
     }
   }
 
+  void updateDataAmount(String newDataAmount, int index) {
+    setState(() {
+      _items[index].data["amount"] = newDataAmount;
+    });
+  }
+
   @override
   void initState() {
     // TODO: implement initState
@@ -78,56 +80,61 @@ class _SearchResultPageState extends State<SearchResultPage> {
       }
     }
     return ListView.builder(
-        itemCount: _items.length + (_isLastPage ? 0 : 1),
-        itemBuilder: (context, index) {
-          if (index == _items.length - _nextPageTrigger) {
-            _getItems();
+      itemCount: _items.length + (_isLastPage ? 0 : 1),
+      itemBuilder: (context, index) {
+        if (index == _items.length - _nextPageTrigger) {
+          _getItems();
+        }
+        if (index == _items.length) {
+          if (_error) {
+            return Center(child: errorDialog(size: 15));
+          } else {
+            return const Center(
+                child: Padding(
+              padding: EdgeInsets.all(8),
+              child: CircularProgressIndicator(),
+            ));
           }
-          if (index == _items.length) {
-            if (_error) {
-              return Center(child: errorDialog(size: 15));
-            } else {
-              return const Center(
-                  child: Padding(
-                padding: EdgeInsets.all(8),
-                child: CircularProgressIndicator(),
-              ));
-            }
-          }
-          final Item item = _items[index];
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            key: Key(item.data["item_id"]),
-            onTap: () {
-              showModalBottomSheet(
-                context: context,
-                clipBehavior: Clip.antiAlias,
-                useSafeArea: true,
-                isScrollControlled: true,
-                builder: (context) {
-                  return ProductPage(item_id: item.data["item_id"]);
-                },
-              );
-            },
-            child: Column(
-              children: [
-                ItemCard(
-                  item_id: item.data["item_id"],
-                  element: item.data,
-                  category_id: "",
-                  category_name: "",
-                  scroll: 0,
+        }
+        final Item item = _items[index];
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          key: Key(item.data["item_id"]),
+          onTap: () {
+            showModalBottomSheet(
+              context: context,
+              clipBehavior: Clip.antiAlias,
+              useSafeArea: true,
+              isScrollControlled: true,
+              builder: (context) {
+                return ProductPage(
+                  item: item.data,
+                  index: index,
+                  returnDataAmount: updateDataAmount,
+                );
+              },
+            );
+          },
+          child: Column(
+            children: [
+              ItemCard(
+                item_id: item.data["item_id"],
+                element: item.data,
+                category_id: "",
+                category_name: "",
+                scroll: 0,
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Divider(
+                  color: Theme.of(context).colorScheme.secondary,
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Divider(
-                    color: Theme.of(context).colorScheme.secondary,
-                  ),
-                ),
-              ],
-            ),
-          );
-        });
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget errorDialog({required double size}) {

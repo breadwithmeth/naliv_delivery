@@ -70,6 +70,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
         setState(() {
           currentAddress = element;
           currentAddressWidget = GestureDetector(
+            behavior: HitTestBehavior.opaque,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               mainAxisSize: MainAxisSize.max,
@@ -310,10 +311,19 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                   ),
                 );
               },
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.max,
-                children: [Text("Подтвердить заказ")],
+                children: [
+                  Text(
+                    "Подтвердить заказ",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  )
+                ],
               ),
             ),
           ),

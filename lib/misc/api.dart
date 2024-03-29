@@ -339,7 +339,7 @@ Future<List> getCart() async {
   if (token == null) {
     return [];
   }
-  var url = Uri.https(URL_API, 'api/item/getCart.php');
+  var url = Uri.https("naliv.kz", 'api/item/getCart.php');
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -347,6 +347,8 @@ Future<List> getCart() async {
 
   // List<dynamic> list = json.decode(response.body);
   List data = json.decode(utf8.decode(response.bodyBytes));
+  print(
+      "DATA FROM GETCART IN API.DART__ DATA FROM GETCART IN API.DART__ DATA FROM GETCART IN API.DART");
   print(data);
   return data;
 }

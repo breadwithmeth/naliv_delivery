@@ -10,15 +10,21 @@ import 'package:numberpicker/numberpicker.dart';
 import 'package:shimmer/shimmer.dart';
 
 class ProductPage extends StatefulWidget {
-  const ProductPage({super.key, required this.item_id});
-  final String item_id;
+  const ProductPage(
+      {super.key,
+      required this.item,
+      required this.index,
+      required this.returnDataAmount});
+  final Map<String, dynamic> item;
+  final int index;
+  final Function(String, int) returnDataAmount;
   @override
   State<ProductPage> createState() => _ProductPageState();
 }
 
 class _ProductPageState extends State<ProductPage> {
   Widget _image = Container();
-  Map<String, dynamic> item = {};
+  late Map<String, dynamic> item = widget.item;
   List<Widget> groupItems = [];
   List<TableRow> properties = [];
 
@@ -33,47 +39,47 @@ class _ProductPageState extends State<ProductPage> {
   ];
 
   Future<void> _getItem() async {
-    item = await getItem(widget.item_id);
+    item = await getItem(widget.item["item_id"]);
     print(item);
     if (item.isNotEmpty) {
       List<Widget> groupItems = [];
       List<TableRow> properties = [];
       List<Widget> propertiesT = [];
 
-      if (item["group"] != null) {
-        List temp = item["group"];
-        for (var element in temp) {
-          print(element);
-          groupItems.add(
-            GestureDetector(
-              onTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) {
-                      return ProductPage(item_id: element["item_id"]);
-                    },
-                  ),
-                );
-              },
-              child: Container(
-                alignment: Alignment.center,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-                margin: const EdgeInsets.all(5),
-                decoration: BoxDecoration(
-                    color: Colors.grey.shade400,
-                    borderRadius: const BorderRadius.all(Radius.circular(5))),
-                child: Text(
-                  element["amount"],
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w700),
-                ),
-              ),
-            ),
-          );
-        }
-      }
+      // if (item["group"] != null) {
+      //   List temp = item["group"];
+      //   for (var element in temp) {
+      //     print(element);
+      //     groupItems.add(
+      //       GestureDetector(
+      //         onTap: () {
+      //           Navigator.pushReplacement(
+      //             context,
+      //             MaterialPageRoute(
+      //               builder: (context) {
+      //                 return ProductPage(item: element,);
+      //               },
+      //             ),
+      //           );
+      //         },
+      //         child: Container(
+      //           alignment: Alignment.center,
+      //           padding:
+      //               const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+      //           margin: const EdgeInsets.all(5),
+      //           decoration: BoxDecoration(
+      //               color: Colors.grey.shade400,
+      //               borderRadius: const BorderRadius.all(Radius.circular(5))),
+      //           child: Text(
+      //             element["amount"],
+      //             style: const TextStyle(
+      //                 color: Colors.white, fontWeight: FontWeight.w700),
+      //           ),
+      //         ),
+      //       ),
+      //     );
+      //   }
+      // }
 
       if (item["properties"] != null) {
         List temp = item["properties"];
@@ -257,10 +263,10 @@ class _ProductPageState extends State<ProductPage> {
             )),
             imageUrl: 'https://naliv.kz/img/${item["photo"]}',
             placeholder: ((context, url) {
-              return const Expanded(child: CircularProgressIndicator());
+              return const CircularProgressIndicator();
             }),
             errorWidget: ((context, url, error) {
-              return const Expanded(child: Text("Нет изображения"));
+              return const Text("Нет изображения");
             }),
           );
           // _image = Image.network(
@@ -299,6 +305,7 @@ class _ProductPageState extends State<ProductPage> {
   int cacheAmount = 0;
   bool isNumPickActive = false;
   bool isAmountConfirmed = false;
+  late int inStock;
 
   Future<String?> _finalizeCartAmount() async {
     String? finalAmount;
@@ -327,7 +334,7 @@ class _ProductPageState extends State<ProductPage> {
   void _addToCart() {
     setState(() {
       isAmountConfirmed = false;
-      if (cacheAmount < 1000) {
+      if (cacheAmount < inStock) {
         cacheAmount++;
       }
     });
@@ -339,13 +346,37 @@ class _ProductPageState extends State<ProductPage> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    _getItem();
     setState(() {
-      if (item["amount"] != null) {
-        cacheAmount = int.parse(item["amount"]);
-      } else {
-        cacheAmount = 0;
-      }
+      cacheAmount = int.parse(widget.item["amount"] ?? "0");
+      inStock = double.parse(widget.item["in_stock"]).truncate();
+
+      bool isImageDownloaded = false;
+      _image = CachedNetworkImage(
+        fit: BoxFit.fitHeight,
+        cacheManager: CacheManager(Config(
+          "itemImage",
+          stalePeriod: const Duration(days: 7),
+          //one week cache period
+        )),
+        imageUrl: item["img"],
+        progressIndicatorBuilder: (context, url, progress) {
+          if (progress.progress == 1) isImageDownloaded = true;
+          return CircularProgressIndicator(
+            value: isImageDownloaded ? 1 : progress.progress,
+          );
+        },
+        // placeholder: ((context, url) {
+        //   return const CircularProgressIndicator();
+        // }),
+        errorWidget: ((context, url, error) {
+          return const Text("Нет изображения");
+        }),
+      );
+      // Future.delayed(const Duration(milliseconds: 0)).whenComplete(() async {
+      //   await _getItem().then((value) {
+      //     print("DATA RECIEVED!");
+      //   });
+      // });
     });
   }
 
@@ -445,14 +476,15 @@ class _ProductPageState extends State<ProductPage> {
                                             itemHeight: 25,
                                             itemWidth: 25,
                                             minValue: 0,
-                                            maxValue:
-                                                20, // TODO: CHANGE IT TO AMOUNT FROM BACK-END
-                                            onChanged: (value) => setState(() {
-                                              cacheAmount = value;
-                                              if (value == 0) {
-                                                isNumPickActive = false;
-                                              }
-                                            }),
+                                            maxValue: inStock,
+                                            onChanged: (value) => setState(
+                                              () {
+                                                cacheAmount = value;
+                                                if (value == 0) {
+                                                  isNumPickActive = false;
+                                                }
+                                              },
+                                            ),
                                           ),
                                         ),
                                       )
@@ -550,6 +582,9 @@ class _ProductPageState extends State<ProductPage> {
                                         key: const Key("add_cart"),
                                         onPressed: () {
                                           _finalizeCartAmount();
+                                          widget.returnDataAmount(
+                                              cacheAmount.toString(),
+                                              widget.index);
                                           setState(() {
                                             isAmountConfirmed = true;
                                           });
@@ -689,7 +724,7 @@ class _ProductPageState extends State<ProductPage> {
               children: [
                 Container(
                   alignment: Alignment.center,
-                  child: Expanded(child: _image),
+                  child: _image,
                 ),
                 SizedBox(
                   width: MediaQuery.of(context).size.width,

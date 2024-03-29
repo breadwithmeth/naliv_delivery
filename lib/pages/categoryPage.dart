@@ -384,6 +384,12 @@ class _CategoryPageState extends State<CategoryPage> {
   //   }
   // }
 
+  void updateDataAmount(String newDataAmount, int index) {
+    setState(() {
+      itemsL[index]["amount"] = newDataAmount;
+    });
+  }
+
   @override
   void initState() {
     print(widget.category_id);
@@ -429,29 +435,28 @@ class _CategoryPageState extends State<CategoryPage> {
         automaticallyImplyLeading: false,
         toolbarHeight: 120,
         titleSpacing: 0,
-        title: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10.0),
-              child: Row(
+        title: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Row(
                 mainAxisSize: MainAxisSize.max,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Flexible(
-                    flex: 1,
-                    child: Builder(
-                      builder: (context) {
-                        return IconButton(
-                          onPressed: () {
-                            Navigator.maybePop(context);
-                          },
-                          icon: const Icon(Icons.arrow_back_rounded),
-                        );
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: () {
+                        Navigator.maybePop(context);
                       },
+                      icon: const Icon(Icons.arrow_back_rounded),
                     ),
                   ),
                   Flexible(
-                    flex: 5,
+                    flex: 4,
+                    fit: FlexFit.tight,
                     child: TextButton(
                       onPressed: () {
                         Navigator.push(context, MaterialPageRoute(
@@ -511,37 +516,32 @@ class _CategoryPageState extends State<CategoryPage> {
                   ),
                 ],
               ),
-            ),
-            const SizedBox(
-              height: 5,
-            ),
-            // Row(
-            //   mainAxisAlignment: MainAxisAlignment.start,
-            //   children: [
-            //     Text(
-            //       "Караганда ",
-            //       style: TextStyle(fontSize: 12, color: gray1),
-            //     ),
-            //     Icon(
-            //       Icons.arrow_forward_ios,
-            //       size: 6,
-            //     ),
-            //     Text(
-            //       " Караганда",
-            //       style: TextStyle(fontSize: 12, color: gray1),
-            //     )
-            //   ],
-            // ),
-            // SizedBox(
-            //   height: 10,
-            // ),
-            Row(
-              children: [
-                Expanded(
-                  flex: 4,
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 8, horizontal: 25),
+              // Row(
+              //   mainAxisAlignment: MainAxisAlignment.start,
+              //   children: [
+              //     Text(
+              //       "Караганда ",
+              //       style: TextStyle(fontSize: 12, color: gray1),
+              //     ),
+              //     Icon(
+              //       Icons.arrow_forward_ios,
+              //       size: 6,
+              //     ),
+              //     Text(
+              //       " Караганда",
+              //       style: TextStyle(fontSize: 12, color: gray1),
+              //     )
+              //   ],
+              // ),
+              // SizedBox(
+              //   height: 10,
+              // ),
+              Row(
+                mainAxisSize: MainAxisSize.max,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Flexible(
+                    flex: 4,
                     child: Text(
                       widget.category_name ?? "",
                       style: const TextStyle(
@@ -550,213 +550,252 @@ class _CategoryPageState extends State<CategoryPage> {
                           color: Colors.black),
                     ),
                   ),
-                ),
-                Expanded(
-                  child: TextButton(
-                    onPressed: () {
-                      print(_sc.position);
-                      setFilters();
-                      showDialog(
-                        useSafeArea: false,
-                        barrierColor: Colors.transparent,
-                        context: context,
-                        builder: (context) => Dialog(
-                          shape: const RoundedRectangleBorder(),
-                          shadowColor: Colors.black38,
-                          backgroundColor: Colors.white.withOpacity(0.9),
-                          child: Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: const BoxDecoration(
-                              color: Colors.transparent,
-                            ),
-                            clipBehavior: Clip.hardEdge,
-                            height: MediaQuery.of(context).size.height * 0.7,
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                              child: Container(
-                                color: Colors.transparent,
-                                height:
-                                    MediaQuery.of(context).size.height * 0.7,
-                                child: SingleChildScrollView(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          const Text(
-                                            "Фильтры",
-                                            style: TextStyle(
-                                                color: Colors.black,
-                                                fontSize: 22,
-                                                fontWeight: FontWeight.w700),
+                  Flexible(
+                    flex: 2,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Flexible(
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: () {
+                              // TODO: Make sort by price (expencive first or cheap first, something like that)
+                            },
+                            icon: const Icon(Icons.swap_vert_rounded),
+                          ),
+                        ),
+                        Flexible(
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: () {
+                              print(_sc.position);
+                              setFilters();
+                              showDialog(
+                                useSafeArea: false,
+                                barrierColor: Colors.transparent,
+                                context: context,
+                                builder: (context) => Dialog(
+                                  shape: const RoundedRectangleBorder(),
+                                  shadowColor: Colors.black38,
+                                  backgroundColor:
+                                      Colors.white.withOpacity(0.9),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.transparent,
+                                    ),
+                                    clipBehavior: Clip.hardEdge,
+                                    height: MediaQuery.of(context).size.height *
+                                        0.7,
+                                    child: BackdropFilter(
+                                      filter: ImageFilter.blur(
+                                          sigmaX: 5, sigmaY: 5),
+                                      child: Container(
+                                        color: Colors.transparent,
+                                        height:
+                                            MediaQuery.of(context).size.height *
+                                                0.7,
+                                        child: SingleChildScrollView(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.center,
+                                                children: [
+                                                  const Text(
+                                                    "Фильтры",
+                                                    style: TextStyle(
+                                                        color: Colors.black,
+                                                        fontSize: 22,
+                                                        fontWeight:
+                                                            FontWeight.w700),
+                                                  ),
+                                                  IconButton(
+                                                      onPressed: () {
+                                                        Navigator.pop(context);
+                                                      },
+                                                      icon: const Icon(
+                                                          Icons.close))
+                                                ],
+                                              ),
+                                              Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: propertyWidget,
+                                              ),
+                                              Container(
+                                                width: MediaQuery.of(context)
+                                                        .size
+                                                        .width *
+                                                    0.8,
+                                                margin:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 5),
+                                                padding:
+                                                    const EdgeInsets.all(10),
+                                                decoration: BoxDecoration(
+                                                    color: Colors.grey.shade100,
+                                                    borderRadius:
+                                                        const BorderRadius.all(
+                                                            Radius.circular(
+                                                                20))),
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    const Text(
+                                                      "Бренды",
+                                                      style: TextStyle(
+                                                          color: Colors.black,
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.w700),
+                                                    ),
+                                                    Wrap(
+                                                        spacing: 5,
+                                                        children: brandsWidget)
+                                                  ],
+                                                ),
+                                              ),
+                                              Container(
+                                                width: MediaQuery.of(context)
+                                                        .size
+                                                        .width *
+                                                    0.8,
+                                                margin:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 5),
+                                                padding:
+                                                    const EdgeInsets.all(10),
+                                                decoration: BoxDecoration(
+                                                    color: Colors.grey.shade100,
+                                                    borderRadius:
+                                                        const BorderRadius.all(
+                                                            Radius.circular(
+                                                                20))),
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    const Text(
+                                                      "Производители",
+                                                      style: TextStyle(
+                                                          color: Colors.black,
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.w700),
+                                                    ),
+                                                    Wrap(
+                                                        spacing: 5,
+                                                        children:
+                                                            manufacturersWidget)
+                                                  ],
+                                                ),
+                                              ),
+                                              Container(
+                                                width: MediaQuery.of(context)
+                                                        .size
+                                                        .width *
+                                                    0.8,
+                                                margin:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 5),
+                                                padding:
+                                                    const EdgeInsets.all(10),
+                                                decoration: BoxDecoration(
+                                                    color: Colors.grey.shade100,
+                                                    borderRadius:
+                                                        const BorderRadius.all(
+                                                            Radius.circular(
+                                                                20))),
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    const Text(
+                                                      "Страны",
+                                                      style: TextStyle(
+                                                          color: Colors.black,
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.w700),
+                                                    ),
+                                                    Wrap(
+                                                        spacing: 5,
+                                                        children:
+                                                            countriesWidget)
+                                                  ],
+                                                ),
+                                              ),
+                                              ElevatedButton(
+                                                onPressed: () {
+                                                  _applyFilters();
+                                                },
+                                                child: Row(
+                                                  children: [
+                                                    Container(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              5),
+                                                      child: const Text(
+                                                          "Подтвердить"),
+                                                    )
+                                                  ],
+                                                ),
+                                              )
+                                            ],
                                           ),
-                                          IconButton(
-                                              onPressed: () {
-                                                Navigator.pop(context);
-                                              },
-                                              icon: const Icon(Icons.close))
-                                        ],
-                                      ),
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: propertyWidget,
-                                      ),
-                                      Container(
-                                        width:
-                                            MediaQuery.of(context).size.width *
-                                                0.8,
-                                        margin: const EdgeInsets.symmetric(
-                                            vertical: 5),
-                                        padding: const EdgeInsets.all(10),
-                                        decoration: BoxDecoration(
-                                            color: Colors.grey.shade100,
-                                            borderRadius:
-                                                const BorderRadius.all(
-                                                    Radius.circular(20))),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const Text(
-                                              "Бренды",
-                                              style: TextStyle(
-                                                  color: Colors.black,
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w700),
-                                            ),
-                                            Wrap(
-                                                spacing: 5,
-                                                children: brandsWidget)
-                                          ],
                                         ),
                                       ),
-                                      Container(
-                                        width:
-                                            MediaQuery.of(context).size.width *
-                                                0.8,
-                                        margin: const EdgeInsets.symmetric(
-                                            vertical: 5),
-                                        padding: const EdgeInsets.all(10),
-                                        decoration: BoxDecoration(
-                                            color: Colors.grey.shade100,
-                                            borderRadius:
-                                                const BorderRadius.all(
-                                                    Radius.circular(20))),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const Text(
-                                              "Производители",
-                                              style: TextStyle(
-                                                  color: Colors.black,
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w700),
-                                            ),
-                                            Wrap(
-                                                spacing: 5,
-                                                children: manufacturersWidget)
-                                          ],
-                                        ),
-                                      ),
-                                      Container(
-                                        width:
-                                            MediaQuery.of(context).size.width *
-                                                0.8,
-                                        margin: const EdgeInsets.symmetric(
-                                            vertical: 5),
-                                        padding: const EdgeInsets.all(10),
-                                        decoration: BoxDecoration(
-                                            color: Colors.grey.shade100,
-                                            borderRadius:
-                                                const BorderRadius.all(
-                                                    Radius.circular(20))),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const Text(
-                                              "Страны",
-                                              style: TextStyle(
-                                                  color: Colors.black,
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w700),
-                                            ),
-                                            Wrap(
-                                                spacing: 5,
-                                                children: countriesWidget)
-                                          ],
-                                        ),
-                                      ),
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          _applyFilters();
-                                        },
-                                        child: Row(
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.all(5),
-                                              child: const Text("Подтвердить"),
-                                            )
-                                          ],
-                                        ),
-                                      )
-                                    ],
+                                    ),
                                   ),
                                 ),
-                              ),
+                              );
+                            },
+                            icon: const Icon(Icons.filter_list_rounded),
+                          ),
+                        ),
+                        Flexible(
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: () => {
+                              if (_categoryViewMode != 2)
+                                {
+                                  setState(() {
+                                    _categoryViewMode += 1;
+                                  })
+                                }
+                              else
+                                {
+                                  setState(() {
+                                    _categoryViewMode = 0;
+                                  })
+                                }
+                            },
+                            icon: AnimatedSwitcher(
+                              duration: animDuration,
+                              transitionBuilder: (child, animation) {
+                                return ScaleTransition(
+                                  scale: animation,
+                                  child: child,
+                                );
+                              },
+                              child: _getCategoriesIconWithLayout(),
                             ),
                           ),
                         ),
-                      );
-                    },
-                    child: const Expanded(
-                      flex: 1,
-                      child: Icon(
-                        Icons.filter_list_rounded,
-                        color: Colors.black,
-                      ),
+                      ],
                     ),
                   ),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: TextButton(
-                    onPressed: () => {
-                      if (_categoryViewMode != 2)
-                        {
-                          setState(() {
-                            _categoryViewMode += 1;
-                          })
-                        }
-                      else
-                        {
-                          setState(() {
-                            _categoryViewMode = 0;
-                          })
-                        }
-                    },
-                    child: AnimatedSwitcher(
-                      duration: animDuration,
-                      transitionBuilder: (child, animation) {
-                        return ScaleTransition(
-                          scale: animation,
-                          child: child,
-                        );
-                      },
-                      child: _getCategoriesIconWithLayout(),
-                    ),
-                  ),
-                ),
-              ],
-            )
-          ],
+                ],
+              )
+            ],
+          ),
         ),
       ),
       body: _getCategoriesWithLayoutMode(),
@@ -844,6 +883,7 @@ class _CategoryPageState extends State<CategoryPage> {
         controller: _sc,
         itemCount: itemsL.length,
         itemBuilder: (context, index) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
           key: Key(itemsL[index]["item_id"]),
           onTap: () {
             showModalBottomSheet(
@@ -852,7 +892,11 @@ class _CategoryPageState extends State<CategoryPage> {
               useSafeArea: true,
               isScrollControlled: true,
               builder: (context) {
-                return ProductPage(item_id: itemsL[index]["item_id"]);
+                return ProductPage(
+                  item: itemsL[index],
+                  index: index,
+                  returnDataAmount: updateDataAmount,
+                );
               },
             );
           },

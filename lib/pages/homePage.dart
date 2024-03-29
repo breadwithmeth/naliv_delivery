@@ -557,6 +557,7 @@ class _HomePageState extends State<HomePage>
                           ) ==
                           null
                       ? GestureDetector(
+                          behavior: HitTestBehavior.opaque,
                           child: Container(
                               margin: const EdgeInsets.all(10),
                               padding: const EdgeInsets.all(10),
@@ -576,6 +577,7 @@ class _HomePageState extends State<HomePage>
                               )),
                         )
                       : GestureDetector(
+                          behavior: HitTestBehavior.opaque,
                           child: Container(
                               margin: const EdgeInsets.all(10),
                               padding: const EdgeInsets.all(10),
@@ -595,6 +597,7 @@ class _HomePageState extends State<HomePage>
                               )),
                         ),
                   GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     onTap: () {
                       Navigator.pushReplacement(context, MaterialPageRoute(
                         builder: (context) {
@@ -691,111 +694,111 @@ class _HomePageState extends State<HomePage>
                   const SizedBox(
                     height: 10,
                   ),
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width,
-                    // height: 170,
-                    child: GridView(
-                      primary: false,
-                      shrinkWrap: true,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 4),
-                      children: [
-                        Container(
-                          width: MediaQuery.of(context).size.width * 0.25,
-                          height: MediaQuery.of(context).size.width * 0.25,
-                          margin: const EdgeInsets.all(5),
-                          child: Column(
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                    borderRadius: const BorderRadius.all(
-                                        Radius.circular(3))),
-                                width: MediaQuery.of(context).size.width * 0.15,
-                                height:
-                                    MediaQuery.of(context).size.width * 0.15,
-                              ),
-                              const Text(
-                                "Новинки",
-                                style: TextStyle(fontSize: 12),
-                              )
-                            ],
-                          ),
-                        ),
-                        Container(
-                          width: MediaQuery.of(context).size.width * .25,
-                          height: MediaQuery.of(context).size.width * .25,
-                          margin: const EdgeInsets.all(5),
-                          child: Column(
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                    borderRadius: const BorderRadius.all(
-                                        Radius.circular(3))),
-                                width: MediaQuery.of(context).size.width * 0.15,
-                                height:
-                                    MediaQuery.of(context).size.width * 0.15,
-                              ),
-                              const Text(
-                                "Со скидкой",
-                                style: TextStyle(fontSize: 12),
-                              )
-                            ],
-                          ),
-                        ),
-                        Container(
-                          width: MediaQuery.of(context).size.width * .25,
-                          height: MediaQuery.of(context).size.width * .25,
-                          margin: const EdgeInsets.all(5),
-                          child: Column(
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                    borderRadius: const BorderRadius.all(
-                                        Radius.circular(3))),
-                                width: MediaQuery.of(context).size.width * 0.15,
-                                height:
-                                    MediaQuery.of(context).size.width * 0.15,
-                              ),
-                              const Text(
-                                "Хит продаж",
-                                style: TextStyle(fontSize: 12),
-                              )
-                            ],
-                          ),
-                        ),
-                        Container(
-                          width: MediaQuery.of(context).size.width * .25,
-                          height: MediaQuery.of(context).size.width * 0.33,
-                          margin: const EdgeInsets.all(5),
-                          child: Column(
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                    borderRadius: const BorderRadius.all(
-                                        Radius.circular(3))),
-                                width: MediaQuery.of(context).size.width * 0.15,
-                                height:
-                                    MediaQuery.of(context).size.width * 0.15,
-                              ),
-                              const Text(
-                                "Вы покупали",
-                                style: TextStyle(fontSize: 12),
-                              )
-                            ],
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
+                  // SizedBox(
+                  //   width: MediaQuery.of(context).size.width,
+                  //   // height: 170,
+                  //   child: GridView(
+                  //     primary: false,
+                  //     shrinkWrap: true,
+                  //     gridDelegate:
+                  //         const SliverGridDelegateWithFixedCrossAxisCount(
+                  //             crossAxisCount: 4),
+                  //     children: [
+                  //       Container(
+                  //         width: MediaQuery.of(context).size.width * 0.25,
+                  //         height: MediaQuery.of(context).size.width * 0.25,
+                  //         margin: const EdgeInsets.all(5),
+                  //         child: Column(
+                  //           children: [
+                  //             Container(
+                  //               decoration: BoxDecoration(
+                  //                   color:
+                  //                       Theme.of(context).colorScheme.primary,
+                  //                   borderRadius: const BorderRadius.all(
+                  //                       Radius.circular(3))),
+                  //               width: MediaQuery.of(context).size.width * 0.15,
+                  //               height:
+                  //                   MediaQuery.of(context).size.width * 0.15,
+                  //             ),
+                  //             const Text(
+                  //               "Новинки",
+                  //               style: TextStyle(fontSize: 12),
+                  //             )
+                  //           ],
+                  //         ),
+                  //       ),
+                  //       Container(
+                  //         width: MediaQuery.of(context).size.width * .25,
+                  //         height: MediaQuery.of(context).size.width * .25,
+                  //         margin: const EdgeInsets.all(5),
+                  //         child: Column(
+                  //           children: [
+                  //             Container(
+                  //               decoration: BoxDecoration(
+                  //                   color:
+                  //                       Theme.of(context).colorScheme.primary,
+                  //                   borderRadius: const BorderRadius.all(
+                  //                       Radius.circular(3))),
+                  //               width: MediaQuery.of(context).size.width * 0.15,
+                  //               height:
+                  //                   MediaQuery.of(context).size.width * 0.15,
+                  //             ),
+                  //             const Text(
+                  //               "Со скидкой",
+                  //               style: TextStyle(fontSize: 12),
+                  //             )
+                  //           ],
+                  //         ),
+                  //       ),
+                  //       Container(
+                  //         width: MediaQuery.of(context).size.width * .25,
+                  //         height: MediaQuery.of(context).size.width * .25,
+                  //         margin: const EdgeInsets.all(5),
+                  //         child: Column(
+                  //           children: [
+                  //             Container(
+                  //               decoration: BoxDecoration(
+                  //                   color:
+                  //                       Theme.of(context).colorScheme.primary,
+                  //                   borderRadius: const BorderRadius.all(
+                  //                       Radius.circular(3))),
+                  //               width: MediaQuery.of(context).size.width * 0.15,
+                  //               height:
+                  //                   MediaQuery.of(context).size.width * 0.15,
+                  //             ),
+                  //             const Text(
+                  //               "Хит продаж",
+                  //               style: TextStyle(fontSize: 12),
+                  //             )
+                  //           ],
+                  //         ),
+                  //       ),
+                  //       Container(
+                  //         width: MediaQuery.of(context).size.width * .25,
+                  //         height: MediaQuery.of(context).size.width * 0.33,
+                  //         margin: const EdgeInsets.all(5),
+                  //         child: Column(
+                  //           children: [
+                  //             Container(
+                  //               decoration: BoxDecoration(
+                  //                   color:
+                  //                       Theme.of(context).colorScheme.primary,
+                  //                   borderRadius: const BorderRadius.all(
+                  //                       Radius.circular(3))),
+                  //               width: MediaQuery.of(context).size.width * 0.15,
+                  //               height:
+                  //                   MediaQuery.of(context).size.width * 0.15,
+                  //             ),
+                  //             const Text(
+                  //               "Вы покупали",
+                  //               style: TextStyle(fontSize: 12),
+                  //             )
+                  //           ],
+                  //         ),
+                  //       )
+                  //     ],
+                  //   ),
+                  // ),
                   categoryIsLoading
                       ? Padding(
                           padding: const EdgeInsets.all(10),
@@ -809,7 +812,7 @@ class _HomePageState extends State<HomePage>
                                     childAspectRatio: 1,
                                     crossAxisSpacing: 10,
                                     mainAxisSpacing: 10),
-                            itemCount: 6,
+                            itemCount: 9,
                             itemBuilder: (BuildContext ctx, index) {
                               return Shimmer.fromColors(
                                 baseColor: Theme.of(context)
