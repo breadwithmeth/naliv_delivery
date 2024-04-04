@@ -534,6 +534,29 @@ Future<Map<String, dynamic>?> getCity() async {
   return data;
 }
 
+Future<bool?> createOrder() async {
+  String? token = await getToken();
+  if (token == null) {
+    return false;
+  }
+  var url = Uri.https(URL_API, 'api/item/createOrder.php');
+  var response = await http.post(
+    url,
+    headers: {"Content-Type": "application/json", "AUTH": token},
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(json.encode(response.statusCode));
+  int data = response.statusCode;
+  if (data == 200) {
+    return true;
+  } else if (data == 400) {
+    return false;
+  } else {
+    return null;
+  }
+}
+
 Future<bool?> deleteFromCart(String itemId) async {
   String? token = await getToken();
   if (token == null) {

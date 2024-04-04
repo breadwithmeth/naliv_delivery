@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/orderPage.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 
@@ -19,6 +20,9 @@ class OrderConfirmation extends StatefulWidget {
   State<OrderConfirmation> createState() => _OrderConfirmationState();
 }
 
+// IMPORTANT: 400 - wrong stock
+// IMPORTANT: 406 - wrong order
+
 class _OrderConfirmationState extends State<OrderConfirmation> {
   double _w = 0;
 
@@ -31,12 +35,39 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
         _w = 300;
       });
     });
+    bool isOrderCorrect = false;
     Timer(const Duration(seconds: 6), () {
-      Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const OrderPage(),
-          ));
+      Future.delayed(const Duration(milliseconds: 0)).then((value) async {
+        await createOrder().then((value) {
+          if (value == true) {
+            isOrderCorrect = true;
+            print("Order was created successfully");
+            // NICE! Congratulations, you did well!
+          } else if (value == false) {
+            isOrderCorrect = false;
+            print("Order was not created. Return code 400, wrong stock amount");
+            // DO SOMETHING, SO THAT USER CAN FIX AMOUNT IN CART?
+          } else if (value == null) {
+            isOrderCorrect = false;
+            print("Order was not created. Return code 406, wrong order");
+            // DO SOMETHING, SO THAT USER CAN FIX ORDER IN CART?
+          }
+        }).then((value) {
+          if (isOrderCorrect) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const OrderPage(),
+              ),
+            );
+          } else {
+            showDialog(
+              context: context,
+              builder: (context) => const Text("Что-то не так с заказом"),
+            );
+          }
+        });
+      });
     });
   }
 
@@ -54,8 +85,9 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                   width: 300,
                   height: 10,
                   decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: Colors.black, width: 1)),
+                    color: Colors.white,
+                    border: Border.all(color: Colors.black, width: 1),
+                  ),
                 ),
                 AnimatedContainer(
                   duration: const Duration(seconds: 5),

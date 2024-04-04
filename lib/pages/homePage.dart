@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/pages/categoryPage.dart';
+import 'package:naliv_delivery/pages/orderPage.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/misc/colors.dart';
@@ -81,6 +82,9 @@ class _HomePageState extends State<HomePage>
 
   bool categoryIsLoading = true;
 
+  // Must be true if there is an active order, other wise false, for test purposes it's true
+  bool isThereActiveOrder = true;
+
   Map<String, dynamic>? user;
   late Position _location;
 
@@ -150,6 +154,7 @@ class _HomePageState extends State<HomePage>
     super.initState();
     _getCategories();
     _getCurrentBusiness();
+    // _checkForActiveOrder(); Someting like this idk
     Future.delayed(Duration.zero).then((value) {
       _getUser();
     });
@@ -501,6 +506,8 @@ class _HomePageState extends State<HomePage>
         body: CustomScrollView(
           slivers: [
             SliverAppBar(
+              toolbarHeight: 120,
+              automaticallyImplyLeading: false,
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.transparent,
               stretch: true,
@@ -508,59 +515,104 @@ class _HomePageState extends State<HomePage>
               pinned: true,
               // floating: true,
               // snap: true,
-              title: TextButton(
-                onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(
-                    builder: (context) {
-                      return const SearchPage();
-                    },
-                  ));
-                },
-                style: TextButton.styleFrom(
-                    foregroundColor: Colors.white.withOpacity(0)),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 15),
-                  decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.1),
-                      borderRadius: const BorderRadius.all(Radius.circular(3))),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      const Spacer(
-                        flex: 3,
-                      ),
-                      const Text(
-                        "Найти",
-                        style: TextStyle(
-                            fontWeight: FontWeight.w500, color: Colors.black),
-                      ),
-                      // Expanded(
-                      //   flex: 2,
-                      //   child: Image.network(
-                      //     logourl,
-                      //     fit: BoxFit.contain,
-                      //     frameBuilder: (BuildContext context, Widget child,
-                      //         int? frame, bool? wasSynchronouslyLoaded) {
-                      //       return Padding(
-                      //         padding: const EdgeInsets.all(8.0),
-                      //         child: child,
-                      //       );
-                      //     },
-                      //     loadingBuilder: (BuildContext context, Widget child,
-                      //         ImageChunkEvent? loadingProgress) {
-                      //       return Center(child: child);
-                      //     },
-                      //   ),
-                      // ),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        child: const Icon(
-                          Icons.search,
-                          color: Colors.black,
+              titleSpacing: 0,
+              title: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Flexible(
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: () {
+                              toggleDrawer();
+                            },
+                            icon: const Icon(Icons.menu_rounded),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                        Flexible(
+                          flex: 4,
+                          fit: FlexFit.tight,
+                          child: TextButton(
+                            onPressed: () {
+                              Navigator.push(context, MaterialPageRoute(
+                                builder: (context) {
+                                  return const SearchPage();
+                                },
+                              ));
+                            },
+                            style: TextButton.styleFrom(
+                                foregroundColor: Colors.white.withOpacity(0)),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.1),
+                                  borderRadius: const BorderRadius.all(
+                                      Radius.circular(3))),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  const Spacer(
+                                    flex: 3,
+                                  ),
+                                  const Text(
+                                    "Найти",
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.black),
+                                  ),
+                                  // Expanded(
+                                  //   flex: 2,
+                                  //   child: Image.network(
+                                  //     logourl,
+                                  //     fit: BoxFit.contain,
+                                  //     frameBuilder: (BuildContext context, Widget child,
+                                  //         int? frame, bool? wasSynchronouslyLoaded) {
+                                  //       return Padding(
+                                  //         padding: const EdgeInsets.all(8.0),
+                                  //         child: child,
+                                  //       );
+                                  //     },
+                                  //     loadingBuilder: (BuildContext context, Widget child,
+                                  //         ImageChunkEvent? loadingProgress) {
+                                  //       return Center(child: child);
+                                  //     },
+                                  //   ),
+                                  // ),
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    child: const Icon(
+                                      Icons.search,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    isThereActiveOrder
+                        ? ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(context,
+                                  MaterialPageRoute(builder: (context) {
+                                return const OrderPage();
+                              }));
+                            },
+                            child: const Row(
+                              children: [
+                                Text("Ваш заказ ID_заказа в пути чтоль"),
+                              ],
+                            ),
+                          )
+                        : Container(),
+                  ],
                 ),
               ),
             ),

@@ -105,7 +105,7 @@ class _ItemCardState extends State<ItemCard> {
               // height: MediaQuery.of(context).size.width * 0.7,
               fit: BoxFit.fitHeight,
               cacheManager: CacheManager(Config(
-                "itemImage",
+                "itemImage ${element["item_id"].toString()}",
                 stalePeriod: const Duration(days: 7),
                 //one week cache period
               )),
@@ -371,7 +371,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
               fit: BoxFit.cover,
               cacheManager: CacheManager(
                 Config(
-                  "itemImage",
+                  "itemImage ${element["item_id"].toString()}",
                   stalePeriod: const Duration(days: 700),
                   //one week cache period
                 ),
@@ -639,7 +639,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
               fit: BoxFit.fitHeight,
               cacheManager: CacheManager(
                 Config(
-                  "itemImage",
+                  "itemImage ${element["item_id"].toString()}",
                   stalePeriod: const Duration(days: 7),
                   //one week cache period
                 ),

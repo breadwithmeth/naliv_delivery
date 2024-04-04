@@ -10,6 +10,17 @@ class OrderPage extends StatefulWidget {
 class _OrderPageState extends State<OrderPage> {
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: Text("adasdadad"),),);
+    return const Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("ЭТА СТРАНИЦА ЕЩЁ В РАЗРАБОТКЕ..."),
+            Text("Здесь будет информация об уже активном заказе"),
+            Text("Ваш заказ типо в пути"),
+          ],
+        ),
+      ),
+    );
   }
 }
