@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/pages/categoryPage.dart';
 import 'package:naliv_delivery/pages/orderPage.dart';
 import 'package:shimmer/shimmer.dart';
@@ -85,6 +86,7 @@ class _HomePageState extends State<HomePage>
   bool isThereActiveOrder = true;
 
   Map<String, dynamic>? user;
+  late Position _location;
 
   Future<void> _getCategories() async {
     setState(() {
@@ -136,6 +138,16 @@ class _HomePageState extends State<HomePage>
 
   _getCurrentAddress() {}
 
+  Future<void> getPosition() async {
+    Position location = await determinePosition(context);
+    print(location.latitude);
+    print(location.longitude);
+    setCityAuto(location.latitude, location.longitude);
+    setState(() {
+      _location = location;
+    });
+  }
+
   @override
   void initState() {
     // TODO: implement initState
@@ -148,6 +160,7 @@ class _HomePageState extends State<HomePage>
     });
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       _getAddresses();
+      getPosition();
     });
   }
 

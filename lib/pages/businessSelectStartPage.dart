@@ -25,7 +25,7 @@ class _BusinessSelectStartPageState extends State<BusinessSelectStartPage> {
   bool isBusinessesLoading = false;
 
   Future<void> getPosition() async {
-    Position location = await determinePosition();
+    Position location = await determinePosition(context);
     print(location.latitude);
     print(location.longitude);
     setCityAuto(location.latitude, location.longitude);

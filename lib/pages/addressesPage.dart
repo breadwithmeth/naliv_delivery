@@ -46,12 +46,14 @@ class _AddressesPageState extends State<AddressesPage>
   double _cHeight = 100;
 
   bool _isExtended = false;
-
+  bool? _isAddressPicked = null;
   TextEditingController _search = TextEditingController();
 
   MapController _mapController = MapController();
 
   LatLng _selectedAddress = LatLng(0, 0);
+
+  List<Marker> _markers = [];
 
   void _initcHeight() {
     if (widget.isExtended) {
@@ -81,6 +83,10 @@ class _AddressesPageState extends State<AddressesPage>
           _selectedAddress = LatLng(value.latitude, value.longitude);
         });
         _mapController.move(_selectedAddress, 20);
+        setState(() {
+          _markers.add(Marker(
+              point: _mapController.camera.center, child: Icon(Icons.pin)));
+        });
       });
     });
   }
@@ -152,9 +158,20 @@ class _AddressesPageState extends State<AddressesPage>
                       options: MapOptions(
                         initialCenter: LatLng(51.509364, -0.128928),
                         initialZoom: 9.2,
+                        onPointerDown: (event, point) {
+                          setState(() {
+                            _isAddressPicked = null;
+                          });
+                        },
+                        onPointerUp: (position, hasGesture) {
+                          setState(() {
+                            _isAddressPicked = false;
+                          });
+                        },
                       ),
                       children: [
                         TileLayer(
+                          tileBuilder: _darkModeTileBuilder,
                           urlTemplate:
                               'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                           userAgentPackageName: 'com.example.app',
@@ -162,6 +179,7 @@ class _AddressesPageState extends State<AddressesPage>
                         MarkerLayer(markers: [
                           Marker(point: _selectedAddress, child: FlutterLogo())
                         ]),
+                        MarkerLayer(markers: _markers),
                         RichAttributionWidget(
                           attributions: [
                             TextSourceAttribution(
@@ -174,6 +192,44 @@ class _AddressesPageState extends State<AddressesPage>
                     )),
               ],
             ),
+            Center(
+                child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(child: Container()),
+                Flexible(
+                    child: Row(
+                  children: [
+                    Container(
+                        margin: EdgeInsets.only(bottom: 40),
+                        padding: EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(50),
+                                topRight: Radius.circular(50),
+                                bottomRight: Radius.circular(50))),
+                        child: _isAddressPicked == null
+                            ? Container(child: CircularProgressIndicator())
+                            : (_isAddressPicked!
+                                ? Container(
+                                    width:
+                                        MediaQuery.of(context).size.width * 0.3,
+                                    child: Text("Использовать этот адрес"),
+                                  )
+                                : Container(
+                                    width:
+                                        MediaQuery.of(context).size.width * 0.3,
+                                    child: TextButton(
+                                      child: Text("Выбрать"),
+                                      onPressed: () {},
+                                    ))))
+                  ],
+                ))
+              ],
+            )),
             _isExtended
                 ? Stack(
                     alignment: Alignment.bottomRight,
@@ -343,8 +399,9 @@ class _AddressesPageState extends State<AddressesPage>
                 : Container(
                     margin: EdgeInsets.all(10),
                     color: Colors.white,
-                    child: Row(
+                    child: Column(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Flexible(
                           flex: 4,
@@ -352,51 +409,63 @@ class _AddressesPageState extends State<AddressesPage>
                               controller: _search,
                               decoration: InputDecoration(
                                   hintText: "Улица, дом",
-                                  border: OutlineInputBorder())),
+                                  border: OutlineInputBorder(
+                                      borderSide: BorderSide.none))),
                         ),
-                        Flexible(
-                          child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: Colors.black,
-                                  surfaceTintColor: Colors.white),
-                              onPressed: () async {
-                                await getGeoData(_search.text).then((value) {
-                                  List objects = value?["response"]
-                                      ["GeoObjectCollection"]["featureMember"];
+                        Row(
+                          children: [
+                            Flexible(
+                              flex: 4,
+                              child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.black,
+                                      foregroundColor: Colors.white,
+                                      surfaceTintColor: Colors.white),
+                                  onPressed: () async {
+                                    await getGeoData(_search.text)
+                                        .then((value) {
+                                      List objects = value?["response"]
+                                              ["GeoObjectCollection"]
+                                          ["featureMember"];
 
-                                  double lat = double.parse(objects
-                                      .first["GeoObject"]["Point"]["pos"]
-                                      .toString()
-                                      .split(' ')[1]);
-                                  double lon = double.parse(objects
-                                      .first["GeoObject"]["Point"]["pos"]
-                                      .toString()
-                                      .split(' ')[0]);
+                                      double lat = double.parse(objects
+                                          .first["GeoObject"]["Point"]["pos"]
+                                          .toString()
+                                          .split(' ')[1]);
+                                      double lon = double.parse(objects
+                                          .first["GeoObject"]["Point"]["pos"]
+                                          .toString()
+                                          .split(' ')[0]);
 
-                                  print(value);
-                                  setState(() {
-                                    _selectedAddress = LatLng(lat, lon);
-                                  });
-                                  _mapController.move(LatLng(lat, lon), 15);
-                                });
-                              },
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [Icon(Icons.search)],
-                              )),
-                        ),
-                        Flexible(
-                          child: ElevatedButton(
-                              onPressed: () {
-                                setState(() {
-                                  _isExtended = true;
-                                });
-                              },
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [Icon(Icons.arrow_upward)],
-                              )),
+                                      print(value);
+                                      setState(() {
+                                        _selectedAddress = LatLng(lat, lon);
+                                      });
+                                      _mapController.move(LatLng(lat, lon), 20);
+                                    });
+                                  },
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [Icon(Icons.search)],
+                                  )),
+                            ),
+                            Flexible(
+                              child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: Colors.black,
+                                      surfaceTintColor: Colors.white),
+                                  onPressed: () {
+                                    setState(() {
+                                      _isExtended = true;
+                                    });
+                                  },
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [Icon(Icons.arrow_upward)],
+                                  )),
+                            )
+                          ],
                         )
                       ],
                     ),
@@ -404,4 +473,20 @@ class _AddressesPageState extends State<AddressesPage>
           ],
         ));
   }
+}
+
+Widget _darkModeTileBuilder(
+  BuildContext context,
+  Widget tileWidget,
+  TileImage tile,
+) {
+  return ColorFiltered(
+    colorFilter: const ColorFilter.matrix(<double>[
+      -0.2126, -0.7152, -0.0722, 0, 255, // Red channel
+      -0.2126, -0.7152, -0.0722, 0, 255, // Green channel
+      -0.2126, -0.7152, -0.0722, 0, 255, // Blue channel
+      0, 0, 0, 1, 0, // Alpha channel
+    ]),
+    child: tileWidget,
+  );
 }
