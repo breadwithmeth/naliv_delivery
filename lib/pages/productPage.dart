@@ -348,7 +348,7 @@ class _ProductPageState extends State<ProductPage> {
     super.initState();
     setState(() {
       cacheAmount = int.parse(widget.item["amount"] ?? "0");
-      inStock = double.parse(widget.item["in_stock"]).truncate();
+      inStock = double.parse(widget.item["amount"]).truncate();
 
       bool isImageDownloaded = false;
       _image = CachedNetworkImage(
