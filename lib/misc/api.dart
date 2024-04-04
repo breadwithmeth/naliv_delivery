@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -8,7 +9,7 @@ import 'package:http/http.dart' as http;
 // var URL_API = '192.168.0.164:8080';
 var URL_API = 'naliv.kz';
 
-Future<Position> determinePosition() async {
+Future<Position> determinePosition(BuildContext ctx) async {
   bool serviceEnabled;
   LocationPermission permission;
 
@@ -18,6 +19,12 @@ Future<Position> determinePosition() async {
     // Location services are not enabled don't continue
     // accessing the position and request users of the
     // App to enable the location services.
+    Navigator.push(ctx, MaterialPageRoute(
+      builder: (context) {
+        return Container();
+      },
+    ));
+    Geolocator.openLocationSettings();
     return Future.error('Location services are disabled.');
   }
 
@@ -334,7 +341,7 @@ Future<String?> removeFromCart(String itemId) async {
   return data;
 }
 
-Future<Map<String, dynamic> > getCart() async {
+Future<Map<String, dynamic>> getCart() async {
   String? token = await getToken();
   if (token == null) {
     return {};
@@ -347,7 +354,7 @@ Future<Map<String, dynamic> > getCart() async {
 
   // List<dynamic> list = json.decode(response.body);
   print(response.bodyBytes);
-  Map<String, dynamic>  data = json.decode(utf8.decode(response.bodyBytes));
+  Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
   print(
       "DATA FROM GETCART IN API.DART__ DATA FROM GETCART IN API.DART__ DATA FROM GETCART IN API.DART");
   return data;
