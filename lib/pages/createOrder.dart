@@ -20,6 +20,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   Widget? currentAddressWidget;
   List<Widget> addressesWidget = [];
   Map? currentAddress;
+  List addresses = [];
 
   Future<void> _getCart() async {
     // List cart = await getCart();
@@ -36,10 +37,10 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   }
 
   Future<void> _getAddresses() async {
-    Map? currentAddress;
+    Map? current_Address;
     List<Widget> addressesWidget = [];
-    List addresseses = await getAddresses();
-    for (var element in addresseses) {
+    addresses = await getAddresses();
+    for (var element in addresses) {
       addressesWidget.add(Container(
         margin: const EdgeInsets.symmetric(vertical: 5),
         child: ElevatedButton(
@@ -100,16 +101,24 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-            insetPadding: const EdgeInsets.all(0),
-            content: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.7,
-              height: MediaQuery.of(context).size.height * 0.4,
-              child: SingleChildScrollView(
-                child: Column(
-                  children: addressesWidget,
-                ),
-              ),
-            ));
+          insetPadding: const EdgeInsets.all(0),
+          content: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.7,
+            height: MediaQuery.of(context).size.height * 0.4,
+            child: ListView.builder(
+                itemCount: addresses.length,
+                itemBuilder: (context, index) {
+                  print(addresses);
+                  return ElevatedButton(
+                    onPressed: () {
+                      print("Change address here");
+                    },
+                    child: Text(
+                        "${addresses[index]["name"] != null ? '${addresses[index]["name"]} -' : ""} ${addresses[index]["address"]}"),
+                  );
+                }),
+          ),
+        );
       },
     );
   }

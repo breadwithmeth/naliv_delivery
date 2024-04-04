@@ -18,6 +18,7 @@ class _CartPageState extends State<CartPage>
   late List items = [];
   late Map<String, dynamic> cartInfo = {};
   late String sum = "0";
+  int localSum = 0;
   late AnimationController animController;
   final Duration animDuration = const Duration(milliseconds: 250);
 
@@ -53,7 +54,11 @@ class _CartPageState extends State<CartPage>
 
   void updateDataAmount(String newDataAmount, int index) {
     setState(() {
+      localSum -=
+          int.parse(items[index]["price"]) * int.parse(items[index]["amount"]);
       items[index]["amount"] = newDataAmount;
+      localSum +=
+          int.parse(items[index]["price"]) * int.parse(items[index]["amount"]);
     });
   }
 
@@ -70,6 +75,7 @@ class _CartPageState extends State<CartPage>
       });
       await _getCart();
       setState(() {
+        localSum = int.parse(sum);
         isCartLoading = false;
       });
     });
@@ -109,6 +115,15 @@ class _CartPageState extends State<CartPage>
                           confirmDismiss: (direction) {
                             return _deleteFromCart(item["item_id"]);
                           },
+                          onDismissed: ((direction) {
+                            Map<String, dynamic> dissmisedItem =
+                                items.firstWhere(
+                                    (element) => element["item_id"] == item["item_id"]);
+                            setState(() {
+                              localSum -= int.parse(dissmisedItem["price"]) *
+                                  int.parse(dissmisedItem["amount"]);
+                            });
+                          }),
                           // Provide a function that tells the app
                           // what to do after an item has been swiped away.
 
@@ -192,6 +207,14 @@ class _CartPageState extends State<CartPage>
                 const SizedBox(
                   height: 100,
                 ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    const Text("Итого"),
+                    Text(localSum.toString()),
+                  ],
+                ),
                 const Divider(),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -228,7 +251,8 @@ class _CartPageState extends State<CartPage>
                                 child: Padding(
                                   padding: const EdgeInsets.only(right: 5),
                                   child: Text(
-                                    sum, // TODO: HERE IS SUM OF CART
+                                    localSum
+                                        .toString(), // TODO: HERE IS SUM OF CART
                                     textAlign: TextAlign.end,
                                     style: TextStyle(
                                       fontWeight: FontWeight.w700,

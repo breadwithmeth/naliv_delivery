@@ -348,7 +348,8 @@ class _ProductPageState extends State<ProductPage> {
     super.initState();
     setState(() {
       cacheAmount = int.parse(widget.item["amount"] ?? "0");
-      inStock = double.parse(widget.item["amount"]).truncate();
+      inStock = double.parse(widget.item["in_stock"] ?? widget.item["amount"])
+          .truncate();
 
       bool isImageDownloaded = false;
       _image = CachedNetworkImage(
@@ -604,7 +605,8 @@ class _ProductPageState extends State<ProductPage> {
                                         key: const Key("go_cart"),
                                         onPressed: () {
                                           // _finalizeCartAmount();
-                                          Navigator.push(context,
+                                          Navigator.pop(context);
+                                          Navigator.pushReplacement(context,
                                               MaterialPageRoute(
                                                   builder: (context) {
                                             return const CartPage();

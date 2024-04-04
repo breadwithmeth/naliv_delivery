@@ -334,7 +334,7 @@ Future<String?> removeFromCart(String itemId) async {
   return data;
 }
 
-Future<Map<String, dynamic> > getCart() async {
+Future<Map<String, dynamic>> getCart() async {
   String? token = await getToken();
   if (token == null) {
     return {};
@@ -347,7 +347,7 @@ Future<Map<String, dynamic> > getCart() async {
 
   // List<dynamic> list = json.decode(response.body);
   print(response.bodyBytes);
-  Map<String, dynamic>  data = json.decode(utf8.decode(response.bodyBytes));
+  Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
   print(
       "DATA FROM GETCART IN API.DART__ DATA FROM GETCART IN API.DART__ DATA FROM GETCART IN API.DART");
   return data;
@@ -525,6 +525,29 @@ Future<Map<String, dynamic>?> getCity() async {
   // List<dynamic> list = json.decode(response.body);
   Map<String, dynamic>? data = json.decode(utf8.decode(response.bodyBytes));
   return data;
+}
+
+Future<bool?> createOrder() async {
+  String? token = await getToken();
+  if (token == null) {
+    return false;
+  }
+  var url = Uri.https(URL_API, 'api/item/createOrder.php');
+  var response = await http.post(
+    url,
+    headers: {"Content-Type": "application/json", "AUTH": token},
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(json.encode(response.statusCode));
+  int data = response.statusCode;
+  if (data == 200) {
+    return true;
+  } else if (data == 400) {
+    return false;
+  } else {
+    return null;
+  }
 }
 
 Future<bool?> deleteFromCart(String itemId) async {
