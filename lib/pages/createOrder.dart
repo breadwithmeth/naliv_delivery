@@ -25,11 +25,12 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
     // List cart = await getCart();
     // print(cart);
 
+    Map<String, dynamic> cart = await getCart();
     Map<String, dynamic>? cartInfo = await getCartInfo();
 
     setState(() {
       // items = cart;
-      items = [];
+      items = cart["cart"];
       cartInfo = cartInfo!;
     });
   }
