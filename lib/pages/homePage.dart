@@ -152,7 +152,6 @@ class _HomePageState extends State<HomePage>
   void initState() {
     // TODO: implement initState
     super.initState();
-    _getCategories();
     _getCurrentBusiness();
     // _checkForActiveOrder(); Someting like this idk
     Future.delayed(Duration.zero).then((value) {
@@ -161,6 +160,7 @@ class _HomePageState extends State<HomePage>
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       _getAddresses();
       getPosition();
+      _getCategories();
     });
   }
 
