@@ -193,3 +193,8 @@ class _MainState extends State<Main> {
 }
 
 // Стандартное закруление Radius.circular(15);
+// style: const TextStyle(
+//                 fontSize: 14,
+//                 fontWeight: FontWeight.w700,
+//                 color: Colors.black,
+//               ),

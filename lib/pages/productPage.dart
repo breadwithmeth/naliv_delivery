@@ -14,10 +14,12 @@ class ProductPage extends StatefulWidget {
       {super.key,
       required this.item,
       required this.index,
-      required this.returnDataAmount});
+      required this.returnDataAmount,
+      this.openedFromCart = false});
   final Map<String, dynamic> item;
   final int index;
   final Function(String, int) returnDataAmount;
+  final bool openedFromCart;
   @override
   State<ProductPage> createState() => _ProductPageState();
 }
@@ -33,9 +35,9 @@ class _ProductPageState extends State<ProductPage> {
   int currentTab = 0;
   String? amount;
   List<String> TabText = [
-    "Виски Ballantine's 12 лет — это бленд 40 отборных солодовых и зерновых дистиллятов, минимальный срок выдержки которых составляет 12 лет. ",
-    "Джордж Баллантайн (George Ballantine) – выходец из семьи простых фермеров, начал свою трудовую карьеру в возрасте девятнадцати лет в качестве подсобного рабочего в бакалейной лавке в Эдинбурге. Здесь, в 1827 году, Джордж открывает свой бакалейный магазин, в котором небольшими партиями начинает реализовывать собственный алкоголь. К 1865 году Баллантайну удается открыть еще один магазин в Глазго, куда и переезжает глава семьи, оставив торговлю в Эдинбурге старшему сыну Арчибальду. В это время виски под маркой Ballantine’s продают уже по всей Шотландии, а Джордж возглавляет компанию George Ballantine and Son, престижную репутацию которой в 1895 году подтвердил факт получения ордена Королевы Виктории.",
-    "Начиная с 2005 года производством Ballantine занимается компания Pernod Ricard, которая тщательно следит за репутацией бренда, сохраняя рецепты и старинные традиции."
+    "НЕТ ИНФОРМАЦИИ. Тестовый текст: Виски Ballantine's 12 лет — это бленд 40 отборных солодовых и зерновых дистиллятов, минимальный срок выдержки которых составляет 12 лет. ",
+    "НЕТ ИНФОРМАЦИИ. Тестовый текст: Джордж Баллантайн (George Ballantine) – выходец из семьи простых фермеров, начал свою трудовую карьеру в возрасте девятнадцати лет в качестве подсобного рабочего в бакалейной лавке в Эдинбурге. Здесь, в 1827 году, Джордж открывает свой бакалейный магазин, в котором небольшими партиями начинает реализовывать собственный алкоголь. К 1865 году Баллантайну удается открыть еще один магазин в Глазго, куда и переезжает глава семьи, оставив торговлю в Эдинбурге старшему сыну Арчибальду. В это время виски под маркой Ballantine’s продают уже по всей Шотландии, а Джордж возглавляет компанию George Ballantine and Son, престижную репутацию которой в 1895 году подтвердил факт получения ордена Королевы Виктории.",
+    "НЕТ ИНФОРМАЦИИ. Тестовый текст: Начиная с 2005 года производством Ballantine занимается компания Pernod Ricard, которая тщательно следит за репутацией бренда, сохраняя рецепты и старинные традиции."
   ];
 
   Future<void> _getItem() async {
@@ -348,8 +350,7 @@ class _ProductPageState extends State<ProductPage> {
     super.initState();
     setState(() {
       cacheAmount = int.parse(widget.item["amount"] ?? "0");
-      inStock = double.parse(widget.item["in_stock"] ?? widget.item["amount"])
-          .truncate();
+      inStock = double.parse(widget.item["in_stock"]).truncate();
 
       bool isImageDownloaded = false;
       _image = CachedNetworkImage(
@@ -606,11 +607,15 @@ class _ProductPageState extends State<ProductPage> {
                                         onPressed: () {
                                           // _finalizeCartAmount();
                                           Navigator.pop(context);
-                                          Navigator.pushReplacement(context,
-                                              MaterialPageRoute(
-                                                  builder: (context) {
-                                            return const CartPage();
-                                          }));
+                                          if (widget.openedFromCart) {
+                                            return;
+                                          } else {
+                                            Navigator.pushReplacement(context,
+                                                MaterialPageRoute(
+                                                    builder: (context) {
+                                              return const CartPage();
+                                            }));
+                                          }
                                         },
                                         icon: Icon(
                                           Icons.shopping_cart_checkout_rounded,

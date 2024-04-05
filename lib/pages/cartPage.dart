@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
-import 'package:naliv_delivery/pages/orderPage.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
+import 'package:intl/intl.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -22,6 +21,11 @@ class _CartPageState extends State<CartPage>
   late AnimationController animController;
   final Duration animDuration = const Duration(milliseconds: 250);
 
+  String formatCost(String costString) {
+    int cost = int.parse(costString);
+    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
+  }
+
   Future<void> _getCart() async {
     Map<String, dynamic> cart = await getCart();
     print(cart);
@@ -32,7 +36,7 @@ class _CartPageState extends State<CartPage>
     setState(() {
       items = cart["cart"];
       cartInfo = cart;
-      sum = cart!["sum"];
+      sum = cart["sum"];
     });
   }
 
@@ -117,8 +121,8 @@ class _CartPageState extends State<CartPage>
                           },
                           onDismissed: ((direction) {
                             Map<String, dynamic> dissmisedItem =
-                                items.firstWhere(
-                                    (element) => element["item_id"] == item["item_id"]);
+                                items.firstWhere((element) =>
+                                    element["item_id"] == item["item_id"]);
                             setState(() {
                               localSum -= int.parse(dissmisedItem["price"]) *
                                   int.parse(dissmisedItem["amount"]);
@@ -184,6 +188,7 @@ class _CartPageState extends State<CartPage>
                                         item: items[index],
                                         index: index,
                                         returnDataAmount: updateDataAmount,
+                                        openedFromCart: true,
                                       );
                                     },
                                   );
@@ -207,15 +212,153 @@ class _CartPageState extends State<CartPage>
                 const SizedBox(
                   height: 100,
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    const Text("Итого"),
-                    Text(localSum.toString()),
-                  ],
+                Divider(
+                  color: Theme.of(context).colorScheme.secondary,
                 ),
-                const Divider(),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      Flexible(
+                        flex: 5,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.only(left: 15),
+                              child: Text(
+                                "Цена без скидки",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(right: 20),
+                              child: Divider(
+                                color: Theme.of(context).colorScheme.secondary,
+                              ),
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.only(left: 15),
+                              child: Text(
+                                "Скидка",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(right: 20),
+                              child: Divider(
+                                color: Theme.of(context).colorScheme.secondary,
+                              ),
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.only(left: 15),
+                              child: Text(
+                                "Итого",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Flexible(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 5),
+                                  child: Text(
+                                    formatCost(localSum
+                                        .toString()), // CHANGE THIS TO REPRESENT SUM WITHOUT DISCOUNT
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                                const Text(
+                                  "₸",
+                                  style: TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 18),
+                                ),
+                              ],
+                            ),
+                            Divider(
+                              color: Theme.of(context).colorScheme.secondary,
+                            ),
+                            Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 5),
+                                  child: Text(
+                                    formatCost(localSum
+                                        .toString()), // CHANGE THIS TO REPRESENT DISCOUNT
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                                const Text(
+                                  "₸",
+                                  style: TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 18),
+                                ),
+                              ],
+                            ),
+                            Divider(
+                              color: Theme.of(context).colorScheme.secondary,
+                            ),
+                            Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 5),
+                                  child: Text(
+                                    formatCost(localSum.toString()),
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                                const Text(
+                                  "₸",
+                                  style: TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 18),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 15),
                   child: ElevatedButton(
@@ -251,8 +394,8 @@ class _CartPageState extends State<CartPage>
                                 child: Padding(
                                   padding: const EdgeInsets.only(right: 5),
                                   child: Text(
-                                    localSum
-                                        .toString(), // TODO: HERE IS SUM OF CART
+                                    formatCost(localSum
+                                        .toString()), // TODO: HERE IS SUM OF CART
                                     textAlign: TextAlign.end,
                                     style: TextStyle(
                                       fontWeight: FontWeight.w700,

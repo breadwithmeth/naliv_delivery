@@ -35,11 +35,11 @@ class _CreateAddressState extends State<CreateAddress> {
       "floor": floor.text,
       "other": other.text
     });
-    if (isCreated) {
-      print(isCreated);
-      Navigator.pushReplacement(context,
-          MaterialPageRoute(builder: (context) => const BottomMenu()));
-    }
+    // if (isCreated) {
+    //   print(isCreated);
+    //   Navigator.pushReplacement(context,
+    //       MaterialPageRoute(builder: (context) => const BottomMenu()));
+    // }
   }
 
   @override
@@ -65,8 +65,8 @@ class _CreateAddressState extends State<CreateAddress> {
                                   BorderSide(color: Colors.black, width: 10),
                               borderRadius:
                                   BorderRadius.all(Radius.circular(10)))),
-                      style:
-                          const TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 20),
                       controller: name,
                     ),
                   ),
@@ -89,8 +89,8 @@ class _CreateAddressState extends State<CreateAddress> {
                               borderRadius:
                                   BorderRadius.all(Radius.circular(10)))),
                       readOnly: true,
-                      style:
-                          const TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 20),
                       controller: TextEditingController(text: widget.street),
                     ),
                   ),
@@ -109,8 +109,8 @@ class _CreateAddressState extends State<CreateAddress> {
                               borderRadius:
                                   BorderRadius.all(Radius.circular(10)))),
                       readOnly: true,
-                      style:
-                          const TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 20),
                       controller: TextEditingController(text: widget.house),
                     ),
                   ),
