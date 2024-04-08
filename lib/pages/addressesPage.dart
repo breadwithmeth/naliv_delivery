@@ -9,6 +9,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:naliv_delivery/pages/createAddress.dart';
 
 class AddressesPage extends StatefulWidget {
   const AddressesPage(
@@ -48,7 +49,7 @@ class _AddressesPageState extends State<AddressesPage>
   bool _isExtended = false;
   bool? _isAddressPicked = null;
   TextEditingController _search = TextEditingController();
-
+  String _adressName = "";
   MapController _mapController = MapController();
 
   LatLng _selectedAddress = LatLng(0, 0);
@@ -214,10 +215,22 @@ class _AddressesPageState extends State<AddressesPage>
                         child: _isAddressPicked == null
                             ? Container(child: CircularProgressIndicator())
                             : (_isAddressPicked!
-                                ? Container(
-                                    width:
-                                        MediaQuery.of(context).size.width * 0.3,
-                                    child: Text("Использовать этот адрес"),
+                                ? GestureDetector(
+                                    child: Container(
+                                      width: MediaQuery.of(context).size.width *
+                                          0.3,
+                                      child: Text("Использовать этот адрес"),
+                                    ),
+                                    onTap: () {
+                                      Navigator.push(context, MaterialPageRoute(
+                                        builder: (context) {
+                                          return CreateAddressName(
+                                              street: _adressName,
+                                              lat: _selectedAddress.latitude,
+                                              lon: _selectedAddress.latitude);
+                                        },
+                                      ));
+                                    },
                                   )
                                 : Container(
                                     width:
@@ -440,6 +453,9 @@ class _AddressesPageState extends State<AddressesPage>
                                       print(value);
                                       setState(() {
                                         _selectedAddress = LatLng(lat, lon);
+                                        _isAddressPicked = true;
+                                        _adressName =
+                                            objects.first["GeoObject"]["name"];
                                       });
                                       _mapController.move(LatLng(lat, lon), 20);
                                     });
