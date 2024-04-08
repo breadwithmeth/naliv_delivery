@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/cartPage.dart';
@@ -656,11 +657,14 @@ class _ProductPageState extends State<ProductPage> {
                       },
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Flexible(
                             child: Text(
                               "В корзину",
+                              textHeightBehavior: const TextHeightBehavior(
+                                applyHeightToFirstAscent: false,
+                              ),
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
                                 fontSize: 18,
@@ -669,28 +673,16 @@ class _ProductPageState extends State<ProductPage> {
                             ),
                           ),
                           Flexible(
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Text(
-                                  item["price"],
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 28,
-                                    color:
-                                        Theme.of(context).colorScheme.onPrimary,
-                                  ),
-                                ),
-                                Text(
-                                  "₸",
-                                  style: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.onPrimary,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 28,
-                                  ),
-                                ),
-                              ],
+                            child: Text(
+                              "${item["price"]}₸",
+                              textHeightBehavior: const TextHeightBehavior(
+                                applyHeightToFirstAscent: false,
+                              ),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 28,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
                             ),
                           ),
                         ],
