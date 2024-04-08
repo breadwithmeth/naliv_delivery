@@ -218,14 +218,14 @@ Future<List> getCategories() async {
 }
 
 Future<List?> getItemsMain(int page, String search,
-    {int categoryId = -1}) async {
+    {String categoryId = ""}) async {
   String? token = await getToken();
   if (token == null) {
     return [];
   }
   http.Response response;
   var url = Uri.https(URL_API, 'api/item/get.php');
-  if (categoryId != -1) {
+  if (categoryId != "") {
     response = await http.post(
       url,
       encoding: Encoding.getByName('utf-8'),

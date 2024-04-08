@@ -4,8 +4,8 @@ import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/pages/searchResultPage.dart';
 
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key, this.categoryId = ""});
-  final String categoryId;
+  const SearchPage({super.key, this.category_id = ""});
+  final String category_id;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -19,12 +19,12 @@ class _SearchPageState extends State<SearchPage> {
   void _search() {
     Navigator.pushReplacement(context, MaterialPageRoute(
       builder: (context) {
-        if (widget.categoryId != "") {
+        if (widget.category_id != "") {
           print("SEARCH INSIDE CATEGORY");
           return SearchResultPage(
             search: _keyword.text,
             page: 0,
-            categoryId: "",
+            category_id: widget.category_id,
           );
         } else {
           print("SEARCH EVERYWHERE");
@@ -113,7 +113,7 @@ class _SearchPageState extends State<SearchPage> {
                 const SizedBox(
                   height: 5,
                 ),
-                widget.categoryId != ""
+                widget.category_id != ""
                     ? Row(
                         children: [
                           Checkbox(

@@ -464,7 +464,7 @@ class _CategoryPageState extends State<CategoryPage> {
                         Navigator.push(context, MaterialPageRoute(
                           builder: (context) {
                             return SearchPage(
-                              categoryId: widget.category_id,
+                              category_id: widget.category_id,
                             );
                           },
                         ));
