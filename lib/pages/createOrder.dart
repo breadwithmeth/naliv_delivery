@@ -5,6 +5,7 @@ import 'package:naliv_delivery/pages/addressesPage.dart';
 import 'package:naliv_delivery/pages/createAddress.dart';
 import 'package:naliv_delivery/pages/orderConfirmation.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../misc/api.dart';
 
@@ -19,10 +20,12 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   bool delivery = true;
   List items = [];
   Map<String, dynamic> cartInfo = {};
-  Widget? currentAddressWidget;
+  // Widget? currentAddressWidget;
   List<Widget> addressesWidget = [];
-  Map? currentAddress;
+  Map currentAddress = {};
   List addresses = [];
+
+  bool isAddressesLoading = true;
 
   Future<void> _getCart() async {
     // List cart = await getCart();
@@ -39,6 +42,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   }
 
   Future<void> _getAddresses() async {
+    setState(() {
+      isAddressesLoading = true;
+    });
     List<Widget> addressesWidget = [];
     addresses = await getAddresses();
     for (var element in addresses) {
@@ -73,20 +79,21 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
       if (element["is_selected"] == "1") {
         setState(() {
           currentAddress = element;
-          currentAddressWidget = GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                Text(element["address"]),
-                const Icon(Icons.arrow_forward_ios)
-              ],
-            ),
-            onTap: () {
-              _getAddressPickDialog();
-            },
-          );
+          isAddressesLoading = false;
+          // currentAddressWidget = GestureDetector(
+          //   behavior: HitTestBehavior.opaque,
+          //   child: Row(
+          //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //     mainAxisSize: MainAxisSize.max,
+          //     children: [
+          //       Text(element["address"]),
+          //       const Icon(Icons.arrow_forward_ios)
+          //     ],
+          //   ),
+          //   onTap: () {
+          //     _getAddressPickDialog();
+          //   },
+          // );
         });
       }
     }
@@ -156,8 +163,10 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    _getCart();
-    _getAddresses();
+    Future.delayed(const Duration(microseconds: 0), () async {
+      await _getCart();
+      await _getAddresses();
+    });
   }
 
   @override
@@ -291,48 +300,94 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
               },
             ),
           ),
-          delivery
-              ? Container(
-                  decoration: BoxDecoration(
-                      border: Border.all(
-                        width: 2,
-                        color: Colors.grey.shade100,
+          isAddressesLoading
+              ? Shimmer.fromColors(
+                  baseColor:
+                      Theme.of(context).colorScheme.secondary.withOpacity(0.05),
+                  highlightColor: Theme.of(context).colorScheme.secondary,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 30),
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        borderRadius: BorderRadius.all(Radius.circular(3)),
+                        color: Colors.white,
                       ),
-                      color: Colors.white,
-                      borderRadius: const BorderRadius.all(Radius.circular(3))),
-                  margin: const EdgeInsets.symmetric(horizontal: 30),
-                  child: currentAddressWidget ??
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => AddressesPage(
-                                      addresses: addresses,
-                                      isExtended: true,
-                                    )),
-                          ).then((value) => print(_getAddresses()));
-                        },
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            Text(
-                              "Добавьте адрес доставки",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 16,
-                                color: Theme.of(context).colorScheme.secondary,
+                      width: double.infinity,
+                      height: 50,
+                    ),
+                  ),
+                )
+              : delivery
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                          border: Border.all(
+                            width: 2,
+                            color: Colors.grey.shade100,
+                          ),
+                          color: Colors.white,
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(3))),
+                      margin: const EdgeInsets.symmetric(horizontal: 30),
+                      // This should be null only if user doesn't have any addresses, else there will be user address
+                      // child: currentAddressWidget ??
+                      child: currentAddress.isNotEmpty
+                          ? GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.max,
+                                children: [
+                                  Text(
+                                    currentAddress["address"],
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              onTap: () {
+                                _getAddressPickDialog();
+                              },
+                            )
+                          : TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => AddressesPage(
+                                            addresses: addresses,
+                                            isExtended: true,
+                                          )),
+                                ).then((value) => print(_getAddresses()));
+                              },
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  Text(
+                                    "Добавьте адрес доставки",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 16,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .secondary,
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.add_box_rounded,
+                                    color:
+                                        Theme.of(context).colorScheme.secondary,
+                                  ),
+                                ],
                               ),
                             ),
-                            Icon(
-                              Icons.add_box_rounded,
-                              color: Theme.of(context).colorScheme.secondary,
-                            ),
-                          ],
-                        ),
-                      ),
-                )
-              : Container(),
+                    )
+                  : Container(),
           Container(
             decoration: BoxDecoration(
                 border: Border.all(

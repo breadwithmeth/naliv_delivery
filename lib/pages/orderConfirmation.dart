@@ -145,19 +145,23 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     ),
                   )
                 : Container(),
-            ElevatedButton(
-              onPressed: () {},
-              child: const Row(
-                children: [
-                  Text(
-                    "Отменить",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: ElevatedButton(
+                onPressed: () {},
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Отменить",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],

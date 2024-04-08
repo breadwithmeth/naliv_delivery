@@ -4,7 +4,8 @@ import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/pages/searchResultPage.dart';
 
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key});
+  const SearchPage({super.key, this.categoryId = ""});
+  final String categoryId;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -13,14 +14,25 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   TextEditingController _keyword = TextEditingController();
   bool isTextInField = false;
+  bool isSearchInCategory = false;
 
   void _search() {
     Navigator.pushReplacement(context, MaterialPageRoute(
       builder: (context) {
-        return SearchResultPage(
-          search: _keyword.text,
-          page: 0,
-        );
+        if (widget.categoryId != "") {
+          print("SEARCH INSIDE CATEGORY");
+          return SearchResultPage(
+            search: _keyword.text,
+            page: 0,
+            categoryId: "",
+          );
+        } else {
+          print("SEARCH EVERYWHERE");
+          return SearchResultPage(
+            search: _keyword.text,
+            page: 0,
+          );
+        }
       },
     ));
   }
@@ -99,7 +111,32 @@ class _SearchPageState extends State<SearchPage> {
                               const BorderRadius.all(Radius.circular(3)))),
                 ),
                 const SizedBox(
-                  height: 10,
+                  height: 5,
+                ),
+                widget.categoryId != ""
+                    ? Row(
+                        children: [
+                          Checkbox(
+                            value: isSearchInCategory,
+                            onChanged: (value) {
+                              setState(() {
+                                isSearchInCategory = !isSearchInCategory;
+                              });
+                            },
+                          ),
+                          const Text(
+                            "Искать везде",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Container(),
+                const SizedBox(
+                  height: 5,
                 ),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 125),

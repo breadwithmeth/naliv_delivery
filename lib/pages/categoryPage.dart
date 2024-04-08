@@ -463,7 +463,9 @@ class _CategoryPageState extends State<CategoryPage> {
                       onPressed: () {
                         Navigator.push(context, MaterialPageRoute(
                           builder: (context) {
-                            return const SearchPage();
+                            return SearchPage(
+                              categoryId: widget.category_id,
+                            );
                           },
                         ));
                       },
@@ -811,7 +813,7 @@ class _CategoryPageState extends State<CategoryPage> {
   ListView _listViewCategories() {
     if (isItemsLoadng) {
       return ListView.builder(
-          itemCount: 3,
+          itemCount: 5,
           itemBuilder: (context, index) {
             return Column(
               children: [
@@ -842,7 +844,7 @@ class _CategoryPageState extends State<CategoryPage> {
                           ),
                         ),
                         Flexible(
-                          flex: 3,
+                          flex: 4,
                           child: Column(
                             children: [
                               Flexible(

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
@@ -20,7 +23,8 @@ class _CartPageState extends State<CartPage>
   int localSum = 0;
   late AnimationController animController;
   final Duration animDuration = const Duration(milliseconds: 250);
-  int discount = 0;
+  int localDiscount = 0;
+  TextEditingController _promoController = TextEditingController();
 
   String formatCost(String costString) {
     int cost = int.parse(costString);
@@ -67,6 +71,23 @@ class _CartPageState extends State<CartPage>
     });
   }
 
+  void updatePrices() {
+    localSum = 0;
+    localDiscount = 0;
+    for (dynamic item in items) {
+      localSum += (int.parse(item["price"]) * int.parse(item["amount"]));
+      if (item["previous_price"] != null) {
+        localDiscount += (int.parse(item["price"]) -
+            int.parse(item["previous_price"]) * int.parse(item["amount"]));
+      }
+    }
+    // Just update states, ONLY after cycle are done working
+    setState(() {
+      localSum = localSum;
+      localDiscount = localDiscount;
+    });
+  }
+
   bool isCartLoading = false;
 
   @override
@@ -83,7 +104,7 @@ class _CartPageState extends State<CartPage>
         localSum = int.parse(sum);
         for (dynamic item in items) {
           if (item["previous_price"] != null) {
-            discount += int.parse(item["price"]) -
+            localDiscount += int.parse(item["price"]) -
                 int.parse(item["previous_price"] ?? "0");
           }
         }
@@ -127,15 +148,12 @@ class _CartPageState extends State<CartPage>
                             bool result =
                                 await _deleteFromCart(item["item_id"]);
 
-                            setState(() {
-                              items.removeAt(index);
-                            });
-
                             if (result) {
                               setState(() {
                                 items.removeAt(index);
-                                localSum -= int.parse(item["price"]) *
-                                    int.parse(item["amount"]);
+                                updatePrices();
+                                // localSum -= int.parse(item["price"]) *
+                                //     int.parse(item["amount"]);
                               });
                             }
 
@@ -248,7 +266,7 @@ class _CartPageState extends State<CartPage>
                 const Divider(),
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   child: Row(
                     mainAxisSize: MainAxisSize.max,
                     children: [
@@ -335,7 +353,7 @@ class _CartPageState extends State<CartPage>
                                 Padding(
                                   padding: const EdgeInsets.only(right: 5),
                                   child: Text(
-                                    formatCost(discount
+                                    formatCost(localDiscount
                                         .toString()), // CHANGE THIS TO REPRESENT DISCOUNT
                                     style: const TextStyle(
                                       fontSize: 18,
@@ -382,6 +400,9 @@ class _CartPageState extends State<CartPage>
                     ],
                   ),
                 ),
+                const SizedBox(
+                  height: 10,
+                ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 15),
                   child: ElevatedButton(
@@ -411,6 +432,71 @@ class _CartPageState extends State<CartPage>
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                ),
+                TextButton(
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.all(0),
+                    shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(3))),
+                    // backgroundColor: Colors.amber,
+                  ),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        return AlertDialog(
+                          shape: const RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(3))),
+                          backgroundColor:
+                              Theme.of(context).colorScheme.background,
+                          surfaceTintColor: Colors.transparent,
+                          elevation: 0.0,
+                          title: const Text(
+                            "Промокод",
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black,
+                            ),
+                          ),
+                          content: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextField(
+                                controller: _promoController,
+                                decoration: const InputDecoration(
+                                  border: UnderlineInputBorder(),
+                                ),
+                              ),
+                              const SizedBox(
+                                height: 5,
+                              ),
+                              ElevatedButton(
+                                onPressed: () {
+                                  print("Hell");
+                                },
+                                child: const Row(
+                                  children: [
+                                    Text("Подтвердить"),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  child: Text(
+                    "Есть промокод?",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.secondary,
                     ),
                   ),
                 ),

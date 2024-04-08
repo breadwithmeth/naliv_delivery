@@ -5,10 +5,15 @@ import 'package:naliv_delivery/shared/itemCards.dart';
 
 class SearchResultPage extends StatefulWidget {
   const SearchResultPage(
-      {super.key, required this.search, required this.page, this.result});
+      {super.key,
+      required this.search,
+      required this.page,
+      this.result,
+      this.categoryId = ""});
   final String search;
   final int page;
   final Widget? result;
+  final String categoryId;
   @override
   State<SearchResultPage> createState() => _SearchResultPageState();
 }

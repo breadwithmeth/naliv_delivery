@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -216,18 +217,30 @@ Future<List> getCategories() async {
   return data;
 }
 
-Future<List?> getItemsMain(int page, String search) async {
+Future<List?> getItemsMain(int page, String search,
+    {int categoryId = -1}) async {
   String? token = await getToken();
   if (token == null) {
     return [];
   }
+  http.Response response;
   var url = Uri.https(URL_API, 'api/item/get.php');
-  var response = await http.post(
-    url,
-    encoding: Encoding.getByName('utf-8'),
-    headers: {"Content-Type": "application/json", "AUTH": token},
-    body: json.encode({'search': search, "page": page}),
-  );
+  if (categoryId != -1) {
+    response = await http.post(
+      url,
+      encoding: Encoding.getByName('utf-8'),
+      headers: {"Content-Type": "application/json", "AUTH": token},
+      body: json
+          .encode({'search': search, "page": page, "category_id": categoryId}),
+    );
+  } else {
+    response = await http.post(
+      url,
+      encoding: Encoding.getByName('utf-8'),
+      headers: {"Content-Type": "application/json", "AUTH": token},
+      body: json.encode({'search': search, "page": page}),
+    );
+  }
 
   print(
     json.encode({'search': search, "page": page}),
