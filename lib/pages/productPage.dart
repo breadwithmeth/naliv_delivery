@@ -8,6 +8,7 @@ import 'package:naliv_delivery/shared/likeButton.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:numberpicker/numberpicker.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:intl/intl.dart';
 
 class ProductPage extends StatefulWidget {
   const ProductPage(
@@ -344,6 +345,11 @@ class _ProductPageState extends State<ProductPage> {
 
   // BUTTON VARIABLES/FUNCS END
 
+  String formatCost(String costString) {
+    int cost = int.parse(costString);
+    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
+  }
+
   @override
   void initState() {
     // TODO: implement initState
@@ -431,11 +437,21 @@ class _ProductPageState extends State<ProductPage> {
                         mainAxisSize: MainAxisSize.max,
                         children: [
                           GestureDetector(
-                            onLongPress: (() {
+                            // onLongPress: (() {
+                            //   setState(() {
+                            //     isNumPickActive = true;
+                            //   });
+                            // }),
+                            onVerticalDragStart: (details) {
                               setState(() {
                                 isNumPickActive = true;
                               });
-                            }),
+                            },
+                            onVerticalDragEnd: (details) {
+                              setState(() {
+                                isNumPickActive = false;
+                              });
+                            },
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -534,32 +550,32 @@ class _ProductPageState extends State<ProductPage> {
                             children: [
                               item["prev_price"] != null
                                   ? Text(
-                                      item["prev_price"],
+                                      formatCost(item["prev_price"]),
                                       style: TextStyle(
-                                          decoration:
-                                              TextDecoration.lineThrough,
-                                          decorationColor: Theme.of(context)
-                                              .colorScheme
-                                              .onPrimary,
-                                          decorationThickness: 1.85,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onPrimary,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w500),
+                                        decoration: TextDecoration.lineThrough,
+                                        decorationColor: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimary,
+                                        decorationThickness: 1.85,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimary,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     )
                                   : Container(),
                               Padding(
                                 padding:
                                     const EdgeInsets.only(left: 7, right: 5),
                                 child: Text(
-                                  item["price"] ?? "",
+                                  formatCost(item["price"] ?? ""),
                                   style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 26,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onPrimary),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 26,
+                                    color:
+                                        Theme.of(context).colorScheme.onPrimary,
+                                  ),
                                 ),
                               ),
                               Text(
@@ -638,17 +654,12 @@ class _ProductPageState extends State<ProductPage> {
                       onPressed: () {
                         _addToCart();
                       },
-                      child: Container(
-                        decoration: const BoxDecoration(
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(10))),
-                        padding: const EdgeInsets.symmetric(horizontal: 15),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.max,
-                          children: [
-                            Text(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Text(
                               "В корзину",
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
@@ -656,37 +667,18 @@ class _ProductPageState extends State<ProductPage> {
                                 color: Theme.of(context).colorScheme.onPrimary,
                               ),
                             ),
-                            Row(
+                          ),
+                          Flexible(
+                            child: Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                item["prev_price"] != null
-                                    ? Text(
-                                        item["prev_price"],
-                                        style: TextStyle(
-                                            decoration:
-                                                TextDecoration.lineThrough,
-                                            decorationColor: Theme.of(context)
-                                                .colorScheme
-                                                .onPrimary,
-                                            decorationThickness: 1.85,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onPrimary,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w500),
-                                      )
-                                    : Container(),
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.only(left: 7, right: 5),
-                                  child: Text(
-                                    item["price"] ?? "",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 26,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onPrimary),
+                                Text(
+                                  item["price"],
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 28,
+                                    color:
+                                        Theme.of(context).colorScheme.onPrimary,
                                   ),
                                 ),
                                 Text(
@@ -695,14 +687,85 @@ class _ProductPageState extends State<ProductPage> {
                                     color:
                                         Theme.of(context).colorScheme.onPrimary,
                                     fontWeight: FontWeight.w900,
-                                    fontSize: 30,
+                                    fontSize: 28,
                                   ),
                                 ),
                               ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
+                      // child: Row(
+                      //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      //   crossAxisAlignment: CrossAxisAlignment.center,
+                      //   mainAxisSize: MainAxisSize.max,
+                      //   children: [
+                      //     Flexible(
+                      //       child: Text(
+                      //         "В корзину",
+                      //         style: TextStyle(
+                      //           fontWeight: FontWeight.w900,
+                      //           fontSize: 18,
+                      //           color: Theme.of(context).colorScheme.onPrimary,
+                      //         ),
+                      //       ),
+                      //     ),
+                      //     Flexible(
+                      //       child: Row(
+                      //         mainAxisAlignment: MainAxisAlignment.end,
+                      //         crossAxisAlignment: CrossAxisAlignment.center,
+                      //         children: [
+                      //           item["prev_price"] != null
+                      //               ? Text(
+                      //                   formatCost(item["prev_price"]),
+                      //                   style: TextStyle(
+                      //                     decoration:
+                      //                         TextDecoration.lineThrough,
+                      //                     decorationColor: Theme.of(context)
+                      //                         .colorScheme
+                      //                         .onPrimary,
+                      //                     decorationThickness: 1.85,
+                      //                     color: Theme.of(context)
+                      //                         .colorScheme
+                      //                         .onPrimary,
+                      //                     fontSize: 16,
+                      //                     fontWeight: FontWeight.w500,
+                      //                   ),
+                      //                 )
+                      //               : Container(),
+                      //           Row(
+                      //             children: [
+                      //               Padding(
+                      //                 padding: const EdgeInsets.only(
+                      //                     left: 7, right: 5),
+                      //                 child: Text(
+                      //                   formatCost(item["price"] ?? ""),
+                      //                   style: TextStyle(
+                      //                     fontWeight: FontWeight.w700,
+                      //                     fontSize: 26,
+                      //                     color: Theme.of(context)
+                      //                         .colorScheme
+                      //                         .onPrimary,
+                      //                   ),
+                      //                 ),
+                      //               ),
+                      //               Text(
+                      //                 "₸",
+                      //                 style: TextStyle(
+                      //                   color: Theme.of(context)
+                      //                       .colorScheme
+                      //                       .onPrimary,
+                      //                   fontWeight: FontWeight.w900,
+                      //                   fontSize: 30,
+                      //                 ),
+                      //               ),
+                      //             ],
+                      //           ),
+                      //         ],
+                      //       ),
+                      //     ),
+                      //   ],
+                      // ),
                     )
               : Shimmer.fromColors(
                   baseColor:
@@ -752,10 +815,10 @@ class _ProductPageState extends State<ProductPage> {
                               Icons.arrow_back_ios,
                             ),
                           ),
-                          IconButton(
-                            onPressed: () {},
-                            icon: const Icon(Icons.share_outlined),
-                          ),
+                          // IconButton(
+                          //   onPressed: () {},
+                          //   icon: const Icon(Icons.share_outlined),
+                          // ),
                         ],
                       ),
                       Row(
@@ -824,14 +887,24 @@ class _ProductPageState extends State<ProductPage> {
               ? Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                  child: Text(
-                    item["name"] ?? "",
-                    style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Text(
+                        item["name"] ?? "",
+                        style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black),
+                      ),
+                      Text(
+                        "${double.parse(item["in_stock"] ?? "0").truncate().toString()} шт в наличии",
+                      ),
+                    ],
                   ),
                 )
+              // TODO: Maybe not even needed anymore, content inside productPage loads immediately because data recieved from categoryPage
               : Shimmer.fromColors(
                   baseColor:
                       Theme.of(context).colorScheme.secondary.withOpacity(0.05),
@@ -842,9 +915,6 @@ class _ProductPageState extends State<ProductPage> {
                     color: Colors.white,
                   ),
                 ),
-          const SizedBox(
-            height: 5,
-          ),
           Container(
             width: MediaQuery.of(context).size.width,
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
@@ -858,10 +928,11 @@ class _ProductPageState extends State<ProductPage> {
                   height: 50,
                   width: MediaQuery.of(context).size.width,
                   child: ListView(
-                      primary: false,
-                      shrinkWrap: true,
-                      scrollDirection: Axis.horizontal,
-                      children: groupItems),
+                    primary: false,
+                    shrinkWrap: true,
+                    scrollDirection: Axis.horizontal,
+                    children: groupItems,
+                  ),
                 )
               : Container(),
           const SizedBox(
@@ -873,16 +944,17 @@ class _ProductPageState extends State<ProductPage> {
                 height: 25,
                 padding: const EdgeInsets.symmetric(horizontal: 15),
                 decoration: BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.grey.withOpacity(0.15),
-                          offset: const Offset(0, -1),
-                          blurRadius: 15,
-                          spreadRadius: 1)
-                    ],
-                    border: Border(
-                        bottom:
-                            BorderSide(color: Colors.grey.shade200, width: 3))),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.grey.withOpacity(0.15),
+                        offset: const Offset(0, -1),
+                        blurRadius: 15,
+                        spreadRadius: 1)
+                  ],
+                  border: Border(
+                    bottom: BorderSide(color: Colors.grey.shade200, width: 3),
+                  ),
+                ),
                 child: const Row(
                   children: [],
                 ),
@@ -894,12 +966,15 @@ class _ProductPageState extends State<ProductPage> {
                     child: Container(
                       margin: const EdgeInsets.only(left: 15),
                       decoration: BoxDecoration(
-                          border: Border(
-                              bottom: BorderSide(
-                                  width: 3,
-                                  color: currentTab == 0
-                                      ? Colors.black
-                                      : Colors.grey.shade200))),
+                        border: Border(
+                          bottom: BorderSide(
+                            width: 3,
+                            color: currentTab == 0
+                                ? Colors.black
+                                : Colors.grey.shade200,
+                          ),
+                        ),
+                      ),
                       child: const Text(
                         "Описание",
                         style: TextStyle(color: Colors.black, fontSize: 16),
@@ -916,12 +991,15 @@ class _ProductPageState extends State<ProductPage> {
                       margin: const EdgeInsets.only(left: 15),
                       height: 25,
                       decoration: BoxDecoration(
-                          border: Border(
-                              bottom: BorderSide(
-                                  width: 3,
-                                  color: currentTab == 1
-                                      ? Colors.black
-                                      : Colors.grey.shade200))),
+                        border: Border(
+                          bottom: BorderSide(
+                            width: 3,
+                            color: currentTab == 1
+                                ? Colors.black
+                                : Colors.grey.shade200,
+                          ),
+                        ),
+                      ),
                       child: const Text(
                         "О бренде",
                         style: TextStyle(color: Colors.black, fontSize: 16),
@@ -938,12 +1016,15 @@ class _ProductPageState extends State<ProductPage> {
                       margin: const EdgeInsets.only(left: 15),
                       height: 25,
                       decoration: BoxDecoration(
-                          border: Border(
-                              bottom: BorderSide(
-                                  width: 3,
-                                  color: currentTab == 2
-                                      ? Colors.black
-                                      : Colors.grey.shade200))),
+                        border: Border(
+                          bottom: BorderSide(
+                            width: 3,
+                            color: currentTab == 2
+                                ? Colors.black
+                                : Colors.grey.shade200,
+                          ),
+                        ),
+                      ),
                       child: const Text(
                         "Производитель",
                         style: TextStyle(color: Colors.black, fontSize: 16),

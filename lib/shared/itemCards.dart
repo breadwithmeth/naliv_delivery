@@ -161,16 +161,20 @@ class _ItemCardState extends State<ItemCard> {
                           element["country"] != null
                               ? WidgetSpan(
                                   child: Container(
-                                    padding: const EdgeInsets.all(5),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 2, vertical: 1),
                                     decoration: BoxDecoration(
-                                        color: Colors.grey.shade200,
-                                        borderRadius: const BorderRadius.all(
-                                            Radius.circular(10))),
+                                      color: Colors.grey.shade200,
+                                      borderRadius: const BorderRadius.all(
+                                        Radius.circular(3),
+                                      ),
+                                    ),
                                     child: Text(
                                       element["country"] ?? "",
                                       style: const TextStyle(
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.w600),
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 )
@@ -304,7 +308,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
   late int chack;
 
   String formatCost(String costString) {
-    int cost = int.parse(costString);
+    int cost = double.parse(costString).truncate().toInt();
     return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
   }
 
@@ -442,18 +446,24 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                     element["country"] != null
                                         ? WidgetSpan(
                                             child: Container(
-                                              padding: const EdgeInsets.all(5),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 2,
+                                                vertical: 1,
+                                              ),
                                               decoration: BoxDecoration(
-                                                  color: Colors.grey.shade200,
-                                                  borderRadius:
-                                                      const BorderRadius.all(
-                                                          Radius.circular(10))),
+                                                color: Colors.grey.shade200,
+                                                borderRadius:
+                                                    const BorderRadius.all(
+                                                  Radius.circular(3),
+                                                ),
+                                              ),
                                               child: Text(
                                                 element["country"] ?? "",
                                                 style: const TextStyle(
-                                                    color: Colors.black,
-                                                    fontWeight:
-                                                        FontWeight.w600),
+                                                  color: Colors.black,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
                                               ),
                                             ),
                                           )
@@ -707,11 +717,12 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                           element["country"] != null
                               ? WidgetSpan(
                                   child: Container(
-                                    padding: const EdgeInsets.all(5),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 2, vertical: 1),
                                     decoration: BoxDecoration(
                                       color: Colors.grey.shade200,
                                       borderRadius: const BorderRadius.all(
-                                        Radius.circular(10),
+                                        Radius.circular(3),
                                       ),
                                     ),
                                     child: Text(

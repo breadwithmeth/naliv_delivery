@@ -871,11 +871,9 @@ class _CategoryPageState extends State<CategoryPage> {
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Divider(
-                    color: Theme.of(context).colorScheme.secondary,
-                  ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Divider(),
                 ),
               ],
             );
@@ -911,11 +909,9 @@ class _CategoryPageState extends State<CategoryPage> {
                 category_name: widget.category_name!,
                 scroll: 0,
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Divider(
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Divider(),
               ),
             ],
           ),

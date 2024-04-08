@@ -23,7 +23,7 @@ class Main extends StatefulWidget {
 
 class _MainState extends State<Main> {
   late Timer _timer;
-  int _tick = 0;
+  // int _tick = 0;
 
   Widget _redirect = const Center(
     child: CircularProgressIndicator(),
@@ -31,7 +31,7 @@ class _MainState extends State<Main> {
 
   void _initLoadingScreen() {
     setState(() {
-      _redirect = StartLoadingPage();
+      _redirect = const StartLoadingPage();
     });
   }
 
@@ -47,7 +47,7 @@ class _MainState extends State<Main> {
       });
     } else if (await camera.isPermanentlyDenied) {
       setState(() {
-        _redirect = PermissionPage();
+        _redirect = const PermissionPage();
       });
     }
 
@@ -61,7 +61,7 @@ class _MainState extends State<Main> {
       });
     } else if (await location.isPermanentlyDenied) {
       setState(() {
-        _redirect = PermissionPage();
+        _redirect = const PermissionPage();
       });
     }
     final storage = Permission.storage;
@@ -74,7 +74,7 @@ class _MainState extends State<Main> {
       });
     } else if (await storage.isPermanentlyDenied) {
       setState(() {
-        _redirect = PermissionPage();
+        _redirect = const PermissionPage();
       });
     }
 
@@ -138,8 +138,8 @@ class _MainState extends State<Main> {
             primary: Colors.black,
             onPrimary: Colors.white,
             onError: Colors.white,
-            secondary: Colors.grey
-                .shade300, // TODO: Change this later? To make more sense with black/white style
+            secondary: Colors
+                .black38, // TODO: Change this later? To make more sense with black/white style
             onSecondary: Colors.black,
           ),
           useMaterial3: true,
@@ -181,6 +181,9 @@ class _MainState extends State<Main> {
                 Radius.circular(3),
               ),
             ),
+          ),
+          dividerTheme: DividerThemeData(
+            color: Colors.grey.shade300,
           ),
           textTheme: const TextTheme(
               bodyMedium: TextStyle(color: gray1),

@@ -42,9 +42,10 @@ class _SearchPageState extends State<SearchPage> {
             decoration: BoxDecoration(
                 boxShadow: [
                   BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      offset: const Offset(5, 5),
-                      blurRadius: 10)
+                    color: Colors.black.withOpacity(0.1),
+                    offset: const Offset(5, 5),
+                    blurRadius: 10,
+                  )
                 ],
                 color: Colors.grey.shade100,
                 borderRadius: const BorderRadius.all(Radius.circular(3))),
