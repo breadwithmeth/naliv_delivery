@@ -9,11 +9,11 @@ class SearchResultPage extends StatefulWidget {
       required this.search,
       required this.page,
       this.result,
-      this.categoryId = ""});
+      this.category_id = ""});
   final String search;
   final int page;
   final Widget? result;
-  final String categoryId;
+  final String category_id;
   @override
   State<SearchResultPage> createState() => _SearchResultPageState();
 }
@@ -29,7 +29,8 @@ class _SearchResultPageState extends State<SearchResultPage> {
 
   Future<void> _getItems() async {
     try {
-      List? responseList = await getItemsMain(_pageNumber, widget.search);
+      
+      List? responseList = await getItemsMain(_pageNumber, widget.search, categoryId: widget.category_id);
       if (responseList != null) {
         List<Item> itemList = responseList.map((data) => Item(data)).toList();
 
