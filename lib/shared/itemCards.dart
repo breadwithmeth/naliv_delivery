@@ -1,9 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/shared/likeButton.dart';
+import 'package:intl/intl.dart';
 
 class ItemCard extends StatefulWidget {
   ItemCard(
@@ -30,6 +32,11 @@ class _ItemCardState extends State<ItemCard> {
   List<InlineSpan> propertiesWidget = [];
   late int chack;
   bool isNumPickerActive = false;
+
+  String formatCost(String costString) {
+    int cost = int.parse(costString);
+    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
+  }
 
   @override
   void initState() {
@@ -154,16 +161,20 @@ class _ItemCardState extends State<ItemCard> {
                           element["country"] != null
                               ? WidgetSpan(
                                   child: Container(
-                                    padding: const EdgeInsets.all(5),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 2, vertical: 1),
                                     decoration: BoxDecoration(
-                                        color: Colors.grey.shade200,
-                                        borderRadius: const BorderRadius.all(
-                                            Radius.circular(10))),
+                                      color: Colors.grey.shade200,
+                                      borderRadius: const BorderRadius.all(
+                                        Radius.circular(3),
+                                      ),
+                                    ),
                                     child: Text(
                                       element["country"] ?? "",
                                       style: const TextStyle(
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.w600),
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 )
@@ -179,7 +190,7 @@ class _ItemCardState extends State<ItemCard> {
                         Row(
                           children: [
                             Text(
-                              element['price'] ?? "",
+                              formatCost(element['price'] ?? ""),
                               style: const TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.w600,
@@ -200,7 +211,7 @@ class _ItemCardState extends State<ItemCard> {
                                 child: Row(
                                   children: [
                                     Text(
-                                      element["prev_price"],
+                                      formatCost(element["prev_price"] ?? 0),
                                       style: TextStyle(
                                           decoration:
                                               TextDecoration.lineThrough,
@@ -296,6 +307,11 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
   List<InlineSpan> propertiesWidget = [];
   late int chack;
 
+  String formatCost(String costString) {
+    int cost = double.parse(costString).truncate().toInt();
+    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
+  }
+
   @override
   void initState() {
     // TODO: implement initState
@@ -319,9 +335,10 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
             Text(
               temp[1],
               style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black),
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Colors.black,
+              ),
             ),
             Image.asset(
               "assets/property_icons/${temp[0]}.png",
@@ -429,18 +446,24 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                     element["country"] != null
                                         ? WidgetSpan(
                                             child: Container(
-                                              padding: const EdgeInsets.all(5),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 2,
+                                                vertical: 1,
+                                              ),
                                               decoration: BoxDecoration(
-                                                  color: Colors.grey.shade200,
-                                                  borderRadius:
-                                                      const BorderRadius.all(
-                                                          Radius.circular(10))),
+                                                color: Colors.grey.shade200,
+                                                borderRadius:
+                                                    const BorderRadius.all(
+                                                  Radius.circular(3),
+                                                ),
+                                              ),
                                               child: Text(
                                                 element["country"] ?? "",
                                                 style: const TextStyle(
-                                                    color: Colors.black,
-                                                    fontWeight:
-                                                        FontWeight.w600),
+                                                  color: Colors.black,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
                                               ),
                                             ),
                                           )
@@ -470,7 +493,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                   ? Row(
                                       children: [
                                         Text(
-                                          element["prev_price"],
+                                          formatCost(element["prev_price"]),
                                           style: TextStyle(
                                               decoration:
                                                   TextDecoration.lineThrough,
@@ -494,7 +517,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                               Row(
                                 children: [
                                   Text(
-                                    element['price'] ?? "",
+                                    formatCost(element['price'] ?? ""),
                                     style: const TextStyle(
                                         color: Colors.black,
                                         fontWeight: FontWeight.w600,
@@ -564,6 +587,11 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
   Map<String, dynamic> element = {};
   List<InlineSpan> propertiesWidget = [];
   late int chack;
+
+  String formatCost(String costString) {
+    int cost = int.parse(costString);
+    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
+  }
 
   @override
   void initState() {
@@ -689,11 +717,12 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                           element["country"] != null
                               ? WidgetSpan(
                                   child: Container(
-                                    padding: const EdgeInsets.all(5),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 2, vertical: 1),
                                     decoration: BoxDecoration(
                                       color: Colors.grey.shade200,
                                       borderRadius: const BorderRadius.all(
-                                        Radius.circular(10),
+                                        Radius.circular(3),
                                       ),
                                     ),
                                     child: Text(
@@ -717,7 +746,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                         Row(
                           children: [
                             Text(
-                              element['price'] ?? "",
+                              formatCost(element['price'] ?? ""),
                               style: const TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.w600,
@@ -736,7 +765,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                     child: Row(
                                       children: [
                                         Text(
-                                          element["prev_price"],
+                                          formatCost(element["prev_price"]),
                                           style: TextStyle(
                                               decoration:
                                                   TextDecoration.lineThrough,

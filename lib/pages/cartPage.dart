@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
-import 'package:naliv_delivery/pages/orderPage.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
+import 'package:intl/intl.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -21,6 +20,12 @@ class _CartPageState extends State<CartPage>
   int localSum = 0;
   late AnimationController animController;
   final Duration animDuration = const Duration(milliseconds: 250);
+  int discount = 0;
+
+  String formatCost(String costString) {
+    int cost = int.parse(costString);
+    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
+  }
 
   Future<void> _getCart() async {
     Map<String, dynamic> cart = await getCart();
@@ -32,7 +37,7 @@ class _CartPageState extends State<CartPage>
     setState(() {
       items = cart["cart"];
       cartInfo = cart;
-      sum = cart!["sum"];
+      sum = cart["sum"];
     });
   }
 
@@ -76,6 +81,12 @@ class _CartPageState extends State<CartPage>
       await _getCart();
       setState(() {
         localSum = int.parse(sum);
+        for (dynamic item in items) {
+          if (item["previous_price"] != null) {
+            discount += int.parse(item["price"]) -
+                int.parse(item["previous_price"] ?? "0");
+          }
+        }
         isCartLoading = false;
       });
     });
@@ -112,17 +123,27 @@ class _CartPageState extends State<CartPage>
                           // Each Dismissible must contain a Key. Keys allow Flutter to
                           // uniquely identify widgets.
                           key: Key(item["item_id"]),
-                          confirmDismiss: (direction) {
-                            return _deleteFromCart(item["item_id"]);
+                          confirmDismiss: (direction) async {
+                            bool result =
+                                await _deleteFromCart(item["item_id"]);
+
+                            setState(() {
+                              items.removeAt(index);
+                            });
+
+                            if (result) {
+                              setState(() {
+                                items.removeAt(index);
+                                localSum -= int.parse(item["price"]) *
+                                    int.parse(item["amount"]);
+                              });
+                            }
+
+                            return result;
                           },
                           onDismissed: ((direction) {
-                            Map<String, dynamic> dissmisedItem =
-                                items.firstWhere(
-                                    (element) => element["item_id"] == item["item_id"]);
-                            setState(() {
-                              localSum -= int.parse(dissmisedItem["price"]) *
-                                  int.parse(dissmisedItem["amount"]);
-                            });
+                            print(MediaQuery.of(context).size.height *
+                                ((4 - items.length) / 10));
                           }),
                           // Provide a function that tells the app
                           // what to do after an item has been swiped away.
@@ -184,19 +205,19 @@ class _CartPageState extends State<CartPage>
                                         item: items[index],
                                         index: index,
                                         returnDataAmount: updateDataAmount,
+                                        openedFromCart: true,
                                       );
                                     },
                                   );
                                 },
                               ),
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 16),
-                                child: Divider(
-                                  color:
-                                      Theme.of(context).colorScheme.secondary,
-                                ),
-                              ),
+                              items.length - 1 != index
+                                  ? const Padding(
+                                      padding:
+                                          EdgeInsets.symmetric(horizontal: 16),
+                                      child: Divider(),
+                                    )
+                                  : Container(),
                             ],
                           ),
                         ),
@@ -204,18 +225,163 @@ class _CartPageState extends State<CartPage>
                     );
                   },
                 ),
+                // Makes buy button stay in the same place imitating other cards in listView
+                items.isNotEmpty
+                    ? Column(
+                        children: [
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width,
+                            height: items.length < 4
+                                ? (MediaQuery.of(context).size.height * 0.122) *
+                                    (4 - items.length)
+                                : 0,
+                          ),
+                          const Divider(
+                            color: Colors.transparent,
+                          ),
+                        ],
+                      )
+                    : Container(),
                 const SizedBox(
-                  height: 100,
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    const Text("Итого"),
-                    Text(localSum.toString()),
-                  ],
+                  height: 20,
                 ),
                 const Divider(),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      const Flexible(
+                        flex: 5,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: EdgeInsets.only(left: 15),
+                              child: Text(
+                                "Цена без скидки",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.only(right: 20),
+                              child: Divider(),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.only(left: 15),
+                              child: Text(
+                                "Скидка",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.only(right: 20),
+                              child: Divider(),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.only(left: 15),
+                              child: Text(
+                                "Итого",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Flexible(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 5),
+                                  child: Text(
+                                    formatCost(localSum
+                                        .toString()), // CHANGE THIS TO REPRESENT SUM WITHOUT DISCOUNT
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                                const Text(
+                                  "₸",
+                                  style: TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 18),
+                                ),
+                              ],
+                            ),
+                            const Divider(),
+                            Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 5),
+                                  child: Text(
+                                    formatCost(discount
+                                        .toString()), // CHANGE THIS TO REPRESENT DISCOUNT
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                                const Text(
+                                  "₸",
+                                  style: TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 18),
+                                ),
+                              ],
+                            ),
+                            const Divider(),
+                            Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 5),
+                                  child: Text(
+                                    formatCost(localSum.toString()),
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                                const Text(
+                                  "₸",
+                                  style: TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 18),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 15),
                   child: ElevatedButton(
@@ -223,59 +389,25 @@ class _CartPageState extends State<CartPage>
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: ((context) {
+                          builder: (context) {
                             return const CreateOrderPage();
-                          }),
+                          },
                         ),
                       );
                     },
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text(
-                          "Оформить заказ",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 14,
-                            color: Theme.of(context).colorScheme.onPrimary,
-                          ),
-                        ),
                         Flexible(
-                          fit: FlexFit.tight,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            mainAxisSize: MainAxisSize.max,
-                            children: [
-                              Flexible(
-                                fit: FlexFit.tight,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(right: 5),
-                                  child: Text(
-                                    localSum
-                                        .toString(), // TODO: HERE IS SUM OF CART
-                                    textAlign: TextAlign.end,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 22,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onPrimary,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Flexible(
-                                child: Text(
-                                  "₸",
-                                  style: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.onPrimary,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 22,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            "Оформить заказ",
+                            textAlign: TextAlign.justify,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
                           ),
                         ),
                       ],

@@ -140,11 +140,26 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     padding: const EdgeInsets.all(15),
                     child: Column(
                       children: [
-                        Text(widget.address!["address"] ?? "") ?? Container()
+                        Text(widget.address!["address"] ?? "") ?? Container(),
                       ],
                     ),
                   )
                 : Container(),
+            ElevatedButton(
+              onPressed: () {},
+              child: const Row(
+                children: [
+                  Text(
+                    "Отменить",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
