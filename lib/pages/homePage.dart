@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -16,6 +18,8 @@ import 'package:naliv_delivery/pages/favPage.dart';
 import 'package:naliv_delivery/pages/loginPage.dart';
 import 'package:naliv_delivery/pages/searchPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
+
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
