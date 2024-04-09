@@ -26,13 +26,18 @@ class _SearchResultPageState extends State<SearchResultPage> {
   final int _numberOfPostsPerRequest = 30;
   late List<Item> _items;
   final int _nextPageTrigger = 3;
+  List? responseList = [];
 
   Future<void> _getItems() async {
     try {
-      
-      List? responseList = await getItemsMain(_pageNumber, widget.search, categoryId: widget.category_id);
+      if (widget.category_id == "") {
+        responseList = await getItemsMain(_pageNumber, widget.search);
+      } else {
+        responseList =
+            await getItemsMain(_pageNumber, widget.search, widget.category_id);
+      }
       if (responseList != null) {
-        List<Item> itemList = responseList.map((data) => Item(data)).toList();
+        List<Item> itemList = responseList!.map((data) => Item(data)).toList();
 
         setState(() {
           _isLastPage = itemList.length < _numberOfPostsPerRequest;
@@ -40,7 +45,7 @@ class _SearchResultPageState extends State<SearchResultPage> {
           _pageNumber = _pageNumber + 1;
           _items.addAll(itemList);
         });
-        if (itemList.length == 0) {
+        if (itemList.isEmpty) {
           setState(() {
             _isLastPage = true;
           });
@@ -130,12 +135,17 @@ class _SearchResultPageState extends State<SearchResultPage> {
                 category_name: "",
                 scroll: 0,
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Divider(
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
-              ),
+              _items.length - 1 != index
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 5,
+                      ),
+                      child: Divider(
+                        height: 0,
+                      ),
+                    )
+                  : Container(),
             ],
           ),
         );
@@ -180,46 +190,50 @@ class _SearchResultPageState extends State<SearchResultPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          // actions: [
-          //   IconButton(
-          //     icon: Icon(
-          //       Icons.search,
-          //       color: Colors.black,
-          //     ),
-          //     onPressed: () {
-          //       setState(() {
-          //         _itemsist = Container();
-          //       });
-          //     },
-          //   ),
-          // ],
-          title: TextField(
-            decoration: InputDecoration(
-                floatingLabelAlignment: FloatingLabelAlignment.start,
-                floatingLabelBehavior: FloatingLabelBehavior.never,
-                label: IconButton(
-                  icon: const Icon(
-                    Icons.search,
-                    color: Colors.black,
-                  ),
-                  onPressed: () {
-                    setState(() {});
-                  },
+      appBar: AppBar(
+        // actions: [
+        //   IconButton(
+        //     icon: Icon(
+        //       Icons.search,
+        //       color: Colors.black,
+        //     ),
+        //     onPressed: () {
+        //       setState(() {
+        //         _itemsist = Container();
+        //       });
+        //     },
+        //   ),
+        // ],
+        title: TextField(
+          decoration: InputDecoration(
+              floatingLabelAlignment: FloatingLabelAlignment.start,
+              floatingLabelBehavior: FloatingLabelBehavior.never,
+              label: IconButton(
+                icon: const Icon(
+                  Icons.search,
+                  color: Colors.black,
                 ),
-                fillColor: Colors.black12,
-                filled: true,
-                focusedBorder: const OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(60)),
-                    borderSide: BorderSide(color: Colors.white, width: 0)),
-                enabledBorder: const OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(60)),
-                    borderSide: BorderSide(color: Colors.white, width: 0)),
-                border: const OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white, width: 0))),
-          ),
+                onPressed: () {
+                  setState(() {});
+                },
+              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
+              isDense: true,
+              fillColor: Colors.black12,
+              filled: true,
+              focusedBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(3)),
+                  borderSide: BorderSide(color: Colors.white, width: 0)),
+              enabledBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(3)),
+                  borderSide: BorderSide(color: Colors.white, width: 0)),
+              border: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white, width: 0))),
         ),
-        body: buildPostsView());
+      ),
+      body: buildPostsView(),
+    );
   }
 }
 

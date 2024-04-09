@@ -290,12 +290,27 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
               itemBuilder: (context, index) {
                 final item = items[index];
 
-                return ItemCardMinimal(
-                  element: item,
-                  item_id: item["item_id"],
-                  category_id: "",
-                  category_name: "",
-                  scroll: 0,
+                return Column(
+                  children: [
+                    ItemCardNoImage(
+                      element: item,
+                      item_id: item["item_id"],
+                      category_id: "",
+                      category_name: "",
+                      scroll: 0,
+                    ),
+                    items.length - 1 != index
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 5,
+                            ),
+                            child: Divider(
+                              height: 0,
+                            ),
+                          )
+                        : Container(),
+                  ],
                 );
               },
             ),

@@ -217,34 +217,43 @@ Future<List> getCategories() async {
   return data;
 }
 
-Future<List?> getItemsMain(int page, String search,
-    {String categoryId = ""}) async {
+Future<List?> getItemsMain(int page,
+    [String? search, String? categoryId]) async {
   String? token = await getToken();
   if (token == null) {
     return [];
   }
   http.Response response;
   var url = Uri.https(URL_API, 'api/item/get.php');
+
+  Map<String, String> queryBody = {};
+
+  if (search != null) {
+    queryBody.addAll({'search': search});
+  }
+  if (categoryId != null) {
+    queryBody.addAll({'category_id': categoryId});
+  }
+  queryBody.addAll({'page': page.toString()});
+  var jsonBody = jsonEncode(queryBody);
+
   if (categoryId != "") {
     response = await http.post(
       url,
       encoding: Encoding.getByName('utf-8'),
       headers: {"Content-Type": "application/json", "AUTH": token},
-      body: json
-          .encode({'search': search, "page": page, "category_id": categoryId}),
+      body: jsonBody,
     );
   } else {
     response = await http.post(
       url,
       encoding: Encoding.getByName('utf-8'),
       headers: {"Content-Type": "application/json", "AUTH": token},
-      body: json.encode({'search': search, "page": page}),
+      body: jsonBody,
     );
   }
 
-  print(
-    json.encode({'search': search, "page": page}),
-  );
+  print(jsonBody);
 
   // List<dynamic> list = json.decode(response.body);
   print(utf8.decode(response.bodyBytes));

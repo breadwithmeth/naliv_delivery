@@ -435,70 +435,77 @@ class _CartPageState extends State<CartPage>
                     ),
                   ),
                 ),
-                TextButton(
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.all(0),
-                    shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(3))),
-                    // backgroundColor: Colors.amber,
-                  ),
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) {
-                        return AlertDialog(
-                          shape: const RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(3))),
-                          backgroundColor:
-                              Theme.of(context).colorScheme.background,
-                          surfaceTintColor: Colors.transparent,
-                          elevation: 0.0,
-                          title: const Text(
-                            "Промокод",
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black,
-                            ),
-                          ),
-                          content: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              TextField(
-                                controller: _promoController,
-                                decoration: const InputDecoration(
-                                  border: UnderlineInputBorder(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.all(0),
+                        foregroundColor: Colors.white,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(3)),
+                        ),
+                      ),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) {
+                            return AlertDialog(
+                              shape: const RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(3))),
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.background,
+                              surfaceTintColor: Colors.transparent,
+                              elevation: 0.0,
+                              title: const Text(
+                                "Промокод",
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
                                 ),
                               ),
-                              const SizedBox(
-                                height: 5,
+                              content: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  TextField(
+                                    controller: _promoController,
+                                    decoration: const InputDecoration(
+                                      border: UnderlineInputBorder(),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 15,
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      print("Hell");
+                                    },
+                                    child: const Row(
+                                      children: [
+                                        Text("Подтвердить"),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                              ElevatedButton(
-                                onPressed: () {
-                                  print("Hell");
-                                },
-                                child: const Row(
-                                  children: [
-                                    Text("Подтвердить"),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
+                            );
+                          },
                         );
                       },
-                    );
-                  },
-                  child: Text(
-                    "Есть промокод?",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.secondary,
+                      child: Text(
+                        "Есть промокод?",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             )

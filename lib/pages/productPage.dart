@@ -570,22 +570,13 @@ class _ProductPageState extends State<ProductPage> {
                                 padding:
                                     const EdgeInsets.only(left: 7, right: 5),
                                 child: Text(
-                                  formatCost(item["price"] ?? ""),
+                                  "${formatCost(item["price"])}₸",
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
                                     fontSize: 26,
                                     color:
                                         Theme.of(context).colorScheme.onPrimary,
                                   ),
-                                ),
-                              ),
-                              Text(
-                                "₸",
-                                style: TextStyle(
-                                  color:
-                                      Theme.of(context).colorScheme.onPrimary,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 30,
                                 ),
                               ),
                               AnimatedSwitcher(
@@ -627,11 +618,14 @@ class _ProductPageState extends State<ProductPage> {
                                           if (widget.openedFromCart) {
                                             return;
                                           } else {
-                                            Navigator.pushReplacement(context,
-                                                MaterialPageRoute(
-                                                    builder: (context) {
-                                              return const CartPage();
-                                            }));
+                                            Navigator.pushReplacement(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) {
+                                                  return const CartPage();
+                                                },
+                                              ),
+                                            );
                                           }
                                         },
                                         icon: Icon(
@@ -661,26 +655,26 @@ class _ProductPageState extends State<ProductPage> {
                         children: [
                           Flexible(
                             child: Text(
-                              "В корзину",
-                              textHeightBehavior: const TextHeightBehavior(
-                                applyHeightToFirstAscent: false,
-                              ),
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 18,
-                                color: Theme.of(context).colorScheme.onPrimary,
-                              ),
-                            ),
-                          ),
-                          Flexible(
-                            child: Text(
-                              "${item["price"]}₸",
+                              "${formatCost(item["price"])} ₸",
                               textHeightBehavior: const TextHeightBehavior(
                                 applyHeightToFirstAscent: false,
                               ),
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 28,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
+                            ),
+                          ),
+                          Flexible(
+                            child: Text(
+                              "В корзину",
+                              textHeightBehavior: const TextHeightBehavior(
+                                applyHeightToFirstAscent: false,
+                              ),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 22,
                                 color: Theme.of(context).colorScheme.onPrimary,
                               ),
                             ),
@@ -813,22 +807,22 @@ class _ProductPageState extends State<ProductPage> {
                           // ),
                         ],
                       ),
-                      Row(
-                        mainAxisSize: MainAxisSize.max,
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Container(
-                            margin: const EdgeInsets.all(5),
-                            child: item.isNotEmpty
-                                ? LikeButton(
-                                    item_id: item["item_id"],
-                                    is_liked: item["is_liked"],
-                                  )
-                                : Container(),
-                          )
-                        ],
-                      )
+                      // Row(
+                      //   mainAxisSize: MainAxisSize.max,
+                      //   mainAxisAlignment: MainAxisAlignment.end,
+                      //   crossAxisAlignment: CrossAxisAlignment.center,
+                      //   children: [
+                      //     Container(
+                      //       margin: const EdgeInsets.all(5),
+                      //       child: item.isNotEmpty
+                      //           ? LikeButton(
+                      //               item_id: item["item_id"],
+                      //               is_liked: item["is_liked"],
+                      //             )
+                      //           : Container(),
+                      //     )
+                      //   ],
+                      // )
                     ],
                   ),
                 )
@@ -838,40 +832,57 @@ class _ProductPageState extends State<ProductPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  margin: const EdgeInsets.only(right: 10),
-                  padding: const EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: const BorderRadius.all(Radius.circular(5))),
-                  child: const Text(
-                    "Новинка",
-                    style: TextStyle(color: Colors.black),
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(right: 10),
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(5))),
+                      child: const Text(
+                        "Новинка",
+                        style: TextStyle(color: Colors.black),
+                      ),
+                    ),
+                    Container(
+                      margin: const EdgeInsets.only(right: 10),
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(5))),
+                      child: const Text(
+                        "Новинка",
+                        style: TextStyle(color: Colors.black),
+                      ),
+                    ),
+                    Container(
+                      margin: const EdgeInsets.only(right: 10),
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(5))),
+                      child: const Text(
+                        "Новинка",
+                        style: TextStyle(color: Colors.black),
+                      ),
+                    ),
+                  ],
                 ),
                 Container(
-                  margin: const EdgeInsets.only(right: 10),
-                  padding: const EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: const BorderRadius.all(Radius.circular(5))),
-                  child: const Text(
-                    "Новинка",
-                    style: TextStyle(color: Colors.black),
-                  ),
-                ),
-                Container(
-                  margin: const EdgeInsets.only(right: 10),
-                  padding: const EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: const BorderRadius.all(Radius.circular(5))),
-                  child: const Text(
-                    "Новинка",
-                    style: TextStyle(color: Colors.black),
-                  ),
-                ),
+                  margin: const EdgeInsets.all(5),
+                  child: item.isNotEmpty
+                      ? LikeButton(
+                          item_id: item["item_id"],
+                          is_liked: item["is_liked"],
+                        )
+                      : Container(),
+                )
               ],
             ),
           ),

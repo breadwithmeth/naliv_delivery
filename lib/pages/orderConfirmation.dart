@@ -98,6 +98,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
               ],
             ),
             Container(
+              height: MediaQuery.of(context).size.height * 0.6,
               decoration: BoxDecoration(
                   border: Border.all(
                     width: 2,
@@ -114,7 +115,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                 itemBuilder: (context, index) {
                   final item = widget.items[index];
 
-                  return ItemCardMedium(
+                  return ItemCardNoImage(
                     element: item,
                     item_id: item["item_id"],
                     category_id: "",
@@ -148,7 +149,9 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 15),
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.pop(context);
+                },
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

@@ -14,23 +14,23 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   TextEditingController _keyword = TextEditingController();
   bool isTextInField = false;
-  bool isSearchInCategory = false;
+  bool isSearchEverywhere = false;
 
   void _search() {
     Navigator.pushReplacement(context, MaterialPageRoute(
       builder: (context) {
-        if (widget.category_id != "") {
+        if (isSearchEverywhere) {
+          print("SEARCH EVERYWHERE");
+          return SearchResultPage(
+            search: _keyword.text,
+            page: 0,
+          );
+        } else {
           print("SEARCH INSIDE CATEGORY");
           return SearchResultPage(
             search: _keyword.text,
             page: 0,
             category_id: widget.category_id,
-          );
-        } else {
-          print("SEARCH EVERYWHERE");
-          return SearchResultPage(
-            search: _keyword.text,
-            page: 0,
           );
         }
       },
@@ -117,10 +117,12 @@ class _SearchPageState extends State<SearchPage> {
                     ? Row(
                         children: [
                           Checkbox(
-                            value: isSearchInCategory,
+                            value: isSearchEverywhere,
                             onChanged: (value) {
                               setState(() {
-                                isSearchInCategory = !isSearchInCategory;
+                                print("VALUE IS " +
+                                    isSearchEverywhere.toString());
+                                isSearchEverywhere = value!;
                               });
                             },
                           ),
