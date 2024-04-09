@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/pages/addressesPage.dart';
 import 'package:naliv_delivery/pages/createAddress.dart';
 import 'package:naliv_delivery/pages/orderConfirmation.dart';
@@ -154,6 +155,16 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
               },
             ),
           ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {},
+              child: const Text(
+                "Добавить новый адрес",
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+              ),
+            )
+          ],
+          actionsAlignment: MainAxisAlignment.center,
         );
       },
     );
@@ -353,13 +364,34 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 mainAxisSize: MainAxisSize.max,
                                 children: [
-                                  Text(
-                                    currentAddress["address"],
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
+                                  Flexible(
+                                    flex: 3,
+                                    fit: FlexFit.tight,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          currentAddress["address"],
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Flexible(
+                                    fit: FlexFit.tight,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.add_box_rounded),
+                                      ],
                                     ),
                                   ),
                                 ],
