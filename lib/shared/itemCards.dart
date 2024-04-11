@@ -105,35 +105,41 @@ class _ItemCardState extends State<ItemCard> {
         children: [
           Flexible(
             flex: 3,
-            child: CachedNetworkImage(
-              imageUrl: element["thumb"],
-              width: double.infinity,
-              // width: MediaQuery.of(context).size.width * 0.2,
-              // height: MediaQuery.of(context).size.width * 0.7,
-              fit: BoxFit.fitHeight,
-              cacheManager: CacheManager(Config(
-                "itemImage ${element["item_id"].toString()}",
-                stalePeriod: const Duration(days: 7),
-                //one week cache period
-              )),
-              placeholder: (context, url) {
-                return Container(
-                  alignment: Alignment.center,
-                  color: Colors.white,
-                  // width: MediaQuery.of(context).size.width * 0.2,
-                  child: const CircularProgressIndicator(),
-                );
-              },
-              errorWidget: (context, url, error) {
-                return Container(
-                  alignment: Alignment.center,
-                  // width: MediaQuery.of(context).size.width * 0.2,
-                  child: const Text(
-                    "Нет изображения",
-                    textAlign: TextAlign.center,
-                  ),
-                );
-              },
+            child: Container(
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(2)),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: CachedNetworkImage(
+                imageUrl: element["thumb"],
+                width: double.infinity,
+                // width: MediaQuery.of(context).size.width * 0.2,
+                // height: MediaQuery.of(context).size.width * 0.7,
+                fit: BoxFit.fitHeight,
+                cacheManager: CacheManager(Config(
+                  "itemImage ${element["item_id"].toString()}",
+                  stalePeriod: const Duration(days: 7),
+                  //one week cache period
+                )),
+                placeholder: (context, url) {
+                  return Container(
+                    alignment: Alignment.center,
+                    color: Colors.white,
+                    // width: MediaQuery.of(context).size.width * 0.2,
+                    child: const CircularProgressIndicator(),
+                  );
+                },
+                errorWidget: (context, url, error) {
+                  return Container(
+                    alignment: Alignment.center,
+                    // width: MediaQuery.of(context).size.width * 0.2,
+                    child: const Text(
+                      "Нет изображения",
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                },
+              ),
             ),
           ),
           Flexible(
@@ -386,37 +392,43 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
             children: [
               Flexible(
                 flex: 2,
-                child: CachedNetworkImage(
-                  height: double.infinity,
-                  imageUrl: element["thumb"],
-                  // width: MediaQuery.of(context).size.width * 0.2,
-                  // height: MediaQuery.of(context).size.width * 0.7,
-                  fit: BoxFit.cover,
-                  cacheManager: CacheManager(
-                    Config(
-                      "itemImage ${element["item_id"].toString()}",
-                      stalePeriod: const Duration(days: 700),
-                      //one week cache period
-                    ),
+                child: Container(
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(2)),
                   ),
-                  placeholder: (context, url) {
-                    return Container(
-                      alignment: Alignment.center,
-                      color: Colors.white,
-                      // width: MediaQuery.of(context).size.width * 0.2,
-                      child: const CircularProgressIndicator(),
-                    );
-                  },
-                  errorWidget: (context, url, error) {
-                    return Container(
-                      alignment: Alignment.center,
-                      // width: MediaQuery.of(context).size.width * 0.2,
-                      child: const Text(
-                        "Нет изображения",
-                        textAlign: TextAlign.center,
+                  clipBehavior: Clip.antiAlias,
+                  child: CachedNetworkImage(
+                    height: double.infinity,
+                    imageUrl: element["thumb"],
+                    // width: MediaQuery.of(context).size.width * 0.2,
+                    // height: MediaQuery.of(context).size.width * 0.7,
+                    fit: BoxFit.cover,
+                    cacheManager: CacheManager(
+                      Config(
+                        "itemImage ${element["item_id"].toString()}",
+                        stalePeriod: const Duration(days: 700),
+                        //one week cache period
                       ),
-                    );
-                  },
+                    ),
+                    placeholder: (context, url) {
+                      return Container(
+                        alignment: Alignment.center,
+                        color: Colors.white,
+                        // width: MediaQuery.of(context).size.width * 0.2,
+                        child: const CircularProgressIndicator(),
+                      );
+                    },
+                    errorWidget: (context, url, error) {
+                      return Container(
+                        alignment: Alignment.center,
+                        // width: MediaQuery.of(context).size.width * 0.2,
+                        child: const Text(
+                          "Нет изображения",
+                          textAlign: TextAlign.center,
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
               Flexible(
@@ -668,37 +680,43 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
         children: [
           Flexible(
             flex: 2,
-            child: CachedNetworkImage(
-              imageUrl: element["thumb"],
-              width: double.infinity,
-              // width: MediaQuery.of(context).size.width * 0.2,
-              // height: MediaQuery.of(context).size.width * 0.7,
-              fit: BoxFit.fitHeight,
-              cacheManager: CacheManager(
-                Config(
-                  "itemImage ${element["item_id"].toString()}",
-                  stalePeriod: const Duration(days: 7),
-                  //one week cache period
-                ),
+            child: Container(
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(2)),
               ),
-              placeholder: (context, url) {
-                return Container(
-                  alignment: Alignment.center,
-                  color: Colors.white,
-                  // width: MediaQuery.of(context).size.width * 0.2,
-                  child: const CircularProgressIndicator(),
-                );
-              },
-              errorWidget: (context, url, error) {
-                return Container(
-                  alignment: Alignment.center,
-                  // width: MediaQuery.of(context).size.width * 0.2,
-                  child: const Text(
-                    "Нет изображения",
-                    textAlign: TextAlign.center,
+              clipBehavior: Clip.antiAlias,
+              child: CachedNetworkImage(
+                imageUrl: element["thumb"],
+                width: double.infinity,
+                // width: MediaQuery.of(context).size.width * 0.2,
+                // height: MediaQuery.of(context).size.width * 0.7,
+                fit: BoxFit.fitHeight,
+                cacheManager: CacheManager(
+                  Config(
+                    "itemImage ${element["item_id"].toString()}",
+                    stalePeriod: const Duration(days: 7),
+                    //one week cache period
                   ),
-                );
-              },
+                ),
+                placeholder: (context, url) {
+                  return Container(
+                    alignment: Alignment.center,
+                    color: Colors.white,
+                    // width: MediaQuery.of(context).size.width * 0.2,
+                    child: const CircularProgressIndicator(),
+                  );
+                },
+                errorWidget: (context, url, error) {
+                  return Container(
+                    alignment: Alignment.center,
+                    // width: MediaQuery.of(context).size.width * 0.2,
+                    child: const Text(
+                      "Нет изображения",
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                },
+              ),
             ),
           ),
           Flexible(

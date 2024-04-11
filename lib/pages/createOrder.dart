@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/pages/addressesPage.dart';
 import 'package:naliv_delivery/pages/createAddress.dart';
@@ -27,6 +28,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   List addresses = [];
 
   bool isAddressesLoading = true;
+
+  List<Map> wrongAmountItems = [];
 
   Future<void> _getCart() async {
     // List cart = await getCart();
@@ -125,39 +128,59 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
           content: SizedBox(
             width: MediaQuery.of(context).size.width * 0.7,
             height: MediaQuery.of(context).size.height * 0.4,
-            child: ListView.builder(
-              itemCount: addresses.length,
-              itemBuilder: (context, index) {
-                print(addresses);
-                return Column(
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () {
-                        // TODO: ACTUALLY CHANGE ADDRESS HERE
-                        print("Change address here");
-                      },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+            child: addresses.isNotEmpty
+                ? ListView.builder(
+                    itemCount: addresses.length,
+                    itemBuilder: (context, index) {
+                      print(addresses);
+                      return Column(
                         mainAxisSize: MainAxisSize.max,
                         children: [
-                          Text(
-                            "${addresses[index]["name"] != null ? '${addresses[index]["name"]} -' : ""} ${addresses[index]["address"]}",
+                          ElevatedButton(
+                            onPressed: () {
+                              Future.delayed(const Duration(milliseconds: 0),
+                                  () async {
+                                await selectAddress(
+                                    addresses[index]["address_id"]);
+                              });
+                              setState(() {
+                                currentAddress = addresses[index];
+                              });
+                              Navigator.pop(context);
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.max,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    "${addresses[index]["name"] != null ? '${addresses[index]["name"]} -' : ""} ${addresses[index]["address"]}",
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 15,
                           ),
                         ],
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 15,
-                    ),
-                  ],
-                );
-              },
-            ),
+                      );
+                    },
+                  )
+                : const Text("У вас нет сохраненных адресов"),
           ),
           actions: [
             ElevatedButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) {
+                  return AddressesPage(addresses: addresses, isExtended: false);
+                }));
+              },
               child: const Text(
                 "Добавить новый адрес",
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
@@ -487,16 +510,68 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
             padding: const EdgeInsets.all(15),
             child: ElevatedButton(
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => OrderConfirmation(
-                      delivery: delivery,
-                      items: items,
-                      address: currentAddress,
+                Future.delayed(const Duration(milliseconds: 0), () async {
+                  Map<String, dynamic> serverCart = await getCart();
+                  for (var i = 0; i < serverCart.length; i++) {
+                    if (serverCart[i]["in_stock"] < serverCart[i]["amount"]) {
+                      wrongAmountItems.add(serverCart[i]);
+                    }
+                  }
+                });
+                if (wrongAmountItems.isNotEmpty) {
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: const Row(
+                          children: [
+                            Text("Остатки изменились"),
+                          ],
+                        ),
+                        content: ListView.builder(
+                          itemBuilder: (context, index) {
+                            return Container(
+                              padding: const EdgeInsets.all(10),
+                              margin: const EdgeInsets.all(10),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(wrongAmountItems[index]["name"]),
+                                  Text(
+                                    wrongAmountItems[index]["amount"]
+                                        .toString(),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                        actions: [
+                          ElevatedButton(
+                            onPressed: () {},
+                            child: const Text("Продолжить"),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {},
+                            child: const Text("Изменить заказ"),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => OrderConfirmation(
+                        delivery: delivery,
+                        items: items,
+                        address: currentAddress,
+                      ),
                     ),
-                  ),
-                );
+                  );
+                }
               },
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,

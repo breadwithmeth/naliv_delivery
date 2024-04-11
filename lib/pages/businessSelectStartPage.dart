@@ -43,7 +43,7 @@ class _BusinessSelectStartPageState extends State<BusinessSelectStartPage> {
         businessesWidget.add(Padding(
           padding: const EdgeInsets.symmetric(vertical: 3),
           child: Card(
-            color: Theme.of(context).colorScheme.secondary,
+            color: Colors.black12,
             elevation: 0.0,
             shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.all(Radius.circular(3))),
@@ -92,7 +92,7 @@ class _BusinessSelectStartPageState extends State<BusinessSelectStartPage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 5),
+              padding: const EdgeInsets.symmetric(vertical: 20),
               child: Text(
                 "Выберите магазин",
                 style: TextStyle(

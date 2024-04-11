@@ -344,6 +344,17 @@ class _ProductPageState extends State<ProductPage> {
     });
   }
 
+  void _changeCart() {
+    setState(() {
+      if (cacheAmount <= inStock) {
+        Future.delayed(const Duration(microseconds: 0), () async {
+          _finalizeCartAmount();
+        });
+        widget.returnDataAmount(cacheAmount.toString(), widget.index);
+      }
+    });
+  }
+
   // BUTTON VARIABLES/FUNCS END
 
   String formatCost(String costString) {
@@ -415,29 +426,43 @@ class _ProductPageState extends State<ProductPage> {
     return Scaffold(
       // color: Colors.white,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: GestureDetector(
-        child: Container(
-          height: 80,
-          decoration: const BoxDecoration(
-              // color: Colors.grey.shade400,
-              borderRadius: BorderRadius.all(Radius.circular(10))),
-          margin: const EdgeInsets.all(5),
-          padding: const EdgeInsets.all(4),
-          width: MediaQuery.of(context).size.width,
-          child: item.isNotEmpty
-              ? cacheAmount != 0
-                  ? Container(
-                      decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary,
-                          borderRadius:
-                              const BorderRadius.all(Radius.circular(3))),
-                      padding: const EdgeInsets.symmetric(horizontal: 15),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.max,
-                        children: [
-                          GestureDetector(
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        child: item.isNotEmpty
+            ? cacheAmount != 0
+                ? ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      disabledBackgroundColor:
+                          Theme.of(context).colorScheme.primary,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 20,
+                      ),
+                    ),
+                    onPressed: null,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          flex: 2,
+                          fit: FlexFit.tight,
+                          child: Text(
+                            "${formatCost(item["price"])} ₸",
+                            textHeightBehavior: const TextHeightBehavior(
+                              applyHeightToFirstAscent: false,
+                            ),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 28,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          ),
+                        ),
+                        Flexible(
+                          flex: 2,
+                          fit: FlexFit.tight,
+                          child: GestureDetector(
                             // onLongPress: (() {
                             //   setState(() {
                             //     isNumPickActive = true;
@@ -454,6 +479,7 @@ class _ProductPageState extends State<ProductPage> {
                               });
                             },
                             child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Flexible(
@@ -470,55 +496,18 @@ class _ProductPageState extends State<ProductPage> {
                                     ),
                                   ),
                                 ),
-                                isNumPickActive
-                                    ? Flexible(
-                                        child: GestureDetector(
-                                          onTap: (() {
-                                            setState(() {
-                                              isNumPickActive = false;
-                                            });
-                                          }),
-                                          child: NumberPicker(
-                                            value: cacheAmount,
-                                            textStyle: TextStyle(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onPrimary,
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                            selectedTextStyle: const TextStyle(
-                                              color: Colors.blue,
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                            itemHeight: 25,
-                                            itemWidth: 25,
-                                            minValue: 0,
-                                            maxValue: inStock,
-                                            onChanged: (value) => setState(
-                                              () {
-                                                cacheAmount = value;
-                                                if (value == 0) {
-                                                  isNumPickActive = false;
-                                                }
-                                              },
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                    : Flexible(
-                                        child: Text(
-                                          cacheAmount.toString(),
-                                          style: TextStyle(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onPrimary,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
+                                Text(
+                                  cacheAmount.toString(),
+                                  textHeightBehavior: const TextHeightBehavior(
+                                    applyHeightToFirstAscent: false,
+                                  ),
+                                  style: TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.onPrimary,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                                 Flexible(
                                   child: IconButton(
                                     padding: const EdgeInsets.all(0),
@@ -546,228 +535,198 @@ class _ProductPageState extends State<ProductPage> {
                               ],
                             ),
                           ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              item["prev_price"] != null
-                                  ? Text(
-                                      formatCost(item["prev_price"]),
-                                      style: TextStyle(
-                                        decoration: TextDecoration.lineThrough,
-                                        decorationColor: Theme.of(context)
-                                            .colorScheme
-                                            .onPrimary,
-                                        decorationThickness: 1.85,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onPrimary,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    )
-                                  : Container(),
-                              Padding(
-                                padding:
-                                    const EdgeInsets.only(left: 7, right: 5),
-                                child: Text(
-                                  "${formatCost(item["price"])}₸",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 26,
-                                    color:
-                                        Theme.of(context).colorScheme.onPrimary,
+                        ),
+                        Flexible(
+                          flex: 1,
+                          fit: FlexFit.tight,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 200),
+                            transitionBuilder: (child, animation) {
+                              return ScaleTransition(
+                                scale: animation,
+                                child: child,
+                              );
+                            },
+                            child: !isAmountConfirmed
+                                ? IconButton(
+                                    padding: const EdgeInsets.all(0),
+                                    key: const Key("add_cart"),
+                                    onPressed: () {
+                                      _finalizeCartAmount();
+                                      widget.returnDataAmount(
+                                          cacheAmount.toString(), widget.index);
+                                      setState(() {
+                                        isAmountConfirmed = true;
+                                      });
+                                      // Navigator.push(context,
+                                      //     MaterialPageRoute(builder: (context) {
+                                      //   return const CartPage();
+                                      // }));
+                                    },
+                                    icon: Icon(
+                                      Icons.add_shopping_cart_rounded,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimary,
+                                    ),
+                                  )
+                                : IconButton(
+                                    padding: const EdgeInsets.all(0),
+                                    key: const Key("go_cart"),
+                                    onPressed: () {
+                                      // _finalizeCartAmount();
+                                      Navigator.pop(context);
+                                      if (widget.openedFromCart) {
+                                        return;
+                                      } else {
+                                        Navigator.pushReplacement(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) {
+                                              return const CartPage();
+                                            },
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    icon: Icon(
+                                      Icons.shopping_cart_checkout_rounded,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimary,
+                                    ),
                                   ),
-                                ),
-                              ),
-                              AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 200),
-                                transitionBuilder: (child, animation) {
-                                  return ScaleTransition(
-                                    scale: animation,
-                                    child: child,
-                                  );
-                                },
-                                child: !isAmountConfirmed
-                                    ? IconButton(
-                                        key: const Key("add_cart"),
-                                        onPressed: () {
-                                          _finalizeCartAmount();
-                                          widget.returnDataAmount(
-                                              cacheAmount.toString(),
-                                              widget.index);
-                                          setState(() {
-                                            isAmountConfirmed = true;
-                                          });
-                                          // Navigator.push(context,
-                                          //     MaterialPageRoute(builder: (context) {
-                                          //   return const CartPage();
-                                          // }));
-                                        },
-                                        icon: Icon(
-                                          Icons.add_shopping_cart_rounded,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onPrimary,
-                                        ),
-                                      )
-                                    : IconButton(
-                                        key: const Key("go_cart"),
-                                        onPressed: () {
-                                          // _finalizeCartAmount();
-                                          Navigator.pop(context);
-                                          if (widget.openedFromCart) {
-                                            return;
-                                          } else {
-                                            Navigator.pushReplacement(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) {
-                                                  return const CartPage();
-                                                },
-                                              ),
-                                            );
-                                          }
-                                        },
-                                        icon: Icon(
-                                          Icons.shopping_cart_checkout_rounded,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onPrimary,
-                                        ),
-                                      ),
-                              ),
-                            ],
-                          )
-                        ],
-                      ),
-                    )
-                  : ElevatedButton(
-                      // style: ElevatedButton.styleFrom(
-                      //   padding: const EdgeInsets.all(10),
-                      //   backgroundColor: Colors.grey.shade400,
-                      // ),
-                      onPressed: () {
-                        _addToCart();
-                      },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              "${formatCost(item["price"])} ₸",
-                              textHeightBehavior: const TextHeightBehavior(
-                                applyHeightToFirstAscent: false,
-                              ),
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 28,
-                                color: Theme.of(context).colorScheme.onPrimary,
-                              ),
-                            ),
                           ),
-                          Flexible(
-                            child: Text(
-                              "В корзину",
-                              textHeightBehavior: const TextHeightBehavior(
-                                applyHeightToFirstAscent: false,
-                              ),
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 22,
-                                color: Theme.of(context).colorScheme.onPrimary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      // child: Row(
-                      //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      //   crossAxisAlignment: CrossAxisAlignment.center,
-                      //   mainAxisSize: MainAxisSize.max,
-                      //   children: [
-                      //     Flexible(
-                      //       child: Text(
-                      //         "В корзину",
-                      //         style: TextStyle(
-                      //           fontWeight: FontWeight.w900,
-                      //           fontSize: 18,
-                      //           color: Theme.of(context).colorScheme.onPrimary,
-                      //         ),
-                      //       ),
-                      //     ),
-                      //     Flexible(
-                      //       child: Row(
-                      //         mainAxisAlignment: MainAxisAlignment.end,
-                      //         crossAxisAlignment: CrossAxisAlignment.center,
-                      //         children: [
-                      //           item["prev_price"] != null
-                      //               ? Text(
-                      //                   formatCost(item["prev_price"]),
-                      //                   style: TextStyle(
-                      //                     decoration:
-                      //                         TextDecoration.lineThrough,
-                      //                     decorationColor: Theme.of(context)
-                      //                         .colorScheme
-                      //                         .onPrimary,
-                      //                     decorationThickness: 1.85,
-                      //                     color: Theme.of(context)
-                      //                         .colorScheme
-                      //                         .onPrimary,
-                      //                     fontSize: 16,
-                      //                     fontWeight: FontWeight.w500,
-                      //                   ),
-                      //                 )
-                      //               : Container(),
-                      //           Row(
-                      //             children: [
-                      //               Padding(
-                      //                 padding: const EdgeInsets.only(
-                      //                     left: 7, right: 5),
-                      //                 child: Text(
-                      //                   formatCost(item["price"] ?? ""),
-                      //                   style: TextStyle(
-                      //                     fontWeight: FontWeight.w700,
-                      //                     fontSize: 26,
-                      //                     color: Theme.of(context)
-                      //                         .colorScheme
-                      //                         .onPrimary,
-                      //                   ),
-                      //                 ),
-                      //               ),
-                      //               Text(
-                      //                 "₸",
-                      //                 style: TextStyle(
-                      //                   color: Theme.of(context)
-                      //                       .colorScheme
-                      //                       .onPrimary,
-                      //                   fontWeight: FontWeight.w900,
-                      //                   fontSize: 30,
-                      //                 ),
-                      //               ),
-                      //             ],
-                      //           ),
-                      //         ],
-                      //       ),
-                      //     ),
-                      //   ],
-                      // ),
-                    )
-              : Shimmer.fromColors(
-                  baseColor:
-                      Theme.of(context).colorScheme.secondary.withOpacity(0.05),
-                  highlightColor: Theme.of(context).colorScheme.secondary,
-                  child: Container(
-                    width: MediaQuery.of(context).size.width,
-                    height: 50,
-                    decoration: const BoxDecoration(
-                      borderRadius: BorderRadius.all(Radius.circular(3)),
-                      color: Colors.white,
+                        ),
+                      ],
                     ),
-                    child: null,
+                  )
+                : ElevatedButton(
+                    // style: ElevatedButton.styleFrom(
+                    //   padding: const EdgeInsets.all(10),
+                    //   backgroundColor: Colors.grey.shade400,
+                    // ),
+                    onPressed: () {
+                      _addToCart();
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            "${formatCost(item["price"])} ₸",
+                            textHeightBehavior: const TextHeightBehavior(
+                              applyHeightToFirstAscent: false,
+                            ),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 28,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          ),
+                        ),
+                        Flexible(
+                          child: Text(
+                            "В корзину",
+                            textHeightBehavior: const TextHeightBehavior(
+                              applyHeightToFirstAscent: false,
+                            ),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 22,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    // child: Row(
+                    //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    //   crossAxisAlignment: CrossAxisAlignment.center,
+                    //   mainAxisSize: MainAxisSize.max,
+                    //   children: [
+                    //     Flexible(
+                    //       child: Text(
+                    //         "В корзину",
+                    //         style: TextStyle(
+                    //           fontWeight: FontWeight.w900,
+                    //           fontSize: 18,
+                    //           color: Theme.of(context).colorScheme.onPrimary,
+                    //         ),
+                    //       ),
+                    //     ),
+                    //     Flexible(
+                    //       child: Row(
+                    //         mainAxisAlignment: MainAxisAlignment.end,
+                    //         crossAxisAlignment: CrossAxisAlignment.center,
+                    //         children: [
+                    //           item["prev_price"] != null
+                    //               ? Text(
+                    //                   formatCost(item["prev_price"]),
+                    //                   style: TextStyle(
+                    //                     decoration:
+                    //                         TextDecoration.lineThrough,
+                    //                     decorationColor: Theme.of(context)
+                    //                         .colorScheme
+                    //                         .onPrimary,
+                    //                     decorationThickness: 1.85,
+                    //                     color: Theme.of(context)
+                    //                         .colorScheme
+                    //                         .onPrimary,
+                    //                     fontSize: 16,
+                    //                     fontWeight: FontWeight.w500,
+                    //                   ),
+                    //                 )
+                    //               : Container(),
+                    //           Row(
+                    //             children: [
+                    //               Padding(
+                    //                 padding: const EdgeInsets.only(
+                    //                     left: 7, right: 5),
+                    //                 child: Text(
+                    //                   formatCost(item["price"] ?? ""),
+                    //                   style: TextStyle(
+                    //                     fontWeight: FontWeight.w700,
+                    //                     fontSize: 26,
+                    //                     color: Theme.of(context)
+                    //                         .colorScheme
+                    //                         .onPrimary,
+                    //                   ),
+                    //                 ),
+                    //               ),
+                    //               Text(
+                    //                 "₸",
+                    //                 style: TextStyle(
+                    //                   color: Theme.of(context)
+                    //                       .colorScheme
+                    //                       .onPrimary,
+                    //                   fontWeight: FontWeight.w900,
+                    //                   fontSize: 30,
+                    //                 ),
+                    //               ),
+                    //             ],
+                    //           ),
+                    //         ],
+                    //       ),
+                    //     ),
+                    //   ],
+                    // ),
+                  )
+            : Shimmer.fromColors(
+                baseColor:
+                    Theme.of(context).colorScheme.secondary.withOpacity(0.05),
+                highlightColor: Theme.of(context).colorScheme.secondary,
+                child: Container(
+                  width: MediaQuery.of(context).size.width,
+                  height: 50,
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(3)),
+                    color: Colors.white,
                   ),
+                  child: null,
                 ),
-        ),
+              ),
       ),
       body: ListView(
         controller: scrollController,

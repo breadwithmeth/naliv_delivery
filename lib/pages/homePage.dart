@@ -134,7 +134,7 @@ class _HomePageState extends State<HomePage>
     }
   }
 
-  void _getUser() async {
+  Future<void> _getUser() async {
     user = await getUser();
   }
 
@@ -156,8 +156,8 @@ class _HomePageState extends State<HomePage>
     super.initState();
     _getCurrentBusiness();
     // _checkForActiveOrder(); Someting like this idk
-    Future.delayed(Duration.zero).then((value) {
-      _getUser();
+    Future.delayed(const Duration(milliseconds: 0), () async {
+      await _getUser();
     });
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       _getAddresses();
@@ -574,8 +574,9 @@ class _HomePageState extends State<HomePage>
                                 const Text(
                                   "Найти",
                                   style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.black),
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black,
+                                  ),
                                 ),
                                 // Expanded(
                                 //   flex: 2,
@@ -633,42 +634,64 @@ class _HomePageState extends State<HomePage>
                     ? GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         child: Container(
-                            margin: const EdgeInsets.all(10),
-                            padding: const EdgeInsets.all(10),
-                            decoration: const BoxDecoration(
-                                color: Colors.black12,
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(3))),
-                            child: const Row(
-                              children: [
-                                Text(
-                                  "Выберите адрес доставки",
-                                  style: TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.w700),
+                          margin: const EdgeInsets.all(10),
+                          padding: const EdgeInsets.all(15),
+                          decoration: const BoxDecoration(
+                              color: Colors.black12,
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(3))),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "Выберите адрес доставки",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w700,
                                 ),
-                              ],
-                            )),
+                              ),
+                              Icon(Icons.arrow_forward_ios_rounded),
+                            ],
+                          ),
+                        ),
                       )
                     : GestureDetector(
                         behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) {
+                                return AddressesPage(
+                                  addresses: _addresses,
+                                  isExtended: true,
+                                );
+                              },
+                            ),
+                          );
+                        },
                         child: Container(
-                            margin: const EdgeInsets.all(10),
-                            padding: const EdgeInsets.all(10),
-                            decoration: const BoxDecoration(
-                                // color: Colors.black12,
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(3))),
-                            child: Row(
-                              children: [
-                                Text(
-                                  _currentAddress["address"],
-                                  style: const TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.w700),
+                          margin: const EdgeInsets.all(10),
+                          padding: const EdgeInsets.all(15),
+                          decoration: const BoxDecoration(
+                            // color: Colors.black12,
+                            borderRadius: BorderRadius.all(Radius.circular(3)),
+                            color: Colors.black12,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _currentAddress["address"],
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w700,
                                 ),
-                              ],
-                            )),
+                              ),
+                              const Icon(Icons.arrow_forward_ios_rounded),
+                            ],
+                          ),
+                        ),
                       ),
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
@@ -680,7 +703,10 @@ class _HomePageState extends State<HomePage>
                     ));
                   },
                   child: Container(
-                      margin: const EdgeInsets.all(10),
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
                       padding: const EdgeInsets.all(10),
                       decoration: const BoxDecoration(
                           color: Colors.black12,
@@ -698,8 +724,9 @@ class _HomePageState extends State<HomePage>
                                   Text(
                                     _business?["name"] ?? "",
                                     style: const TextStyle(
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.w700),
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   )
                                 ],
                               ),
@@ -708,14 +735,15 @@ class _HomePageState extends State<HomePage>
                                   Text(
                                     _business?["address"] ?? "",
                                     style: const TextStyle(
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.w700),
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   )
                                 ],
                               )
                             ],
                           ),
-                          const Icon(Icons.arrow_forward_ios)
+                          const Icon(Icons.arrow_forward_ios_rounded),
                         ],
                       )),
                 ),

@@ -226,7 +226,9 @@ class _CartPageState extends State<CartPage>
                                         openedFromCart: true,
                                       );
                                     },
-                                  );
+                                  ).then((value) {
+                                    print("object");
+                                  });
                                 },
                               ),
                               items.length - 1 != index
