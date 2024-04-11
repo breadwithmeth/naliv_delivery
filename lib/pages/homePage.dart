@@ -75,7 +75,7 @@ class _HomePageState extends State<HomePage>
   }
 
   List categories = [];
-
+  List _parentCategories = [];
   int activePage = 0;
 
   List _addresses = [];
@@ -94,8 +94,25 @@ class _HomePageState extends State<HomePage>
     setState(() {
       categoryIsLoading = true;
     });
-    await getCategories().then((value) {
+
+    await getCategories(true).then((value) {
+      List parentCategories = [];
+      parentCategories.addAll(value.where((element) {
+        if (element["parent_category"] == "0") {
+          if (value
+                  .where((el) =>
+                      (el["parent_category"] == element["category_id"] &&
+                          el["has_items"] == "1"))
+                  .length >
+              0) {
+            return true;
+          } else {
+            return 
+          }
+        }
+      }));
       setState(() {
+        _parentCategories = parentCategories;
         categories = value;
         categoryIsLoading = false;
       });
@@ -921,12 +938,15 @@ class _HomePageState extends State<HomePage>
                                   childAspectRatio: 1,
                                   crossAxisSpacing: 10,
                                   mainAxisSpacing: 10),
-                          itemCount: categories.length,
+                          itemCount: _parentCategories.length,
                           itemBuilder: (BuildContext ctx, index) {
                             return CategoryItem(
-                                category_id: categories[index]["category_id"],
-                                name: categories[index]["name"],
-                                image: categories[index]["photo"]);
+                              category_id: _parentCategories[index]
+                                  ["category_id"],
+                              name: _parentCategories[index]["name"],
+                              image: _parentCategories[index]["photo"],
+                              categories: categories,
+                            );
                           },
                         ),
                       ),
@@ -947,10 +967,12 @@ class CategoryItem extends StatefulWidget {
       {super.key,
       required this.category_id,
       required this.name,
-      required this.image});
+      required this.image,
+      required this.categories});
   final String category_id;
   final String name;
   final String? image;
+  final List categories;
   @override
   State<CategoryItem> createState() => _CategoryItemState();
 }
