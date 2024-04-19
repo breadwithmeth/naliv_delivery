@@ -105,35 +105,41 @@ class _ItemCardState extends State<ItemCard> {
         children: [
           Flexible(
             flex: 3,
-            child: CachedNetworkImage(
-              imageUrl: element["thumb"],
-              width: double.infinity,
-              // width: MediaQuery.of(context).size.width * 0.2,
-              // height: MediaQuery.of(context).size.width * 0.7,
-              fit: BoxFit.fitHeight,
-              cacheManager: CacheManager(Config(
-                "itemImage ${element["item_id"].toString()}",
-                stalePeriod: const Duration(days: 7),
-                //one week cache period
-              )),
-              placeholder: (context, url) {
-                return Container(
-                  alignment: Alignment.center,
-                  color: Colors.white,
-                  // width: MediaQuery.of(context).size.width * 0.2,
-                  child: const CircularProgressIndicator(),
-                );
-              },
-              errorWidget: (context, url, error) {
-                return Container(
-                  alignment: Alignment.center,
-                  // width: MediaQuery.of(context).size.width * 0.2,
-                  child: const Text(
-                    "Нет изображения",
-                    textAlign: TextAlign.center,
-                  ),
-                );
-              },
+            child: Container(
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(2)),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: CachedNetworkImage(
+                imageUrl: element["thumb"],
+                width: double.infinity,
+                // width: MediaQuery.of(context).size.width * 0.2,
+                // height: MediaQuery.of(context).size.width * 0.7,
+                fit: BoxFit.fitHeight,
+                cacheManager: CacheManager(Config(
+                  "itemImage ${element["item_id"].toString()}",
+                  stalePeriod: const Duration(days: 7),
+                  //one week cache period
+                )),
+                placeholder: (context, url) {
+                  return Container(
+                    alignment: Alignment.center,
+                    color: Colors.white,
+                    // width: MediaQuery.of(context).size.width * 0.2,
+                    child: const CircularProgressIndicator(),
+                  );
+                },
+                errorWidget: (context, url, error) {
+                  return Container(
+                    alignment: Alignment.center,
+                    // width: MediaQuery.of(context).size.width * 0.2,
+                    child: const Text(
+                      "Нет изображения",
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                },
+              ),
             ),
           ),
           Flexible(
@@ -374,188 +380,203 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
       padding: const EdgeInsets.symmetric(horizontal: 10),
       width: MediaQuery.of(context).size.width,
       height: MediaQuery.of(context).size.height * 0.2,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        mainAxisSize: MainAxisSize.max,
+      child: Stack(
         children: [
-          Flexible(
-            flex: 2,
-            child: CachedNetworkImage(
-              height: double.infinity,
-              imageUrl: element["thumb"],
-              // width: MediaQuery.of(context).size.width * 0.2,
-              // height: MediaQuery.of(context).size.width * 0.7,
-              fit: BoxFit.cover,
-              cacheManager: CacheManager(
-                Config(
-                  "itemImage ${element["item_id"].toString()}",
-                  stalePeriod: const Duration(days: 700),
-                  //one week cache period
+          // Image.asset(
+          //   'assets/vectors/whiskey/whiskey1.png',
+          //   color: Colors.grey.shade300,
+          // ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Flexible(
+                flex: 2,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(2)),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: CachedNetworkImage(
+                    height: double.infinity,
+                    imageUrl: element["thumb"],
+                    // width: MediaQuery.of(context).size.width * 0.2,
+                    // height: MediaQuery.of(context).size.width * 0.7,
+                    fit: BoxFit.cover,
+                    cacheManager: CacheManager(
+                      Config(
+                        "itemImage ${element["item_id"].toString()}",
+                        stalePeriod: const Duration(days: 700),
+                        //one week cache period
+                      ),
+                    ),
+                    placeholder: (context, url) {
+                      return Container(
+                        alignment: Alignment.center,
+                        color: Colors.white,
+                        // width: MediaQuery.of(context).size.width * 0.2,
+                        child: const CircularProgressIndicator(),
+                      );
+                    },
+                    errorWidget: (context, url, error) {
+                      return Container(
+                        alignment: Alignment.center,
+                        // width: MediaQuery.of(context).size.width * 0.2,
+                        child: const Text(
+                          "Нет изображения",
+                          textAlign: TextAlign.center,
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
-              placeholder: (context, url) {
-                return Container(
-                  alignment: Alignment.center,
-                  color: Colors.white,
-                  // width: MediaQuery.of(context).size.width * 0.2,
-                  child: const CircularProgressIndicator(),
-                );
-              },
-              errorWidget: (context, url, error) {
-                return Container(
-                  alignment: Alignment.center,
-                  // width: MediaQuery.of(context).size.width * 0.2,
-                  child: const Text(
-                    "Нет изображения",
-                    textAlign: TextAlign.center,
-                  ),
-                );
-              },
-            ),
-          ),
-          Flexible(
-            flex: 5,
-            fit: FlexFit.tight,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                mainAxisSize: MainAxisSize.max,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Flexible(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Flexible(
+                flex: 5,
+                fit: FlexFit.tight,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisSize: MainAxisSize.max,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Flexible(
-                              flex: 5,
-                              child: RichText(
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                text: TextSpan(
-                                  style: const TextStyle(
-                                    textBaseline: TextBaseline.alphabetic,
-                                    fontSize: 14,
-                                    color: Colors.black,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Flexible(
+                                  flex: 5,
+                                  child: RichText(
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    text: TextSpan(
+                                      style: const TextStyle(
+                                        textBaseline: TextBaseline.alphabetic,
+                                        fontSize: 14,
+                                        color: Colors.black,
+                                      ),
+                                      children: [
+                                        TextSpan(text: element["name"]),
+                                        element["country"] != null
+                                            ? WidgetSpan(
+                                                child: Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                    horizontal: 2,
+                                                    vertical: 1,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.grey.shade200,
+                                                    borderRadius:
+                                                        const BorderRadius.all(
+                                                      Radius.circular(3),
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    element["country"] ?? "",
+                                                    style: const TextStyle(
+                                                      color: Colors.black,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ),
+                                              )
+                                            : const TextSpan()
+                                      ],
+                                    ),
                                   ),
-                                  children: [
-                                    TextSpan(text: element["name"]),
-                                    element["country"] != null
-                                        ? WidgetSpan(
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                horizontal: 2,
-                                                vertical: 1,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.grey.shade200,
-                                                borderRadius:
-                                                    const BorderRadius.all(
-                                                  Radius.circular(3),
-                                                ),
-                                              ),
-                                              child: Text(
-                                                element["country"] ?? "",
-                                                style: const TextStyle(
-                                                  color: Colors.black,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            ),
-                                          )
-                                        : const TextSpan()
-                                  ],
                                 ),
-                              ),
+                              ],
+                            ),
+                            Text(
+                              "${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт в наличии",
                             ),
                           ],
                         ),
-                        Text(
-                          "${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт в наличии",
-                        ),
-                      ],
-                    ),
-                  ),
-                  Flexible(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Flexible(
-                          flex: 5,
-                          child: Column(
-                            children: [
-                              element["prev_price"] != null
-                                  ? Row(
-                                      children: [
-                                        Text(
-                                          formatCost(element["prev_price"]),
-                                          style: TextStyle(
-                                              decoration:
-                                                  TextDecoration.lineThrough,
-                                              decorationColor:
-                                                  Colors.grey.shade500,
-                                              decorationThickness: 1.85,
-                                              color: Colors.grey.shade500,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w500),
-                                        ),
-                                        Text(
-                                          "₸",
-                                          style: TextStyle(
-                                              color: Colors.grey.shade600,
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 12),
-                                        )
-                                      ],
-                                    )
-                                  : Container(),
-                              Row(
+                      ),
+                      Flexible(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Flexible(
+                              flex: 5,
+                              child: Column(
                                 children: [
-                                  Text(
-                                    formatCost(element['price'] ?? ""),
-                                    style: const TextStyle(
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 16),
+                                  element["prev_price"] != null
+                                      ? Row(
+                                          children: [
+                                            Text(
+                                              formatCost(element["prev_price"]),
+                                              style: TextStyle(
+                                                  decoration: TextDecoration
+                                                      .lineThrough,
+                                                  decorationColor:
+                                                      Colors.grey.shade500,
+                                                  decorationThickness: 1.85,
+                                                  color: Colors.grey.shade500,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500),
+                                            ),
+                                            Text(
+                                              "₸",
+                                              style: TextStyle(
+                                                  color: Colors.grey.shade600,
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 12),
+                                            )
+                                          ],
+                                        )
+                                      : Container(),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        formatCost(element['price'] ?? ""),
+                                        style: const TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 16),
+                                      ),
+                                      Text(
+                                        "₸",
+                                        style: TextStyle(
+                                            color: Colors.grey.shade600,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 16),
+                                      )
+                                    ],
                                   ),
-                                  Text(
-                                    "₸",
-                                    style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 16),
-                                  )
                                 ],
                               ),
-                            ],
-                          ),
-                        ),
-                        Flexible(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              LikeButton(
-                                is_liked: element["is_liked"],
-                                item_id: element["item_id"],
+                            ),
+                            Flexible(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  LikeButton(
+                                    is_liked: element["is_liked"],
+                                    item_id: element["item_id"],
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
+                            ),
+                            // Flexible(
+                            //   flex: 4,
+                            //   child: _buyButton,
+                            // ),
+                          ],
                         ),
-                        // Flexible(
-                        //   flex: 4,
-                        //   child: _buyButton,
-                        // ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -659,37 +680,43 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
         children: [
           Flexible(
             flex: 2,
-            child: CachedNetworkImage(
-              imageUrl: element["thumb"],
-              width: double.infinity,
-              // width: MediaQuery.of(context).size.width * 0.2,
-              // height: MediaQuery.of(context).size.width * 0.7,
-              fit: BoxFit.fitHeight,
-              cacheManager: CacheManager(
-                Config(
-                  "itemImage ${element["item_id"].toString()}",
-                  stalePeriod: const Duration(days: 7),
-                  //one week cache period
-                ),
+            child: Container(
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(2)),
               ),
-              placeholder: (context, url) {
-                return Container(
-                  alignment: Alignment.center,
-                  color: Colors.white,
-                  // width: MediaQuery.of(context).size.width * 0.2,
-                  child: const CircularProgressIndicator(),
-                );
-              },
-              errorWidget: (context, url, error) {
-                return Container(
-                  alignment: Alignment.center,
-                  // width: MediaQuery.of(context).size.width * 0.2,
-                  child: const Text(
-                    "Нет изображения",
-                    textAlign: TextAlign.center,
+              clipBehavior: Clip.antiAlias,
+              child: CachedNetworkImage(
+                imageUrl: element["thumb"],
+                width: double.infinity,
+                // width: MediaQuery.of(context).size.width * 0.2,
+                // height: MediaQuery.of(context).size.width * 0.7,
+                fit: BoxFit.fitHeight,
+                cacheManager: CacheManager(
+                  Config(
+                    "itemImage ${element["item_id"].toString()}",
+                    stalePeriod: const Duration(days: 7),
+                    //one week cache period
                   ),
-                );
-              },
+                ),
+                placeholder: (context, url) {
+                  return Container(
+                    alignment: Alignment.center,
+                    color: Colors.white,
+                    // width: MediaQuery.of(context).size.width * 0.2,
+                    child: const CircularProgressIndicator(),
+                  );
+                },
+                errorWidget: (context, url, error) {
+                  return Container(
+                    alignment: Alignment.center,
+                    // width: MediaQuery.of(context).size.width * 0.2,
+                    child: const Text(
+                      "Нет изображения",
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                },
+              ),
             ),
           ),
           Flexible(
