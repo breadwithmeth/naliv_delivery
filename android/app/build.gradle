@@ -74,6 +74,5 @@ flutter {
 }
 
 dependencies {
-    implementation 'com.yandex.android:maps.mobile:4.3.2-full'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.20"
 }

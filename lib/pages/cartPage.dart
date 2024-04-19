@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/bottomMenu.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
-import 'package:naliv_delivery/shared/buyButton.dart';
-import 'package:naliv_delivery/shared/likeButton.dart';
+import 'package:naliv_delivery/shared/itemCards.dart';
+import 'package:intl/intl.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -13,19 +15,33 @@ class CartPage extends StatefulWidget {
   State<CartPage> createState() => _CartPageState();
 }
 
-class _CartPageState extends State<CartPage> {
-  List items = [];
-  Map<String, dynamic> cartInfo = {};
+class _CartPageState extends State<CartPage>
+    with SingleTickerProviderStateMixin {
+  late List items = [];
+  late Map<String, dynamic> cartInfo = {};
+  late String sum = "0";
+  int localSum = 0;
+  late AnimationController animController;
+  final Duration animDuration = const Duration(milliseconds: 250);
+  int localDiscount = 0;
+  TextEditingController _promoController = TextEditingController();
+
+  String formatCost(String costString) {
+    int cost = int.parse(costString);
+    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
+  }
 
   Future<void> _getCart() async {
-    List cart = await getCart();
+    Map<String, dynamic> cart = await getCart();
     print(cart);
 
-    Map<String, dynamic>? cartInfo = await getCartInfo();
+    // Map<String, dynamic>? cartInfo = await getCartInfo();
+    print(cartInfo);
 
     setState(() {
-      items = cart;
-      cartInfo = cartInfo!;
+      items = cart["cart"];
+      cartInfo = cart;
+      sum = cart["sum"];
     });
   }
 
@@ -37,270 +53,469 @@ class _CartPageState extends State<CartPage> {
     return Future(() => result!);
   }
 
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    _getCart();
+  void _setAnimationController() {
+    animController = BottomSheet.createAnimationController(this);
+
+    animController.duration = animDuration;
+    animController.reverseDuration = animDuration;
+    animController.drive(CurveTween(curve: Curves.easeIn));
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(children: [
-        const SizedBox(
-          height: 10,
-        ),
-        ListView.builder(
-          primary: false,
-          shrinkWrap: true,
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            final item = items[index];
-            return Dismissible(
-                // Each Dismissible must contain a Key. Keys allow Flutter to
-                // uniquely identify widgets.
-                key: Key(item["item_id"]),
-                confirmDismiss: (direction) {
-                  return _deleteFromCart(item["item_id"]);
-                },
-                // Provide a function that tells the app
-                // what to do after an item has been swiped away.
-
-                // Show a red background as the item is swiped away.
-                background: SizedBox(
-                  width: 100,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: MediaQuery.of(context).size.width * 0.7,
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.only(right: 10),
-                        color: Colors.grey.shade100,
-                      ),
-                      Container(
-                        width: MediaQuery.of(context).size.width * 0.3,
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.only(right: 10),
-                        color: Colors.grey.shade100,
-                        child: const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [Icon(Icons.delete), Text("Удалить")],
-                        ),
-                      )
-                    ],
-                  ),
-                ),
-                child: ItemCard(element: item));
-          },
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
-          child: TextField(
-            decoration: InputDecoration(
-                hintText: "Введите промокод",
-                fillColor: Colors.grey.shade100,
-                filled: true,
-                border: const OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white),
-                    borderRadius: BorderRadius.all(Radius.circular(10))),
-                focusedBorder: const OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white),
-                    borderRadius: BorderRadius.all(Radius.circular(10))),
-                enabledBorder: const OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white),
-                    borderRadius: BorderRadius.all(Radius.circular(10)))),
-          ),
-        ),
-        Container(
-          margin: const EdgeInsets.all(30),
-          child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CreateOrderPage(),
-                    ));
-              },
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [Text("Оформить заказ")],
-              )),
-        ),
-        const SizedBox(
-          height: 100,
-        )
-      ]),
-    );
-  }
-}
-
-class ItemCard extends StatefulWidget {
-  const ItemCard({super.key, required this.element});
-  final Map<String, dynamic> element;
-  @override
-  State<ItemCard> createState() => _ItemCardState();
-}
-
-class _ItemCardState extends State<ItemCard> {
-  Map<String, dynamic> element = {};
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
+  void updateDataAmount(String newDataAmount, int index) {
     setState(() {
-      element = widget.element;
+      localSum -=
+          int.parse(items[index]["price"]) * int.parse(items[index]["amount"]);
+      items[index]["amount"] = newDataAmount;
+      localSum +=
+          int.parse(items[index]["price"]) * int.parse(items[index]["amount"]);
     });
   }
 
-  Future<void> refreshItemCard() async {
-    if (element["item_id"] != null) {
-      Map<String, dynamic>? element = await getItem(widget.element["item_id"]);
-      setState(() {
-        element = element!;
-      });
+  void updatePrices() {
+    localSum = 0;
+    localDiscount = 0;
+    for (dynamic item in items) {
+      localSum += (int.parse(item["price"]) * int.parse(item["amount"]));
+      if (item["previous_price"] != null) {
+        localDiscount += (int.parse(item["price"]) -
+            int.parse(item["previous_price"]) * int.parse(item["amount"]));
+      }
     }
+    // Just update states, ONLY after cycle are done working
+    setState(() {
+      localSum = localSum;
+      localDiscount = localDiscount;
+    });
+  }
+
+  bool isCartLoading = false;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _setAnimationController();
+    Future.delayed(const Duration(milliseconds: 0), () async {
+      setState(() {
+        isCartLoading = true;
+      });
+      await _getCart();
+      setState(() {
+        localSum = int.parse(sum);
+        for (dynamic item in items) {
+          if (item["previous_price"] != null) {
+            localDiscount += int.parse(item["price"]) -
+                int.parse(item["previous_price"] ?? "0");
+          }
+        }
+        isCartLoading = false;
+      });
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.max,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.max,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                width: MediaQuery.of(context).size.width * 0.25,
-                child: Image.network(
-                  'https://naliv.kz/img/' + element["photo"],
-                  width: MediaQuery.of(context).size.width * 0.25,
-                  fit: BoxFit.fill,
-                ),),
-                SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.6,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    mainAxisSize: MainAxisSize.max,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.max,
-                        children: [
-                          SizedBox(
-                            width: MediaQuery.of(context).size.width * 0.4,
-                            child: RichText(
-                              text: TextSpan(
-                                  style: const TextStyle(
-                                      textBaseline: TextBaseline.alphabetic,
-                                      fontSize: 14,
-                                      color: Colors.black),
-                                  children: [
-                                    TextSpan(text: element["name"]),
-                                    // WidgetSpan(
-                                    //     child: Container(
-                                    //   child: Text(
-                                    //     element["country"] ?? "",
-                                    //     style: TextStyle(
-                                    //         color: Colors.black,
-                                    //         fontWeight: FontWeight.w600),
-                                    //   ),
-                                    //   padding: EdgeInsets.all(5),
-                                    //   decoration: BoxDecoration(
-                                    //       color: Colors.grey.shade200,
-                                    //       borderRadius:
-                                    //           BorderRadius.all(Radius.circular(10))),
-                                    // ))
-                                  ]),
-                            ),
-                          ),
-                          LikeButton(
-                            item_id: element["item_id"],
-                            is_liked: element["is_liked"],
-                          )
-                        ],
-                      ),
-                      const SizedBox(
-                        height: 10,
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        mainAxisSize: MainAxisSize.max,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          SizedBox(
-                            width: MediaQuery.of(context).size.width * 0.3,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  element['prev_price'] ?? "",
-                                  style: const TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 15,
-                                      decoration: TextDecoration.lineThrough),
-                                ),
-                                Row(
-                                  children: [
-                                    Text(
-                                      element['price'] ?? "",
-                                      style: const TextStyle(
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 24),
-                                    ),
-                                    Text(
-                                      "₸",
-                                      style: TextStyle(
-                                          color: Colors.grey.shade600,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 24),
-                                    )
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          BuyButton(element: element),
-                        ],
-                      ),
-                    ],
-                  ),
-                )
-              ],
+            Text(
+              "Корзина",
+              style: TextStyle(fontWeight: FontWeight.w700),
             ),
-            const SizedBox(
-              height: 15,
-            ),
-            Container(
-              height: 1,
-              color: Colors.grey.shade200,
-            )
           ],
         ),
       ),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => ProductPage(
-                    item_id: element["item_id"],
-                    returnWidget: const BottomMenu(),
-                  )),
-        );
-      },
+      body: items.isNotEmpty
+          ? ListView(
+              children: [
+                ListView.builder(
+                  primary: false,
+                  shrinkWrap: true,
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return Column(
+                      children: [
+                        Dismissible(
+                          // Each Dismissible must contain a Key. Keys allow Flutter to
+                          // uniquely identify widgets.
+                          key: Key(item["item_id"]),
+                          confirmDismiss: (direction) async {
+                            bool result =
+                                await _deleteFromCart(item["item_id"]);
+
+                            if (result) {
+                              setState(() {
+                                items.removeAt(index);
+                                updatePrices();
+                                // localSum -= int.parse(item["price"]) *
+                                //     int.parse(item["amount"]);
+                              });
+                            }
+
+                            return result;
+                          },
+                          onDismissed: ((direction) {
+                            print(MediaQuery.of(context).size.height *
+                                ((4 - items.length) / 10));
+                          }),
+                          // Provide a function that tells the app
+                          // what to do after an item has been swiped away.
+
+                          // Show a red background as the item is swiped away.
+                          background: SizedBox(
+                            width: 100,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.7,
+                                  alignment: Alignment.center,
+                                  padding: const EdgeInsets.only(right: 10),
+                                  color: Colors.grey.shade100,
+                                ),
+                                Container(
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.3,
+                                  alignment: Alignment.center,
+                                  padding: const EdgeInsets.only(right: 10),
+                                  color: Colors.grey.shade100,
+                                  child: const Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.delete),
+                                      Text("Удалить")
+                                    ],
+                                  ),
+                                )
+                              ],
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                key: Key(items[index]["item_id"]),
+                                child: ItemCardMinimal(
+                                  item_id: items[index]["item_id"],
+                                  element: items[index],
+                                  category_id: "",
+                                  category_name: "",
+                                  scroll: 0,
+                                ),
+                                onTap: () {
+                                  showModalBottomSheet(
+                                    transitionAnimationController:
+                                        animController,
+                                    context: context,
+                                    clipBehavior: Clip.antiAlias,
+                                    useSafeArea: true,
+                                    isScrollControlled: true,
+                                    builder: (context) {
+                                      return ProductPage(
+                                        item: items[index],
+                                        index: index,
+                                        returnDataAmount: updateDataAmount,
+                                        openedFromCart: true,
+                                      );
+                                    },
+                                  ).then((value) {
+                                    print("object");
+                                  });
+                                },
+                              ),
+                              items.length - 1 != index
+                                  ? const Padding(
+                                      padding:
+                                          EdgeInsets.symmetric(horizontal: 16),
+                                      child: Divider(),
+                                    )
+                                  : Container(),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+                // Makes buy button stay in the same place imitating other cards in listView
+                items.isNotEmpty
+                    ? Column(
+                        children: [
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width,
+                            height: items.length < 4
+                                ? (MediaQuery.of(context).size.height * 0.122) *
+                                    (4 - items.length)
+                                : 0,
+                          ),
+                          const Divider(
+                            color: Colors.transparent,
+                          ),
+                        ],
+                      )
+                    : Container(),
+                const SizedBox(
+                  height: 20,
+                ),
+                const Divider(),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      const Flexible(
+                        flex: 5,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: EdgeInsets.only(left: 15),
+                              child: Text(
+                                "Цена без скидки",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.only(right: 20),
+                              child: Divider(),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.only(left: 15),
+                              child: Text(
+                                "Скидка",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.only(right: 20),
+                              child: Divider(),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.only(left: 15),
+                              child: Text(
+                                "Итого",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Flexible(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 5),
+                                  child: Text(
+                                    formatCost(localSum
+                                        .toString()), // CHANGE THIS TO REPRESENT SUM WITHOUT DISCOUNT
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                                const Text(
+                                  "₸",
+                                  style: TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 18),
+                                ),
+                              ],
+                            ),
+                            const Divider(),
+                            Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 5),
+                                  child: Text(
+                                    formatCost(localDiscount
+                                        .toString()), // CHANGE THIS TO REPRESENT DISCOUNT
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                                const Text(
+                                  "₸",
+                                  style: TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 18),
+                                ),
+                              ],
+                            ),
+                            const Divider(),
+                            Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 5),
+                                  child: Text(
+                                    formatCost(localSum.toString()),
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                                const Text(
+                                  "₸",
+                                  style: TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 18),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(
+                  height: 10,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) {
+                            return const CreateOrderPage();
+                          },
+                        ),
+                      );
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            "Оформить заказ",
+                            textAlign: TextAlign.justify,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.all(0),
+                        foregroundColor: Colors.white,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(3)),
+                        ),
+                      ),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) {
+                            return AlertDialog(
+                              shape: const RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(3))),
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.background,
+                              surfaceTintColor: Colors.transparent,
+                              elevation: 0.0,
+                              title: const Text(
+                                "Промокод",
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              content: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  TextField(
+                                    controller: _promoController,
+                                    decoration: const InputDecoration(
+                                      border: UnderlineInputBorder(),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 15,
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      print("Hell");
+                                    },
+                                    child: const Row(
+                                      children: [
+                                        Text("Подтвердить"),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                      child: Text(
+                        "Есть промокод?",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            )
+          : Container(
+              alignment: Alignment.center,
+              width: MediaQuery.of(context).size.width,
+              child: const Text("Ваша корзина пуста"),
+            ),
     );
   }
 }

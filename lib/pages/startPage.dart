@@ -89,44 +89,49 @@ class _StartPageState extends State<StartPage> {
           //         })),
           const Spacer(),
           Flexible(
-              flex: 2,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                child: TextButton(
-                    style: ElevatedButton.styleFrom(
-                        shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(5))),
-                        backgroundColor: const Color(0xFFFFCA3C)),
-                    onPressed: () {
-                      // Navigator.pushReplacement(context, MaterialPageRoute(
-                      //   builder: (context) {
-                      //     return RegistrationPage();
-                      //   },
-                      // ));
-                      Navigator.pushReplacement(context, MaterialPageRoute(
-                        builder: (context) {
-                          return const DealPage();
-                        },
-                      ));
+            flex: 2,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+              child: TextButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(),
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white
+                  
+                ),
+                onPressed: () {
+                  // Navigator.pushReplacement(context, MaterialPageRoute(
+                  //   builder: (context) {
+                  //     return RegistrationPage();
+                  //   },
+                  // ));
+                  Navigator.pushReplacement(context, MaterialPageRoute(
+                    builder: (context) {
+                      return const DealPage();
                     },
-                    child: Container(
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.max,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Продолжить",
-                            style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black),
-                          ),
-                        ],
+                  ));
+                },
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.max,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Продолжить",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
                       ),
-                    )),
-              )),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
           // Flexible(
           //     flex: 2,
           //     child: Container(

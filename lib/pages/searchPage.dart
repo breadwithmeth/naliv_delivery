@@ -1,8 +1,11 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/pages/searchResultPage.dart';
 
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key});
+  const SearchPage({super.key, this.category_id = ""});
+  final String category_id;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -10,13 +13,26 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   TextEditingController _keyword = TextEditingController();
+  bool isTextInField = false;
+  bool isSearchEverywhere = false;
 
   void _search() {
     Navigator.pushReplacement(context, MaterialPageRoute(
       builder: (context) {
-        return SearchResultPage(
-          search: _keyword.text,
-        );
+        if (isSearchEverywhere) {
+          print("SEARCH EVERYWHERE");
+          return SearchResultPage(
+            search: _keyword.text,
+            page: 0,
+          );
+        } else {
+          print("SEARCH INSIDE CATEGORY");
+          return SearchResultPage(
+            search: _keyword.text,
+            page: 0,
+            category_id: widget.category_id,
+          );
+        }
       },
     ));
   }
@@ -25,7 +41,7 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           "Поиск",
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
@@ -33,20 +49,42 @@ class _SearchPageState extends State<SearchPage> {
       body: Column(
         children: [
           Container(
-            margin: EdgeInsets.all(10),
-            padding: EdgeInsets.all(20),
+            margin: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
                 boxShadow: [
                   BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      offset: Offset(5, 5),
-                      blurRadius: 10)
+                    color: Colors.black.withOpacity(0.1),
+                    offset: const Offset(5, 5),
+                    blurRadius: 10,
+                  )
                 ],
                 color: Colors.grey.shade100,
-                borderRadius: BorderRadius.all(Radius.circular(15))),
+                borderRadius: const BorderRadius.all(Radius.circular(3))),
             child: Column(
               children: [
                 TextField(
+                  onChanged: ((value) {
+                    // This is so complex because otherway the button will flicker non-stop on any change in TextField
+                    // because setState method will update isTextInField and that will trigger AnimatedSwitcher for search button to rebuild and that is causing flickering
+                    if (value.isNotEmpty) {
+                      if (isTextInField == true) {
+                        return;
+                      } else {
+                        setState(() {
+                          isTextInField = true;
+                        });
+                      }
+                    } else {
+                      if (isTextInField == false) {
+                        return;
+                      } else {
+                        setState(() {
+                          isTextInField = false;
+                        });
+                      }
+                    }
+                  }),
                   controller: _keyword,
                   autofocus: true,
                   decoration: InputDecoration(
@@ -54,27 +92,83 @@ class _SearchPageState extends State<SearchPage> {
                       filled: true,
                       fillColor: Colors.white,
                       focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(width: 2, color: Colors.amber),
-                          borderRadius: BorderRadius.all(Radius.circular(30))),
+                          borderSide: BorderSide(
+                              width: 2,
+                              color: Theme.of(context).colorScheme.primary),
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(3))),
                       enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(width: 2, color: Colors.grey),
-                          borderRadius: BorderRadius.all(Radius.circular(30))),
+                          borderSide: BorderSide(
+                              width: 2,
+                              color: Theme.of(context).colorScheme.primary),
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(3))),
                       border: OutlineInputBorder(
-                          borderSide: BorderSide(width: 5, color: Colors.black),
-                          borderRadius: BorderRadius.all(Radius.circular(30)))),
+                          borderSide: BorderSide(
+                              width: 5,
+                              color: Theme.of(context).colorScheme.primary),
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(3)))),
                 ),
-                SizedBox(
-                  height: 10,
+                const SizedBox(
+                  height: 5,
                 ),
-                ElevatedButton(
-                    onPressed: () {
-                      _search();
-                    },
-                    child: Row(
+                widget.category_id != ""
+                    ? Row(
+                        children: [
+                          Checkbox(
+                            value: isSearchEverywhere,
+                            onChanged: (value) {
+                              setState(() {
+                                print("VALUE IS " +
+                                    isSearchEverywhere.toString());
+                                isSearchEverywhere = value!;
+                              });
+                            },
+                          ),
+                          const Text(
+                            "Искать везде",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Container(),
+                const SizedBox(
+                  height: 5,
+                ),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 125),
+                  switchInCurve: Curves.easeIn,
+                  switchOutCurve: Curves.easeOut,
+                  child: ElevatedButton(
+                    key: UniqueKey(),
+                    style: ElevatedButton.styleFrom(
+                      textStyle: TextStyle(
+                        color: Theme.of(context).colorScheme.onPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    onPressed: isTextInField
+                        ? () {
+                            _search();
+                          }
+                        : null,
+                    child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       mainAxisSize: MainAxisSize.max,
-                      children: [Text("Найти")],
-                    ))
+                      children: [
+                        Text(
+                          "Найти",
+                        )
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

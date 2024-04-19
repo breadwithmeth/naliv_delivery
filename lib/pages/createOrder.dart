@@ -1,7 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+import 'package:naliv_delivery/main.dart';
+import 'package:naliv_delivery/pages/addressesPage.dart';
+import 'package:naliv_delivery/pages/createAddress.dart';
 import 'package:naliv_delivery/pages/orderConfirmation.dart';
+import 'package:naliv_delivery/shared/itemCards.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../misc/api.dart';
 
@@ -16,27 +22,36 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   bool delivery = true;
   List items = [];
   Map<String, dynamic> cartInfo = {};
-  Widget? currentAddressWidget;
+  // Widget? currentAddressWidget;
   List<Widget> addressesWidget = [];
-    Map? currentAddress;
+  Map currentAddress = {};
+  List addresses = [];
+
+  bool isAddressesLoading = true;
+
+  List<Map> wrongAmountItems = [];
 
   Future<void> _getCart() async {
-    List cart = await getCart();
-    print(cart);
+    // List cart = await getCart();
+    // print(cart);
 
+    Map<String, dynamic> cart = await getCart();
     Map<String, dynamic>? cartInfo = await getCartInfo();
 
     setState(() {
-      items = cart;
+      // items = cart;
+      items = cart["cart"];
       cartInfo = cartInfo!;
     });
   }
 
   Future<void> _getAddresses() async {
-    Map? currentAddress;
+    setState(() {
+      isAddressesLoading = true;
+    });
     List<Widget> addressesWidget = [];
-    List addresseses = await getAddresses();
-    for (var element in addresseses) {
+    addresses = await getAddresses();
+    for (var element in addresses) {
       addressesWidget.add(Container(
         margin: const EdgeInsets.symmetric(vertical: 5),
         child: ElevatedButton(
@@ -45,7 +60,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                 backgroundColor: element["is_selected"] == "1"
                     ? Colors.grey.shade200
                     : Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 5)),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 20, horizontal: 5)),
             onPressed: () {
               selectAddress(element["address_id"]);
               Timer(const Duration(microseconds: 300), () {
@@ -67,25 +83,26 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
       if (element["is_selected"] == "1") {
         setState(() {
           currentAddress = element;
-          currentAddressWidget = GestureDetector(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                Text(element["address"]),
-                const Icon(Icons.arrow_forward_ios)
-              ],
-            ),
-            onTap: () {
-              _getAddressPickDialog();
-            },
-          );
+          isAddressesLoading = false;
+          // currentAddressWidget = GestureDetector(
+          //   behavior: HitTestBehavior.opaque,
+          //   child: Row(
+          //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //     mainAxisSize: MainAxisSize.max,
+          //     children: [
+          //       Text(element["address"]),
+          //       const Icon(Icons.arrow_forward_ios)
+          //     ],
+          //   ),
+          //   onTap: () {
+          //     _getAddressPickDialog();
+          //   },
+          // );
         });
       }
     }
 
     setState(() {
-      
       addressesWidget = addressesWidget;
     });
   }
@@ -96,16 +113,82 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-            insetPadding: const EdgeInsets.all(0),
-            content: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.7,
-              height: MediaQuery.of(context).size.height * 0.4,
-              child: SingleChildScrollView(
-                child: Column(
-                  children: addressesWidget,
-                ),
+          title: Text(
+            "Ваши адреса",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 24,
+              color: Theme.of(context).colorScheme.onBackground,
+            ),
+          ),
+          shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(3))),
+          insetPadding: const EdgeInsets.all(0),
+          content: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.7,
+            height: MediaQuery.of(context).size.height * 0.4,
+            child: addresses.isNotEmpty
+                ? ListView.builder(
+                    itemCount: addresses.length,
+                    itemBuilder: (context, index) {
+                      print(addresses);
+                      return Column(
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () {
+                              Future.delayed(const Duration(milliseconds: 0),
+                                  () async {
+                                await selectAddress(
+                                    addresses[index]["address_id"]);
+                              });
+                              setState(() {
+                                currentAddress = addresses[index];
+                              });
+                              Navigator.pop(context);
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.max,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    "${addresses[index]["name"] != null ? '${addresses[index]["name"]} -' : ""} ${addresses[index]["address"]}",
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 15,
+                          ),
+                        ],
+                      );
+                    },
+                  )
+                : const Text("У вас нет сохраненных адресов"),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) {
+                  return AddressesPage(addresses: addresses, isExtended: false);
+                }));
+              },
+              child: const Text(
+                "Добавить новый адрес",
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
               ),
-            ));
+            )
+          ],
+          actionsAlignment: MainAxisAlignment.center,
+        );
       },
     );
   }
@@ -114,15 +197,19 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    _getCart();
-    _getAddresses();
+    Future.delayed(const Duration(microseconds: 0), () async {
+      await _getCart();
+      await _getAddresses();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
-      body: Column(
+      appBar: AppBar(
+        title: const Text("Заказ"),
+      ),
+      body: ListView(
         children: [
           const SizedBox(
             height: 5,
@@ -130,7 +217,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
           Container(
             decoration: BoxDecoration(
                 color: Colors.grey.shade100,
-                borderRadius: const BorderRadius.all(Radius.circular(10))),
+                borderRadius: const BorderRadius.all(Radius.circular(3))),
             margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
             padding: const EdgeInsets.all(5),
             child: Row(
@@ -138,304 +225,372 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
               mainAxisSize: MainAxisSize.max,
               children: [
                 Flexible(
-                    flex: 1,
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          delivery = true;
-                        });
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
+                  flex: 1,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        delivery = true;
+                      });
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                          color: delivery ? Colors.white : Colors.grey.shade100,
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(3))),
+                      padding: const EdgeInsets.all(10),
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.delivery_dining,
                             color:
-                                delivery ? Colors.white : Colors.grey.shade100,
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(10))),
-                        padding: const EdgeInsets.all(10),
-                        alignment: Alignment.center,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.delivery_dining,
-                              color: delivery
-                                  ? Colors.black
-                                  : Colors.grey.shade400,
-                            ),
-                            const SizedBox(
-                              width: 5,
-                            ),
-                            Text(
-                              "Доставка",
-                              style: TextStyle(
-                                  color: delivery
-                                      ? Colors.black
-                                      : Colors.grey.shade400,
-                                  fontWeight: FontWeight.w700),
-                            )
-                          ],
-                        ),
+                                delivery ? Colors.black : Colors.grey.shade400,
+                          ),
+                          const SizedBox(
+                            width: 5,
+                          ),
+                          Text(
+                            "Доставка",
+                            style: TextStyle(
+                                color: delivery
+                                    ? Colors.black
+                                    : Colors.grey.shade400,
+                                fontWeight: FontWeight.w700),
+                          )
+                        ],
                       ),
-                    )),
+                    ),
+                  ),
+                ),
                 Flexible(
-                    flex: 1,
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          delivery = false;
-                        });
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
+                  flex: 1,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        delivery = false;
+                      });
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                          color: delivery ? Colors.grey.shade100 : Colors.white,
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(3))),
+                      padding: const EdgeInsets.all(10),
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.store,
                             color:
-                                delivery ? Colors.grey.shade100 : Colors.white,
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(10))),
-                        padding: const EdgeInsets.all(10),
-                        alignment: Alignment.center,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.store,
+                                delivery ? Colors.grey.shade400 : Colors.black,
+                          ),
+                          const SizedBox(
+                            width: 5,
+                          ),
+                          Text(
+                            "Самовывоз",
+                            style: TextStyle(
                               color: delivery
                                   ? Colors.grey.shade400
                                   : Colors.black,
+                              fontWeight: FontWeight.w700,
                             ),
-                            const SizedBox(
-                              width: 5,
-                            ),
-                            Text(
-                              "Самовывоз",
-                              style: TextStyle(
-                                  color: delivery
-                                      ? Colors.grey.shade400
-                                      : Colors.black,
-                                  fontWeight: FontWeight.w700),
-                            )
-                          ],
-                        ),
+                          )
+                        ],
                       ),
-                    )),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
           Container(
-              decoration: BoxDecoration(
-                  border: Border.all(
-                    width: 2,
-                    color: Colors.grey.shade100,
-                  ),
-                  color: Colors.white,
-                  borderRadius: const BorderRadius.all(Radius.circular(10))),
-              margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
-              padding: const EdgeInsets.all(5),
-              child: ListView.builder(
-                  primary: false,
-                  shrinkWrap: true,
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    final item = items[index];
+            height: MediaQuery.of(context).size.height * 0.5,
+            decoration: BoxDecoration(
+                border: Border.all(
+                  width: 2,
+                  color: Colors.grey.shade100,
+                ),
+                color: Colors.white,
+                borderRadius: const BorderRadius.all(Radius.circular(3))),
+            margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
+            padding: const EdgeInsets.all(5),
+            child: ListView.builder(
+              primary: false,
+              shrinkWrap: true,
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                final item = items[index];
 
-                    return ItemCard(element: item);
-                  })),
-          delivery
-              ? Container(
-                  decoration: BoxDecoration(
-                      border: Border.all(
-                        width: 2,
-                        color: Colors.grey.shade100,
+                return Column(
+                  children: [
+                    ItemCardNoImage(
+                      element: item,
+                      item_id: item["item_id"],
+                      category_id: "",
+                      category_name: "",
+                      scroll: 0,
+                    ),
+                    items.length - 1 != index
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 5,
+                            ),
+                            child: Divider(
+                              height: 0,
+                            ),
+                          )
+                        : Container(),
+                  ],
+                );
+              },
+            ),
+          ),
+          isAddressesLoading
+              ? Shimmer.fromColors(
+                  baseColor:
+                      Theme.of(context).colorScheme.secondary.withOpacity(0.05),
+                  highlightColor: Theme.of(context).colorScheme.secondary,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 30),
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        borderRadius: BorderRadius.all(Radius.circular(3)),
+                        color: Colors.white,
                       ),
-                      color: Colors.white,
-                      borderRadius: const BorderRadius.all(Radius.circular(10))),
-                  margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
-                  padding: const EdgeInsets.all(15),
-                  child: Column(
-                    children: [currentAddressWidget ?? Container()],
+                      width: double.infinity,
+                      height: 50,
+                    ),
                   ),
                 )
-              : Container(),
+              : delivery
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                          border: Border.all(
+                            width: 2,
+                            color: Colors.grey.shade100,
+                          ),
+                          color: Colors.white,
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(3))),
+                      margin: const EdgeInsets.symmetric(horizontal: 30),
+                      // This should be null only if user doesn't have any addresses, else there will be user address
+                      // child: currentAddressWidget ??
+                      child: currentAddress.isNotEmpty
+                          ? GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.max,
+                                children: [
+                                  Flexible(
+                                    flex: 3,
+                                    fit: FlexFit.tight,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          currentAddress["address"],
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Flexible(
+                                    fit: FlexFit.tight,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.add_box_rounded),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              onTap: () {
+                                _getAddressPickDialog();
+                              },
+                            )
+                          : TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => AddressesPage(
+                                            addresses: addresses,
+                                            isExtended: true,
+                                          )),
+                                ).then((value) => print(_getAddresses()));
+                              },
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  Text(
+                                    "Добавьте адрес доставки",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 16,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .secondary,
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.add_box_rounded,
+                                    color:
+                                        Theme.of(context).colorScheme.secondary,
+                                  ),
+                                ],
+                              ),
+                            ),
+                    )
+                  : Container(),
           Container(
-              decoration: BoxDecoration(
-                  border: Border.all(
-                    width: 2,
-                    color: Colors.grey.shade100,
-                  ),
-                  color: Colors.white,
-                  borderRadius: const BorderRadius.all(Radius.circular(10))),
-              margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
-              padding: const EdgeInsets.all(15),
-              child: const Text("Здесь мы расчитываем стоймость доставки")),
+            decoration: BoxDecoration(
+                border: Border.all(
+                  width: 2,
+                  color: Colors.grey.shade100,
+                ),
+                color: Colors.white,
+                borderRadius: const BorderRadius.all(Radius.circular(3))),
+            margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
+            padding: const EdgeInsets.all(15),
+            child: Text(
+              "Здесь мы расчитываем стоймость доставки",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 16,
+                color: Theme.of(context).colorScheme.secondary,
+              ),
+            ),
+          ),
           Container(
-              decoration: BoxDecoration(
-                  border: Border.all(
-                    width: 2,
-                    color: Colors.grey.shade100,
-                  ),
-                  color: Colors.white,
-                  borderRadius: const BorderRadius.all(Radius.circular(10))),
-              margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
-              padding: const EdgeInsets.all(15),
-              child: const Text("а здесь эквайринг")),
+            decoration: BoxDecoration(
+                border: Border.all(
+                  width: 2,
+                  color: Colors.grey.shade100,
+                ),
+                color: Colors.white,
+                borderRadius: const BorderRadius.all(Radius.circular(3))),
+            margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
+            padding: const EdgeInsets.all(15),
+            child: Text(
+              "а здесь эквайринг",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 16,
+                color: Theme.of(context).colorScheme.secondary,
+              ),
+            ),
+          ),
           Container(
-              decoration: BoxDecoration(
-                  border: Border.all(
-                    width: 2,
-                    color: Colors.grey.shade100,
-                  ),
-                  color: Colors.white,
-                  borderRadius: const BorderRadius.all(Radius.circular(10))),
-              margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
-              padding: const EdgeInsets.all(15),
-              child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => OrderConfirmation(delivery: delivery, items: items, address: currentAddress,),
-                        ));
-                  },
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.max,
-                    children: [Text("Подтвердить заказ")],
-                  )))
+            decoration: BoxDecoration(
+                border: Border.all(
+                  width: 2,
+                  color: Colors.grey.shade100,
+                ),
+                color: Colors.white,
+                borderRadius: const BorderRadius.all(Radius.circular(3))),
+            margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
+            padding: const EdgeInsets.all(15),
+            child: ElevatedButton(
+              onPressed: () {
+                Future.delayed(const Duration(milliseconds: 0), () async {
+                  Map<String, dynamic> serverCart = await getCart();
+                  for (var i = 0; i < serverCart.length; i++) {
+                    if (serverCart[i]["in_stock"] < serverCart[i]["amount"]) {
+                      wrongAmountItems.add(serverCart[i]);
+                    }
+                  }
+                });
+                if (wrongAmountItems.isNotEmpty) {
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: const Row(
+                          children: [
+                            Text("Остатки изменились"),
+                          ],
+                        ),
+                        content: ListView.builder(
+                          itemBuilder: (context, index) {
+                            return Container(
+                              padding: const EdgeInsets.all(10),
+                              margin: const EdgeInsets.all(10),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(wrongAmountItems[index]["name"]),
+                                  Text(
+                                    wrongAmountItems[index]["amount"]
+                                        .toString(),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                        actions: [
+                          ElevatedButton(
+                            onPressed: () {},
+                            child: const Text("Продолжить"),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {},
+                            child: const Text("Изменить заказ"),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => OrderConfirmation(
+                        delivery: delivery,
+                        items: items,
+                        address: currentAddress,
+                      ),
+                    ),
+                  );
+                }
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  Text(
+                    "Подтвердить заказ",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  )
+                ],
+              ),
+            ),
+          ),
         ],
       ),
-    );
-  }
-}
-
-class ItemCard extends StatefulWidget {
-  const ItemCard({super.key, required this.element});
-  final Map<String, dynamic> element;
-  @override
-  State<ItemCard> createState() => _ItemCardState();
-}
-
-class _ItemCardState extends State<ItemCard> {
-  Map<String, dynamic> element = {};
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    setState(() {
-      element = widget.element;
-    });
-  }
-
-  Future<void> refreshItemCard() async {
-    if (element["item_id"] != null) {
-      Map<String, dynamic>? element = await getItem(widget.element["item_id"]);
-      setState(() {
-        element = element!;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      child: Container(
-        alignment: Alignment.center,
-        padding: const EdgeInsets.all(10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            SizedBox(
-                width: MediaQuery.of(context).size.width * 0.4,
-                child: Text(
-                  element["name"],
-                  style: const TextStyle(
-                      textBaseline: TextBaseline.alphabetic,
-                      fontSize: 16,
-                      color: Colors.black),
-                )),
-            // LikeButton(
-            //   item_id: element["item_id"],
-            //   is_liked: element["is_liked"],
-            // ),
-            Container(
-                child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text(
-                  element['amount'] ?? "",
-                ),
-                const Text(
-                  " x ",
-                ),
-                Text(
-                  element['price'] ?? "",
-                ),
-                const Text(
-                  "₸",
-                ),
-                const SizedBox(
-                  width: 5,
-                ),
-                Text(
-                  element['sum'] ?? "",
-                  style: const TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 24),
-                ),
-                Text(
-                  "₸",
-                  style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 24),
-                ),
-              ],
-            ))
-            // Row(
-            //   children: [
-            //     Text(
-            //       element['price'] ?? "",
-            //       style: TextStyle(
-            //           color: Colors.black,
-            //           fontWeight: FontWeight.w600,
-            //           fontSize: 24),
-            //     ),
-            //     Text(
-            //       "₸",
-            //       style: TextStyle(
-            //           color: Colors.grey.shade600,
-            //           fontWeight: FontWeight.w600,
-            //           fontSize: 24),
-            //     ),
-            //     Text(
-            //       " x ",
-            //       style: TextStyle(
-            //           color: Colors.grey.shade600,
-            //           fontWeight: FontWeight.w600,
-            //           fontSize: 24),
-            //     ),
-            //     Text(
-            //       element['amount'],
-            //       style: TextStyle(
-            //           color: Colors.grey.shade600,
-            //           fontWeight: FontWeight.w600,
-            //           fontSize: 24),
-            //     )
-            //   ],
-            // ),
-          ],
-        ),
-      ),
-      onTap: () {
-        // Navigator.push(
-        //   context,
-        //   MaterialPageRoute(
-        //       builder: (context) => ProductPage(
-        //             item_id: element["item_id"],
-        //           )),
-        // );
-      },
     );
   }
 }

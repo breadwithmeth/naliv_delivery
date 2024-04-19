@@ -24,10 +24,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (context) => LoginPage(
-                  login: _login.text,
-                  password: _password.text,
-                )),
+          builder: (context) => LoginPage(
+            login: _login.text,
+            password: _password.text,
+          ),
+        ),
       );
     }
   }
@@ -35,176 +36,173 @@ class _RegistrationPageState extends State<RegistrationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
+      appBar: AppBar(
+        leading: IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const StartPage()),
+              );
+            },
+            icon: const Icon(Icons.arrow_back)),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.all(5),
+            child: TextButton(
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const StartPage()),
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
                 );
               },
-              icon: const Icon(Icons.arrow_back)),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.all(5),
-              child: TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const LoginPage()),
-                    );
-                  },
-                  child: const Text(
-                    "Войти",
+              child: const Text(
+                "Войти",
+                style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16),
+              ),
+            ),
+          )
+        ],
+      ),
+      body: Stack(
+        children: [
+          Column(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              const Spacer(),
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Регистрация",
                     style: TextStyle(
                         color: Colors.black,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16),
-                  )),
-            )
-          ],
-        ),
-        body: Stack(
-          children: [
-            Column(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                const Spacer(),
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Регистрация",
-                      style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w400,
-                          fontSize: 24),
-                    )
-                  ],
+                        fontWeight: FontWeight.w400,
+                        fontSize: 24),
+                  )
+                ],
+              ),
+              const Spacer(),
+              Container(
+                margin: const EdgeInsets.all(20),
+                child: Form(
+                  autovalidateMode: AutovalidateMode.always,
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: _name,
+                        decoration: const InputDecoration(
+                            labelStyle: TextStyle(color: gray1, fontSize: 16),
+                            label: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.person_outline,
+                                  size: 30,
+                                ),
+                                SizedBox(
+                                  width: 5,
+                                ),
+                                Text("Имя")
+                              ],
+                            ),
+                            focusColor: Colors.black,
+                            enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    width: 0.5, color: Color(0xFFD8DADC)),
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(10))),
+                            focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.black))),
+                      ),
+                      const SizedBox(
+                        height: 10,
+                      ),
+                      TextFormField(
+                        controller: _login,
+                        decoration: const InputDecoration(
+                            labelStyle: TextStyle(color: gray1, fontSize: 16),
+                            label: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.mail_outline_rounded,
+                                  size: 30,
+                                ),
+                                SizedBox(
+                                  width: 5,
+                                ),
+                                Text("Адрес эл.почты")
+                              ],
+                            ),
+                            focusColor: Colors.black,
+                            enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    width: 0.5, color: Color(0xFFD8DADC)),
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(10))),
+                            focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.black))),
+                      ),
+                      const SizedBox(
+                        height: 10,
+                      ),
+                      TextFormField(
+                        controller: _password,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                            labelStyle: TextStyle(color: gray1, fontSize: 16),
+                            label: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.lock_outline,
+                                  size: 30,
+                                ),
+                                SizedBox(
+                                  width: 5,
+                                ),
+                                Text("Пароль")
+                              ],
+                            ),
+                            focusColor: Colors.black,
+                            enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    width: 0.5, color: Color(0xFFD8DADC)),
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(10))),
+                            focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.black))),
+                      ),
+                      const SizedBox(
+                        height: 50,
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.all(18)),
+                        onPressed: () {
+                          _register();
+                        },
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.max,
+                          children: [Text("Регистрация")],
+                        ),
+                      )
+                    ],
+                  ),
                 ),
-                const Spacer(),
-                Container(
-                  margin: const EdgeInsets.all(20),
-                  child: Form(
-                      autovalidateMode: AutovalidateMode.always,
-                      child: Column(
-                        children: [
-                          TextFormField(
-                            controller: _name,
-                            decoration: const InputDecoration(
-                                labelStyle:
-                                    TextStyle(color: gray1, fontSize: 16),
-                                label: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.person_outline,
-                                      size: 30,
-                                    ),
-                                    SizedBox(
-                                      width: 5,
-                                    ),
-                                    Text("Имя")
-                                  ],
-                                ),
-                                focusColor: Colors.black,
-                                enabledBorder: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                        width: 0.5, color: Color(0xFFD8DADC)),
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(10))),
-                                focusedBorder: OutlineInputBorder(
-                                    borderSide:
-                                        BorderSide(color: Colors.black))),
-                          ),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          TextFormField(
-                            controller: _login,
-                            decoration: const InputDecoration(
-                                labelStyle:
-                                    TextStyle(color: gray1, fontSize: 16),
-                                label: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.mail_outline_rounded,
-                                      size: 30,
-                                    ),
-                                    SizedBox(
-                                      width: 5,
-                                    ),
-                                    Text("Адрес эл.почты")
-                                  ],
-                                ),
-                                focusColor: Colors.black,
-                                enabledBorder: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                        width: 0.5, color: Color(0xFFD8DADC)),
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(10))),
-                                focusedBorder: OutlineInputBorder(
-                                    borderSide:
-                                        BorderSide(color: Colors.black))),
-                          ),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          TextFormField(
-                            controller: _password,
-                            obscureText: true,
-                            decoration: const InputDecoration(
-                                labelStyle:
-                                    TextStyle(color: gray1, fontSize: 16),
-                                label: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.lock_outline,
-                                      size: 30,
-                                    ),
-                                    SizedBox(
-                                      width: 5,
-                                    ),
-                                    Text("Пароль")
-                                  ],
-                                ),
-                                focusColor: Colors.black,
-                                enabledBorder: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                        width: 0.5, color: Color(0xFFD8DADC)),
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(10))),
-                                focusedBorder: OutlineInputBorder(
-                                    borderSide:
-                                        BorderSide(color: Colors.black))),
-                          ),
-                          const SizedBox(
-                            height: 50,
-                          ),
-                          ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.all(18)),
-                              onPressed: () {
-                                _register();
-                              },
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.max,
-                                children: [Text("Регистрация")],
-                              ))
-                        ],
-                      )),
-                ),
-                const Spacer(
-                  flex: 3,
-                )
-              ],
-            ),
-            _resultWidget
-          ],
-        ));
+              ),
+              const Spacer(
+                flex: 3,
+              )
+            ],
+          ),
+          _resultWidget
+        ],
+      ),
+    );
   }
 }
