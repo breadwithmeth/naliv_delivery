@@ -2,6 +2,15 @@ PODS:
   - Flutter (1.0.0)
   - geolocator_apple (1.2.0):
     - Flutter
+  - libphonenumber_plugin (0.0.1):
+    - Flutter
+    - PhoneNumberKit
+  - PhoneNumberKit (3.7.9):
+    - PhoneNumberKit/PhoneNumberKitCore (= 3.7.9)
+    - PhoneNumberKit/UIKit (= 3.7.9)
+  - PhoneNumberKit/PhoneNumberKitCore (3.7.9)
+  - PhoneNumberKit/UIKit (3.7.9):
+    - PhoneNumberKit/PhoneNumberKitCore
   - shared_preferences_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -13,11 +22,13 @@ PODS:
 DEPENDENCIES:
   - Flutter (from `Flutter`)
   - geolocator_apple (from `.symlinks/plugins/geolocator_apple/ios`)
+  - libphonenumber_plugin (from `.symlinks/plugins/libphonenumber_plugin/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
   - yandex_mapkit (from `.symlinks/plugins/yandex_mapkit/ios`)
 
 SPEC REPOS:
   trunk:
+    - PhoneNumberKit
     - YandexMapsMobile
 
 EXTERNAL SOURCES:
@@ -25,6 +36,8 @@ EXTERNAL SOURCES:
     :path: Flutter
   geolocator_apple:
     :path: ".symlinks/plugins/geolocator_apple/ios"
+  libphonenumber_plugin:
+    :path: ".symlinks/plugins/libphonenumber_plugin/ios"
   shared_preferences_foundation:
     :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
   yandex_mapkit:
@@ -33,6 +46,8 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   geolocator_apple: cc556e6844d508c95df1e87e3ea6fa4e58c50401
+  libphonenumber_plugin: e8a7d64a6624a7c25f2c4ab0b7ead2a8e341e35e
+  PhoneNumberKit: 9c8d546d65c3784721d575a29e712ae8b992fe79
   shared_preferences_foundation: e2dae3258e06f44cc55f49d42024fd8dd03c590c
   yandex_mapkit: 352801c3b9fe72c0010207d9b01f8838a54b1c5a
   YandexMapsMobile: c73c71ec041b215284efbe8a0ebd7cdb77aad8d7
