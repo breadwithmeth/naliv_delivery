@@ -200,16 +200,15 @@ Future<bool> setCurrentStore(String businessId) async {
   }
 }
 
-Future<List> getCategories() async {
+Future<List> getCategories([bool parent_category = false]) async {
   String? token = await getToken();
   if (token == null) {
     return [];
   }
   var url = Uri.https(URL_API, 'api/category/get.php');
-  var response = await http.post(
-    url,
-    headers: {"Content-Type": "application/json", "AUTH": token},
-  );
+  var response = await http.post(url,
+      headers: {"Content-Type": "application/json", "AUTH": token},
+      body: parent_category ? json.encode({'parent_category_only': "1"}) : []);
 
   // List<dynamic> list = json.decode(response.body);
   List data = json.decode(utf8.decode(response.bodyBytes));
