@@ -68,10 +68,52 @@ class _StartPageState extends State<StartPage> {
       appBar: AppBar(
         toolbarHeight: 0,
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 30),
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) {
+                  return const DealPage();
+                },
+              ),
+            );
+          },
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "Войти",
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.onPrimary),
+              )
+            ],
+          ),
+        ),
+      ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          Flexible(flex: 14, child: Container()),
+          Flexible(
+            flex: 14,
+            fit: FlexFit.tight,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.2,
+                  height: MediaQuery.of(context).size.height * 0.2,
+                  alignment: Alignment.center,
+                  child: Image.asset("assets/naliv_logo.png"),
+                ),
+              ],
+            ),
+          ),
           // Flexible(
           //     flex: 16,
           //     child: PageView.builder(
@@ -88,50 +130,52 @@ class _StartPageState extends State<StartPage> {
           //           ));
           //         })),
           const Spacer(),
-          Flexible(
+          const Flexible(
             flex: 2,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-              child: TextButton(
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(),
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white
-                  
-                ),
-                onPressed: () {
-                  // Navigator.pushReplacement(context, MaterialPageRoute(
-                  //   builder: (context) {
-                  //     return RegistrationPage();
-                  //   },
-                  // ));
-                  Navigator.pushReplacement(context, MaterialPageRoute(
-                    builder: (context) {
-                      return const DealPage();
-                    },
-                  ));
-                },
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Продолжить",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Theme.of(context).colorScheme.onPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            child: SizedBox(),
           ),
+          // Flexible(
+          //   flex: 2,
+          //   child: Container(
+          //     padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+          //     child: TextButton(
+          //       style: ElevatedButton.styleFrom(
+          //           shape: RoundedRectangleBorder(),
+          //           backgroundColor: Colors.black,
+          //           foregroundColor: Colors.white),
+          //       onPressed: () {
+          //         // Navigator.pushReplacement(context, MaterialPageRoute(
+          //         //   builder: (context) {
+          //         //     return RegistrationPage();
+          //         //   },
+          //         // ));
+          //         Navigator.pushReplacement(context, MaterialPageRoute(
+          //           builder: (context) {
+          //             return const DealPage();
+          //           },
+          //         ));
+          //       },
+          //       child: Container(
+          //         padding:
+          //             const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+          //         child: Row(
+          //           mainAxisSize: MainAxisSize.max,
+          //           mainAxisAlignment: MainAxisAlignment.center,
+          //           children: [
+          //             Text(
+          //               "Продолжить",
+          //               style: TextStyle(
+          //                 fontSize: 16,
+          //                 fontWeight: FontWeight.w700,
+          //                 color: Theme.of(context).colorScheme.onPrimary,
+          //               ),
+          //             ),
+          //           ],
+          //         ),
+          //       ),
+          //     ),
+          //   ),
+          // ),
           // Flexible(
           //     flex: 2,
           //     child: Container(

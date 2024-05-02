@@ -19,8 +19,6 @@ import 'package:naliv_delivery/pages/loginPage.dart';
 import 'package:naliv_delivery/pages/searchPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
 
-
-
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
