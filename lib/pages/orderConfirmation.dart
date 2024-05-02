@@ -10,18 +10,21 @@ import 'package:naliv_delivery/shared/itemCards.dart';
 // import 'createOrder.dart';
 
 class OrderConfirmation extends StatefulWidget {
-  const OrderConfirmation(
-      {super.key,
-      required this.delivery,
-      required this.address,
-      required this.items,
-      required this.cartInfo,
-      required this.user});
+  const OrderConfirmation({
+    super.key,
+    required this.delivery,
+    required this.address,
+    required this.items,
+    required this.cartInfo,
+    required this.user,
+    required this.selectedBusiness,
+  });
   final bool delivery;
   final Map? address;
   final List items;
   final Map<String, dynamic> cartInfo;
   final Map<String, dynamic>? user;
+  final Map<String, dynamic>? selectedBusiness;
   @override
   State<OrderConfirmation> createState() => _OrderConfirmationState();
 }
@@ -47,6 +50,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
 
   @override
   void initState() {
+    print(widget.selectedBusiness);
     // TODO: implement initState
     super.initState();
     Timer(const Duration(seconds: 1), () {
@@ -412,7 +416,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         children: [
                           Flexible(
                             child: Text(
-                                  widget.address!["address"] ?? "",
+                                  widget.delivery
+                                      ? widget.address!["address"] ?? ""
+                                      : widget.selectedBusiness!["address"] ??
+                                          "",
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,

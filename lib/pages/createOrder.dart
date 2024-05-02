@@ -32,6 +32,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   bool isAddressesLoading = true;
   bool isCartLoading = true;
 
+  Map<String, dynamic> selectedBusiness = {};
+
   Map<String, dynamic>? user;
 
   List<Map<dynamic, dynamic>> wrongAmountItems = [];
@@ -39,6 +41,16 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   String formatCost(String costString) {
     int cost = int.parse(costString);
     return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
+  }
+
+  Future<void> _getLastSelectedBusiness() async {
+    await getLastSelectedBusiness().then((value) {
+      if (value != null) {
+        setState(() {
+          selectedBusiness = value;
+        });
+      }
+    });
   }
 
   Future<void> _getUser() async {
@@ -221,6 +233,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
       await _getCart();
       await _getAddresses();
       await _getUser();
+      await _getLastSelectedBusiness();
     }).whenComplete(() => isCartLoading = false);
   }
 
@@ -517,7 +530,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                       child: Text(
                         user == null
                             ? "Счёт на каспи:"
-                            : "Счёт на каспи: ${user!["login"].toString()}",
+                            : "Счёт на каспи: ${user!["login"].toString()}", //! TODO: CHANGE IF NOT KASPI BUT CASH
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
@@ -532,7 +545,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                     Flexible(
                       child: Text(
                         cartInfo.isNotEmpty
-                            ? "Сумма к оплате: ${cartInfo["sum"].toString()} ₸"
+                            ? "Сумма к оплате: ${formatCost(cartInfo["sum"].toString())} ₸"
                             : "Сумма к оплате: 0 ₸",
                         textAlign: TextAlign.center,
                         style: TextStyle(
@@ -570,6 +583,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                             address: currentAddress,
                             cartInfo: cartInfo,
                             user: user,
+                            selectedBusiness: selectedBusiness,
                           ),
                         ),
                       );
