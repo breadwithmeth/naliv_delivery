@@ -41,11 +41,14 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
   List<dynamic> wrongItems = [];
 
   void composeWrongItemsList() {
-    for (int i = 0; i < widget.items.length; i++) {
+    if (!wrongPositions.isEmpty) {
+     for (int i = 0; i < widget.items.length; i++) {
       if (widget.items[i]["item_id"] == wrongPositions[i]["item_id"]) {
         wrongItems.add(widget.items[i]);
       }
+    } 
     }
+    
   }
 
   @override

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/homePage.dart';
 
 class OrderPage extends StatefulWidget {
   const OrderPage({super.key});
@@ -10,7 +11,7 @@ class OrderPage extends StatefulWidget {
 class _OrderPageState extends State<OrderPage> {
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return  Scaffold(
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -18,6 +19,12 @@ class _OrderPageState extends State<OrderPage> {
             Text("ЭТА СТРАНИЦА ЕЩЁ В РАЗРАБОТКЕ..."),
             Text("Здесь будет информация об уже активном заказе"),
             Text("Ваш заказ типо в пути"),
+            IconButton(onPressed: () {
+              Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder:(context) {
+                return
+                HomePage();
+              },), (route) => false);
+            }, icon: Icon(Icons.close))
           ],
         ),
       ),
