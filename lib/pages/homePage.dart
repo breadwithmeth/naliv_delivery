@@ -109,6 +109,13 @@ class _HomePageState extends State<HomePage>
       setState(() {
         _business = business;
       });
+    }else{
+        Navigator.pushReplacement(context, MaterialPageRoute(
+                      builder: (context) {
+                        return const BusinessSelectStartPage();
+                      },
+                    ));
+
     }
   }
 
