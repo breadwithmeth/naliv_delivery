@@ -313,6 +313,7 @@ Future<Map<String, dynamic>> getItem(String itemId, {List? filter}) async {
   );
   // List<dynamic> list = json.decode(response.body);
   Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+  print(data);
   if (data.isEmpty) {
     return {};
   } else {
@@ -555,10 +556,11 @@ Future<Map<String, dynamic>?> getCity() async {
   return data;
 }
 
-Future<bool?> createOrder() async {
+Future<Map<String, dynamic>> createOrder() async {
+  // Returns null in two situations, token is null or wrong order (406)
   String? token = await getToken();
   if (token == null) {
-    return false;
+    return {"status": null};
   }
   var url = Uri.https(URL_API, 'api/item/createOrder.php');
   var response = await http.post(
@@ -568,6 +570,34 @@ Future<bool?> createOrder() async {
 
   // List<dynamic> list = json.decode(response.body);
   print(json.encode(response.statusCode));
+  print(response.body);
+  int data = response.statusCode;
+  if (data == 200) {
+    return {"status": true};
+  } else if (data == 400) {
+    return {
+      "status": false,
+      "data": json.decode(utf8.decode(response.bodyBytes))
+    };
+  } else {
+    return {"status": null};
+  }
+}
+
+Future<bool?> getOrder() async {
+  String? token = await getToken();
+  if (token == null) {
+    return false;
+  }
+  var url = Uri.https(URL_API, 'api/item/getOrder.php');
+  var response = await http.post(
+    url,
+    headers: {"Content-Type": "application/json", "AUTH": token},
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(json.encode(response.statusCode));
+  print(response.body);
   int data = response.statusCode;
   if (data == 200) {
     return true;

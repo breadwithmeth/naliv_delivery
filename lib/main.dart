@@ -129,69 +129,70 @@ class _MainState extends State<Main> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.amber,
-            background: Colors.white,
-            onBackground: Colors.black,
-            error: Colors.red,
-            primary: Colors.black,
-            onPrimary: Colors.white,
-            onError: Colors.white,
-            secondary: Colors
-                .black38, // TODO: Change this later? To make more sense with black/white style
-            onSecondary: Colors.black,
-          ),
-          useMaterial3: true,
-          brightness: Brightness.light,
-          pageTransitionsTheme: const PageTransitionsTheme(builders: {
-            TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-            TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder()
-          }),
-          bottomNavigationBarTheme: const BottomNavigationBarThemeData(),
-          scaffoldBackgroundColor: Colors.white,
-          appBarTheme: AppBarTheme(
-            // shadowColor: Color(0x70FFFFFF),
-            shadowColor: Colors.transparent,
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.white,
-            elevation: 4,
-            scrolledUnderElevation: 4,
-            titleTextStyle: GoogleFonts.inter(
-                fontSize: 24, fontWeight: FontWeight.w700, color: Colors.black),
-            // backgroundColor: Colors.white,
-            // shadowColor: Colors.grey.withOpacity(0.2),
-            // foregroundColor: Colors.black
-          ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(3))),
-              backgroundColor: Colors.black,
-              // backgroundColor: Color(0xFFFFCA3C),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.all(20),
-              // foregroundColor: Colors.white
-            ),
-          ),
-          floatingActionButtonTheme: const FloatingActionButtonThemeData(
-            backgroundColor: Colors.black,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(
-                Radius.circular(3),
-              ),
-            ),
-          ),
-          dividerTheme: DividerThemeData(
-            color: Colors.grey.shade300,
-          ),
-          textTheme: const TextTheme(
-              bodyMedium: TextStyle(color: gray1),
-              titleSmall: TextStyle(
-                  color: gray1, fontWeight: FontWeight.w400, fontSize: 16)),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.amber,
+          background: Colors.white,
+          onBackground: Colors.black,
+          error: Colors.red,
+          primary: Colors.black,
+          onPrimary: Colors.white,
+          onError: Colors.white,
+          secondary: Colors
+              .black38, // TODO: Change this later? To make more sense with black/white style
+          onSecondary: Colors.black,
         ),
-        debugShowCheckedModeBanner: false,
-        home: _redirect);
+        useMaterial3: true,
+        brightness: Brightness.light,
+        pageTransitionsTheme: const PageTransitionsTheme(builders: {
+          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder()
+        }),
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(),
+        scaffoldBackgroundColor: Colors.white,
+        appBarTheme: AppBarTheme(
+          // shadowColor: Color(0x70FFFFFF),
+          shadowColor: Colors.black12,
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
+          elevation: 4,
+          scrolledUnderElevation: 4,
+          titleTextStyle: GoogleFonts.inter(
+              fontSize: 24, fontWeight: FontWeight.w700, color: Colors.black),
+          // backgroundColor: Colors.white,
+          // shadowColor: Colors.grey.withOpacity(0.2),
+          // foregroundColor: Colors.black
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(3))),
+            backgroundColor: Colors.black,
+            // backgroundColor: Color(0xFFFFCA3C),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.all(20),
+            // foregroundColor: Colors.white
+          ),
+        ),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: Colors.black,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(
+              Radius.circular(3),
+            ),
+          ),
+        ),
+        dividerTheme: DividerThemeData(
+          color: Colors.grey.shade300,
+        ),
+        textTheme: const TextTheme(
+            bodyMedium: TextStyle(color: gray1),
+            titleSmall: TextStyle(
+                color: gray1, fontWeight: FontWeight.w400, fontSize: 16)),
+      ),
+      debugShowCheckedModeBanner: false,
+      home: _redirect,
+    );
   }
 }
 

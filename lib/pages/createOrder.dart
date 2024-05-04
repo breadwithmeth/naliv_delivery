@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/main.dart';
@@ -8,6 +9,7 @@ import 'package:naliv_delivery/pages/createAddress.dart';
 import 'package:naliv_delivery/pages/orderConfirmation.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:intl/intl.dart';
 
 import '../misc/api.dart';
 
@@ -28,20 +30,50 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   List addresses = [];
 
   bool isAddressesLoading = true;
+  bool isCartLoading = true;
 
-  List<Map> wrongAmountItems = [];
+  Map<String, dynamic> selectedBusiness = {};
+
+  Map<String, dynamic>? user;
+
+  List<Map<dynamic, dynamic>> wrongAmountItems = [];
+
+  String formatCost(String costString) {
+    int cost = int.parse(costString);
+    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
+  }
+
+  Future<void> _getLastSelectedBusiness() async {
+    await getLastSelectedBusiness().then((value) {
+      if (value != null) {
+        setState(() {
+          selectedBusiness = value;
+        });
+      }
+    });
+  }
+
+  Future<void> _getUser() async {
+    await getUser().then((value) {
+      if (value != null) {
+        setState(() {
+          user = value;
+        });
+      }
+    });
+  }
 
   Future<void> _getCart() async {
     // List cart = await getCart();
     // print(cart);
 
     Map<String, dynamic> cart = await getCart();
-    Map<String, dynamic>? cartInfo = await getCartInfo();
+    Map<String, dynamic>? cartInfoFromAPI = await getCartInfo();
 
     setState(() {
       // items = cart;
       items = cart["cart"];
-      cartInfo = cartInfo!;
+      cartInfo = cartInfoFromAPI!;
     });
   }
 
@@ -200,7 +232,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
     Future.delayed(const Duration(microseconds: 0), () async {
       await _getCart();
       await _getAddresses();
-    });
+      await _getUser();
+      await _getLastSelectedBusiness();
+    }).whenComplete(() => isCartLoading = false);
   }
 
   @override
@@ -488,14 +522,42 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                 borderRadius: const BorderRadius.all(Radius.circular(3))),
             margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
             padding: const EdgeInsets.all(15),
-            child: Text(
-              "а здесь эквайринг",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 16,
-                color: Theme.of(context).colorScheme.secondary,
-              ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        user == null
+                            ? "Счёт на каспи:"
+                            : "Счёт на каспи: ${user!["login"].toString()}", //! TODO: CHANGE IF NOT KASPI BUT CASH
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          color: Theme.of(context).colorScheme.onBackground,
+                        ),
+                      ),
+                    )
+                  ],
+                ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        cartInfo.isNotEmpty
+                            ? "Сумма к оплате: ${formatCost(cartInfo["sum"].toString())} ₸"
+                            : "Сумма к оплате: 0 ₸",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          color: Theme.of(context).colorScheme.onBackground,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
           Container(
@@ -509,70 +571,23 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
             margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
             padding: const EdgeInsets.all(15),
             child: ElevatedButton(
-              onPressed: () {
-                Future.delayed(const Duration(milliseconds: 0), () async {
-                  Map<String, dynamic> serverCart = await getCart();
-                  for (var i = 0; i < serverCart.length; i++) {
-                    if (serverCart[i]["in_stock"] < serverCart[i]["amount"]) {
-                      wrongAmountItems.add(serverCart[i]);
-                    }
-                  }
-                });
-                if (wrongAmountItems.isNotEmpty) {
-                  showDialog(
-                    context: context,
-                    builder: (context) {
-                      return AlertDialog(
-                        title: const Row(
-                          children: [
-                            Text("Остатки изменились"),
-                          ],
-                        ),
-                        content: ListView.builder(
-                          itemBuilder: (context, index) {
-                            return Container(
-                              padding: const EdgeInsets.all(10),
-                              margin: const EdgeInsets.all(10),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(wrongAmountItems[index]["name"]),
-                                  Text(
-                                    wrongAmountItems[index]["amount"]
-                                        .toString(),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                        actions: [
-                          ElevatedButton(
-                            onPressed: () {},
-                            child: const Text("Продолжить"),
+              onPressed: isCartLoading
+                  ? null
+                  : () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => OrderConfirmation(
+                            delivery: delivery,
+                            items: items,
+                            address: currentAddress,
+                            cartInfo: cartInfo,
+                            user: user,
+                            selectedBusiness: selectedBusiness,
                           ),
-                          ElevatedButton(
-                            onPressed: () {},
-                            child: const Text("Изменить заказ"),
-                          ),
-                        ],
+                        ),
                       );
                     },
-                  );
-                } else {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => OrderConfirmation(
-                        delivery: delivery,
-                        items: items,
-                        address: currentAddress,
-                      ),
-                    ),
-                  );
-                }
-              },
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.max,
@@ -584,7 +599,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                       fontSize: 14,
                       color: Theme.of(context).colorScheme.onPrimary,
                     ),
-                  )
+                  ),
                 ],
               ),
             ),
