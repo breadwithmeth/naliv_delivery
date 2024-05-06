@@ -50,10 +50,10 @@ class _BusinessSelectStartPageState extends State<BusinessSelectStartPage> {
             child: ListTile(
               onTap: () async {
                 if (await setCurrentStore(element["business_id"])) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const Main()),
-                  );
+                  Navigator.pushAndRemoveUntil(context,
+                        MaterialPageRoute(builder: (context) {
+                      return Main();
+                    }), (route) => false);
                 }
               },
               title: Container(
@@ -171,12 +171,10 @@ class _BusinessSelectStartPageState extends State<BusinessSelectStartPage> {
                     borderRadius: BorderRadius.all(Radius.circular(3))),
                 child: ListTile(
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) {
-                        return const HomePage();
-                      }),
-                    );
+                    Navigator.pushAndRemoveUntil(context,
+                        MaterialPageRoute(builder: (context) {
+                      return const HomePage();
+                    }), (route) => false);
                   },
                   title: Container(
                     child: Text(
