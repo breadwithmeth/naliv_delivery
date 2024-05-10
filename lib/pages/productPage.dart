@@ -308,7 +308,7 @@ class _ProductPageState extends State<ProductPage> {
 
   int cacheAmount = 0;
   bool isNumPickActive = false;
-  bool isAmountConfirmed = false;
+  bool isAmountChanged = false;
   late int inStock;
 
   Future<String?> _finalizeCartAmount() async {
@@ -328,7 +328,7 @@ class _ProductPageState extends State<ProductPage> {
 
   void _removeFromCart() {
     setState(() {
-      isAmountConfirmed = false;
+      isAmountChanged = true;
       if (cacheAmount > 0) {
         cacheAmount--;
       }
@@ -337,7 +337,7 @@ class _ProductPageState extends State<ProductPage> {
 
   void _addToCart() {
     setState(() {
-      isAmountConfirmed = false;
+      isAmountChanged = true;
       if (cacheAmount < inStock) {
         cacheAmount++;
       }
@@ -402,6 +402,12 @@ class _ProductPageState extends State<ProductPage> {
 
   @override
   void dispose() {
+    if (isAmountChanged) {
+      Future.delayed(const Duration(microseconds: 0), () async {
+        await _finalizeCartAmount();
+        widget.returnDataAmount(cacheAmount.toString(), widget.index);
+      });
+    }
     super.dispose();
   }
 
@@ -445,6 +451,27 @@ class _ProductPageState extends State<ProductPage> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Flexible(
+                          child: IconButton(
+                            padding: const EdgeInsets.all(0),
+                            onPressed: () {
+                              _removeFromCart();
+                            },
+                            icon: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color:
+                                      Theme.of(context).colorScheme.onPrimary,
+                                ),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Icon(
+                                Icons.remove_rounded,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Flexible(
                           flex: 2,
                           fit: FlexFit.tight,
                           child: Text(
@@ -454,148 +481,117 @@ class _ProductPageState extends State<ProductPage> {
                             ),
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
-                              fontSize: 28,
+                              fontSize: 26,
                               color: Theme.of(context).colorScheme.onPrimary,
-                            ),
-                          ),
-                        ),
-                        Flexible(
-                          flex: 2,
-                          fit: FlexFit.tight,
-                          child: GestureDetector(
-                            // onLongPress: (() {
-                            //   setState(() {
-                            //     isNumPickActive = true;
-                            //   });
-                            // }),
-                            onVerticalDragStart: (details) {
-                              setState(() {
-                                isNumPickActive = true;
-                              });
-                            },
-                            onVerticalDragEnd: (details) {
-                              setState(() {
-                                isNumPickActive = false;
-                              });
-                            },
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Flexible(
-                                  child: IconButton(
-                                    padding: const EdgeInsets.all(0),
-                                    onPressed: () {
-                                      _removeFromCart();
-                                    },
-                                    icon: Icon(
-                                      Icons.remove_rounded,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onPrimary,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  cacheAmount.toString(),
-                                  textHeightBehavior: const TextHeightBehavior(
-                                    applyHeightToFirstAscent: false,
-                                  ),
-                                  style: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.onPrimary,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                Flexible(
-                                  child: IconButton(
-                                    padding: const EdgeInsets.all(0),
-                                    // style: IconButton.styleFrom(
-                                    //   shape: const RoundedRectangleBorder(
-                                    //     borderRadius:
-                                    //         BorderRadius.all(Radius.circular(12)),
-                                    //   ),
-                                    //   side: const BorderSide(
-                                    //     width: 2.6,
-                                    //     strokeAlign: -7.0,
-                                    //   ),
-                                    // ),
-                                    onPressed: () {
-                                      _addToCart();
-                                    },
-                                    icon: Icon(
-                                      Icons.add_rounded,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onPrimary,
-                                    ),
-                                  ),
-                                ),
-                              ],
                             ),
                           ),
                         ),
                         Flexible(
                           flex: 1,
                           fit: FlexFit.tight,
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 200),
-                            transitionBuilder: (child, animation) {
-                              return ScaleTransition(
-                                scale: animation,
-                                child: child,
-                              );
+                          child: Text(
+                            "$cacheAmount шт.",
+                            textHeightBehavior: const TextHeightBehavior(
+                              applyHeightToFirstAscent: false,
+                            ),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 20,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          ),
+                        ),
+                        // Flexible(
+                        //   flex: 1,
+                        //   fit: FlexFit.tight,
+                        //   child: AnimatedSwitcher(
+                        //     duration: const Duration(milliseconds: 200),
+                        //     transitionBuilder: (child, animation) {
+                        //       return ScaleTransition(
+                        //         scale: animation,
+                        //         child: child,
+                        //       );
+                        //     },
+                        //     child: !isAmountConfirmed
+                        //         ? IconButton(
+                        //             padding: const EdgeInsets.all(0),
+                        //             key: const Key("add_cart"),
+                        //             onPressed: () {
+                        //               _finalizeCartAmount();
+                        //               widget.returnDataAmount(
+                        //                   cacheAmount.toString(), widget.index);
+                        //               setState(() {
+                        //                 isAmountConfirmed = true;
+                        //               });
+                        //               // Navigator.push(context,
+                        //               //     MaterialPageRoute(builder: (context) {
+                        //               //   return const CartPage();
+                        //               // }));
+                        //             },
+                        //             icon: Icon(
+                        //               Icons.add_shopping_cart_rounded,
+                        //               color: Theme.of(context)
+                        //                   .colorScheme
+                        //                   .onPrimary,
+                        //             ),
+                        //           )
+                        //         : IconButton(
+                        //             padding: const EdgeInsets.all(0),
+                        //             key: const Key("go_cart"),
+                        //             onPressed: () {
+                        //               // _finalizeCartAmount();
+                        //               Navigator.pop(context);
+                        //               if (widget.openedFromCart) {
+                        //                 return;
+                        //               } else {
+                        //                 Navigator.pushReplacement(
+                        //                   context,
+                        //                   MaterialPageRoute(
+                        //                     builder: (context) {
+                        //                       return const CartPage();
+                        //                     },
+                        //                   ),
+                        //                 );
+                        //               }
+                        //             },
+                        //             icon: Icon(
+                        //               Icons.shopping_cart_checkout_rounded,
+                        //               color: Theme.of(context)
+                        //                   .colorScheme
+                        //                   .onPrimary,
+                        //             ),
+                        //           ),
+                        //   ),
+                        // ),
+                        Flexible(
+                          child: IconButton(
+                            padding: const EdgeInsets.all(0),
+                            // style: IconButton.styleFrom(
+                            //   shape: const RoundedRectangleBorder(
+                            //     borderRadius:
+                            //         BorderRadius.all(Radius.circular(12)),
+                            //   ),
+                            //   side: const BorderSide(
+                            //     width: 2.6,
+                            //     strokeAlign: -7.0,
+                            //   ),
+                            // ),
+                            onPressed: () {
+                              _addToCart();
                             },
-                            child: !isAmountConfirmed
-                                ? IconButton(
-                                    padding: const EdgeInsets.all(0),
-                                    key: const Key("add_cart"),
-                                    onPressed: () {
-                                      _finalizeCartAmount();
-                                      widget.returnDataAmount(
-                                          cacheAmount.toString(), widget.index);
-                                      setState(() {
-                                        isAmountConfirmed = true;
-                                      });
-                                      // Navigator.push(context,
-                                      //     MaterialPageRoute(builder: (context) {
-                                      //   return const CartPage();
-                                      // }));
-                                    },
-                                    icon: Icon(
-                                      Icons.add_shopping_cart_rounded,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onPrimary,
-                                    ),
-                                  )
-                                : IconButton(
-                                    padding: const EdgeInsets.all(0),
-                                    key: const Key("go_cart"),
-                                    onPressed: () {
-                                      // _finalizeCartAmount();
-                                      Navigator.pop(context);
-                                      if (widget.openedFromCart) {
-                                        return;
-                                      } else {
-                                        Navigator.pushReplacement(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) {
-                                              return const CartPage();
-                                            },
-                                          ),
-                                        );
-                                      }
-                                    },
-                                    icon: Icon(
-                                      Icons.shopping_cart_checkout_rounded,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onPrimary,
-                                    ),
-                                  ),
+                            icon: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color:
+                                      Theme.of(context).colorScheme.onPrimary,
+                                ),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Icon(
+                                Icons.add_rounded,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -621,7 +617,7 @@ class _ProductPageState extends State<ProductPage> {
                             ),
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
-                              fontSize: 28,
+                              fontSize: 26,
                               color: Theme.of(context).colorScheme.onPrimary,
                             ),
                           ),

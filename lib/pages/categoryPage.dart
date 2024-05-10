@@ -197,6 +197,28 @@ class _CategoryPageState extends State<CategoryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         key: _scaffoldKey,
+        floatingActionButton: SizedBox(
+          width: 65,
+          height: 65,
+          child: FloatingActionButton(
+            shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(3))),
+            child: Icon(
+              Icons.shopping_basket_rounded,
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) {
+                    return const CartPage();
+                  },
+                ),
+              );
+            },
+          ),
+        ),
         appBar: AppBar(
           actions: [
             Builder(builder: (context) => const SizedBox()),
@@ -548,37 +570,6 @@ class _CategoryPageState extends State<CategoryPage> {
                                 // );
                               },
                               icon: const Icon(Icons.filter_list_rounded),
-                            ),
-                          ),
-                          Flexible(
-                            child: IconButton(
-                              padding: EdgeInsets.zero,
-                              onPressed: () => {
-                                // if (_categoryViewMode != 2)
-                                //   {
-                                //     setState(() {
-                                //       _categoryViewMode += 1;
-                                //     })
-                                //   }
-                                // else
-                                //   {
-                                //     setState(() {
-                                //       _categoryViewMode = 0;
-                                //     })
-                                //   }
-                              },
-                              icon: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 150),
-                                transitionBuilder: (child, animation) {
-                                  return ScaleTransition(
-                                    scale: animation,
-                                    child: child,
-                                  );
-                                },
-                                child:
-                                    const Icon(Icons.cancel_presentation_sharp),
-                                // child: _getCategoriesIconWithLayout(),
-                              ),
                             ),
                           ),
                         ],

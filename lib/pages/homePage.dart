@@ -109,13 +109,12 @@ class _HomePageState extends State<HomePage>
       setState(() {
         _business = business;
       });
-    }else{
-        Navigator.pushReplacement(context, MaterialPageRoute(
-                      builder: (context) {
-                        return const BusinessSelectStartPage();
-                      },
-                    ));
-
+    } else {
+      Navigator.pushReplacement(context, MaterialPageRoute(
+        builder: (context) {
+          return const BusinessSelectStartPage();
+        },
+      ));
     }
   }
 
@@ -1132,6 +1131,7 @@ class _CategoryItemState extends State<CategoryItem> {
               child: Text(
                 widget.name,
                 style: TextStyle(
+                    fontWeight: FontWeight.w700,
                     color: Colors.white,
                     fontSize: 14,
                     height: 1.2,
