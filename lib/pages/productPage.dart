@@ -311,7 +311,18 @@ class _ProductPageState extends State<ProductPage> {
   bool isAmountChanged = false;
   late int inStock;
 
+  Future<bool> _deleteFromCart(String itemId) async {
+    bool? result = await deleteFromCart(itemId);
+    result ??= false;
+
+    print(result);
+    return Future(() => result!);
+  }
+
   Future<String?> _finalizeCartAmount() async {
+    if (cacheAmount == 0) {
+      _deleteFromCart(widget.item["item_id"]);
+    }
     String? finalAmount;
     await changeCartItem(item["item_id"], cacheAmount).then(
       (value) {

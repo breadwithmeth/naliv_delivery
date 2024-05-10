@@ -69,6 +69,9 @@ class _CartPageState extends State<CartPage>
       localSum +=
           int.parse(items[index]["price"]) * int.parse(items[index]["amount"]);
     });
+    if (newDataAmount == "0") {
+      items.removeAt(index);
+    }
   }
 
   void updatePrices() {
@@ -511,10 +514,24 @@ class _CartPageState extends State<CartPage>
                 ),
               ],
             )
-          : Container(
-              alignment: Alignment.center,
-              width: MediaQuery.of(context).size.width,
-              child: const Text("Ваша корзина пуста"),
+          : Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.8,
+                    child: Text(
+                      "Ваша корзина пуста",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.secondary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
     );
   }
