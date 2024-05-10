@@ -109,13 +109,12 @@ class _HomePageState extends State<HomePage>
       setState(() {
         _business = business;
       });
-    }else{
-        Navigator.pushReplacement(context, MaterialPageRoute(
-                      builder: (context) {
-                        return const BusinessSelectStartPage();
-                      },
-                    ));
-
+    } else {
+      Navigator.pushReplacement(context, MaterialPageRoute(
+        builder: (context) {
+          return const BusinessSelectStartPage();
+        },
+      ));
     }
   }
 
@@ -155,6 +154,95 @@ class _HomePageState extends State<HomePage>
     setState(() {
       _location = location;
     });
+  }
+
+  void _getAddressPickDialog() {
+    showDialog(
+      useSafeArea: false,
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(
+            "Ваши адреса",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 24,
+              color: Theme.of(context).colorScheme.onBackground,
+            ),
+          ),
+          shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(3))),
+          insetPadding: const EdgeInsets.all(0),
+          content: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.7,
+            height: MediaQuery.of(context).size.height * 0.4,
+            child: _addresses.isNotEmpty
+                ? ListView.builder(
+                    itemCount: _addresses.length,
+                    itemBuilder: (context, index) {
+                      print(_addresses);
+                      return Column(
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () {
+                              Future.delayed(const Duration(milliseconds: 0),
+                                  () async {
+                                await selectAddress(
+                                    _addresses[index]["address_id"]);
+                              });
+                              setState(() {
+                                _currentAddress = _addresses[index];
+                              });
+                              Navigator.pop(context);
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.max,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    "${_addresses[index]["name"] != null ? '${_addresses[index]["name"]} -' : ""} ${_addresses[index]["address"]}",
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 15,
+                          ),
+                        ],
+                      );
+                    },
+                  )
+                : const Text("У вас нет сохраненных адресов"),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) {
+                  return AddressesPage(
+                    addresses: _addresses,
+                    isExtended: false,
+                  );
+                }));
+              },
+              child: const Text(
+                "Добавить новый адрес",
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+              ),
+            )
+          ],
+          actionsAlignment: MainAxisAlignment.center,
+        );
+      },
+    );
   }
 
   @override
@@ -618,53 +706,79 @@ class _HomePageState extends State<HomePage>
                 //   _business!["logo"],
                 //   fit: BoxFit.cover,
                 // ),
-                _addresses.firstWhere(
-                          (element) => element["is_selected"] == "1",
-                          orElse: () {
-                            return null;
-                          },
-                        ) ==
-                        null
-                    ? GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        child: Container(
-                            margin: const EdgeInsets.all(10),
-                            padding: const EdgeInsets.all(10),
-                            decoration: const BoxDecoration(
-                                color: Colors.black12,
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(3))),
-                            child: const Row(
-                              children: [
-                                Text(
-                                  "Выберите адрес доставки",
-                                  style: TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.w700),
-                                ),
-                              ],
-                            )),
-                      )
-                    : GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        child: Container(
-                            margin: const EdgeInsets.all(10),
-                            padding: const EdgeInsets.all(10),
-                            decoration: const BoxDecoration(
-                                // color: Colors.black12,
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(3))),
-                            child: Row(
-                              children: [
-                                Text(
-                                  _currentAddress["address"],
-                                  style: const TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.w700),
-                                ),
-                              ],
-                            )),
-                      ),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    _getAddressPickDialog();
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    padding: const EdgeInsets.all(10),
+                    decoration: const BoxDecoration(
+                        color: Colors.black12,
+                        borderRadius: BorderRadius.all(Radius.circular(3))),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _addresses.firstWhere(
+                                  (element) => element["is_selected"] == "1",
+                                  orElse: () {
+                                    return null;
+                                  },
+                                ) !=
+                                null
+                            ? Column(
+                                mainAxisSize: MainAxisSize.max,
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        _currentAddress["name"] ?? "",
+                                        style: const TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w700),
+                                      )
+                                    ],
+                                  ),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        _currentAddress["address"] ?? "",
+                                        style: const TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w700),
+                                      )
+                                    ],
+                                  )
+                                ],
+                              )
+                            : const Column(
+                                mainAxisSize: MainAxisSize.max,
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        "Выберите ваш адрес",
+                                        style: TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w700),
+                                      )
+                                    ],
+                                  ),
+                                ],
+                              ),
+                        const Icon(Icons.arrow_forward_ios)
+                      ],
+                    ),
+                  ),
+                ),
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () {
@@ -1132,6 +1246,7 @@ class _CategoryItemState extends State<CategoryItem> {
               child: Text(
                 widget.name,
                 style: TextStyle(
+                    fontWeight: FontWeight.w700,
                     color: Colors.white,
                     fontSize: 14,
                     height: 1.2,

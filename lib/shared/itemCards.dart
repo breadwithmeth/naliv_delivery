@@ -460,7 +460,11 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                         color: Colors.black,
                                       ),
                                       children: [
-                                        TextSpan(text: element["name"]),
+                                        TextSpan(
+                                          text: element["name"],
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w500),
+                                        ),
                                         element["country"] != null
                                             ? WidgetSpan(
                                                 child: Container(
@@ -494,7 +498,12 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                               ],
                             ),
                             Text(
-                              "${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт в наличии",
+                              "В наличии ${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт.",
+                              style: TextStyle(
+                                  color:
+                                      Theme.of(context).colorScheme.secondary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500),
                             ),
                           ],
                         ),
@@ -508,28 +517,19 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                               flex: 5,
                               child: Column(
                                 children: [
-                                  element["prev_price"] != null
+                                  element["amount"] != null &&
+                                          element["amount"] != "0"
                                       ? Row(
                                           children: [
                                             Text(
-                                              formatCost(element["prev_price"]),
+                                              "В корзине ${element["amount"]} шт.",
                                               style: TextStyle(
-                                                  decoration: TextDecoration
-                                                      .lineThrough,
-                                                  decorationColor:
-                                                      Colors.grey.shade500,
-                                                  decorationThickness: 1.85,
-                                                  color: Colors.grey.shade500,
-                                                  fontSize: 12,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .secondary,
+                                                  fontSize: 14,
                                                   fontWeight: FontWeight.w500),
                                             ),
-                                            Text(
-                                              "₸",
-                                              style: TextStyle(
-                                                  color: Colors.grey.shade600,
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize: 12),
-                                            )
                                           ],
                                         )
                                       : Container(),
@@ -540,14 +540,14 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                         style: const TextStyle(
                                             color: Colors.black,
                                             fontWeight: FontWeight.w600,
-                                            fontSize: 16),
+                                            fontSize: 18),
                                       ),
                                       Text(
                                         "₸",
                                         style: TextStyle(
                                             color: Colors.grey.shade600,
                                             fontWeight: FontWeight.w700,
-                                            fontSize: 16),
+                                            fontSize: 18),
                                       )
                                     ],
                                   ),
@@ -740,7 +740,10 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                           color: Colors.black,
                         ),
                         children: [
-                          TextSpan(text: element["name"]),
+                          TextSpan(
+                            text: element["name"],
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
                           element["country"] != null
                               ? WidgetSpan(
                                   child: Container(
@@ -770,58 +773,57 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Text(
-                              "${formatCost((int.parse(element['price']) * int.parse(element["amount"])).toString())} ₸",
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
-                            ),
-                            // element["prev_price"] != null
-                            //     ? Padding(
-                            //         padding: const EdgeInsets.only(left: 5),
-                            //         child: Row(
-                            //           children: [
-                            //             Text(
-                            //               formatCost(element["prev_price"]),
-                            //               style: TextStyle(
-                            //                   decoration:
-                            //                       TextDecoration.lineThrough,
-                            //                   decorationColor:
-                            //                       Colors.grey.shade500,
-                            //                   decorationThickness: 1.85,
-                            //                   color: Colors.grey.shade500,
-                            //                   fontSize: 12,
-                            //                   fontWeight: FontWeight.w500),
-                            //             ),
-                            //             Text(
-                            //               "₸",
-                            //               style: TextStyle(
-                            //                   color: Colors.grey.shade600,
-                            //                   fontWeight: FontWeight.w700,
-                            //                   fontSize: 12),
-                            //             )
-                            //           ],
-                            //         ),
-                            //       )
-                            //     : Container(),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 4),
-                              child: Text(
-                                "x ${element["amount"]}",
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                          ],
+                        Text(
+                          "${formatCost((int.parse(element['price']) * int.parse(element["amount"])).toString())} ₸",
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
                         ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            "${element["amount"]} шт.",
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        // Row(
+                        //   children: [
+                        //     // element["prev_price"] != null
+                        //     //     ? Padding(
+                        //     //         padding: const EdgeInsets.only(left: 5),
+                        //     //         child: Row(
+                        //     //           children: [
+                        //     //             Text(
+                        //     //               formatCost(element["prev_price"]),
+                        //     //               style: TextStyle(
+                        //     //                   decoration:
+                        //     //                       TextDecoration.lineThrough,
+                        //     //                   decorationColor:
+                        //     //                       Colors.grey.shade500,
+                        //     //                   decorationThickness: 1.85,
+                        //     //                   color: Colors.grey.shade500,
+                        //     //                   fontSize: 12,
+                        //     //                   fontWeight: FontWeight.w500),
+                        //     //             ),
+                        //     //             Text(
+                        //     //               "₸",
+                        //     //               style: TextStyle(
+                        //     //                   color: Colors.grey.shade600,
+                        //     //                   fontWeight: FontWeight.w700,
+                        //     //                   fontSize: 12),
+                        //     //             )
+                        //     //           ],
+                        //     //         ),
+                        //     //       )
+                        //     //     : Container(),
+                        //   ],
+                        // ),
                         Flexible(
                           flex: 1,
                           child: LikeButton(
@@ -992,7 +994,10 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                         color: Colors.black,
                       ),
                       children: [
-                        TextSpan(text: element["name"]),
+                        TextSpan(
+                          text: element["name"],
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
                         element["country"] != null
                             ? WidgetSpan(
                                 child: Container(

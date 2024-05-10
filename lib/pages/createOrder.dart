@@ -428,26 +428,23 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        Text(
-                                          currentAddress["address"],
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .primary,
+                                        Flexible(
+                                          flex: 5,
+                                          child: Text(
+                                            "Доставка: ${currentAddress["address"]}",
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary,
+                                            ),
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                  const Flexible(
-                                    fit: FlexFit.tight,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.add_box_rounded),
+                                        const Flexible(
+                                          flex: 1,
+                                          child: Icon(Icons.add_box_rounded),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -491,7 +488,41 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                               ),
                             ),
                     )
-                  : Container(),
+                  : Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                          border: Border.all(
+                            width: 2,
+                            color: Colors.grey.shade100,
+                          ),
+                          color: Colors.white,
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(3))),
+                      margin: const EdgeInsets.symmetric(horizontal: 30),
+                      // This should be null only if user doesn't have any addresses, else there will be user address
+                      // child: currentAddressWidget ??
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  "Самовывозом: ${selectedBusiness["address"]}",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
           Container(
             decoration: BoxDecoration(
                 border: Border.all(
