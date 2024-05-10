@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/pages/categoryPage.dart';
+import 'package:naliv_delivery/pages/orderHistoryPage.dart';
+import 'package:naliv_delivery/pages/supportPage.dart';
 import 'package:naliv_delivery/shared/activeOrderButton.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:naliv_delivery/misc/api.dart';
@@ -352,8 +354,13 @@ class _HomePageState extends State<HomePage>
                     style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 20)),
                     onPressed: () {
+                      toggleDrawer();
                       setState(() {
-                        toggleDrawer();
+                        Navigator.push(context, MaterialPageRoute(
+                          builder: (context) {
+                            return const OrderHistoryPage();
+                          },
+                        ));
                       });
                     },
                     child: const Row(
@@ -522,6 +529,10 @@ class _HomePageState extends State<HomePage>
                     onPressed: () {
                       setState(() {
                         toggleDrawer();
+                        Navigator.push(context,
+                            MaterialPageRoute(builder: (context) {
+                          return const SupportPage();
+                        }));
                       });
                     },
                     child: const Row(
