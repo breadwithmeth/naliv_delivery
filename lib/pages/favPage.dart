@@ -176,8 +176,24 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
                 );
               },
             )
-          : const Center(
-              child: Text("Вы пока не добавили товары в этом магазине"),
+          : Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.8,
+                    child: Text(
+                      "Вы пока ничего не добавили в избранное",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.secondary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
     );
   }
