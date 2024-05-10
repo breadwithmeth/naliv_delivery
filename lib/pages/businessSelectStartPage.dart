@@ -46,14 +46,14 @@ class _BusinessSelectStartPageState extends State<BusinessSelectStartPage> {
             color: Colors.black12,
             elevation: 0.0,
             shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(3))),
+                borderRadius: BorderRadius.all(Radius.circular(10))),
             child: ListTile(
               onTap: () async {
                 if (await setCurrentStore(element["business_id"])) {
                   Navigator.pushAndRemoveUntil(context,
-                        MaterialPageRoute(builder: (context) {
-                      return Main();
-                    }), (route) => false);
+                      MaterialPageRoute(builder: (context) {
+                    return Main();
+                  }), (route) => false);
                 }
               },
               title: Container(
@@ -118,7 +118,7 @@ class _BusinessSelectStartPageState extends State<BusinessSelectStartPage> {
                             height: 70,
                             decoration: BoxDecoration(
                               borderRadius: const BorderRadius.all(
-                                Radius.circular(3),
+                                Radius.circular(10),
                               ),
                               color: Theme.of(context).colorScheme.background,
                             ),
@@ -131,7 +131,7 @@ class _BusinessSelectStartPageState extends State<BusinessSelectStartPage> {
                             height: 70,
                             decoration: BoxDecoration(
                               borderRadius: const BorderRadius.all(
-                                Radius.circular(3),
+                                Radius.circular(10),
                               ),
                               color: Theme.of(context).colorScheme.background,
                             ),
@@ -144,7 +144,7 @@ class _BusinessSelectStartPageState extends State<BusinessSelectStartPage> {
                             height: 70,
                             decoration: BoxDecoration(
                               borderRadius: const BorderRadius.all(
-                                Radius.circular(3),
+                                Radius.circular(10),
                               ),
                               color: Theme.of(context).colorScheme.background,
                             ),
@@ -168,7 +168,7 @@ class _BusinessSelectStartPageState extends State<BusinessSelectStartPage> {
                 color: Theme.of(context).colorScheme.primary,
                 elevation: 0.0,
                 shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(3))),
+                    borderRadius: BorderRadius.all(Radius.circular(10))),
                 child: ListTile(
                   onTap: () {
                     Navigator.pushAndRemoveUntil(context,

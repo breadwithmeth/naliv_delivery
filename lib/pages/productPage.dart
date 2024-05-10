@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:naliv_delivery/misc/api.dart';
@@ -728,7 +729,7 @@ class _ProductPageState extends State<ProductPage> {
                   width: MediaQuery.of(context).size.width,
                   height: 50,
                   decoration: const BoxDecoration(
-                    borderRadius: BorderRadius.all(Radius.circular(3)),
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
                     color: Colors.white,
                   ),
                   child: null,
@@ -746,7 +747,15 @@ class _ProductPageState extends State<ProductPage> {
               children: [
                 Container(
                   alignment: Alignment.center,
-                  child: _image,
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.all(
+                        Radius.circular(10),
+                      ),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: _image,
+                  ),
                 ),
                 SizedBox(
                   width: MediaQuery.of(context).size.width,
@@ -868,7 +877,7 @@ class _ProductPageState extends State<ProductPage> {
                             color: Colors.black),
                       ),
                       Text(
-                        "${double.parse(item["in_stock"] ?? "0").truncate().toString()} шт в наличии",
+                        "${double.parse(item["in_stock"] ?? "0").truncate().toString()} шт. в наличии",
                       ),
                     ],
                   ),

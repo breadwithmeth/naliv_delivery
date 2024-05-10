@@ -174,7 +174,7 @@ class _HomePageState extends State<HomePage>
             ),
           ),
           shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(3))),
+              borderRadius: BorderRadius.all(Radius.circular(10))),
           insetPadding: const EdgeInsets.all(0),
           content: SizedBox(
             width: MediaQuery.of(context).size.width * 0.7,
@@ -273,7 +273,7 @@ class _HomePageState extends State<HomePage>
         height: 65,
         child: FloatingActionButton(
           shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(3))),
+              borderRadius: BorderRadius.all(Radius.circular(10))),
           child: Icon(
             Icons.shopping_basket_rounded,
             color: Theme.of(context).colorScheme.onPrimary,
@@ -657,8 +657,8 @@ class _HomePageState extends State<HomePage>
                           child: Container(
                             decoration: BoxDecoration(
                                 color: Colors.black.withOpacity(0.1),
-                                borderRadius:
-                                    const BorderRadius.all(Radius.circular(3))),
+                                borderRadius: const BorderRadius.all(
+                                    Radius.circular(10))),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
@@ -730,7 +730,7 @@ class _HomePageState extends State<HomePage>
                     padding: const EdgeInsets.all(10),
                     decoration: const BoxDecoration(
                         color: Colors.black12,
-                        borderRadius: BorderRadius.all(Radius.circular(3))),
+                        borderRadius: BorderRadius.all(Radius.circular(10))),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -804,7 +804,7 @@ class _HomePageState extends State<HomePage>
                       padding: const EdgeInsets.all(10),
                       decoration: const BoxDecoration(
                           color: Colors.black12,
-                          borderRadius: BorderRadius.all(Radius.circular(3))),
+                          borderRadius: BorderRadius.all(Radius.circular(10))),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -839,52 +839,52 @@ class _HomePageState extends State<HomePage>
                         ],
                       )),
                 ),
-                SizedBox(
-                    height: 150,
-                    width: MediaQuery.of(context).size.width,
-                    child: PageView.builder(
-                      onPageChanged: (value) {
-                        setState(
-                          () {
-                            activePage = value;
-                          },
-                        );
-                      },
-                      itemCount: images.length,
-                      itemBuilder: (context, index) {
-                        return Container(
-                          decoration: BoxDecoration(
-                              borderRadius:
-                                  const BorderRadius.all(Radius.circular(3)),
-                              image: DecorationImage(
-                                  opacity: 0.5,
-                                  image: NetworkImage(images[index]["image"]),
-                                  fit: BoxFit.cover)),
-                          margin: const EdgeInsets.all(10),
-                          padding: const EdgeInsets.all(10),
-                          child: TextButton(
-                            style: TextButton.styleFrom(
-                                alignment: Alignment.topLeft),
-                            child: Text(
-                              images[index]["text"],
-                              style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.black),
-                            ),
-                            onPressed: () {
-                              print("object");
-                            },
-                          ),
-                        );
-                      },
-                      controller: _pageController,
-                      padEnds: false,
-                      pageSnapping: false,
-                    )),
-                Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: indicators(images.length, activePage)),
+                // SizedBox(
+                //     height: 150,
+                //     width: MediaQuery.of(context).size.width,
+                //     child: PageView.builder(
+                //       onPageChanged: (value) {
+                //         setState(
+                //           () {
+                //             activePage = value;
+                //           },
+                //         );
+                //       },
+                //       itemCount: images.length,
+                //       itemBuilder: (context, index) {
+                //         return Container(
+                //           decoration: BoxDecoration(
+                //               borderRadius:
+                //                   const BorderRadius.all(Radius.circular(10)),
+                //               image: DecorationImage(
+                //                   opacity: 0.5,
+                //                   image: NetworkImage(images[index]["image"]),
+                //                   fit: BoxFit.cover)),
+                //           margin: const EdgeInsets.all(10),
+                //           padding: const EdgeInsets.all(10),
+                //           child: TextButton(
+                //             style: TextButton.styleFrom(
+                //                 alignment: Alignment.topLeft),
+                //             child: Text(
+                //               images[index]["text"],
+                //               style: const TextStyle(
+                //                   fontSize: 20,
+                //                   fontWeight: FontWeight.w700,
+                //                   color: Colors.black),
+                //             ),
+                //             onPressed: () {
+                //               print("object");
+                //             },
+                //           ),
+                //         );
+                //       },
+                //       controller: _pageController,
+                //       padEnds: false,
+                //       pageSnapping: false,
+                //     )),
+                // Row(
+                //     mainAxisAlignment: MainAxisAlignment.center,
+                //     children: indicators(images.length, activePage)),
                 const SizedBox(
                   height: 10,
                 ),
@@ -909,7 +909,7 @@ class _HomePageState extends State<HomePage>
                 //                   color:
                 //                       Theme.of(context).colorScheme.primary,
                 //                   borderRadius: const BorderRadius.all(
-                //                       Radius.circular(3))),
+                //                       Radius.circular(10))),
                 //               width: MediaQuery.of(context).size.width * 0.15,
                 //               height:
                 //                   MediaQuery.of(context).size.width * 0.15,
@@ -932,7 +932,7 @@ class _HomePageState extends State<HomePage>
                 //                   color:
                 //                       Theme.of(context).colorScheme.primary,
                 //                   borderRadius: const BorderRadius.all(
-                //                       Radius.circular(3))),
+                //                       Radius.circular(10))),
                 //               width: MediaQuery.of(context).size.width * 0.15,
                 //               height:
                 //                   MediaQuery.of(context).size.width * 0.15,
@@ -955,7 +955,7 @@ class _HomePageState extends State<HomePage>
                 //                   color:
                 //                       Theme.of(context).colorScheme.primary,
                 //                   borderRadius: const BorderRadius.all(
-                //                       Radius.circular(3))),
+                //                       Radius.circular(10))),
                 //               width: MediaQuery.of(context).size.width * 0.15,
                 //               height:
                 //                   MediaQuery.of(context).size.width * 0.15,
@@ -978,7 +978,7 @@ class _HomePageState extends State<HomePage>
                 //                   color:
                 //                       Theme.of(context).colorScheme.primary,
                 //                   borderRadius: const BorderRadius.all(
-                //                       Radius.circular(3))),
+                //                       Radius.circular(10))),
                 //               width: MediaQuery.of(context).size.width * 0.15,
                 //               height:
                 //                   MediaQuery.of(context).size.width * 0.15,
@@ -1020,7 +1020,7 @@ class _HomePageState extends State<HomePage>
                                 height: 50,
                                 decoration: const BoxDecoration(
                                   borderRadius:
-                                      BorderRadius.all(Radius.circular(3)),
+                                      BorderRadius.all(Radius.circular(10)),
                                   color: Colors.white,
                                 ),
                                 child: null,
@@ -1150,7 +1150,7 @@ class _CategoryItemState extends State<CategoryItem> {
         children: [
           Container(
             decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(3),
+                borderRadius: BorderRadius.circular(10),
                 gradient: LinearGradient(
                     colors: [firstColor, secondColor],
                     transform: const GradientRotation(2))),
@@ -1166,7 +1166,7 @@ class _CategoryItemState extends State<CategoryItem> {
                 ),
           Container(
             clipBehavior: Clip.antiAliasWithSaveLayer,
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(3)),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
             width: double.infinity,
             height: double.infinity,
             alignment: Alignment.bottomLeft,

@@ -202,7 +202,7 @@ class _CategoryPageState extends State<CategoryPage> {
           height: 65,
           child: FloatingActionButton(
             shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(3))),
+                borderRadius: BorderRadius.all(Radius.circular(10))),
             child: Icon(
               Icons.shopping_basket_rounded,
               color: Theme.of(context).colorScheme.onPrimary,
@@ -264,7 +264,7 @@ class _CategoryPageState extends State<CategoryPage> {
                           decoration: BoxDecoration(
                               color: Colors.black.withOpacity(0.1),
                               borderRadius:
-                                  const BorderRadius.all(Radius.circular(3))),
+                                  const BorderRadius.all(Radius.circular(10))),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
@@ -622,7 +622,7 @@ class _CategoryPageState extends State<CategoryPage> {
         // ),
         endDrawer: Drawer(
           shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(3)),
+            borderRadius: BorderRadius.all(Radius.circular(10)),
           ),
           child: SafeArea(
             child: Padding(
@@ -666,7 +666,7 @@ class _CategoryPageState extends State<CategoryPage> {
                       decoration: BoxDecoration(
                         color: Colors.grey.shade300,
                         borderRadius: const BorderRadius.all(
-                          Radius.circular(3),
+                          Radius.circular(10),
                         ),
                       ),
                       child: const Row(
@@ -701,7 +701,7 @@ class _CategoryPageState extends State<CategoryPage> {
                       decoration: BoxDecoration(
                         color: Colors.grey.shade300,
                         borderRadius: const BorderRadius.all(
-                          Radius.circular(3),
+                          Radius.circular(10),
                         ),
                       ),
                       child: const Row(
@@ -736,7 +736,7 @@ class _CategoryPageState extends State<CategoryPage> {
                       decoration: BoxDecoration(
                         color: Colors.grey.shade300,
                         borderRadius: const BorderRadius.all(
-                          Radius.circular(3),
+                          Radius.circular(10),
                         ),
                       ),
                       child: const Row(
@@ -1209,7 +1209,7 @@ class Item {
 //         height: 65,
 //         child: FloatingActionButton(
 //           shape: const RoundedRectangleBorder(
-//               borderRadius: BorderRadius.all(Radius.circular(3))),
+//               borderRadius: BorderRadius.all(Radius.circular(10))),
 //           child: Icon(
 //             Icons.shopping_basket_rounded,
 //             color: Theme.of(context).colorScheme.onPrimary,
@@ -1268,7 +1268,7 @@ class Item {
 //                         decoration: BoxDecoration(
 //                             color: Colors.black.withOpacity(0.1),
 //                             borderRadius:
-//                                 const BorderRadius.all(Radius.circular(3))),
+//                                 const BorderRadius.all(Radius.circular(10))),
 //                         child: Row(
 //                           mainAxisAlignment: MainAxisAlignment.end,
 //                           children: [
@@ -1616,7 +1616,7 @@ class Item {
 //                   height: MediaQuery.of(context).size.height * 0.2,
 //                   //padding: const EdgeInsets.symmetric(horizontal: 10),
 //                   decoration: const BoxDecoration(
-//                     borderRadius: BorderRadius.all(Radius.circular(3)),
+//                     borderRadius: BorderRadius.all(Radius.circular(10)),
 //                     color: Colors.white,
 //                   ),
 //                   child: Shimmer.fromColors(

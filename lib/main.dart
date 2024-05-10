@@ -166,7 +166,7 @@ class _MainState extends State<Main> {
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(3))),
+                borderRadius: BorderRadius.all(Radius.circular(10))),
             backgroundColor: Colors.black,
             // backgroundColor: Color(0xFFFFCA3C),
             foregroundColor: Colors.white,
@@ -178,7 +178,7 @@ class _MainState extends State<Main> {
           backgroundColor: Colors.black,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.all(
-              Radius.circular(3),
+              Radius.circular(10),
             ),
           ),
         ),

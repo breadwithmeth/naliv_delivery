@@ -85,9 +85,10 @@ class _LoginPageState extends State<LoginPage> {
               Text(
                 "Вход",
                 style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w400,
-                    fontSize: 24),
+                  color: Colors.black,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 24,
+                ),
               )
             ],
           ),
@@ -106,7 +107,7 @@ class _LoginPageState extends State<LoginPage> {
                       decoration: const InputDecoration(
                         labelText: 'Номер телефона',
                         border: OutlineInputBorder(
-                          borderSide: BorderSide(),
+                          borderRadius: BorderRadius.all(Radius.circular(10)),
                         ),
                       ),
                       initialCountryCode: 'KZ',
@@ -133,8 +134,12 @@ class _LoginPageState extends State<LoginPage> {
                                 maxLength: 6,
                                 textAlign: TextAlign.center,
                                 decoration: const InputDecoration(
-                                    labelText: "Введите одноразовый код из СМС",
-                                    border: OutlineInputBorder()),
+                                  labelText: "Введите одноразовый код из СМС",
+                                  border: OutlineInputBorder(
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(10)),
+                                  ),
+                                ),
                               )
                             : Container()),
                     // TextFormField(
@@ -254,7 +259,15 @@ class _LoginPageState extends State<LoginPage> {
                             child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               mainAxisSize: MainAxisSize.max,
-                              children: [Text("Отправить код")],
+                              children: [
+                                Text(
+                                  "Отправить код",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                )
+                              ],
                             ))
                   ],
                 )),

@@ -272,7 +272,7 @@ class _AddressesPageState extends State<AddressesPage>
                                       margin: EdgeInsets.all(10),
                                       decoration: BoxDecoration(
                                           borderRadius: BorderRadius.all(
-                                              Radius.circular(3)),
+                                              Radius.circular(10)),
                                           border: Border.all(
                                               color: Colors.grey.shade400),
                                           color: Colors.white),
@@ -410,8 +410,11 @@ class _AddressesPageState extends State<AddressesPage>
                     ],
                   )
                 : Container(
-                    margin: EdgeInsets.all(10),
-                    color: Colors.white,
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                      color: Colors.white,
+                    ),
+                    margin: const EdgeInsets.all(10),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       mainAxisSize: MainAxisSize.min,
@@ -419,11 +422,14 @@ class _AddressesPageState extends State<AddressesPage>
                         Flexible(
                           flex: 4,
                           child: TextField(
-                              controller: _search,
-                              decoration: InputDecoration(
-                                  hintText: "Улица, дом",
-                                  border: OutlineInputBorder(
-                                      borderSide: BorderSide.none))),
+                            controller: _search,
+                            decoration: const InputDecoration(
+                              hintText: "Улица, дом",
+                              border: OutlineInputBorder(
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
                         ),
                         Row(
                           children: [
@@ -470,7 +476,8 @@ class _AddressesPageState extends State<AddressesPage>
                                   style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.white,
                                       foregroundColor: Colors.black,
-                                      surfaceTintColor: Colors.white),
+                                      surfaceTintColor: Colors.white,
+                                      shadowColor: Colors.transparent),
                                   onPressed: () {
                                     setState(() {
                                       _isExtended = true;

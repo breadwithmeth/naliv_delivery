@@ -26,6 +26,7 @@ class _OrderPageState extends State<OrderPage> {
             );
           },
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 "Вернуться на главную",

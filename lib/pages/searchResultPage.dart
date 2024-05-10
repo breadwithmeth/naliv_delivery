@@ -223,10 +223,10 @@ class _SearchResultPageState extends State<SearchResultPage> {
               fillColor: Colors.black12,
               filled: true,
               focusedBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(3)),
+                  borderRadius: BorderRadius.all(Radius.circular(10)),
                   borderSide: BorderSide(color: Colors.white, width: 0)),
               enabledBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(3)),
+                  borderRadius: BorderRadius.all(Radius.circular(10)),
                   borderSide: BorderSide(color: Colors.white, width: 0)),
               border: const OutlineInputBorder(
                   borderSide: BorderSide(color: Colors.white, width: 0))),

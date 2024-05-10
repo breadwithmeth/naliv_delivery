@@ -18,14 +18,20 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: AppBar(
         title: const Text("Настройки"),
       ),
-      body: ListView(
-        children: [
-          ElevatedButton(
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        child: ListView(
+          reverse: true,
+          children: [
+            ElevatedButton(
               onPressed: () {
                 showDialog(
                     context: context,
                     builder: (context) {
                       return AlertDialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         title: const Text("Удалить аккаунт?"),
                         actions: [
                           TextButton(
@@ -63,8 +69,22 @@ class _SettingsPageState extends State<SettingsPage> {
                       );
                     });
               },
-              child: const Text("Удалить аккаунт"))
-        ],
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Удалить аккаунт",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -102,7 +102,7 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
         height: 65,
         child: FloatingActionButton(
           shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(3))),
+              borderRadius: BorderRadius.all(Radius.circular(10))),
           child: Icon(
             Icons.shopping_basket_rounded,
             color: Theme.of(context).colorScheme.onPrimary,

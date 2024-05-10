@@ -60,7 +60,7 @@ class _SearchPageState extends State<SearchPage> {
                   )
                 ],
                 color: Colors.grey.shade100,
-                borderRadius: const BorderRadius.all(Radius.circular(3))),
+                borderRadius: const BorderRadius.all(Radius.circular(10))),
             child: Column(
               children: [
                 TextField(
@@ -96,19 +96,19 @@ class _SearchPageState extends State<SearchPage> {
                               width: 2,
                               color: Theme.of(context).colorScheme.primary),
                           borderRadius:
-                              const BorderRadius.all(Radius.circular(3))),
+                              const BorderRadius.all(Radius.circular(10))),
                       enabledBorder: OutlineInputBorder(
                           borderSide: BorderSide(
                               width: 2,
                               color: Theme.of(context).colorScheme.primary),
                           borderRadius:
-                              const BorderRadius.all(Radius.circular(3))),
+                              const BorderRadius.all(Radius.circular(10))),
                       border: OutlineInputBorder(
                           borderSide: BorderSide(
                               width: 5,
                               color: Theme.of(context).colorScheme.primary),
                           borderRadius:
-                              const BorderRadius.all(Radius.circular(3)))),
+                              const BorderRadius.all(Radius.circular(10)))),
                 ),
                 const SizedBox(
                   height: 5,
