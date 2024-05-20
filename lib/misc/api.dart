@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,23 +10,25 @@ import 'package:http/http.dart' as http;
 var URL_API = 'naliv.kz';
 
 Future<Position> determinePosition(BuildContext ctx) async {
-  bool serviceEnabled;
   LocationPermission permission;
 
   // Test if location services are enabled.
-  serviceEnabled = await Geolocator.isLocationServiceEnabled();
-  if (!serviceEnabled) {
-    // Location services are not enabled don't continue
-    // accessing the position and request users of the
-    // App to enable the location services.
-    Navigator.push(ctx, MaterialPageRoute(
-      builder: (context) {
-        return Container();
-      },
-    ));
-    Geolocator.openLocationSettings();
-    return Future.error('Location services are disabled.');
-  }
+  await Geolocator.isLocationServiceEnabled().then((value) {
+    if (!value) {
+      // Location services are not enabled don't continue
+      // accessing the position and request users of the
+      // App to enable the location services.
+      Navigator.push(ctx, MaterialPageRoute(
+        builder: (context) {
+          return Container();
+        },
+      ));
+      Geolocator.openLocationSettings().whenComplete(() {
+        Navigator.pop(ctx);
+      });
+      return Future.error('Location services are disabled.');
+    }
+  });
 
   permission = await Geolocator.checkPermission();
   if (permission == LocationPermission.denied) {
@@ -584,10 +585,10 @@ Future<Map<String, dynamic>> createOrder() async {
   }
 }
 
-Future<bool?> getOrder() async {
+Future<List<dynamic>> getOrders() async {
   String? token = await getToken();
   if (token == null) {
-    return false;
+    return [];
   }
   var url = Uri.https(URL_API, 'api/item/getOrder.php');
   var response = await http.post(
@@ -595,16 +596,16 @@ Future<bool?> getOrder() async {
     headers: {"Content-Type": "application/json", "AUTH": token},
   );
 
-  // List<dynamic> list = json.decode(response.body);
+  List<dynamic> list = json.decode(response.body);
   print(json.encode(response.statusCode));
   print(response.body);
   int data = response.statusCode;
   if (data == 200) {
-    return true;
+    return list;
   } else if (data == 400) {
-    return false;
+    return [];
   } else {
-    return null;
+    return [];
   }
 }
 

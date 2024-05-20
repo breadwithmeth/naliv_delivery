@@ -730,6 +730,8 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Flexible(
+                    flex: 2,
+                    fit: FlexFit.tight,
                     child: RichText(
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -767,6 +769,25 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                               : const TextSpan()
                         ],
                       ),
+                    ),
+                  ),
+                  Flexible(
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            "${formatCost(element["price"])} ₸ за шт.",
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .secondary
+                                  .withOpacity(0.2),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   Flexible(
@@ -950,7 +971,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
     return Container(
       // margin: const EdgeInsets.all(10),
       width: MediaQuery.of(context).size.width,
-      height: MediaQuery.of(context).size.height * 0.07,
+      height: MediaQuery.of(context).size.height * 0.08,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         mainAxisSize: MainAxisSize.max,
@@ -984,8 +1005,10 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Flexible(
+                  flex: 2,
+                  fit: FlexFit.tight,
                   child: RichText(
-                    maxLines: 3,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     text: TextSpan(
                       style: const TextStyle(
@@ -1023,7 +1046,25 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                     ),
                   ),
                 ),
-
+                Flexible(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          "${formatCost(element["price"])} ₸ за шт.",
+                          style: TextStyle(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .secondary
+                                .withOpacity(0.2),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 // Flexible(
                 //   child: Row(
                 //     mainAxisAlignment: MainAxisAlignment.end,

@@ -3,13 +3,16 @@
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/pages/categoryPage.dart';
 import 'package:naliv_delivery/pages/orderHistoryPage.dart';
 import 'package:naliv_delivery/pages/supportPage.dart';
 import 'package:naliv_delivery/shared/activeOrderButton.dart';
+import 'package:naliv_delivery/shared/loadingScreen.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/misc/colors.dart';
@@ -88,6 +91,8 @@ class _HomePageState extends State<HomePage>
 
   // Must be true if there is an active order, other wise false, for test purposes it's true
   bool isThereActiveOrder = true;
+
+  bool isPageLoading = true;
 
   Map<String, dynamic>? user;
   late Position _location;
@@ -251,6 +256,9 @@ class _HomePageState extends State<HomePage>
   void initState() {
     // TODO: implement initState
     super.initState();
+    setState(() {
+      isPageLoading = true;
+    });
     _getCurrentBusiness();
     // _checkForActiveOrder(); Someting like this idk
     Future.delayed(Duration.zero).then((value) {
@@ -259,806 +267,915 @@ class _HomePageState extends State<HomePage>
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       _getAddresses();
       getPosition();
-      _getCategories();
+      _getCategories().whenComplete(() {
+        setState(() {
+          isPageLoading = false;
+        });
+      });
     });
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Scaffold(
-      key: _scaffoldKey,
-      floatingActionButton: SizedBox(
-        width: 65,
-        height: 65,
-        child: FloatingActionButton(
-          shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(10))),
-          child: Icon(
-            Icons.shopping_basket_rounded,
-            color: Theme.of(context).colorScheme.onPrimary,
-          ),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) {
-                  return const CartPage();
+    return isPageLoading
+        ? const LoadingScreen()
+        : Scaffold(
+            key: _scaffoldKey,
+            floatingActionButton: SizedBox(
+              width: 65,
+              height: 65,
+              child: FloatingActionButton(
+                shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(10))),
+                child: Icon(
+                  Icons.shopping_basket_rounded,
+                  color: Theme.of(context).colorScheme.onPrimary,
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) {
+                        return const CartPage();
+                      },
+                    ),
+                  );
                 },
               ),
-            );
-          },
-        ),
-      ),
-      drawer: Drawer(
-          child: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: MediaQuery.of(context).size.width * 0.10,
-                      backgroundImage: const CachedNetworkImageProvider(
-                        "https://air-fom.com/wp-content/uploads/2018/06/real_1920.jpg",
-                      ),
-                    ),
-                    const SizedBox(
-                      width: 10,
-                    ),
-                    // TODO: activate this code in production
-                    SizedBox(
-                      width: MediaQuery.of(context).size.width * 0.3,
-                      child: user != null
-                          ? Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  user!["name"] ?? "Нет имени",
-                                  style: const TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 16),
-                                ),
-                                Text(
-                                  user!["login"] ?? "",
-                                  style: const TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.w400,
-                                      fontSize: 14),
-                                ),
-                                Text(
-                                  user!["user_id"] ?? "",
-                                  style: TextStyle(
-                                      color: Colors.grey.shade400,
-                                      fontWeight: FontWeight.w400,
-                                      fontSize: 14),
-                                )
-                              ],
-                            )
-                          : Container(),
-                    )
-                  ],
-                ),
-              ),
             ),
-            const Divider(),
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+            drawer: Drawer(
+                child: SafeArea(
               child: Column(
                 children: [
-                  TextButton(
-                    style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20)),
-                    onPressed: () {
-                      toggleDrawer();
-                      setState(() {
-                        Navigator.push(context, MaterialPageRoute(
-                          builder: (context) {
-                            return const OrderHistoryPage();
-                          },
-                        ));
-                      });
-                    },
-                    child: const Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.shopping_bag_outlined,
-                          size: 24,
-                          color: Colors.black,
-                        ),
-                        SizedBox(
-                          width: 10,
-                        ),
-                        Text(
-                          "История заказов",
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.w400,
-                              fontSize: 20),
-                        )
-                      ],
-                    ),
-                  ),
-                  const Divider(),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20)),
-                    onPressed: () {
-                      setState(() {
-                        toggleDrawer();
-                      });
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => AddressesPage(
-                                  addresses: _addresses,
-                                  isExtended: true,
-                                )),
-                      ).then((value) => print(_getAddresses()));
-                    },
-                    child: const Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.home_outlined,
-                          size: 24,
-                          color: Colors.black,
-                        ),
-                        SizedBox(
-                          width: 10,
-                        ),
-                        Text(
-                          "Адреса доставки",
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.w400,
-                              fontSize: 20),
-                        )
-                      ],
-                    ),
-                  ),
-                  const Divider(),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20)),
-                    onPressed: () {
-                      setState(() {
-                        toggleDrawer();
-                      });
-                    },
-                    child: const Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.credit_card,
-                          size: 24,
-                          color: Colors.black,
-                        ),
-                        SizedBox(
-                          width: 10,
-                        ),
-                        Text(
-                          "Карты оплаты",
-                          style: TextStyle(
-                              color: Colors.grey,
-                              fontWeight: FontWeight.w400,
-                              fontSize: 20),
-                        )
-                      ],
-                    ),
-                  ),
-                  const Divider(),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20)),
-                    onPressed: () {
-                      setState(() {
-                        toggleDrawer();
-                      });
-                      Navigator.push(context, MaterialPageRoute(
-                        builder: (context) {
-                          return const FavPage();
-                        },
-                      ));
-                    },
-                    child: const Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.favorite_border_rounded,
-                          size: 24,
-                          color: Colors.black,
-                        ),
-                        SizedBox(
-                          width: 10,
-                        ),
-                        Text(
-                          "Избранное",
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.w400,
-                              fontSize: 20),
-                        )
-                      ],
-                    ),
-                  ),
-                  const Divider(),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20)),
-                    onPressed: () {
-                      setState(() {
-                        toggleDrawer();
-                      });
-                      Navigator.push(context, MaterialPageRoute(
-                        builder: (context) {
-                          return const SettingsPage();
-                        },
-                      ));
-                    },
-                    child: const Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.settings_outlined,
-                          size: 24,
-                          color: Colors.black,
-                        ),
-                        SizedBox(
-                          width: 10,
-                        ),
-                        Text(
-                          "Настройки",
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.w400,
-                              fontSize: 20),
-                        )
-                      ],
-                    ),
-                  ),
-                  const Divider(),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20)),
-                    onPressed: () {
-                      setState(() {
-                        toggleDrawer();
-                        Navigator.push(context,
-                            MaterialPageRoute(builder: (context) {
-                          return const SupportPage();
-                        }));
-                      });
-                    },
-                    child: const Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 24,
-                          color: Colors.black,
-                        ),
-                        SizedBox(
-                          width: 10,
-                        ),
-                        Text(
-                          "Поддержка",
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.w400,
-                              fontSize: 20),
-                        )
-                      ],
-                    ),
-                  ),
-                  const Divider(),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20)),
-                    onPressed: () {
-                      setState(() {
-                        toggleDrawer();
-                      });
-                      print(123);
-                      logout();
-                      Navigator.pushReplacement(context, MaterialPageRoute(
-                        builder: (context) {
-                          return const LoginPage();
-                        },
-                      ));
-                    },
-                    child: const Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.exit_to_app_outlined,
-                          size: 24,
-                          color: Colors.black,
-                        ),
-                        SizedBox(
-                          width: 10,
-                        ),
-                        Text(
-                          "Выйти",
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.w400,
-                              fontSize: 20),
-                        )
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            )
-          ],
-        ),
-      )),
-      // appBar: AppBar(
-      //     titleSpacing: 10,
-      //     // scrolledUnderElevation: 100,
-      //     automaticallyImplyLeading: true,
-      //     // leading: IconButton(
-      //     //   icon: Icon(Icons.menu),
-      //     //   onPressed: () {},
-      //     // ),
-
-      //     title:),
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            toolbarHeight: 120,
-            automaticallyImplyLeading: false,
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.transparent,
-            stretch: true,
-            // stretchTriggerOffset: 300.0,
-            pinned: true,
-            // floating: true,
-            // snap: true,
-            titleSpacing: 0,
-            title: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Flexible(
-                        child: IconButton(
-                          padding: EdgeInsets.zero,
-                          onPressed: () {
-                            toggleDrawer();
-                          },
-                          icon: const Icon(Icons.menu_rounded),
-                        ),
-                      ),
-                      Flexible(
-                        flex: 4,
-                        fit: FlexFit.tight,
-                        child: TextButton(
-                          onPressed: () {
-                            Navigator.push(context, MaterialPageRoute(
-                              builder: (context) {
-                                return const SearchPage();
-                              },
-                            ));
-                          },
-                          style: TextButton.styleFrom(
-                              foregroundColor: Colors.white.withOpacity(0)),
-                          child: Container(
-                            decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.1),
-                                borderRadius: const BorderRadius.all(
-                                    Radius.circular(10))),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                const Spacer(
-                                  flex: 3,
-                                ),
-                                const Text(
-                                  "Найти",
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.black),
-                                ),
-                                // Expanded(
-                                //   flex: 2,
-                                //   child: Image.network(
-                                //     logourl,
-                                //     fit: BoxFit.contain,
-                                //     frameBuilder: (BuildContext context, Widget child,
-                                //         int? frame, bool? wasSynchronouslyLoaded) {
-                                //       return Padding(
-                                //         padding: const EdgeInsets.all(8.0),
-                                //         child: child,
-                                //       );
-                                //     },
-                                //     loadingBuilder: (BuildContext context, Widget child,
-                                //         ImageChunkEvent? loadingProgress) {
-                                //       return Center(child: child);
-                                //     },
-                                //   ),
-                                // ),
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  child: const Icon(
-                                    Icons.search,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ],
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 10, horizontal: 20),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: MediaQuery.of(context).size.width * 0.10,
+                            backgroundImage: const CachedNetworkImageProvider(
+                              "https://air-fom.com/wp-content/uploads/2018/06/real_1920.jpg",
                             ),
                           ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  isThereActiveOrder ? const ActiveOrderButton() : Container(),
-                ],
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                // Image.network(
-                //   _business!["logo"],
-                //   fit: BoxFit.cover,
-                // ),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    _getAddressPickDialog();
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    padding: const EdgeInsets.all(10),
-                    decoration: const BoxDecoration(
-                        color: Colors.black12,
-                        borderRadius: BorderRadius.all(Radius.circular(10))),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _addresses.firstWhere(
-                                  (element) => element["is_selected"] == "1",
-                                  orElse: () {
-                                    return null;
-                                  },
-                                ) !=
-                                null
-                            ? Column(
-                                mainAxisSize: MainAxisSize.max,
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
+                          const SizedBox(
+                            width: 10,
+                          ),
+                          // TODO: activate this code in production
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.3,
+                            child: user != null
+                                ? Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        _currentAddress["name"] ?? "",
+                                        user!["name"] ?? "Нет имени",
                                         style: const TextStyle(
                                             color: Colors.black,
-                                            fontWeight: FontWeight.w700),
-                                      )
-                                    ],
-                                  ),
-                                  Row(
-                                    children: [
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 16),
+                                      ),
                                       Text(
-                                        _currentAddress["address"] ?? "",
+                                        user!["login"] ?? "",
                                         style: const TextStyle(
                                             color: Colors.black,
-                                            fontWeight: FontWeight.w700),
-                                      )
-                                    ],
-                                  )
-                                ],
-                              )
-                            : const Column(
-                                mainAxisSize: MainAxisSize.max,
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
+                                            fontWeight: FontWeight.w400,
+                                            fontSize: 14),
+                                      ),
                                       Text(
-                                        "Выберите ваш адрес",
+                                        user!["user_id"] ?? "",
                                         style: TextStyle(
-                                            color: Colors.black,
-                                            fontWeight: FontWeight.w700),
+                                            color: Colors.grey.shade400,
+                                            fontWeight: FontWeight.w400,
+                                            fontSize: 14),
                                       )
                                     ],
-                                  ),
-                                ],
-                              ),
-                        const Icon(Icons.arrow_forward_ios)
-                      ],
+                                  )
+                                : Container(),
+                          )
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    Navigator.pushReplacement(context, MaterialPageRoute(
-                      builder: (context) {
-                        return const BusinessSelectStartPage();
-                      },
-                    ));
-                  },
-                  child: Container(
-                      margin: const EdgeInsets.all(10),
-                      padding: const EdgeInsets.all(10),
-                      decoration: const BoxDecoration(
-                          color: Colors.black12,
-                          borderRadius: BorderRadius.all(Radius.circular(10))),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            mainAxisSize: MainAxisSize.max,
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                  const Divider(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 20, horizontal: 20),
+                    child: Column(
+                      children: [
+                        TextButton(
+                          style: TextButton.styleFrom(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20)),
+                          onPressed: () {
+                            toggleDrawer();
+                            setState(() {
+                              Navigator.push(context, MaterialPageRoute(
+                                builder: (context) {
+                                  return const OrderHistoryPage();
+                                },
+                              ));
+                            });
+                          },
+                          child: const Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    _business?["name"] ?? "",
-                                    style: const TextStyle(
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.w700),
-                                  )
-                                ],
+                              Icon(
+                                Icons.shopping_bag_outlined,
+                                size: 24,
+                                color: Colors.black,
                               ),
-                              Row(
-                                children: [
-                                  Text(
-                                    _business?["address"] ?? "",
-                                    style: const TextStyle(
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.w700),
-                                  )
-                                ],
+                              SizedBox(
+                                width: 10,
+                              ),
+                              Text(
+                                "История заказов",
+                                style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w400,
+                                    fontSize: 20),
                               )
                             ],
                           ),
-                          const Icon(Icons.arrow_forward_ios)
-                        ],
-                      )),
-                ),
-                // SizedBox(
-                //     height: 150,
-                //     width: MediaQuery.of(context).size.width,
-                //     child: PageView.builder(
-                //       onPageChanged: (value) {
-                //         setState(
-                //           () {
-                //             activePage = value;
-                //           },
-                //         );
-                //       },
-                //       itemCount: images.length,
-                //       itemBuilder: (context, index) {
-                //         return Container(
-                //           decoration: BoxDecoration(
-                //               borderRadius:
-                //                   const BorderRadius.all(Radius.circular(10)),
-                //               image: DecorationImage(
-                //                   opacity: 0.5,
-                //                   image: NetworkImage(images[index]["image"]),
-                //                   fit: BoxFit.cover)),
-                //           margin: const EdgeInsets.all(10),
-                //           padding: const EdgeInsets.all(10),
-                //           child: TextButton(
-                //             style: TextButton.styleFrom(
-                //                 alignment: Alignment.topLeft),
-                //             child: Text(
-                //               images[index]["text"],
-                //               style: const TextStyle(
-                //                   fontSize: 20,
-                //                   fontWeight: FontWeight.w700,
-                //                   color: Colors.black),
-                //             ),
-                //             onPressed: () {
-                //               print("object");
-                //             },
-                //           ),
-                //         );
-                //       },
-                //       controller: _pageController,
-                //       padEnds: false,
-                //       pageSnapping: false,
-                //     )),
-                // Row(
-                //     mainAxisAlignment: MainAxisAlignment.center,
-                //     children: indicators(images.length, activePage)),
-                const SizedBox(
-                  height: 10,
-                ),
-                // SizedBox(
-                //   width: MediaQuery.of(context).size.width,
-                //   // height: 170,
-                //   child: GridView(
-                //     primary: false,
-                //     shrinkWrap: true,
-                //     gridDelegate:
-                //         const SliverGridDelegateWithFixedCrossAxisCount(
-                //             crossAxisCount: 4),
-                //     children: [
-                //       Container(
-                //         width: MediaQuery.of(context).size.width * 0.25,
-                //         height: MediaQuery.of(context).size.width * 0.25,
-                //         margin: const EdgeInsets.all(5),
-                //         child: Column(
-                //           children: [
-                //             Container(
-                //               decoration: BoxDecoration(
-                //                   color:
-                //                       Theme.of(context).colorScheme.primary,
-                //                   borderRadius: const BorderRadius.all(
-                //                       Radius.circular(10))),
-                //               width: MediaQuery.of(context).size.width * 0.15,
-                //               height:
-                //                   MediaQuery.of(context).size.width * 0.15,
-                //             ),
-                //             const Text(
-                //               "Новинки",
-                //               style: TextStyle(fontSize: 12),
-                //             )
-                //           ],
-                //         ),
-                //       ),
-                //       Container(
-                //         width: MediaQuery.of(context).size.width * .25,
-                //         height: MediaQuery.of(context).size.width * .25,
-                //         margin: const EdgeInsets.all(5),
-                //         child: Column(
-                //           children: [
-                //             Container(
-                //               decoration: BoxDecoration(
-                //                   color:
-                //                       Theme.of(context).colorScheme.primary,
-                //                   borderRadius: const BorderRadius.all(
-                //                       Radius.circular(10))),
-                //               width: MediaQuery.of(context).size.width * 0.15,
-                //               height:
-                //                   MediaQuery.of(context).size.width * 0.15,
-                //             ),
-                //             const Text(
-                //               "Со скидкой",
-                //               style: TextStyle(fontSize: 12),
-                //             )
-                //           ],
-                //         ),
-                //       ),
-                //       Container(
-                //         width: MediaQuery.of(context).size.width * .25,
-                //         height: MediaQuery.of(context).size.width * .25,
-                //         margin: const EdgeInsets.all(5),
-                //         child: Column(
-                //           children: [
-                //             Container(
-                //               decoration: BoxDecoration(
-                //                   color:
-                //                       Theme.of(context).colorScheme.primary,
-                //                   borderRadius: const BorderRadius.all(
-                //                       Radius.circular(10))),
-                //               width: MediaQuery.of(context).size.width * 0.15,
-                //               height:
-                //                   MediaQuery.of(context).size.width * 0.15,
-                //             ),
-                //             const Text(
-                //               "Хит продаж",
-                //               style: TextStyle(fontSize: 12),
-                //             )
-                //           ],
-                //         ),
-                //       ),
-                //       Container(
-                //         width: MediaQuery.of(context).size.width * .25,
-                //         height: MediaQuery.of(context).size.width * 0.33,
-                //         margin: const EdgeInsets.all(5),
-                //         child: Column(
-                //           children: [
-                //             Container(
-                //               decoration: BoxDecoration(
-                //                   color:
-                //                       Theme.of(context).colorScheme.primary,
-                //                   borderRadius: const BorderRadius.all(
-                //                       Radius.circular(10))),
-                //               width: MediaQuery.of(context).size.width * 0.15,
-                //               height:
-                //                   MediaQuery.of(context).size.width * 0.15,
-                //             ),
-                //             const Text(
-                //               "Вы покупали",
-                //               style: TextStyle(fontSize: 12),
-                //             )
-                //           ],
-                //         ),
-                //       )
-                //     ],
-                //   ),
-                // ),
-                categoryIsLoading
-                    ? Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: GridView.builder(
-                          padding: const EdgeInsets.all(0),
-                          physics: const NeverScrollableScrollPhysics(),
-                          shrinkWrap: true,
-                          gridDelegate:
-                              const SliverGridDelegateWithMaxCrossAxisExtent(
-                                  maxCrossAxisExtent: 150,
-                                  childAspectRatio: 1,
-                                  crossAxisSpacing: 10,
-                                  mainAxisSpacing: 10),
-                          itemCount: 9,
-                          itemBuilder: (BuildContext ctx, index) {
-                            return Shimmer.fromColors(
-                              baseColor: Theme.of(context)
-                                  .colorScheme
-                                  .secondary
-                                  .withOpacity(0.05),
-                              highlightColor:
-                                  Theme.of(context).colorScheme.secondary,
-                              child: Container(
-                                width: MediaQuery.of(context).size.width,
-                                height: 50,
-                                decoration: const BoxDecoration(
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(10)),
-                                  color: Colors.white,
-                                ),
-                                child: null,
-                              ),
-                            );
-                          },
                         ),
-                      )
-                    : Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: GridView.builder(
-                          padding: const EdgeInsets.all(0),
-                          physics: const NeverScrollableScrollPhysics(),
-                          shrinkWrap: true,
-                          gridDelegate:
-                              const SliverGridDelegateWithMaxCrossAxisExtent(
-                                  maxCrossAxisExtent: 150,
-                                  childAspectRatio: 1,
-                                  crossAxisSpacing: 10,
-                                  mainAxisSpacing: 10),
-                          itemCount: categories.length,
-                          itemBuilder: (BuildContext ctx, index) {
-                            return CategoryItem(
-                                category_id: categories[index]["category_id"],
-                                name: categories[index]["name"],
-                                image: categories[index]["photo"]);
+                        const Divider(),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20)),
+                          onPressed: () {
+                            setState(() {
+                              toggleDrawer();
+                            });
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => AddressesPage(
+                                        addresses: _addresses,
+                                        isExtended: true,
+                                      )),
+                            ).then((value) => print(_getAddresses()));
                           },
+                          child: const Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.home_outlined,
+                                size: 24,
+                                color: Colors.black,
+                              ),
+                              SizedBox(
+                                width: 10,
+                              ),
+                              Text(
+                                "Адреса доставки",
+                                style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w400,
+                                    fontSize: 20),
+                              )
+                            ],
+                          ),
+                        ),
+                        const Divider(),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20)),
+                          onPressed: () {
+                            setState(() {
+                              toggleDrawer();
+                            });
+                          },
+                          child: const Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.credit_card,
+                                size: 24,
+                                color: Colors.black,
+                              ),
+                              SizedBox(
+                                width: 10,
+                              ),
+                              Text(
+                                "Карты оплаты",
+                                style: TextStyle(
+                                    color: Colors.grey,
+                                    fontWeight: FontWeight.w400,
+                                    fontSize: 20),
+                              )
+                            ],
+                          ),
+                        ),
+                        const Divider(),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20)),
+                          onPressed: () {
+                            setState(() {
+                              toggleDrawer();
+                            });
+                            Navigator.push(context, MaterialPageRoute(
+                              builder: (context) {
+                                return const FavPage();
+                              },
+                            ));
+                          },
+                          child: const Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.favorite_border_rounded,
+                                size: 24,
+                                color: Colors.black,
+                              ),
+                              SizedBox(
+                                width: 10,
+                              ),
+                              Text(
+                                "Избранное",
+                                style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w400,
+                                    fontSize: 20),
+                              )
+                            ],
+                          ),
+                        ),
+                        const Divider(),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20)),
+                          onPressed: () {
+                            setState(() {
+                              toggleDrawer();
+                            });
+                            Navigator.push(context, MaterialPageRoute(
+                              builder: (context) {
+                                return const SettingsPage();
+                              },
+                            ));
+                          },
+                          child: const Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.settings_outlined,
+                                size: 24,
+                                color: Colors.black,
+                              ),
+                              SizedBox(
+                                width: 10,
+                              ),
+                              Text(
+                                "Настройки",
+                                style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w400,
+                                    fontSize: 20),
+                              )
+                            ],
+                          ),
+                        ),
+                        const Divider(),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20)),
+                          onPressed: () {
+                            setState(() {
+                              toggleDrawer();
+                              Navigator.push(context,
+                                  MaterialPageRoute(builder: (context) {
+                                return const SupportPage();
+                              }));
+                            });
+                          },
+                          child: const Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.chat_bubble_outline,
+                                size: 24,
+                                color: Colors.black,
+                              ),
+                              SizedBox(
+                                width: 10,
+                              ),
+                              Text(
+                                "Поддержка",
+                                style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w400,
+                                    fontSize: 20),
+                              )
+                            ],
+                          ),
+                        ),
+                        const Divider(),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20)),
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (context) {
+                                return AlertDialog(
+                                  title: Text(
+                                    "Вы точно хотите выйти из аккаунта?",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onBackground,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  actionsAlignment: MainAxisAlignment.center,
+                                  actions: [
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: ElevatedButton(
+                                            onPressed: () {
+                                              logout();
+                                              Navigator.pushAndRemoveUntil(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        const LoginPage(),
+                                                  ),
+                                                  (route) => false);
+                                            },
+                                            child: Row(
+                                              children: [
+                                                Flexible(
+                                                  child: Text(
+                                                    "Да, выйти",
+                                                    textAlign: TextAlign.center,
+                                                    style: TextStyle(
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onPrimary,
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    ),
+                                                  ),
+                                                )
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        Flexible(
+                                          child: ElevatedButton(
+                                            onPressed: () {
+                                              Navigator.pop(context);
+                                            },
+                                            child: Row(
+                                              children: [
+                                                Flexible(
+                                                  child: Text(
+                                                    "Нет, остаться",
+                                                    textAlign: TextAlign.center,
+                                                    style: TextStyle(
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onPrimary,
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    ),
+                                                  ),
+                                                )
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                            // setState(() {
+                            //   toggleDrawer();
+                            // });
+                            // print(123);
+                            // logout();
+                            // Navigator.pushReplacement(context, MaterialPageRoute(
+                            //   builder: (context) {
+                            //     return const LoginPage();
+                            //   },
+                            // ));
+                          },
+                          child: const Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.exit_to_app_outlined,
+                                size: 24,
+                                color: Colors.black,
+                              ),
+                              SizedBox(
+                                width: 10,
+                              ),
+                              Text(
+                                "Выйти",
+                                style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w400,
+                                    fontSize: 20),
+                              )
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                ],
+              ),
+            )),
+            // appBar: AppBar(
+            //     titleSpacing: 10,
+            //     // scrolledUnderElevation: 100,
+            //     automaticallyImplyLeading: true,
+            //     // leading: IconButton(
+            //     //   icon: Icon(Icons.menu),
+            //     //   onPressed: () {},
+            //     // ),
+
+            //     title:),
+            body: CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  toolbarHeight: 120,
+                  automaticallyImplyLeading: false,
+                  backgroundColor: Colors.white,
+                  surfaceTintColor: Colors.transparent,
+                  stretch: true,
+                  // stretchTriggerOffset: 300.0,
+                  pinned: true,
+                  // floating: true,
+                  // snap: true,
+                  titleSpacing: 0,
+                  title: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.max,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Flexible(
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                onPressed: () {
+                                  toggleDrawer();
+                                },
+                                icon: const Icon(Icons.menu_rounded),
+                              ),
+                            ),
+                            Flexible(
+                              flex: 4,
+                              fit: FlexFit.tight,
+                              child: TextButton(
+                                onPressed: () {
+                                  Navigator.push(context, MaterialPageRoute(
+                                    builder: (context) {
+                                      return const SearchPage();
+                                    },
+                                  ));
+                                },
+                                style: TextButton.styleFrom(
+                                    foregroundColor:
+                                        Colors.white.withOpacity(0)),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.1),
+                                      borderRadius: const BorderRadius.all(
+                                          Radius.circular(10))),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      const Spacer(
+                                        flex: 3,
+                                      ),
+                                      const Text(
+                                        "Найти",
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.black),
+                                      ),
+                                      // Expanded(
+                                      //   flex: 2,
+                                      //   child: Image.network(
+                                      //     logourl,
+                                      //     fit: BoxFit.contain,
+                                      //     frameBuilder: (BuildContext context, Widget child,
+                                      //         int? frame, bool? wasSynchronouslyLoaded) {
+                                      //       return Padding(
+                                      //         padding: const EdgeInsets.all(8.0),
+                                      //         child: child,
+                                      //       );
+                                      //     },
+                                      //     loadingBuilder: (BuildContext context, Widget child,
+                                      //         ImageChunkEvent? loadingProgress) {
+                                      //       return Center(child: child);
+                                      //     },
+                                      //   ),
+                                      // ),
+                                      Container(
+                                        padding: const EdgeInsets.all(10),
+                                        child: const Icon(
+                                          Icons.search,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        isThereActiveOrder
+                            ? const ActiveOrderButton()
+                            : Container(),
+                      ],
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      // Image.network(
+                      //   _business!["logo"],
+                      //   fit: BoxFit.cover,
+                      // ),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          _getAddressPickDialog();
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          padding: const EdgeInsets.all(10),
+                          decoration: const BoxDecoration(
+                              color: Colors.black12,
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(10))),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _addresses.firstWhere(
+                                        (element) =>
+                                            element["is_selected"] == "1",
+                                        orElse: () {
+                                          return null;
+                                        },
+                                      ) !=
+                                      null
+                                  ? Column(
+                                      mainAxisSize: MainAxisSize.max,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(
+                                              _currentAddress["name"] ?? "",
+                                              style: const TextStyle(
+                                                  color: Colors.black,
+                                                  fontWeight: FontWeight.w700),
+                                            )
+                                          ],
+                                        ),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              _currentAddress["address"] ?? "",
+                                              style: const TextStyle(
+                                                  color: Colors.black,
+                                                  fontWeight: FontWeight.w700),
+                                            )
+                                          ],
+                                        )
+                                      ],
+                                    )
+                                  : const Column(
+                                      mainAxisSize: MainAxisSize.max,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(
+                                              "Выберите ваш адрес",
+                                              style: TextStyle(
+                                                  color: Colors.black,
+                                                  fontWeight: FontWeight.w700),
+                                            )
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                              const Icon(Icons.arrow_forward_ios)
+                            ],
+                          ),
                         ),
                       ),
-                const SizedBox(
-                  height: 200,
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          Navigator.pushReplacement(context, MaterialPageRoute(
+                            builder: (context) {
+                              return const BusinessSelectStartPage();
+                            },
+                          ));
+                        },
+                        child: Container(
+                            margin: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(10),
+                            decoration: const BoxDecoration(
+                                color: Colors.black12,
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(10))),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  mainAxisSize: MainAxisSize.max,
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          _business?["name"] ?? "",
+                                          style: const TextStyle(
+                                              color: Colors.black,
+                                              fontWeight: FontWeight.w700),
+                                        )
+                                      ],
+                                    ),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          _business?["address"] ?? "",
+                                          style: const TextStyle(
+                                              color: Colors.black,
+                                              fontWeight: FontWeight.w700),
+                                        )
+                                      ],
+                                    )
+                                  ],
+                                ),
+                                const Icon(Icons.arrow_forward_ios)
+                              ],
+                            )),
+                      ),
+                      // SizedBox(
+                      //     height: 150,
+                      //     width: MediaQuery.of(context).size.width,
+                      //     child: PageView.builder(
+                      //       onPageChanged: (value) {
+                      //         setState(
+                      //           () {
+                      //             activePage = value;
+                      //           },
+                      //         );
+                      //       },
+                      //       itemCount: images.length,
+                      //       itemBuilder: (context, index) {
+                      //         return Container(
+                      //           decoration: BoxDecoration(
+                      //               borderRadius:
+                      //                   const BorderRadius.all(Radius.circular(10)),
+                      //               image: DecorationImage(
+                      //                   opacity: 0.5,
+                      //                   image: NetworkImage(images[index]["image"]),
+                      //                   fit: BoxFit.cover)),
+                      //           margin: const EdgeInsets.all(10),
+                      //           padding: const EdgeInsets.all(10),
+                      //           child: TextButton(
+                      //             style: TextButton.styleFrom(
+                      //                 alignment: Alignment.topLeft),
+                      //             child: Text(
+                      //               images[index]["text"],
+                      //               style: const TextStyle(
+                      //                   fontSize: 20,
+                      //                   fontWeight: FontWeight.w700,
+                      //                   color: Colors.black),
+                      //             ),
+                      //             onPressed: () {
+                      //               print("object");
+                      //             },
+                      //           ),
+                      //         );
+                      //       },
+                      //       controller: _pageController,
+                      //       padEnds: false,
+                      //       pageSnapping: false,
+                      //     )),
+                      // Row(
+                      //     mainAxisAlignment: MainAxisAlignment.center,
+                      //     children: indicators(images.length, activePage)),
+                      const SizedBox(
+                        height: 10,
+                      ),
+                      // SizedBox(
+                      //   width: MediaQuery.of(context).size.width,
+                      //   // height: 170,
+                      //   child: GridView(
+                      //     primary: false,
+                      //     shrinkWrap: true,
+                      //     gridDelegate:
+                      //         const SliverGridDelegateWithFixedCrossAxisCount(
+                      //             crossAxisCount: 4),
+                      //     children: [
+                      //       Container(
+                      //         width: MediaQuery.of(context).size.width * 0.25,
+                      //         height: MediaQuery.of(context).size.width * 0.25,
+                      //         margin: const EdgeInsets.all(5),
+                      //         child: Column(
+                      //           children: [
+                      //             Container(
+                      //               decoration: BoxDecoration(
+                      //                   color:
+                      //                       Theme.of(context).colorScheme.primary,
+                      //                   borderRadius: const BorderRadius.all(
+                      //                       Radius.circular(10))),
+                      //               width: MediaQuery.of(context).size.width * 0.15,
+                      //               height:
+                      //                   MediaQuery.of(context).size.width * 0.15,
+                      //             ),
+                      //             const Text(
+                      //               "Новинки",
+                      //               style: TextStyle(fontSize: 12),
+                      //             )
+                      //           ],
+                      //         ),
+                      //       ),
+                      //       Container(
+                      //         width: MediaQuery.of(context).size.width * .25,
+                      //         height: MediaQuery.of(context).size.width * .25,
+                      //         margin: const EdgeInsets.all(5),
+                      //         child: Column(
+                      //           children: [
+                      //             Container(
+                      //               decoration: BoxDecoration(
+                      //                   color:
+                      //                       Theme.of(context).colorScheme.primary,
+                      //                   borderRadius: const BorderRadius.all(
+                      //                       Radius.circular(10))),
+                      //               width: MediaQuery.of(context).size.width * 0.15,
+                      //               height:
+                      //                   MediaQuery.of(context).size.width * 0.15,
+                      //             ),
+                      //             const Text(
+                      //               "Со скидкой",
+                      //               style: TextStyle(fontSize: 12),
+                      //             )
+                      //           ],
+                      //         ),
+                      //       ),
+                      //       Container(
+                      //         width: MediaQuery.of(context).size.width * .25,
+                      //         height: MediaQuery.of(context).size.width * .25,
+                      //         margin: const EdgeInsets.all(5),
+                      //         child: Column(
+                      //           children: [
+                      //             Container(
+                      //               decoration: BoxDecoration(
+                      //                   color:
+                      //                       Theme.of(context).colorScheme.primary,
+                      //                   borderRadius: const BorderRadius.all(
+                      //                       Radius.circular(10))),
+                      //               width: MediaQuery.of(context).size.width * 0.15,
+                      //               height:
+                      //                   MediaQuery.of(context).size.width * 0.15,
+                      //             ),
+                      //             const Text(
+                      //               "Хит продаж",
+                      //               style: TextStyle(fontSize: 12),
+                      //             )
+                      //           ],
+                      //         ),
+                      //       ),
+                      //       Container(
+                      //         width: MediaQuery.of(context).size.width * .25,
+                      //         height: MediaQuery.of(context).size.width * 0.33,
+                      //         margin: const EdgeInsets.all(5),
+                      //         child: Column(
+                      //           children: [
+                      //             Container(
+                      //               decoration: BoxDecoration(
+                      //                   color:
+                      //                       Theme.of(context).colorScheme.primary,
+                      //                   borderRadius: const BorderRadius.all(
+                      //                       Radius.circular(10))),
+                      //               width: MediaQuery.of(context).size.width * 0.15,
+                      //               height:
+                      //                   MediaQuery.of(context).size.width * 0.15,
+                      //             ),
+                      //             const Text(
+                      //               "Вы покупали",
+                      //               style: TextStyle(fontSize: 12),
+                      //             )
+                      //           ],
+                      //         ),
+                      //       )
+                      //     ],
+                      //   ),
+                      // ),
+                      categoryIsLoading
+                          ? Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: GridView.builder(
+                                padding: const EdgeInsets.all(0),
+                                physics: const NeverScrollableScrollPhysics(),
+                                shrinkWrap: true,
+                                gridDelegate:
+                                    const SliverGridDelegateWithMaxCrossAxisExtent(
+                                        maxCrossAxisExtent: 150,
+                                        childAspectRatio: 1,
+                                        crossAxisSpacing: 10,
+                                        mainAxisSpacing: 10),
+                                itemCount: 9,
+                                itemBuilder: (BuildContext ctx, index) {
+                                  return Shimmer.fromColors(
+                                    baseColor: Theme.of(context)
+                                        .colorScheme
+                                        .secondary
+                                        .withOpacity(0.05),
+                                    highlightColor:
+                                        Theme.of(context).colorScheme.secondary,
+                                    child: Container(
+                                      width: MediaQuery.of(context).size.width,
+                                      height: 50,
+                                      decoration: const BoxDecoration(
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(10)),
+                                        color: Colors.white,
+                                      ),
+                                      child: null,
+                                    ),
+                                  );
+                                },
+                              ),
+                            )
+                          : Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: GridView.builder(
+                                padding: const EdgeInsets.all(0),
+                                physics: const NeverScrollableScrollPhysics(),
+                                shrinkWrap: true,
+                                gridDelegate:
+                                    const SliverGridDelegateWithMaxCrossAxisExtent(
+                                        maxCrossAxisExtent: 150,
+                                        childAspectRatio: 1,
+                                        crossAxisSpacing: 10,
+                                        mainAxisSpacing: 10),
+                                itemCount: categories.length,
+                                itemBuilder: (BuildContext ctx, index) {
+                                  return CategoryItem(
+                                      category_id: categories[index]
+                                          ["category_id"],
+                                      name: categories[index]["name"],
+                                      image: categories[index]["photo"]);
+                                },
+                              ),
+                            ),
+                      const SizedBox(
+                        height: 200,
+                      )
+                    ],
+                  ),
                 )
               ],
             ),
-          )
-        ],
-      ),
-    );
+          );
   }
 }
 
@@ -1223,11 +1340,7 @@ class _CategoryItemState extends State<CategoryItem> {
                           alignment: Alignment.center,
                           width: 10,
                           height: 10,
-                          child: const Text(
-                            "Нет изображения",
-                            style: TextStyle(color: Colors.black),
-                            textAlign: TextAlign.center,
-                          ),
+                          child: const SizedBox(),
                         );
                       },
                     ),

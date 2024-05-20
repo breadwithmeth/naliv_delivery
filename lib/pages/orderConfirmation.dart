@@ -93,7 +93,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                 if (isOrderCorrect == false) {
                   return AlertDialog(
                     shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(3)),
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
                     ),
                     title: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -224,7 +224,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                 } else {
                   return AlertDialog(
                     shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(3)),
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
                     ),
                     title: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -358,7 +358,8 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         color: Colors.grey.shade100,
                       ),
                       color: Colors.white,
-                      borderRadius: const BorderRadius.all(Radius.circular(3))),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(10))),
                   margin:
                       const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
                   padding: const EdgeInsets.all(5),
@@ -369,12 +370,27 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     itemBuilder: (context, index) {
                       final item = widget.items[index];
 
-                      return ItemCardNoImage(
-                        element: item,
-                        item_id: item["item_id"],
-                        category_id: "",
-                        category_name: "",
-                        scroll: 0,
+                      return Column(
+                        children: [
+                          ItemCardNoImage(
+                            element: item,
+                            item_id: item["item_id"],
+                            category_id: "",
+                            category_name: "",
+                            scroll: 0,
+                          ),
+                          widget.items.length - 1 != index
+                              ? const Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 5,
+                                  ),
+                                  child: Divider(
+                                    height: 0,
+                                  ),
+                                )
+                              : Container(),
+                        ],
                       );
                     },
                   ),
@@ -390,7 +406,8 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         color: Colors.grey.shade100,
                       ),
                       color: Colors.white,
-                      borderRadius: const BorderRadius.all(Radius.circular(3))),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(10))),
                   margin: const EdgeInsets.symmetric(horizontal: 30),
                   padding: const EdgeInsets.all(15),
                   child: Column(
@@ -444,7 +461,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
               //           color: Colors.grey.shade100,
               //         ),
               //         color: Colors.white,
-              //         borderRadius: const BorderRadius.all(Radius.circular(3))),
+              //         borderRadius: const BorderRadius.all(Radius.circular(10))),
               //     margin: const EdgeInsets.symmetric(horizontal: 30),
               //     padding: const EdgeInsets.all(15),
               //     child: Column(
@@ -500,7 +517,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
               //               ),
               //               color: Colors.white,
               //               borderRadius:
-              //                   const BorderRadius.all(Radius.circular(3))),
+              //                   const BorderRadius.all(Radius.circular(10))),
               //           margin: const EdgeInsets.symmetric(
               //               horizontal: 30, vertical: 5),
               //           padding: const EdgeInsets.all(15),
@@ -534,7 +551,8 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         color: Colors.grey.shade100,
                       ),
                       color: Colors.white,
-                      borderRadius: const BorderRadius.all(Radius.circular(3))),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(10))),
                   margin:
                       const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
                   padding: const EdgeInsets.all(15),

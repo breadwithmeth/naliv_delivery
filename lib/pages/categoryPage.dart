@@ -99,7 +99,7 @@ class _CategoryPageState extends State<CategoryPage> {
     return ListView.builder(
       itemCount: _items.length + (_isLastPage ? 0 : 1),
       itemBuilder: (context, index) {
-        if (index == _items.length - _nextPageTrigger) {
+        if ((index == _items.length - _nextPageTrigger) && (!_isLastPage)) {
           _getItems();
         }
         if (index == _items.length) {
@@ -141,7 +141,7 @@ class _CategoryPageState extends State<CategoryPage> {
                 category_name: "",
                 scroll: 0,
               ),
-              _items.length - 1 != index
+              _items.length != index
                   ? const Padding(
                       padding: EdgeInsets.symmetric(
                         horizontal: 16,
@@ -152,6 +152,11 @@ class _CategoryPageState extends State<CategoryPage> {
                       ),
                     )
                   : Container(),
+              if ((index == (_items.length + (_isLastPage ? 0 : 1) - 1)) &&
+                  (_isLastPage))
+                const SizedBox(
+                  height: 95,
+                ),
             ],
           ),
         );
@@ -167,7 +172,8 @@ class _CategoryPageState extends State<CategoryPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            'An error occurred when fetching the posts.',
+            'Произошла ошибка при загрузке позиций.',
+            textAlign: TextAlign.center,
             style: TextStyle(
                 fontSize: size,
                 fontWeight: FontWeight.w500,
@@ -185,7 +191,7 @@ class _CategoryPageState extends State<CategoryPage> {
                 });
               },
               child: const Text(
-                "Retry",
+                "Перезагрузить",
                 style: TextStyle(fontSize: 20, color: Colors.purpleAccent),
               )),
         ],
@@ -196,603 +202,604 @@ class _CategoryPageState extends State<CategoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        key: _scaffoldKey,
-        floatingActionButton: SizedBox(
-          width: 65,
-          height: 65,
-          child: FloatingActionButton(
-            shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(10))),
-            child: Icon(
-              Icons.shopping_basket_rounded,
-              color: Theme.of(context).colorScheme.onPrimary,
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) {
-                    return const CartPage();
-                  },
-                ),
-              );
-            },
+      key: _scaffoldKey,
+      floatingActionButton: SizedBox(
+        width: 65,
+        height: 65,
+        child: FloatingActionButton(
+          shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(10))),
+          child: Icon(
+            Icons.shopping_basket_rounded,
+            color: Theme.of(context).colorScheme.onPrimary,
           ),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) {
+                  return const CartPage();
+                },
+              ),
+            );
+          },
         ),
-        appBar: AppBar(
-          actions: [
-            Builder(builder: (context) => const SizedBox()),
-          ], // Important: removes endDrawer button form appbar
-          automaticallyImplyLeading: false,
-          toolbarHeight: 120,
-          titleSpacing: 0,
-          title: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        onPressed: () {
-                          Navigator.maybePop(context);
-                        },
-                        icon: const Icon(Icons.arrow_back_rounded),
+      ),
+      appBar: AppBar(
+        actions: [
+          Builder(builder: (context) => const SizedBox()),
+        ], // Important: removes endDrawer button form appbar
+        automaticallyImplyLeading: false,
+        toolbarHeight: 120,
+        titleSpacing: 0,
+        title: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.max,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Flexible(
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: () {
+                        Navigator.maybePop(context);
+                      },
+                      icon: const Icon(Icons.arrow_back_rounded),
+                    ),
+                  ),
+                  Flexible(
+                    flex: 4,
+                    fit: FlexFit.tight,
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.push(context, MaterialPageRoute(
+                          builder: (context) {
+                            return SearchPage(
+                              category_id: widget.category_id,
+                            );
+                          },
+                        ));
+                      },
+                      style: TextButton.styleFrom(
+                          foregroundColor: Colors.white.withOpacity(0)),
+                      child: Container(
+                        decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.1),
+                            borderRadius:
+                                const BorderRadius.all(Radius.circular(10))),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            const Spacer(
+                              flex: 3,
+                            ),
+                            const Text(
+                              "Найти",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black,
+                              ),
+                            ),
+                            // Expanded(
+                            //   flex: 2,
+                            //   child: Image.network(
+                            //     logourl,
+                            //     fit: BoxFit.contain,
+                            //     frameBuilder: (BuildContext context, Widget child,
+                            //         int? frame, bool? wasSynchronouslyLoaded) {
+                            //       return Padding(
+                            //         padding: const EdgeInsets.all(8.0),
+                            //         child: child,
+                            //       );
+                            //     },
+                            //     loadingBuilder: (BuildContext context, Widget child,
+                            //         ImageChunkEvent? loadingProgress) {
+                            //       return Center(child: child);
+                            //     },
+                            //   ),
+                            // ),
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              child: const Icon(
+                                Icons.search,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    Flexible(
-                      flex: 4,
-                      fit: FlexFit.tight,
-                      child: TextButton(
-                        onPressed: () {
-                          Navigator.push(context, MaterialPageRoute(
-                            builder: (context) {
-                              return SearchPage(
-                                category_id: widget.category_id,
-                              );
+                  ),
+                ],
+              ),
+              // Row(
+              //   mainAxisAlignment: MainAxisAlignment.start,
+              //   children: [
+              //     Text(
+              //       "Караганда ",
+              //       style: TextStyle(fontSize: 12, color: gray1),
+              //     ),
+              //     Icon(
+              //       Icons.arrow_forward_ios,
+              //       size: 6,
+              //     ),
+              //     Text(
+              //       " Караганда",
+              //       style: TextStyle(fontSize: 12, color: gray1),
+              //     )
+              //   ],
+              // ),
+              // SizedBox(
+              //   height: 10,
+              // ),
+              Row(
+                mainAxisSize: MainAxisSize.max,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Flexible(
+                    flex: 4,
+                    child: Text(
+                      widget.category_name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 20,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                  Flexible(
+                    flex: 2,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Flexible(
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: () {
+                              // TODO: Make sort by price (expencive first or cheap first, something like that)
                             },
-                          ));
-                        },
-                        style: TextButton.styleFrom(
-                            foregroundColor: Colors.white.withOpacity(0)),
-                        child: Container(
-                          decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.1),
-                              borderRadius:
-                                  const BorderRadius.all(Radius.circular(10))),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              const Spacer(
-                                flex: 3,
-                              ),
-                              const Text(
-                                "Найти",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              // Expanded(
-                              //   flex: 2,
-                              //   child: Image.network(
-                              //     logourl,
-                              //     fit: BoxFit.contain,
-                              //     frameBuilder: (BuildContext context, Widget child,
-                              //         int? frame, bool? wasSynchronouslyLoaded) {
-                              //       return Padding(
-                              //         padding: const EdgeInsets.all(8.0),
-                              //         child: child,
-                              //       );
-                              //     },
-                              //     loadingBuilder: (BuildContext context, Widget child,
-                              //         ImageChunkEvent? loadingProgress) {
-                              //       return Center(child: child);
-                              //     },
+                            icon: const Icon(Icons.swap_vert_rounded),
+                          ),
+                        ),
+                        Flexible(
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: () {
+                              toggleDrawer();
+                              // print(_sc.position);
+                              //!!!!!!!!!!! setFilters();
+                              // showDialog(
+                              //   useSafeArea: false,
+                              //   barrierColor: Colors.transparent,
+                              //   context: context,
+                              // builder: (context) => Dialog(
+                              //   shape: const RoundedRectangleBorder(),
+                              //   shadowColor: Colors.black38,
+                              //   backgroundColor:
+                              //       Colors.white.withOpacity(0.9),
+                              //   child: Container(
+                              //     padding: const EdgeInsets.all(20),
+                              //     decoration: const BoxDecoration(
+                              //       color: Colors.transparent,
+                              //     ),
+                              //     clipBehavior: Clip.hardEdge,
+                              //     height:
+                              //         MediaQuery.of(context).size.height *
+                              //             0.7,
+                              //     child: BackdropFilter(
+                              //       filter: ImageFilter.blur(
+                              //           sigmaX: 5, sigmaY: 5),
+                              //       child: Container(
+                              //         color: Colors.transparent,
+                              //         height: MediaQuery.of(context)
+                              //                 .size
+                              //                 .height *
+                              //             0.7,
+                              //         child: SingleChildScrollView(
+                              //           child: Column(
+                              //             crossAxisAlignment:
+                              //                 CrossAxisAlignment.start,
+                              //             children: [
+                              //               Row(
+                              //                 mainAxisAlignment:
+                              //                     MainAxisAlignment
+                              //                         .spaceBetween,
+                              //                 crossAxisAlignment:
+                              //                     CrossAxisAlignment.center,
+                              //                 children: [
+                              //                   const Text(
+                              //                     "Фильтры",
+                              //                     style: TextStyle(
+                              //                       color: Colors.black,
+                              //                       fontSize: 22,
+                              //                       fontWeight:
+                              //                           FontWeight.w700,
+                              //                     ),
+                              //                   ),
+                              //                   IconButton(
+                              //                     onPressed: () {
+                              //                       Navigator.pop(context);
+                              //                     },
+                              //                     icon: const Icon(
+                              //                         Icons.close),
+                              //                   )
+                              //                 ],
+                              //               ),
+                              //               // Column(
+                              //               //   crossAxisAlignment:
+                              //               //       CrossAxisAlignment.start,
+                              //               //   children: propertyWidget,
+                              //               // ),
+                              //               Container(
+                              //                 width: MediaQuery.of(context)
+                              //                         .size
+                              //                         .width *
+                              //                     0.8,
+                              //                 margin: const EdgeInsets
+                              //                     .symmetric(vertical: 5),
+                              //                 padding:
+                              //                     const EdgeInsets.all(10),
+                              //                 decoration: BoxDecoration(
+                              //                   color: Colors.grey.shade100,
+                              //                   borderRadius:
+                              //                       const BorderRadius.all(
+                              //                     Radius.circular(20),
+                              //                   ),
+                              //                 ),
+                              //                 child: Column(
+                              //                   crossAxisAlignment:
+                              //                       CrossAxisAlignment
+                              //                           .start,
+                              //                   children: [
+                              //                     const Text(
+                              //                       "Бренды",
+                              //                       style: TextStyle(
+                              //                         color: Colors.black,
+                              //                         fontSize: 16,
+                              //                         fontWeight:
+                              //                             FontWeight.w700,
+                              //                       ),
+                              //                     ),
+                              //                     //!!!!!!!!!!!!!!!!!!
+                              //                     // Wrap(
+                              //                     //   spacing: 5,
+                              //                     //   children: brandsWidget,
+                              //                     // )
+                              //                   ],
+                              //                 ),
+                              //               ),
+                              //               Container(
+                              //                 width: MediaQuery.of(context)
+                              //                         .size
+                              //                         .width *
+                              //                     0.8,
+                              //                 margin: const EdgeInsets
+                              //                     .symmetric(vertical: 5),
+                              //                 padding:
+                              //                     const EdgeInsets.all(10),
+                              //                 decoration: BoxDecoration(
+                              //                   color: Colors.grey.shade100,
+                              //                   borderRadius:
+                              //                       const BorderRadius.all(
+                              //                     Radius.circular(20),
+                              //                   ),
+                              //                 ),
+                              //                 child: Column(
+                              //                   crossAxisAlignment:
+                              //                       CrossAxisAlignment
+                              //                           .start,
+                              //                   children: [
+                              //                     const Text(
+                              //                       "Производители",
+                              //                       style: TextStyle(
+                              //                         color: Colors.black,
+                              //                         fontSize: 16,
+                              //                         fontWeight:
+                              //                             FontWeight.w700,
+                              //                       ),
+                              //                     ),
+                              //                     // Wrap(
+                              //                     //   spacing: 5,
+                              //                     //   children:
+                              //                     //       manufacturersWidget,
+                              //                     // )
+                              //                   ],
+                              //                 ),
+                              //               ),
+                              //               Container(
+                              //                 width: MediaQuery.of(context)
+                              //                         .size
+                              //                         .width *
+                              //                     0.8,
+                              //                 margin: const EdgeInsets
+                              //                     .symmetric(vertical: 5),
+                              //                 padding:
+                              //                     const EdgeInsets.all(10),
+                              //                 decoration: BoxDecoration(
+                              //                   color: Colors.grey.shade100,
+                              //                   borderRadius:
+                              //                       const BorderRadius.all(
+                              //                     Radius.circular(20),
+                              //                   ),
+                              //                 ),
+                              //                 child: Column(
+                              //                   crossAxisAlignment:
+                              //                       CrossAxisAlignment
+                              //                           .start,
+                              //                   children: [
+                              //                     const Text(
+                              //                       "Страны",
+                              //                       style: TextStyle(
+                              //                         color: Colors.black,
+                              //                         fontSize: 16,
+                              //                         fontWeight:
+                              //                             FontWeight.w700,
+                              //                       ),
+                              //                     ),
+                              //                     // !!!!!!!!!!!
+                              //                     // Wrap(
+                              //                     //   spacing: 5,
+                              //                     //   children:
+                              //                     //       countriesWidget,
+                              //                     // )
+                              //                   ],
+                              //                 ),
+                              //               ),
+                              //               ElevatedButton(
+                              //                 onPressed: () {
+                              //                   //!!!!! _applyFilters();
+                              //                 },
+                              //                 child: Row(
+                              //                   children: [
+                              //                     Container(
+                              //                       padding:
+                              //                           const EdgeInsets
+                              //                               .all(5),
+                              //                       child: const Text(
+                              //                         "Подтвердить",
+                              //                       ),
+                              //                     )
+                              //                   ],
+                              //                 ),
+                              //               )
+                              //             ],
+                              //           ),
+                              //         ),
+                              //       ),
+                              //     ),
                               //   ),
                               // ),
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                child: const Icon(
-                                  Icons.search,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ],
+                              // );
+                            },
+                            icon: const Icon(Icons.filter_list_rounded),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
-                // Row(
-                //   mainAxisAlignment: MainAxisAlignment.start,
-                //   children: [
-                //     Text(
-                //       "Караганда ",
-                //       style: TextStyle(fontSize: 12, color: gray1),
-                //     ),
-                //     Icon(
-                //       Icons.arrow_forward_ios,
-                //       size: 6,
-                //     ),
-                //     Text(
-                //       " Караганда",
-                //       style: TextStyle(fontSize: 12, color: gray1),
-                //     )
-                //   ],
-                // ),
-                // SizedBox(
-                //   height: 10,
-                // ),
-                Row(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      flex: 4,
-                      child: Text(
-                        widget.category_name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 20,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                    Flexible(
-                      flex: 2,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Flexible(
-                            child: IconButton(
-                              padding: EdgeInsets.zero,
-                              onPressed: () {
-                                // TODO: Make sort by price (expencive first or cheap first, something like that)
-                              },
-                              icon: const Icon(Icons.swap_vert_rounded),
-                            ),
-                          ),
-                          Flexible(
-                            child: IconButton(
-                              padding: EdgeInsets.zero,
-                              onPressed: () {
-                                toggleDrawer();
-                                // print(_sc.position);
-                                //!!!!!!!!!!! setFilters();
-                                // showDialog(
-                                //   useSafeArea: false,
-                                //   barrierColor: Colors.transparent,
-                                //   context: context,
-                                // builder: (context) => Dialog(
-                                //   shape: const RoundedRectangleBorder(),
-                                //   shadowColor: Colors.black38,
-                                //   backgroundColor:
-                                //       Colors.white.withOpacity(0.9),
-                                //   child: Container(
-                                //     padding: const EdgeInsets.all(20),
-                                //     decoration: const BoxDecoration(
-                                //       color: Colors.transparent,
-                                //     ),
-                                //     clipBehavior: Clip.hardEdge,
-                                //     height:
-                                //         MediaQuery.of(context).size.height *
-                                //             0.7,
-                                //     child: BackdropFilter(
-                                //       filter: ImageFilter.blur(
-                                //           sigmaX: 5, sigmaY: 5),
-                                //       child: Container(
-                                //         color: Colors.transparent,
-                                //         height: MediaQuery.of(context)
-                                //                 .size
-                                //                 .height *
-                                //             0.7,
-                                //         child: SingleChildScrollView(
-                                //           child: Column(
-                                //             crossAxisAlignment:
-                                //                 CrossAxisAlignment.start,
-                                //             children: [
-                                //               Row(
-                                //                 mainAxisAlignment:
-                                //                     MainAxisAlignment
-                                //                         .spaceBetween,
-                                //                 crossAxisAlignment:
-                                //                     CrossAxisAlignment.center,
-                                //                 children: [
-                                //                   const Text(
-                                //                     "Фильтры",
-                                //                     style: TextStyle(
-                                //                       color: Colors.black,
-                                //                       fontSize: 22,
-                                //                       fontWeight:
-                                //                           FontWeight.w700,
-                                //                     ),
-                                //                   ),
-                                //                   IconButton(
-                                //                     onPressed: () {
-                                //                       Navigator.pop(context);
-                                //                     },
-                                //                     icon: const Icon(
-                                //                         Icons.close),
-                                //                   )
-                                //                 ],
-                                //               ),
-                                //               // Column(
-                                //               //   crossAxisAlignment:
-                                //               //       CrossAxisAlignment.start,
-                                //               //   children: propertyWidget,
-                                //               // ),
-                                //               Container(
-                                //                 width: MediaQuery.of(context)
-                                //                         .size
-                                //                         .width *
-                                //                     0.8,
-                                //                 margin: const EdgeInsets
-                                //                     .symmetric(vertical: 5),
-                                //                 padding:
-                                //                     const EdgeInsets.all(10),
-                                //                 decoration: BoxDecoration(
-                                //                   color: Colors.grey.shade100,
-                                //                   borderRadius:
-                                //                       const BorderRadius.all(
-                                //                     Radius.circular(20),
-                                //                   ),
-                                //                 ),
-                                //                 child: Column(
-                                //                   crossAxisAlignment:
-                                //                       CrossAxisAlignment
-                                //                           .start,
-                                //                   children: [
-                                //                     const Text(
-                                //                       "Бренды",
-                                //                       style: TextStyle(
-                                //                         color: Colors.black,
-                                //                         fontSize: 16,
-                                //                         fontWeight:
-                                //                             FontWeight.w700,
-                                //                       ),
-                                //                     ),
-                                //                     //!!!!!!!!!!!!!!!!!!
-                                //                     // Wrap(
-                                //                     //   spacing: 5,
-                                //                     //   children: brandsWidget,
-                                //                     // )
-                                //                   ],
-                                //                 ),
-                                //               ),
-                                //               Container(
-                                //                 width: MediaQuery.of(context)
-                                //                         .size
-                                //                         .width *
-                                //                     0.8,
-                                //                 margin: const EdgeInsets
-                                //                     .symmetric(vertical: 5),
-                                //                 padding:
-                                //                     const EdgeInsets.all(10),
-                                //                 decoration: BoxDecoration(
-                                //                   color: Colors.grey.shade100,
-                                //                   borderRadius:
-                                //                       const BorderRadius.all(
-                                //                     Radius.circular(20),
-                                //                   ),
-                                //                 ),
-                                //                 child: Column(
-                                //                   crossAxisAlignment:
-                                //                       CrossAxisAlignment
-                                //                           .start,
-                                //                   children: [
-                                //                     const Text(
-                                //                       "Производители",
-                                //                       style: TextStyle(
-                                //                         color: Colors.black,
-                                //                         fontSize: 16,
-                                //                         fontWeight:
-                                //                             FontWeight.w700,
-                                //                       ),
-                                //                     ),
-                                //                     // Wrap(
-                                //                     //   spacing: 5,
-                                //                     //   children:
-                                //                     //       manufacturersWidget,
-                                //                     // )
-                                //                   ],
-                                //                 ),
-                                //               ),
-                                //               Container(
-                                //                 width: MediaQuery.of(context)
-                                //                         .size
-                                //                         .width *
-                                //                     0.8,
-                                //                 margin: const EdgeInsets
-                                //                     .symmetric(vertical: 5),
-                                //                 padding:
-                                //                     const EdgeInsets.all(10),
-                                //                 decoration: BoxDecoration(
-                                //                   color: Colors.grey.shade100,
-                                //                   borderRadius:
-                                //                       const BorderRadius.all(
-                                //                     Radius.circular(20),
-                                //                   ),
-                                //                 ),
-                                //                 child: Column(
-                                //                   crossAxisAlignment:
-                                //                       CrossAxisAlignment
-                                //                           .start,
-                                //                   children: [
-                                //                     const Text(
-                                //                       "Страны",
-                                //                       style: TextStyle(
-                                //                         color: Colors.black,
-                                //                         fontSize: 16,
-                                //                         fontWeight:
-                                //                             FontWeight.w700,
-                                //                       ),
-                                //                     ),
-                                //                     // !!!!!!!!!!!
-                                //                     // Wrap(
-                                //                     //   spacing: 5,
-                                //                     //   children:
-                                //                     //       countriesWidget,
-                                //                     // )
-                                //                   ],
-                                //                 ),
-                                //               ),
-                                //               ElevatedButton(
-                                //                 onPressed: () {
-                                //                   //!!!!! _applyFilters();
-                                //                 },
-                                //                 child: Row(
-                                //                   children: [
-                                //                     Container(
-                                //                       padding:
-                                //                           const EdgeInsets
-                                //                               .all(5),
-                                //                       child: const Text(
-                                //                         "Подтвердить",
-                                //                       ),
-                                //                     )
-                                //                   ],
-                                //                 ),
-                                //               )
-                                //             ],
-                                //           ),
-                                //         ),
-                                //       ),
-                                //     ),
-                                //   ),
-                                // ),
-                                // );
-                              },
-                              icon: const Icon(Icons.filter_list_rounded),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                )
-              ],
-            ),
+                  ),
+                ],
+              )
+            ],
           ),
         ),
-        // appBar: AppBar(
-        //   // actions: [
-        //   //   IconButton(
-        //   //     icon: Icon(
-        //   //       Icons.search,
-        //   //       color: Colors.black,
-        //   //     ),
-        //   //     onPressed: () {
-        //   //       setState(() {
-        //   //         _itemsist = Container();
-        //   //       });
-        //   //     },
-        //   //   ),
-        //   // ],
-        //   title: TextField(
-        //     decoration: InputDecoration(
-        //         floatingLabelAlignment: FloatingLabelAlignment.start,
-        //         floatingLabelBehavior: FloatingLabelBehavior.never,
-        //         label: IconButton(
-        //           icon: const Icon(
-        //             Icons.search,
-        //             color: Colors.black,
-        //           ),
-        //           onPressed: () {
-        //             setState(() {});
-        //           },
-        //         ),
-        //         fillColor: Colors.black12,
-        //         filled: true,
-        //         focusedBorder: const OutlineInputBorder(
-        //             borderRadius: BorderRadius.all(Radius.circular(60)),
-        //             borderSide: BorderSide(color: Colors.white, width: 0)),
-        //         enabledBorder: const OutlineInputBorder(
-        //             borderRadius: BorderRadius.all(Radius.circular(60)),
-        //             borderSide: BorderSide(color: Colors.white, width: 0)),
-        //         border: const OutlineInputBorder(
-        //             borderSide: BorderSide(color: Colors.white, width: 0))),
-        //   ),
-        // ),
-        endDrawer: Drawer(
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(10)),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        const Text(
-                          "Фильтры",
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                          ),
+      ),
+      // appBar: AppBar(
+      //   // actions: [
+      //   //   IconButton(
+      //   //     icon: Icon(
+      //   //       Icons.search,
+      //   //       color: Colors.black,
+      //   //     ),
+      //   //     onPressed: () {
+      //   //       setState(() {
+      //   //         _itemsist = Container();
+      //   //       });
+      //   //     },
+      //   //   ),
+      //   // ],
+      //   title: TextField(
+      //     decoration: InputDecoration(
+      //         floatingLabelAlignment: FloatingLabelAlignment.start,
+      //         floatingLabelBehavior: FloatingLabelBehavior.never,
+      //         label: IconButton(
+      //           icon: const Icon(
+      //             Icons.search,
+      //             color: Colors.black,
+      //           ),
+      //           onPressed: () {
+      //             setState(() {});
+      //           },
+      //         ),
+      //         fillColor: Colors.black12,
+      //         filled: true,
+      //         focusedBorder: const OutlineInputBorder(
+      //             borderRadius: BorderRadius.all(Radius.circular(60)),
+      //             borderSide: BorderSide(color: Colors.white, width: 0)),
+      //         enabledBorder: const OutlineInputBorder(
+      //             borderRadius: BorderRadius.all(Radius.circular(60)),
+      //             borderSide: BorderSide(color: Colors.white, width: 0)),
+      //         border: const OutlineInputBorder(
+      //             borderSide: BorderSide(color: Colors.white, width: 0))),
+      //   ),
+      // ),
+      endDrawer: Drawer(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(10)),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Text(
+                        "Фильтры",
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
                         ),
-                        IconButton(
-                          onPressed: () {
-                            toggleDrawer();
-                          },
-                          icon: const Icon(Icons.close),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          toggleDrawer();
+                        },
+                        icon: const Icon(Icons.close),
+                      )
+                    ],
+                  ),
+                  const SizedBox(
+                    height: 15,
+                  ),
+                  // Column(
+                  //   crossAxisAlignment:
+                  //       CrossAxisAlignment.start,
+                  //   children: propertyWidget,
+                  // ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 15),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: const BorderRadius.all(
+                        Radius.circular(10),
+                      ),
+                    ),
+                    child: const Row(
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Бренды",
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            //!!!!!!!!!!!!!!!!!!
+                            // Wrap(
+                            //   spacing: 5,
+                            //   children: brandsWidget,
+                            // )
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 15,
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 15),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: const BorderRadius.all(
+                        Radius.circular(10),
+                      ),
+                    ),
+                    child: const Row(
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Производители",
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            //!!!!!!!!!!!!!!!!!!
+                            // Wrap(
+                            //   spacing: 5,
+                            //   children: brandsWidget,
+                            // )
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 15,
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 15),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: const BorderRadius.all(
+                        Radius.circular(10),
+                      ),
+                    ),
+                    child: const Row(
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Страны",
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            //!!!!!!!!!!!!!!!!!!
+                            // Wrap(
+                            //   spacing: 5,
+                            //   children: brandsWidget,
+                            // )
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      //!!!!! _applyFilters();
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(5),
+                          child: Text(
+                            "Применить",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          ),
                         )
                       ],
                     ),
-                    const SizedBox(
-                      height: 15,
-                    ),
-                    // Column(
-                    //   crossAxisAlignment:
-                    //       CrossAxisAlignment.start,
-                    //   children: propertyWidget,
-                    // ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 15),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(10),
-                        ),
-                      ),
-                      child: const Row(
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Бренды",
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              //!!!!!!!!!!!!!!!!!!
-                              // Wrap(
-                              //   spacing: 5,
-                              //   children: brandsWidget,
-                              // )
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 15,
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 15),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(10),
-                        ),
-                      ),
-                      child: const Row(
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Производители",
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              //!!!!!!!!!!!!!!!!!!
-                              // Wrap(
-                              //   spacing: 5,
-                              //   children: brandsWidget,
-                              // )
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 15,
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 15),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(10),
-                        ),
-                      ),
-                      child: const Row(
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Страны",
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              //!!!!!!!!!!!!!!!!!!
-                              // Wrap(
-                              //   spacing: 5,
-                              //   children: brandsWidget,
-                              // )
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 20,
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        //!!!!! _applyFilters();
-                      },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(5),
-                            child: Text(
-                              "Применить",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Theme.of(context).colorScheme.onPrimary,
-                              ),
-                            ),
-                          )
-                        ],
-                      ),
-                    )
-                  ],
-                ),
+                  )
+                ],
               ),
             ),
           ),
         ),
-        body: buildPostsView());
+      ),
+      body: buildPostsView(),
+    );
   }
 }
 

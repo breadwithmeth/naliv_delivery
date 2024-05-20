@@ -486,12 +486,28 @@ class _CartPageState extends State<CartPage>
                                     height: 15,
                                   ),
                                   ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 15, vertical: 15),
+                                    ),
                                     onPressed: () {
-                                      print("Hell");
+                                      print(
+                                          "Hell, add promo-codes functional here, lol");
                                     },
-                                    child: const Row(
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
-                                        Text("Подтвердить"),
+                                        Text(
+                                          "Подтвердить",
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w900,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onPrimary,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
