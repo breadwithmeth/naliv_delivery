@@ -435,7 +435,8 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                 flex: 5,
                 fit: FlexFit.tight,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     mainAxisSize: MainAxisSize.max,

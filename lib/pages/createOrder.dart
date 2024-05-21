@@ -31,6 +31,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
 
   bool isAddressesLoading = true;
   bool isCartLoading = true;
+  bool isBusinessLoading = true;
 
   Map<String, dynamic> selectedBusiness = {};
 
@@ -240,11 +241,16 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    isBusinessLoading = true;
     Future.delayed(const Duration(microseconds: 0), () async {
       await _getCart();
       await _getAddresses();
       await _getUser();
-      await _getLastSelectedBusiness();
+      await _getLastSelectedBusiness().whenComplete(() {
+        setState(() {
+          isBusinessLoading = false;
+        });
+      });
     }).whenComplete(() => isCartLoading = false);
   }
 
@@ -532,33 +538,32 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Flexible(
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      "Самовывозом: ${selectedBusiness["name"]}",
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
-                                      ),
+                                  child: Column(
+                                children: [
+                                  Text(
+                                    "Самовывозом: ${isBusinessLoading ? "" : selectedBusiness["name"]}",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
                                     ),
-                                    Text(
-                                      selectedBusiness["address"],
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
-                                      ),
+                                  ),
+                                  Text(
+                                    isBusinessLoading
+                                        ? ""
+                                        : selectedBusiness["address"],
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
                                     ),
-                                  ],
-                                ),
-                              ),
+                                  )
+                                ],
+                              )),
                             ],
                           ),
                         ],
