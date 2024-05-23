@@ -12,6 +12,7 @@ class ActiveOrderButton extends StatefulWidget {
 }
 
 class _ActiveOrderButtonState extends State<ActiveOrderButton> {
+  late Timer orderTimer;
   // Map<String, String> orderStatuses = {
   //   "pending": "в обработке",
   //   "preparing": "собирается в магазине",
@@ -83,7 +84,7 @@ class _ActiveOrderButtonState extends State<ActiveOrderButton> {
   void initState() {
     super.initState();
     orderCurrentStatus = testOrderStatuses[index];
-    Timer.periodic(const Duration(seconds: 5), (timer) {
+    orderTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       setState(() {
         orderCurrentStatus = testOrderStatuses[index];
       });
@@ -92,6 +93,13 @@ class _ActiveOrderButtonState extends State<ActiveOrderButton> {
         index = 0;
       }
     });
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+    orderTimer.cancel();
   }
 
   @override
