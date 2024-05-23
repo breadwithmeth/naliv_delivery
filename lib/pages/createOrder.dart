@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/pages/addressesPage.dart';
 import 'package:naliv_delivery/pages/createAddress.dart';
@@ -14,7 +15,9 @@ import 'package:intl/intl.dart';
 import '../misc/api.dart';
 
 class CreateOrderPage extends StatefulWidget {
-  const CreateOrderPage({super.key});
+  const CreateOrderPage({super.key, required this.client});
+
+  final Map<String, dynamic> client;
 
   @override
   State<CreateOrderPage> createState() => _CreateOrderPageState();
@@ -31,6 +34,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
 
   bool isAddressesLoading = true;
   bool isCartLoading = true;
+  bool isBusinessLoading = true;
 
   Map<String, dynamic> selectedBusiness = {};
 
@@ -74,6 +78,79 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
       // items = cart;
       items = cart["cart"];
       cartInfo = cartInfoFromAPI!;
+    });
+  }
+
+  Future<void> _getClientAddresses() async {
+    setState(() {
+      isAddressesLoading = true;
+    });
+    List<Widget> addressesWidget = [];
+    addresses = await getUserAddresses(widget.client["user_id"]);
+    if (addresses.isEmpty) {
+      setState(() {
+        isAddressesLoading = false;
+      });
+      return;
+    }
+    for (var element in addresses) {
+      addressesWidget.add(Container(
+        margin: const EdgeInsets.symmetric(vertical: 5),
+        child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                side: BorderSide(color: Colors.grey.shade200),
+                backgroundColor: element["is_selected"] == "1"
+                    ? Colors.grey.shade200
+                    : Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(vertical: 20, horizontal: 5)),
+            onPressed: () {
+              selectAddress(element["address_id"]);
+              Timer(const Duration(microseconds: 300), () {
+                _getAddresses();
+              });
+
+              Navigator.pop(context);
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                Text(
+                  element["address"],
+                  style: const TextStyle(color: Colors.black),
+                )
+              ],
+            )),
+      ));
+      if (element["is_selected"] == "1") {
+        setState(() {
+          currentAddress = element;
+          isAddressesLoading = false;
+          // currentAddressWidget = GestureDetector(
+          //   behavior: HitTestBehavior.opaque,
+          //   child: Row(
+          //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //     mainAxisSize: MainAxisSize.max,
+          //     children: [
+          //       Text(element["address"]),
+          //       const Icon(Icons.arrow_forward_ios)
+          //     ],
+          //   ),
+          //   onTap: () {
+          //     _getAddressPickDialog();
+          //   },
+          // );
+        });
+      }
+    }
+    if (currentAddress.isEmpty) {
+      setState(() {
+        isAddressesLoading = false;
+      });
+    }
+
+    setState(() {
+      addressesWidget = addressesWidget;
     });
   }
 
@@ -240,11 +317,17 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    isBusinessLoading = true;
     Future.delayed(const Duration(microseconds: 0), () async {
       await _getCart();
-      await _getAddresses();
+      // await _getAddresses();
+      await _getClientAddresses();
       await _getUser();
-      await _getLastSelectedBusiness();
+      await _getLastSelectedBusiness().whenComplete(() {
+        setState(() {
+          isBusinessLoading = false;
+        });
+      });
     }).whenComplete(() => isCartLoading = false);
   }
 
@@ -532,33 +615,32 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Flexible(
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      "Самовывозом: ${selectedBusiness["name"]}",
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
-                                      ),
+                                  child: Column(
+                                children: [
+                                  Text(
+                                    "Самовывозом: ${isBusinessLoading ? "" : selectedBusiness["name"]}",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
                                     ),
-                                    Text(
-                                      selectedBusiness["address"],
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
-                                      ),
+                                  ),
+                                  Text(
+                                    isBusinessLoading
+                                        ? ""
+                                        : selectedBusiness["address"],
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
                                     ),
-                                  ],
-                                ),
-                              ),
+                                  )
+                                ],
+                              )),
                             ],
                           ),
                         ],

@@ -3,8 +3,10 @@
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/animation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:geolocator/geolocator.dart';
@@ -588,7 +590,11 @@ class _HomePageState extends State<HomePage>
                             showDialog(
                               context: context,
                               builder: (context) {
-                                return AlertDialog(
+                                return AlertDialog.adaptive(
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(10)),
+                                  ),
                                   title: Text(
                                     "Вы точно хотите выйти из аккаунта?",
                                     textAlign: TextAlign.center,
@@ -603,61 +609,77 @@ class _HomePageState extends State<HomePage>
                                   actionsAlignment: MainAxisAlignment.center,
                                   actions: [
                                     Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Flexible(
-                                          child: ElevatedButton(
-                                            onPressed: () {
-                                              logout();
-                                              Navigator.pushAndRemoveUntil(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        const LoginPage(),
-                                                  ),
-                                                  (route) => false);
-                                            },
-                                            child: Row(
-                                              children: [
-                                                Flexible(
-                                                  child: Text(
-                                                    "Да, выйти",
-                                                    textAlign: TextAlign.center,
-                                                    style: TextStyle(
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .onPrimary,
-                                                      fontSize: 16,
-                                                      fontWeight:
-                                                          FontWeight.w700,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 5),
+                                            child: ElevatedButton(
+                                              onPressed: () {
+                                                logout();
+                                                Navigator.pushAndRemoveUntil(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          const LoginPage(),
                                                     ),
-                                                  ),
-                                                )
-                                              ],
+                                                    (route) => false);
+                                              },
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Flexible(
+                                                    child: Text(
+                                                      "Да",
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: TextStyle(
+                                                        color: Theme.of(context)
+                                                            .colorScheme
+                                                            .onPrimary,
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
+                                                    ),
+                                                  )
+                                                ],
+                                              ),
                                             ),
                                           ),
                                         ),
                                         Flexible(
-                                          child: ElevatedButton(
-                                            onPressed: () {
-                                              Navigator.pop(context);
-                                            },
-                                            child: Row(
-                                              children: [
-                                                Flexible(
-                                                  child: Text(
-                                                    "Нет, остаться",
-                                                    textAlign: TextAlign.center,
-                                                    style: TextStyle(
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .onPrimary,
-                                                      fontSize: 16,
-                                                      fontWeight:
-                                                          FontWeight.w700,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 5),
+                                            child: ElevatedButton(
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                              },
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Flexible(
+                                                    child: Text(
+                                                      "Нет",
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: TextStyle(
+                                                        color: Theme.of(context)
+                                                            .colorScheme
+                                                            .onPrimary,
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
                                                     ),
-                                                  ),
-                                                )
-                                              ],
+                                                  )
+                                                ],
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -1163,7 +1185,9 @@ class _HomePageState extends State<HomePage>
                                       category_id: categories[index]
                                           ["category_id"],
                                       name: categories[index]["name"],
-                                      image: categories[index]["photo"]);
+                                      image: categories[index]["photo"],
+                                      categories: categories,
+                                      );
                                 },
                               ),
                             ),
@@ -1184,10 +1208,12 @@ class CategoryItem extends StatefulWidget {
       {super.key,
       required this.category_id,
       required this.name,
-      required this.image});
+      required this.image,
+      required this.categories});
   final String category_id;
   final String name;
   final String? image;
+  final List<dynamic> categories;
   @override
   State<CategoryItem> createState() => _CategoryItemState();
 }
@@ -1195,18 +1221,29 @@ class CategoryItem extends StatefulWidget {
 class _CategoryItemState extends State<CategoryItem> {
   Color firstColor = Colors.white;
   Color secondColor = Colors.blueGrey;
-  late Image imageBG = Image.asset('assets/vectors/wine.png');
+  late Image imageBG = Image.asset(
+    'assets/vectors/wine.png',
+    width: 120,
+    height: 120,
+  );
   Alignment? _alignment;
+  Offset _offset = const Offset(0.15, -0.05);
+  double? _rotation;
   Color textBG = Colors.white.withOpacity(0);
 
   void _getColors() {
     switch (widget.category_id) {
       // Beer
       case '1':
+      case '17':
         setState(() {
           firstColor = const Color(0xFFFFDE67);
           secondColor = const Color(0xFFF5A265);
-          imageBG = Image.asset('assets/vectors/beer.png');
+          imageBG = Image.asset(
+            'assets/vectors/beer.png',
+            width: 130,
+            height: 130,
+          );
         });
         break;
       // Whiskey
@@ -1214,8 +1251,12 @@ class _CategoryItemState extends State<CategoryItem> {
         setState(() {
           firstColor = const Color(0xFF898989);
           secondColor = const Color(0xFF464343);
-          imageBG = Image.asset('assets/vectors/whiskey.png');
-          _alignment = Alignment.topLeft;
+          imageBG = Image.asset(
+            'assets/vectors/whiskey.png',
+            width: 150,
+            height: 150,
+          );
+          _offset = const Offset(0.15, 0.05);
         });
         break;
       // Wine
@@ -1223,7 +1264,12 @@ class _CategoryItemState extends State<CategoryItem> {
         setState(() {
           firstColor = const Color(0xFFFF8CB6);
           secondColor = const Color(0xFFE3427C);
-          imageBG = Image.asset('assets/vectors/wine.png');
+          imageBG = Image.asset(
+            'assets/vectors/wine.png',
+            width: 120,
+            height: 120,
+          );
+          _offset = const Offset(0.15, -0.05);
         });
         break;
       // Vodka
@@ -1231,7 +1277,37 @@ class _CategoryItemState extends State<CategoryItem> {
         setState(() {
           firstColor = const Color(0xFFC4DCDF);
           secondColor = const Color(0xFF8C9698);
-          imageBG = Image.asset('assets/vectors/vodka.png');
+          imageBG = Image.asset(
+            'assets/vectors/vodka.png',
+            width: 170,
+            height: 170,
+          );
+          _offset = const Offset(0, -0.18);
+        });
+        break;
+      case '20':
+        setState(() {
+          firstColor = const Color(0xFFC4DCDF);
+          secondColor = const Color(0xFF8C9698);
+          imageBG = Image.asset(
+            'assets/vectors/drinks.png',
+            width: 85,
+            height: 85,
+          );
+          _offset = const Offset(0, 0);
+        });
+        break;
+      case '23':
+        setState(() {
+          firstColor = const Color(0xFFC4DCDF);
+          secondColor = const Color(0xFF8C9698);
+          imageBG = Image.asset(
+            'assets/vectors/snacks.png',
+            width: 130,
+            height: 130,
+          );
+          _offset = const Offset(0.18, 0.05);
+          _rotation = -20 / 360;
         });
         break;
       default:
@@ -1259,6 +1335,7 @@ class _CategoryItemState extends State<CategoryItem> {
             builder: (context) => CategoryPage(
               category_id: widget.category_id,
               category_name: widget.name,
+              categories: widget.categories,
             ),
           ),
         );
@@ -1267,15 +1344,40 @@ class _CategoryItemState extends State<CategoryItem> {
         children: [
           Container(
             decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                gradient: LinearGradient(
-                    colors: [firstColor, secondColor],
-                    transform: const GradientRotation(2))),
+              borderRadius: BorderRadius.circular(10),
+              gradient: LinearGradient(
+                colors: [firstColor, secondColor],
+                transform: const GradientRotation(2),
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color.fromARGB(255, 200, 200, 200),
+                  offset: Offset(0, 3),
+                )
+              ],
+              // border: Border.all(
+              //   color: firstColor,
+              //   width: 2,
+              //   strokeAlign: BorderSide.strokeAlignOutside,
+              // ),
+            ),
           ),
           _alignment == null
               ? Container(
-                  alignment: Alignment.topRight,
-                  child: imageBG,
+                  alignment: Alignment.topCenter,
+                  child: ClipRect(
+                    child: OverflowBox(
+                      maxWidth: double.infinity,
+                      maxHeight: double.infinity,
+                      child: RotationTransition(
+                        turns: AlwaysStoppedAnimation(_rotation ?? 0),
+                        child: SlideTransition(
+                          position: AlwaysStoppedAnimation(_offset),
+                          child: imageBG,
+                        ),
+                      ),
+                    ),
+                  ),
                 )
               : Container(
                   alignment: _alignment,

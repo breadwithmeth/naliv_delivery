@@ -107,7 +107,18 @@ flutter:
     - assets/vectors/vodka.png
     - assets/vectors/whiskey.png
     - assets/vectors/shampane.png
+    - assets/vectors/brandy.png
+    - assets/vectors/drinks.png
+    - assets/vectors/snacks.png
     - assets/naliv_logo.png
+    - assets/category_icons/beer_ico.png
+    - assets/category_icons/brandy_ico.png
+    - assets/category_icons/drinks_ico.png
+    - assets/category_icons/snacks_ico.png
+    - assets/category_icons/vodka_ico.png
+    - assets/category_icons/whiskey_ico.png
+    - assets/category_icons/wine_ico.png
+    - assets/category_icons/alcohol_hard_ico.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

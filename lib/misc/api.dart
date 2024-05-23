@@ -712,3 +712,45 @@ Future<Map?> getGeoData(String search) async {
   Map? data = json.decode(utf8.decode(response.bodyBytes));
   return data;
 }
+
+Future<Map<String, dynamic>> getCreateUser(String phoneNumber) async {
+  String? token = await getToken();
+  if (token == null) {
+    return {};
+  }
+  var url = Uri.https(URL_API, 'api/user/getClient.php');
+  var response = await http.post(
+    url,
+    headers: {
+      "Content-Type": "application/json",
+      "AUTH": token,
+    },
+    body: json.encode({"phone_number": phoneNumber}),
+  );
+
+  Map<String, dynamic> result = json.decode(response.body);
+  print(json.encode(response.statusCode));
+  print(response.body);
+  return result;
+}
+
+Future<List<dynamic>> getUserAddresses(String userID) async {
+  String? token = await getToken();
+  if (token == null) {
+    return [];
+  }
+  var url = Uri.https(URL_API, 'api/user/getAddressesPerUser.php');
+  var response = await http.post(
+    url,
+    headers: {
+      "Content-Type": "application/json",
+      "AUTH": token,
+    },
+    body: json.encode({"user_id": userID}),
+  );
+
+  List<dynamic> result = json.decode(response.body);
+  print(json.encode(response.statusCode));
+  print(response.body);
+  return result;
+}

@@ -210,9 +210,11 @@ class _LoginPageState extends State<LoginPage> {
                               _getOneTimeCode();
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text(
-                                          "Проверьте правильность номера")));
+                                const SnackBar(
+                                  content:
+                                      Text("Проверьте правильность номера"),
+                                ),
+                              );
                             }
                             // bool _loginStatus =
                             //     await login(_login.text, _password.text);
