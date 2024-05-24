@@ -95,6 +95,8 @@ class _MarqueeTextState extends State<MarqueeText>
 
   @override
   Widget build(BuildContext context) {
+    double screenSize = MediaQuery.of(context).size.width;
+
     return Container(
       width: double.infinity,
       height: double.infinity,
@@ -109,18 +111,18 @@ class _MarqueeTextState extends State<MarqueeText>
           turns: const AlwaysStoppedAnimation(-30 / 360),
           child: Column(
             children: [
-              for (int i = 0; i < 10; i++)
+              for (int i = 0; i < 15; i++)
                 SlideTransition(
                   position: i.isOdd ? _animationOne : _animationTwo,
                   child: Text(
                     i.isEven
                         ? "НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ "
                         : "ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ",
-                    style: const TextStyle(
-                      fontSize: 64,
+                    style: TextStyle(
+                      fontSize: 140 * (screenSize / 720),
                       fontWeight: FontWeight.w900,
                       color: Colors.black12,
-                      height: 1.2,
+                      height: 1.9 * (screenSize / 720),
                       wordSpacing: 10,
                     ),
                   ),

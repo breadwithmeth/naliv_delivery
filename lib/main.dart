@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/misc/colors.dart';
 import 'package:naliv_delivery/pages/homePage.dart';
+import 'package:naliv_delivery/pages/organizationSelectPage.dart';
 import 'package:naliv_delivery/pages/permissionPage.dart';
 import 'package:naliv_delivery/pages/startLoadingPage.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
