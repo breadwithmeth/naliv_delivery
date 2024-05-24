@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart';
@@ -8,7 +10,9 @@ import 'package:shimmer/shimmer.dart';
 import '../misc/api.dart';
 
 class BusinessSelectStartPage extends StatefulWidget {
-  const BusinessSelectStartPage({super.key});
+  const BusinessSelectStartPage({super.key, this.businesses = const []});
+
+  final List<dynamic> businesses;
 
   @override
   State<BusinessSelectStartPage> createState() =>
@@ -32,10 +36,17 @@ class _BusinessSelectStartPageState extends State<BusinessSelectStartPage> {
   }
 
   Future<void> _getBusinesses() async {
-    setState(() {
-      isBusinessesLoading = true;
-    });
-    List? businesses = await getBusinesses();
+    if (mounted) {
+      setState(() {
+        isBusinessesLoading = true;
+      });
+    }
+    List? businesses = [];
+    if (widget.businesses.isEmpty) {
+      businesses = await getBusinesses();
+    } else {
+      businesses = widget.businesses;
+    }
     if (businesses == null) {
     } else {
       List<Widget> businessesWidget = [];
@@ -48,13 +59,11 @@ class _BusinessSelectStartPageState extends State<BusinessSelectStartPage> {
             shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.all(Radius.circular(10))),
             child: ListTile(
-              onTap: () async {
-                if (await setCurrentStore(element["business_id"])) {
-                  Navigator.pushAndRemoveUntil(context,
-                      MaterialPageRoute(builder: (context) {
-                    return Main();
-                  }), (route) => false);
-                }
+              onTap: () {
+                Navigator.pushAndRemoveUntil(context,
+                    MaterialPageRoute(builder: (context) {
+                  return HomePage(setCurrentBusiness: element["business_id"]);
+                }), (route) => false);
               },
               title: Container(
                 child: Text(element["name"].toString().toUpperCase()),

@@ -13,17 +13,440 @@ import 'package:shimmer/shimmer.dart';
 class CategoryPage extends StatefulWidget {
   const CategoryPage(
       {super.key,
-      required this.category_id,
-      required this.category_name,
+      required this.categoryId,
+      required this.categoryName,
       required this.categories});
-  final String category_id;
-  final String category_name;
+  final String categoryId;
+  final String categoryName;
   final List<dynamic> categories;
   @override
   State<CategoryPage> createState() => _CategoryPageState();
 }
 
 class _CategoryPageState extends State<CategoryPage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  int initialIndexTabbar = 0;
+  List<Map<String, dynamic>> categoriesWidgetList = [];
+
+  void toggleDrawer() async {
+    if (_scaffoldKey.currentState!.isEndDrawerOpen) {
+      _scaffoldKey.currentState!.closeEndDrawer();
+    } else {
+      _scaffoldKey.currentState!.openEndDrawer();
+    }
+  }
+
+  void getCategoriesWidgetList() {
+    for (int i = 0; i < widget.categories.length; i++) {
+      if (widget.categories[i]["category_id"] == widget.categoryId) {
+        initialIndexTabbar = i;
+      }
+      categoriesWidgetList.add({
+        "widget": Text(
+          widget.categories[i]["name"],
+        ),
+        "category_id": widget.categories[i]["category_id"]
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    getCategoriesWidgetList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      initialIndex: initialIndexTabbar,
+      length: widget.categories.length,
+      child: Scaffold(
+        key: _scaffoldKey,
+        floatingActionButton: SizedBox(
+          width: 65,
+          height: 65,
+          child: FloatingActionButton(
+            shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(10))),
+            child: Icon(
+              Icons.shopping_basket_rounded,
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) {
+                    return const CartPage();
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        appBar: AppBar(
+          bottom: TabBar(
+            tabAlignment: TabAlignment.start,
+            physics: const BouncingScrollPhysics(),
+            labelPadding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            labelStyle: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).colorScheme.onBackground,
+            ),
+            unselectedLabelColor:
+                Theme.of(context).colorScheme.onBackground.withOpacity(0.5),
+            isScrollable: true,
+            tabs:
+                categoriesWidgetList.map((e) => e["widget"] as Widget).toList(),
+          ),
+          actions: [
+            Builder(builder: (context) => const SizedBox()),
+          ], // Important: removes endDrawer button form appbar
+          automaticallyImplyLeading: false,
+          // toolbarHeight: 90,
+          titleSpacing: 0,
+          title: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.max,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Flexible(
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: () {
+                          Navigator.maybePop(context);
+                        },
+                        icon: const Icon(Icons.arrow_back_rounded),
+                      ),
+                    ),
+                    Flexible(
+                      flex: 4,
+                      fit: FlexFit.tight,
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.push(context, MaterialPageRoute(
+                            builder: (context) {
+                              return SearchPage(
+                                category_id: widget.categoryId,
+                              );
+                            },
+                          ));
+                        },
+                        style: TextButton.styleFrom(
+                            foregroundColor: Colors.white.withOpacity(0)),
+                        child: Container(
+                          decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.1),
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(10))),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              const Spacer(
+                                flex: 3,
+                              ),
+                              const Text(
+                                "Найти",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                child: const Icon(
+                                  Icons.search,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                // Row(
+                //   mainAxisAlignment: MainAxisAlignment.start,
+                //   children: [
+                //     Text(
+                //       "Караганда ",
+                //       style: TextStyle(fontSize: 12, color: gray1),
+                //     ),
+                //     Icon(
+                //       Icons.arrow_forward_ios,
+                //       size: 6,
+                //     ),
+                //     Text(
+                //       " Караганда",
+                //       style: TextStyle(fontSize: 12, color: gray1),
+                //     )
+                //   ],
+                // ),
+                // SizedBox(
+                //   height: 10,
+                // ),
+                // Row(
+                //   mainAxisSize: MainAxisSize.max,
+                //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                //   children: [
+                //     Flexible(
+                //       flex: 4,
+                //       child: Text(
+                //         widget.category_name,
+                //         style: const TextStyle(
+                //           fontWeight: FontWeight.w700,
+                //           fontSize: 20,
+                //           color: Colors.black,
+                //         ),
+                //       ),
+                //     ),
+                //     Flexible(
+                //       flex: 2,
+                //       child: Row(
+                //         mainAxisAlignment: MainAxisAlignment.end,
+                //         children: [
+                //           Flexible(
+                //             child: IconButton(
+                //               padding: EdgeInsets.zero,
+                //               onPressed: () {
+                //                 // TODO: Make sort by price (expencive first or cheap first, something like that)
+                //               },
+                //               icon: const Icon(Icons.swap_vert_rounded),
+                //             ),
+                //           ),
+                //           Flexible(
+                //             child: IconButton(
+                //               padding: EdgeInsets.zero,
+                //               onPressed: () {
+                //                 toggleDrawer();
+                //               },
+                //               icon: const Icon(Icons.filter_list_rounded),
+                //             ),
+                //           ),
+                //         ],
+                //       ),
+                //     ),
+                //   ],
+                // )
+              ],
+            ),
+          ),
+        ),
+        endDrawer: Drawer(
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Text(
+                          "Фильтры",
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            toggleDrawer();
+                          },
+                          icon: const Icon(Icons.close),
+                        )
+                      ],
+                    ),
+                    const SizedBox(
+                      height: 15,
+                    ),
+                    // Column(
+                    //   crossAxisAlignment:
+                    //       CrossAxisAlignment.start,
+                    //   children: propertyWidget,
+                    // ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 15),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: const BorderRadius.all(
+                          Radius.circular(10),
+                        ),
+                      ),
+                      child: const Row(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Бренды",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              //!!!!!!!!!!!!!!!!!!
+                              // Wrap(
+                              //   spacing: 5,
+                              //   children: brandsWidget,
+                              // )
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 15,
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 15),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: const BorderRadius.all(
+                          Radius.circular(10),
+                        ),
+                      ),
+                      child: const Row(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Производители",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              //!!!!!!!!!!!!!!!!!!
+                              // Wrap(
+                              //   spacing: 5,
+                              //   children: brandsWidget,
+                              // )
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 15,
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 15),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: const BorderRadius.all(
+                          Radius.circular(10),
+                        ),
+                      ),
+                      child: const Row(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Страны",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              //!!!!!!!!!!!!!!!!!!
+                              // Wrap(
+                              //   spacing: 5,
+                              //   children: brandsWidget,
+                              // )
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        //!!!!! _applyFilters();
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(5),
+                            child: Text(
+                              "Применить",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
+                            ),
+                          )
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            for (int j = 0; j < widget.categories.length; j++)
+              CategoryPageList(
+                categoryId: categoriesWidgetList[j]["category_id"],
+              )
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class Item {
+  final Map<String, dynamic> data;
+
+  Item(this.data);
+}
+
+class CategoryPageList extends StatefulWidget {
+  const CategoryPageList({super.key, required this.categoryId});
+
+  final String categoryId;
+
+  @override
+  State<CategoryPageList> createState() => _CategoryPageListState();
+}
+
+class _CategoryPageListState extends State<CategoryPageList>
+    with AutomaticKeepAliveClientMixin<CategoryPageList> {
+  @override
+  bool get wantKeepAlive => true;
+
   late bool _isLastPage;
   late int _pageNumber;
   late bool _error;
@@ -31,13 +454,18 @@ class _CategoryPageState extends State<CategoryPage> {
   final int _numberOfPostsPerRequest = 30;
   late List<Item> _items;
   final int _nextPageTrigger = 3;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  void updateDataAmount(String newDataAmount, int index) {
+    setState(() {
+      _items[index].data["amount"] = newDataAmount;
+    });
+  }
 
   Future<void> _getItems() async {
     try {
       //! TODO: SEND SEARCH PARAMETER TO API
       List? responseList =
-          await getItemsMain(_pageNumber, "", widget.category_id);
+          await getItemsMain(_pageNumber, "", widget.categoryId);
       if (responseList != null) {
         List<Item> itemList = responseList.map((data) => Item(data)).toList();
 
@@ -60,32 +488,6 @@ class _CategoryPageState extends State<CategoryPage> {
         _error = true;
       });
     }
-  }
-
-  void toggleDrawer() async {
-    if (_scaffoldKey.currentState!.isEndDrawerOpen) {
-      _scaffoldKey.currentState!.closeEndDrawer();
-    } else {
-      _scaffoldKey.currentState!.openEndDrawer();
-    }
-  }
-
-  void updateDataAmount(String newDataAmount, int index) {
-    setState(() {
-      _items[index].data["amount"] = newDataAmount;
-    });
-  }
-
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    _pageNumber = 0;
-    _items = [];
-    _isLastPage = false;
-    _loading = true;
-    _error = false;
-    _getItems();
   }
 
   Widget buildPostsView() {
@@ -204,350 +606,18 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      floatingActionButton: SizedBox(
-        width: 65,
-        height: 65,
-        child: FloatingActionButton(
-          shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(10))),
-          child: Icon(
-            Icons.shopping_basket_rounded,
-            color: Theme.of(context).colorScheme.onPrimary,
-          ),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) {
-                  return const CartPage();
-                },
-              ),
-            );
-          },
-        ),
-      ),
-      appBar: AppBar(
-        actions: [
-          Builder(builder: (context) => const SizedBox()),
-        ], // Important: removes endDrawer button form appbar
-        automaticallyImplyLeading: false,
-        toolbarHeight: 120,
-        titleSpacing: 0,
-        title: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.max,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Flexible(
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      onPressed: () {
-                        Navigator.maybePop(context);
-                      },
-                      icon: const Icon(Icons.arrow_back_rounded),
-                    ),
-                  ),
-                  Flexible(
-                    flex: 4,
-                    fit: FlexFit.tight,
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(
-                          builder: (context) {
-                            return SearchPage(
-                              category_id: widget.category_id,
-                            );
-                          },
-                        ));
-                      },
-                      style: TextButton.styleFrom(
-                          foregroundColor: Colors.white.withOpacity(0)),
-                      child: Container(
-                        decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.1),
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(10))),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            const Spacer(
-                              flex: 3,
-                            ),
-                            const Text(
-                              "Найти",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                color: Colors.black,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              child: const Icon(
-                                Icons.search,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              // Row(
-              //   mainAxisAlignment: MainAxisAlignment.start,
-              //   children: [
-              //     Text(
-              //       "Караганда ",
-              //       style: TextStyle(fontSize: 12, color: gray1),
-              //     ),
-              //     Icon(
-              //       Icons.arrow_forward_ios,
-              //       size: 6,
-              //     ),
-              //     Text(
-              //       " Караганда",
-              //       style: TextStyle(fontSize: 12, color: gray1),
-              //     )
-              //   ],
-              // ),
-              // SizedBox(
-              //   height: 10,
-              // ),
-              Row(
-                mainAxisSize: MainAxisSize.max,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Flexible(
-                    flex: 4,
-                    child: Text(
-                      widget.category_name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 20,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                  Flexible(
-                    flex: 2,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Flexible(
-                          child: IconButton(
-                            padding: EdgeInsets.zero,
-                            onPressed: () {
-                              // TODO: Make sort by price (expencive first or cheap first, something like that)
-                            },
-                            icon: const Icon(Icons.swap_vert_rounded),
-                          ),
-                        ),
-                        Flexible(
-                          child: IconButton(
-                            padding: EdgeInsets.zero,
-                            onPressed: () {
-                              toggleDrawer();
-                            },
-                            icon: const Icon(Icons.filter_list_rounded),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              )
-            ],
-          ),
-        ),
-      ),
-      endDrawer: Drawer(
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(10)),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Text(
-                        "Фильтры",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () {
-                          toggleDrawer();
-                        },
-                        icon: const Icon(Icons.close),
-                      )
-                    ],
-                  ),
-                  const SizedBox(
-                    height: 15,
-                  ),
-                  // Column(
-                  //   crossAxisAlignment:
-                  //       CrossAxisAlignment.start,
-                  //   children: propertyWidget,
-                  // ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 15),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: const BorderRadius.all(
-                        Radius.circular(10),
-                      ),
-                    ),
-                    child: const Row(
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Бренды",
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            //!!!!!!!!!!!!!!!!!!
-                            // Wrap(
-                            //   spacing: 5,
-                            //   children: brandsWidget,
-                            // )
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 15,
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 15),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: const BorderRadius.all(
-                        Radius.circular(10),
-                      ),
-                    ),
-                    child: const Row(
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Производители",
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            //!!!!!!!!!!!!!!!!!!
-                            // Wrap(
-                            //   spacing: 5,
-                            //   children: brandsWidget,
-                            // )
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 15,
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 15),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: const BorderRadius.all(
-                        Radius.circular(10),
-                      ),
-                    ),
-                    child: const Row(
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Страны",
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            //!!!!!!!!!!!!!!!!!!
-                            // Wrap(
-                            //   spacing: 5,
-                            //   children: brandsWidget,
-                            // )
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 20,
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      //!!!!! _applyFilters();
-                    },
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(5),
-                          child: Text(
-                            "Применить",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Theme.of(context).colorScheme.onPrimary,
-                            ),
-                          ),
-                        )
-                      ],
-                    ),
-                  )
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-      body: buildPostsView(),
-    );
+  void initState() {
+    super.initState();
+    _pageNumber = 0;
+    _items = [];
+    _isLastPage = false;
+    _loading = true;
+    _error = false;
+    _getItems();
   }
-}
 
-class Item {
-  final Map<String, dynamic> data;
-
-  Item(this.data);
+  @override
+  Widget build(BuildContext context) {
+    return buildPostsView();
+  }
 }

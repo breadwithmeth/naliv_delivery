@@ -26,6 +26,7 @@ class _CartPageState extends State<CartPage>
   final Duration animDuration = const Duration(milliseconds: 250);
   int localDiscount = 0;
   TextEditingController _promoController = TextEditingController();
+  Map<String, dynamic> client = {};
 
   String formatCost(String costString) {
     int cost = int.parse(costString);
@@ -39,10 +40,14 @@ class _CartPageState extends State<CartPage>
     // Map<String, dynamic>? cartInfo = await getCartInfo();
     print(cartInfo);
 
+    // if (cart["sum"] == null || cart["cart"]) {
+    //   return;
+    // }
+
     setState(() {
       items = cart["cart"];
       cartInfo = cart;
-      sum = cart["sum"];
+      sum = cart["sum"] ?? "0";
     });
   }
 
@@ -86,10 +91,12 @@ class _CartPageState extends State<CartPage>
       }
     }
     // Just update states, ONLY after cycle are done working
-    setState(() {
-      localSum = localSum;
-      localDiscount = localDiscount;
-    });
+    if (mounted) {
+      setState(() {
+        localSum = localSum;
+        localDiscount = localDiscount;
+      });
+    }
   }
 
   bool isCartLoading = false;
@@ -104,15 +111,24 @@ class _CartPageState extends State<CartPage>
         isCartLoading = true;
       });
       await _getCart();
-      setState(() {
-        localSum = int.parse(sum);
-        for (dynamic item in items) {
-          if (item["previous_price"] != null) {
-            localDiscount += int.parse(item["price"]) -
-                int.parse(item["previous_price"] ?? "0");
+      if (mounted) {
+        setState(() {
+          localSum = int.parse(sum);
+          for (dynamic item in items) {
+            if (item["previous_price"] != null) {
+              localDiscount += int.parse(item["price"]) -
+                  int.parse(item["previous_price"] ?? "0");
+            }
           }
+          isCartLoading = false;
+        });
+      }
+      await getUser().then((value) {
+        if (value != null && mounted) {
+          setState(() {
+            client = value;
+          });
         }
-        isCartLoading = false;
       });
     });
   }
@@ -417,7 +433,7 @@ class _CartPageState extends State<CartPage>
                         context,
                         MaterialPageRoute(
                           builder: (context) {
-                            return const findCreateUserPage();
+                            return const CreateOrderPage();
                           },
                         ),
                       );

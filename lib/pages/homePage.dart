@@ -27,7 +27,9 @@ import 'package:naliv_delivery/pages/searchPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, this.setCurrentBusiness = ""});
+
+  final String setCurrentBusiness;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -96,6 +98,8 @@ class _HomePageState extends State<HomePage>
 
   bool isPageLoading = true;
 
+  List<dynamic> businesses = [];
+
   Map<String, dynamic>? user;
   late Position _location;
 
@@ -113,18 +117,19 @@ class _HomePageState extends State<HomePage>
 
   Map<String, dynamic>? _business = {};
   Future<void> _getCurrentBusiness() async {
-    Map<String, dynamic>? business = await getLastSelectedBusiness();
-    if (business != null) {
-      setState(() {
-        _business = business;
-      });
-    } else {
-      Navigator.pushReplacement(context, MaterialPageRoute(
-        builder: (context) {
-          return const BusinessSelectStartPage();
-        },
-      ));
-    }
+    await getLastSelectedBusiness().then((value) {
+      if (value != null) {
+        setState(() {
+          _business = value;
+        });
+      } else {
+        Navigator.pushReplacement(context, MaterialPageRoute(
+          builder: (context) {
+            return const BusinessSelectStartPage();
+          },
+        ));
+      }
+    });
   }
 
   Future<void> _getAddresses() async {
@@ -150,7 +155,11 @@ class _HomePageState extends State<HomePage>
   }
 
   void _getUser() async {
-    user = await getUser();
+    await getUser().then((value) {
+      setState(() {
+        user = value;
+      });
+    });
   }
 
   _getCurrentAddress() {}
@@ -162,6 +171,14 @@ class _HomePageState extends State<HomePage>
     setCityAuto(location.latitude, location.longitude);
     setState(() {
       _location = location;
+    });
+  }
+
+  void _getBusinesses() {
+    getBusinesses().then((value) {
+      if (value != null) {
+        businesses = value;
+      }
     });
   }
 
@@ -261,20 +278,42 @@ class _HomePageState extends State<HomePage>
     setState(() {
       isPageLoading = true;
     });
-    _getCurrentBusiness();
-    // _checkForActiveOrder(); Someting like this idk
-    Future.delayed(Duration.zero).then((value) {
-      _getUser();
-    });
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      _getAddresses();
-      getPosition();
-      _getCategories().whenComplete(() {
-        setState(() {
-          isPageLoading = false;
+    if (widget.setCurrentBusiness.isNotEmpty) {
+      setCurrentStore(widget.setCurrentBusiness).then((value) {
+        if (value) {
+          Future.delayed(Duration.zero).then((value) async {
+            await _getCurrentBusiness();
+            _getBusinesses();
+            _getUser();
+          });
+          WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+            _getAddresses();
+            getPosition();
+            _getCategories().whenComplete(() {
+              setState(() {
+                isPageLoading = false;
+              });
+            });
+          });
+        }
+      });
+    } else {
+      Future.delayed(Duration.zero).then((value) async {
+        await _getCurrentBusiness();
+        _getBusinesses();
+        _getUser();
+      });
+      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+        _getAddresses();
+        getPosition();
+        _getCategories().whenComplete(() {
+          setState(() {
+            isPageLoading = false;
+          });
         });
       });
-    });
+    }
+    // _checkForActiveOrder(); Someting like this idk
   }
 
   @override
@@ -932,7 +971,9 @@ class _HomePageState extends State<HomePage>
                         onTap: () {
                           Navigator.pushReplacement(context, MaterialPageRoute(
                             builder: (context) {
-                              return const BusinessSelectStartPage();
+                              return BusinessSelectStartPage(
+                                businesses: businesses,
+                              );
                             },
                           ));
                         },
@@ -1182,12 +1223,12 @@ class _HomePageState extends State<HomePage>
                                 itemCount: categories.length,
                                 itemBuilder: (BuildContext ctx, index) {
                                   return CategoryItem(
-                                      category_id: categories[index]
-                                          ["category_id"],
-                                      name: categories[index]["name"],
-                                      image: categories[index]["photo"],
-                                      categories: categories,
-                                      );
+                                    category_id: categories[index]
+                                        ["category_id"],
+                                    name: categories[index]["name"],
+                                    image: categories[index]["photo"],
+                                    categories: categories,
+                                  );
                                 },
                               ),
                             ),
@@ -1333,8 +1374,8 @@ class _CategoryItemState extends State<CategoryItem> {
           context,
           MaterialPageRoute(
             builder: (context) => CategoryPage(
-              category_id: widget.category_id,
-              category_name: widget.name,
+              categoryId: widget.category_id,
+              categoryName: widget.name,
               categories: widget.categories,
             ),
           ),
@@ -1353,6 +1394,11 @@ class _CategoryItemState extends State<CategoryItem> {
                 BoxShadow(
                   color: Color.fromARGB(255, 200, 200, 200),
                   offset: Offset(0, 3),
+                ),
+                BoxShadow(
+                  color: Color.fromARGB(255, 220, 220, 220),
+                  offset: Offset(0, 0),
+                  blurRadius: 4,
                 )
               ],
               // border: Border.all(
