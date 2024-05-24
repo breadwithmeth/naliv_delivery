@@ -5,14 +5,14 @@ import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
 
-class findCreateUserPage extends StatefulWidget {
-  const findCreateUserPage({super.key});
+class FindCreateUserPage extends StatefulWidget {
+  const FindCreateUserPage({super.key});
 
   @override
-  State<findCreateUserPage> createState() => _findCreateUserPageState();
+  State<FindCreateUserPage> createState() => _FindCreateUserPageState();
 }
 
-class _findCreateUserPageState extends State<findCreateUserPage> {
+class _FindCreateUserPageState extends State<FindCreateUserPage> {
   final TextEditingController _phone_number = TextEditingController();
   Map<String, dynamic> client = {};
   bool isClientReady = false;
@@ -30,7 +30,9 @@ class _findCreateUserPageState extends State<findCreateUserPage> {
               ? () {
                   Navigator.push(context, MaterialPageRoute(
                     builder: (context) {
-                      return PickAddressPage(client: client,);
+                      return PickAddressPage(
+                        client: client,
+                      );
                     },
                   ));
                   // Navigator.push(
