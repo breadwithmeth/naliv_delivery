@@ -362,7 +362,7 @@ class _ProductPageState extends State<ProductPage> {
   // BUTTON VARIABLES/FUNCS END
 
   String formatCost(String costString) {
-    int cost = int.parse(costString);
+    int cost = double.parse(costString).truncate();
     return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
   }
 
@@ -372,7 +372,11 @@ class _ProductPageState extends State<ProductPage> {
     super.initState();
     setState(() {
       cacheAmount = int.parse(widget.item["amount"] ?? "0");
-      inStock = double.parse(widget.item["in_stock"]).truncate();
+      if (widget.item["in_stock"] != null) {
+        inStock = double.parse(widget.item["in_stock"]).truncate();
+      } else {
+        inStock = 0;
+      }
 
       bool isImageDownloaded = false;
       _image = CachedNetworkImage(

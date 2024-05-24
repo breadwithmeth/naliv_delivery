@@ -85,6 +85,15 @@ class _MarqueeTextState extends State<MarqueeText>
   }
 
   @override
+  void dispose() {
+    // TODO: implement dispose
+    _controller.dispose();
+    _animationOne.removeListener(() {});
+    _animationTwo.removeListener(() {});
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
@@ -100,149 +109,22 @@ class _MarqueeTextState extends State<MarqueeText>
           turns: const AlwaysStoppedAnimation(-30 / 360),
           child: Column(
             children: [
-              SlideTransition(
-                position: _animationOne,
-                child: const Text(
-                  "НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ ",
-                  style: TextStyle(
-                    fontSize: 64,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.black12,
-                    height: 1.2,
-                    wordSpacing: 10,
+              for (int i = 0; i < 10; i++)
+                SlideTransition(
+                  position: i.isOdd ? _animationOne : _animationTwo,
+                  child: Text(
+                    i.isEven
+                        ? "НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ "
+                        : "ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ",
+                    style: const TextStyle(
+                      fontSize: 64,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.black12,
+                      height: 1.2,
+                      wordSpacing: 10,
+                    ),
                   ),
                 ),
-              ),
-              SlideTransition(
-                position: _animationTwo,
-                child: const Text(
-                  "ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ",
-                  style: TextStyle(
-                    fontSize: 64,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.black12,
-                    height: 1.2,
-                    wordSpacing: 10,
-                  ),
-                ),
-              ),
-              SlideTransition(
-                position: _animationOne,
-                child: const Text(
-                  "НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ ",
-                  style: TextStyle(
-                    fontSize: 64,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.black12,
-                    height: 1.2,
-                    wordSpacing: 10,
-                  ),
-                ),
-              ),
-              SlideTransition(
-                position: _animationTwo,
-                child: const Text(
-                  "ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ",
-                  style: TextStyle(
-                    fontSize: 64,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.black12,
-                    height: 1.2,
-                    wordSpacing: 10,
-                  ),
-                ),
-              ),
-              SlideTransition(
-                position: _animationOne,
-                child: const Text(
-                  "НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ ",
-                  style: TextStyle(
-                    fontSize: 64,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.black12,
-                    height: 1.2,
-                    wordSpacing: 10,
-                  ),
-                ),
-              ),
-              SlideTransition(
-                position: _animationTwo,
-                child: const Text(
-                  "ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ",
-                  style: TextStyle(
-                    fontSize: 64,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.black12,
-                    height: 1.2,
-                    wordSpacing: 10,
-                  ),
-                ),
-              ),
-              SlideTransition(
-                position: _animationOne,
-                child: const Text(
-                  "НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ ",
-                  style: TextStyle(
-                    fontSize: 64,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.black12,
-                    height: 1.2,
-                    wordSpacing: 10,
-                  ),
-                ),
-              ),
-              SlideTransition(
-                position: _animationTwo,
-                child: const Text(
-                  "ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ",
-                  style: TextStyle(
-                    fontSize: 64,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.black12,
-                    height: 1.2,
-                    wordSpacing: 10,
-                  ),
-                ),
-              ),
-              SlideTransition(
-                position: _animationOne,
-                child: const Text(
-                  "НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ ",
-                  style: TextStyle(
-                    fontSize: 64,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.black12,
-                    height: 1.2,
-                    wordSpacing: 10,
-                  ),
-                ),
-              ),
-              SlideTransition(
-                position: _animationTwo,
-                child: const Text(
-                  "ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ",
-                  style: TextStyle(
-                    fontSize: 64,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.black12,
-                    height: 1.2,
-                    wordSpacing: 10,
-                  ),
-                ),
-              ),
-              SlideTransition(
-                position: _animationOne,
-                child: const Text(
-                  "НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ ",
-                  style: TextStyle(
-                    fontSize: 64,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.black12,
-                    height: 1.2,
-                    wordSpacing: 10,
-                  ),
-                ),
-              ),
             ],
           ),
         ),

@@ -15,7 +15,7 @@ import 'package:intl/intl.dart';
 import '../misc/api.dart';
 
 class CreateOrderPage extends StatefulWidget {
-  const CreateOrderPage({super.key, required this.client});
+  const CreateOrderPage({super.key, this.client = const {}});
 
   final Map<String, dynamic> client;
 
@@ -320,8 +320,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
     isBusinessLoading = true;
     Future.delayed(const Duration(microseconds: 0), () async {
       await _getCart();
-      // await _getAddresses();
-      await _getClientAddresses();
+      // SWITCH BETWEEN getAddresses and getClientAddresses depending on Client/Operator mode
+      await _getAddresses();
+      // await _getClientAddresses();
       await _getUser();
       await _getLastSelectedBusiness().whenComplete(() {
         setState(() {

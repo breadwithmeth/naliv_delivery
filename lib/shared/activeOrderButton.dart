@@ -48,6 +48,7 @@ class _ActiveOrderButtonState extends State<ActiveOrderButton> {
   //   ],
   // };
 
+  late Timer _timer;
   // TODO: REMOVE LATER
   int index = 0;
   List<List<dynamic>> testOrderStatuses = [
@@ -83,15 +84,26 @@ class _ActiveOrderButtonState extends State<ActiveOrderButton> {
   void initState() {
     super.initState();
     orderCurrentStatus = testOrderStatuses[index];
-    Timer.periodic(const Duration(seconds: 5), (timer) {
-      setState(() {
-        orderCurrentStatus = testOrderStatuses[index];
-      });
-      index++;
-      if (index == testOrderStatuses.length) {
-        index = 0;
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) {
+        setState(() {
+          orderCurrentStatus = testOrderStatuses[index];
+        });
+        index++;
+        if (index == testOrderStatuses.length) {
+          index = 0;
+        }
+      } else {
+        _timer.cancel();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    _timer.cancel();
+    super.dispose();
   }
 
   @override
