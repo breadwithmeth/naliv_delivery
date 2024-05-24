@@ -3,6 +3,7 @@ import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:intl_phone_number_input/intl_phone_number_input_test.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
+import 'package:naliv_delivery/pages/pickAddressPage.dart';
 
 class findCreateUserPage extends StatefulWidget {
   const findCreateUserPage({super.key});
@@ -27,14 +28,19 @@ class _findCreateUserPageState extends State<findCreateUserPage> {
         child: ElevatedButton(
           onPressed: isClientReady
               ? () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) {
-                        return CreateOrderPage(client: client);
-                      },
-                    ),
-                  );
+                  Navigator.push(context, MaterialPageRoute(
+                    builder: (context) {
+                      return PickAddressPage(client: client,);
+                    },
+                  ));
+                  // Navigator.push(
+                  //   context,
+                  //   MaterialPageRoute(
+                  //     builder: (context) {
+                  //       return CreateOrderPage(client: client);
+                  //     },
+                  //   ),
+                  // );
                 }
               : null,
           child: const Row(
