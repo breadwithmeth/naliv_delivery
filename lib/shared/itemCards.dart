@@ -161,7 +161,7 @@ class _ItemCardState extends State<ItemCard> {
                       text: TextSpan(
                         style: TextStyle(
                           textBaseline: TextBaseline.alphabetic,
-                          fontSize: 20 * (screenSize / 720),
+                          fontSize: 40 * (screenSize / 720),
                           color: Colors.black,
                         ),
                         children: [

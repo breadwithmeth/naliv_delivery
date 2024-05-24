@@ -59,6 +59,8 @@ class _CategoryPageState extends State<CategoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    double screenSize = MediaQuery.of(context).size.width;
+
     return DefaultTabController(
       initialIndex: initialIndexTabbar,
       length: widget.categories.length,
@@ -93,7 +95,7 @@ class _CategoryPageState extends State<CategoryPage> {
             labelPadding:
                 const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             labelStyle: TextStyle(
-              fontSize: 16,
+              fontSize: 32 * (screenSize / 720),
               fontWeight: FontWeight.w500,
               color: Theme.of(context).colorScheme.onBackground,
             ),
@@ -291,7 +293,7 @@ class _CategoryPageState extends State<CategoryPage> {
                           Radius.circular(10),
                         ),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,7 +302,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                 "Бренды",
                                 style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: 16,
+                                  fontSize: 32 * (screenSize / 720),
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -326,7 +328,7 @@ class _CategoryPageState extends State<CategoryPage> {
                           Radius.circular(10),
                         ),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -335,7 +337,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                 "Производители",
                                 style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: 16,
+                                  fontSize: 32 * (screenSize / 720),
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -361,7 +363,7 @@ class _CategoryPageState extends State<CategoryPage> {
                           Radius.circular(10),
                         ),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -370,7 +372,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                 "Страны",
                                 style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: 16,
+                                  fontSize: 32 * (screenSize / 720),
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -399,7 +401,7 @@ class _CategoryPageState extends State<CategoryPage> {
                             child: Text(
                               "Применить",
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: 32 * (screenSize / 720),
                                 fontWeight: FontWeight.w700,
                                 color: Theme.of(context).colorScheme.onPrimary,
                               ),

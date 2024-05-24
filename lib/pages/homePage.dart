@@ -3,11 +3,7 @@
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/animation.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/pages/categoryPage.dart';
@@ -182,7 +178,7 @@ class _HomePageState extends State<HomePage>
     });
   }
 
-  void _getAddressPickDialog() {
+  void _getAddressPickDialog(double screenSize) {
     showDialog(
       useSafeArea: false,
       context: context,
@@ -231,8 +227,8 @@ class _HomePageState extends State<HomePage>
                                   child: Text(
                                     "${_addresses[index]["name"] != null ? '${_addresses[index]["name"]} -' : ""} ${_addresses[index]["address"]}",
                                     textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      fontSize: 14,
+                                    style: TextStyle(
+                                      fontSize: 28 * (screenSize / 720),
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
@@ -259,9 +255,11 @@ class _HomePageState extends State<HomePage>
                   );
                 }));
               },
-              child: const Text(
+              child: Text(
                 "Добавить новый адрес",
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                    fontSize: 28 * (screenSize / 720),
+                    fontWeight: FontWeight.w700),
               ),
             )
           ],
@@ -318,6 +316,8 @@ class _HomePageState extends State<HomePage>
 
   @override
   Widget build(BuildContext context) {
+    double screenSize = MediaQuery.of(context).size.width;
+
     super.build(context);
     return isPageLoading
         ? const LoadingScreen()
@@ -375,24 +375,24 @@ class _HomePageState extends State<HomePage>
                                     children: [
                                       Text(
                                         user!["name"] ?? "Нет имени",
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             color: Colors.black,
                                             fontWeight: FontWeight.w500,
-                                            fontSize: 16),
+                                            fontSize: 32 * (screenSize / 720)),
                                       ),
                                       Text(
                                         user!["login"] ?? "",
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             color: Colors.black,
                                             fontWeight: FontWeight.w400,
-                                            fontSize: 14),
+                                            fontSize: 28 * (screenSize / 720)),
                                       ),
                                       Text(
                                         user!["user_id"] ?? "",
                                         style: TextStyle(
                                             color: Colors.grey.shade400,
                                             fontWeight: FontWeight.w400,
-                                            fontSize: 14),
+                                            fontSize: 28 * (screenSize / 720)),
                                       )
                                     ],
                                   )
@@ -422,7 +422,7 @@ class _HomePageState extends State<HomePage>
                               ));
                             });
                           },
-                          child: const Row(
+                          child: Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Icon(
@@ -438,7 +438,7 @@ class _HomePageState extends State<HomePage>
                                 style: TextStyle(
                                     color: Colors.black,
                                     fontWeight: FontWeight.w400,
-                                    fontSize: 20),
+                                    fontSize: 40 * (screenSize / 720)),
                               )
                             ],
                           ),
@@ -461,7 +461,7 @@ class _HomePageState extends State<HomePage>
                                       )),
                             ).then((value) => print(_getAddresses()));
                           },
-                          child: const Row(
+                          child: Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Icon(
@@ -477,7 +477,7 @@ class _HomePageState extends State<HomePage>
                                 style: TextStyle(
                                     color: Colors.black,
                                     fontWeight: FontWeight.w400,
-                                    fontSize: 20),
+                                    fontSize: 40 * (screenSize / 720)),
                               )
                             ],
                           ),
@@ -492,7 +492,7 @@ class _HomePageState extends State<HomePage>
                               toggleDrawer();
                             });
                           },
-                          child: const Row(
+                          child: Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Icon(
@@ -508,7 +508,7 @@ class _HomePageState extends State<HomePage>
                                 style: TextStyle(
                                     color: Colors.grey,
                                     fontWeight: FontWeight.w400,
-                                    fontSize: 20),
+                                    fontSize: 40 * (screenSize / 720)),
                               )
                             ],
                           ),
@@ -528,7 +528,7 @@ class _HomePageState extends State<HomePage>
                               },
                             ));
                           },
-                          child: const Row(
+                          child: Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Icon(
@@ -544,7 +544,7 @@ class _HomePageState extends State<HomePage>
                                 style: TextStyle(
                                     color: Colors.black,
                                     fontWeight: FontWeight.w400,
-                                    fontSize: 20),
+                                    fontSize: 40 * (screenSize / 720)),
                               )
                             ],
                           ),
@@ -564,7 +564,7 @@ class _HomePageState extends State<HomePage>
                               },
                             ));
                           },
-                          child: const Row(
+                          child: Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Icon(
@@ -580,7 +580,7 @@ class _HomePageState extends State<HomePage>
                                 style: TextStyle(
                                     color: Colors.black,
                                     fontWeight: FontWeight.w400,
-                                    fontSize: 20),
+                                    fontSize: 40 * (screenSize / 720)),
                               )
                             ],
                           ),
@@ -599,7 +599,7 @@ class _HomePageState extends State<HomePage>
                               }));
                             });
                           },
-                          child: const Row(
+                          child: Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Icon(
@@ -615,7 +615,7 @@ class _HomePageState extends State<HomePage>
                                 style: TextStyle(
                                     color: Colors.black,
                                     fontWeight: FontWeight.w400,
-                                    fontSize: 20),
+                                    fontSize: 40 * (screenSize / 720)),
                               )
                             ],
                           ),
@@ -739,7 +739,7 @@ class _HomePageState extends State<HomePage>
                             //   },
                             // ));
                           },
-                          child: const Row(
+                          child: Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Icon(
@@ -755,7 +755,7 @@ class _HomePageState extends State<HomePage>
                                 style: TextStyle(
                                     color: Colors.black,
                                     fontWeight: FontWeight.w400,
-                                    fontSize: 20),
+                                    fontSize: 40 * (screenSize / 720)),
                               )
                             ],
                           ),
@@ -890,7 +890,7 @@ class _HomePageState extends State<HomePage>
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () {
-                          _getAddressPickDialog();
+                          _getAddressPickDialog(screenSize);
                         },
                         child: Container(
                           margin: const EdgeInsets.symmetric(
@@ -1366,6 +1366,8 @@ class _CategoryItemState extends State<CategoryItem> {
 
   @override
   Widget build(BuildContext context) {
+    double screenSize = MediaQuery.of(context).size.width;
+
     return TextButton(
       style: TextButton.styleFrom(padding: const EdgeInsets.all(0)),
       onPressed: () {
@@ -1520,7 +1522,7 @@ class _CategoryItemState extends State<CategoryItem> {
                 style: TextStyle(
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
-                    fontSize: 14,
+                    fontSize: 28 * (screenSize / 720),
                     height: 1.2,
                     shadows: [
                       Shadow(
