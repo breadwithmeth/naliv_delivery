@@ -1328,8 +1328,8 @@ class _CategoryItemState extends State<CategoryItem> {
         break;
       case '20':
         setState(() {
-          firstColor = const Color(0xFFC4DCDF);
-          secondColor = const Color(0xFF8C9698);
+          firstColor = const Color(0xFF92EAFD);
+          secondColor = const Color(0xFF285B98);
           imageBG = Image.asset(
             'assets/vectors/drinks.png',
             width: 85,
