@@ -1,7 +1,4 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
 
 class LoadingScreen extends StatelessWidget {
   const LoadingScreen({super.key});
@@ -111,11 +108,11 @@ class _MarqueeTextState extends State<MarqueeText>
           turns: const AlwaysStoppedAnimation(-30 / 360),
           child: Column(
             children: [
-              for (int i = 0; i < 15; i++)
+              for (int i = 0; i < 14; i++)
                 SlideTransition(
                   position: i.isOdd ? _animationOne : _animationTwo,
                   child: Text(
-                    i.isEven
+                    i.isOdd
                         ? "НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ "
                         : "ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ",
                     style: TextStyle(

@@ -25,15 +25,6 @@ class _findCreateUserPageState extends State<findCreateUserPage> {
       floatingActionButton: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 35),
         child: ElevatedButton(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                "Продолжить",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
-              )
-            ],
-          ),
           onPressed: isClientReady
               ? () {
                   Navigator.push(
@@ -46,10 +37,19 @@ class _findCreateUserPageState extends State<findCreateUserPage> {
                   );
                 }
               : null,
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "Продолжить",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+              )
+            ],
+          ),
         ),
       ),
       appBar: AppBar(
-        title: Text("Укажите клиента"),
+        title: const Text("Укажите клиента"),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -114,7 +114,9 @@ class _findCreateUserPageState extends State<findCreateUserPage> {
                   ),
                 ),
               ),
-              isSearchInProgress ? CircularProgressIndicator() : SizedBox(),
+              isSearchInProgress
+                  ? const CircularProgressIndicator()
+                  : const SizedBox(),
               isClientReady
                   ? Container(
                       child: Column(
@@ -130,7 +132,7 @@ class _findCreateUserPageState extends State<findCreateUserPage> {
                         ],
                       ),
                     )
-                  : SizedBox(),
+                  : const SizedBox(),
             ],
           ),
         ),

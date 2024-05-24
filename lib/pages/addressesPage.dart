@@ -102,7 +102,7 @@ class _AddressesPageState extends State<AddressesPage>
       // Location services are not enabled don't continue
       // accessing the position and request users of the
       // App to enable the location services.
-      return Future.error('Location services are disabled.');
+      return Future.error('Сервис местоположения отключен.');
     }
 
     permission = await Geolocator.checkPermission();
@@ -114,14 +114,14 @@ class _AddressesPageState extends State<AddressesPage>
         // Android's shouldShowRequestPermissionRationale
         // returned true. According to Android guidelines
         // your App should show an explanatory UI now.
-        return Future.error('Location permissions are denied');
+        return Future.error('Нет разрешения к сервису местоположения');
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
       // Permissions are denied forever, handle appropriately.
       return Future.error(
-          'Location permissions are permanently denied, we cannot request permissions.');
+          'Доступ к местоположению полностью заблокирован, мы не можем запросить разрешение.');
     }
 
     // When we reach here, permissions are granted and we can
