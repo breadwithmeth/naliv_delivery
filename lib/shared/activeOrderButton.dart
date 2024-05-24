@@ -12,6 +12,7 @@ class ActiveOrderButton extends StatefulWidget {
 }
 
 class _ActiveOrderButtonState extends State<ActiveOrderButton> {
+  late Timer orderTimer;
   // Map<String, String> orderStatuses = {
   //   "pending": "в обработке",
   //   "preparing": "собирается в магазине",
