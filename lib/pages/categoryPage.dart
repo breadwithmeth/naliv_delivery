@@ -445,7 +445,9 @@ class CategoryPageList extends StatefulWidget {
 }
 
 class _CategoryPageListState extends State<CategoryPageList>
-    with AutomaticKeepAliveClientMixin<CategoryPageList> {
+    with
+        AutomaticKeepAliveClientMixin<CategoryPageList>,
+        SingleTickerProviderStateMixin<CategoryPageList> {
   @override
   bool get wantKeepAlive => true;
 
@@ -456,6 +458,7 @@ class _CategoryPageListState extends State<CategoryPageList>
   final int _numberOfPostsPerRequest = 30;
   late List<Item> _items;
   final int _nextPageTrigger = 3;
+  late final TabController _controller;
 
   void updateDataAmount(String newDataAmount, int index) {
     setState(() {
@@ -504,71 +507,108 @@ class _CategoryPageListState extends State<CategoryPageList>
         return Center(child: errorDialog(size: 20));
       }
     }
-    return ListView.builder(
-      itemCount: _items.length + (_isLastPage ? 0 : 1),
-      itemBuilder: (context, index) {
-        if ((index == _items.length - _nextPageTrigger) && (!_isLastPage)) {
-          _getItems();
-        }
-        if (index == _items.length) {
-          if (_error) {
-            return Center(child: errorDialog(size: 15));
-          } else {
-            return const Center(
-                child: Padding(
-              padding: EdgeInsets.all(8),
-              child: CircularProgressIndicator(),
-            ));
-          }
-        }
-        final Item item = _items[index];
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          key: Key(item.data["item_id"]),
-          onTap: () {
-            showModalBottomSheet(
-              context: context,
-              clipBehavior: Clip.antiAlias,
-              useSafeArea: true,
-              isScrollControlled: true,
-              builder: (context) {
-                return ProductPage(
-                  item: item.data,
-                  index: index,
-                  returnDataAmount: updateDataAmount,
-                );
-              },
-            );
-          },
-          child: Column(
-            children: [
-              ItemCardMedium(
-                item_id: item.data["item_id"],
-                element: item.data,
-                category_id: "",
-                category_name: "",
-                scroll: 0,
-              ),
-              _items.length != index
-                  ? const Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 5,
+    return Column(
+      children: [
+        // TabBar.secondary(
+        //   controller: _controller,
+        //   tabs: [
+        //     Padding(
+        //       padding: const EdgeInsets.symmetric(vertical: 8),
+        //       child: Text(
+        //         "Бутылка",
+        //         style: TextStyle(
+        //           fontSize: 14,
+        //           fontWeight: FontWeight.w500,
+        //           color: Colors.black,
+        //         ),
+        //       ),
+        //     ),
+        //     Padding(
+        //       padding: const EdgeInsets.symmetric(vertical: 8),
+        //       child: Text(
+        //         "Жестянка",
+        //         style: TextStyle(
+        //           fontSize: 14,
+        //           fontWeight: FontWeight.w500,
+        //           color: Colors.black,
+        //         ),
+        //       ),
+        //     ),
+        //     // Tab(text: 'Бутылка'),
+        //     // Tab(text: 'Жестянная банка'),
+        //   ],
+        // ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: _items.length + (_isLastPage ? 0 : 1),
+            itemBuilder: (context, index) {
+              if ((index == _items.length - _nextPageTrigger) &&
+                  (!_isLastPage)) {
+                _getItems();
+              }
+              if (index == _items.length) {
+                if (_error) {
+                  return Center(child: errorDialog(size: 15));
+                } else {
+                  return const Center(
+                      child: Padding(
+                    padding: EdgeInsets.all(8),
+                    child: CircularProgressIndicator(),
+                  ));
+                }
+              }
+              final Item item = _items[index];
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                key: Key(item.data["item_id"]),
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    clipBehavior: Clip.antiAlias,
+                    useSafeArea: true,
+                    isScrollControlled: true,
+                    builder: (context) {
+                      return ProductPage(
+                        item: item.data,
+                        index: index,
+                        returnDataAmount: updateDataAmount,
+                      );
+                    },
+                  );
+                },
+                child: Column(
+                  children: [
+                    ItemCardMedium(
+                      item_id: item.data["item_id"],
+                      element: item.data,
+                      category_id: "",
+                      category_name: "",
+                      scroll: 0,
+                    ),
+                    _items.length != index
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 5,
+                            ),
+                            child: Divider(
+                              height: 0,
+                            ),
+                          )
+                        : Container(),
+                    if ((index ==
+                            (_items.length + (_isLastPage ? 0 : 1) - 1)) &&
+                        (_isLastPage))
+                      const SizedBox(
+                        height: 95,
                       ),
-                      child: Divider(
-                        height: 0,
-                      ),
-                    )
-                  : Container(),
-              if ((index == (_items.length + (_isLastPage ? 0 : 1) - 1)) &&
-                  (_isLastPage))
-                const SizedBox(
-                  height: 95,
+                  ],
                 ),
-            ],
+              );
+            },
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 
@@ -583,25 +623,27 @@ class _CategoryPageListState extends State<CategoryPageList>
             'Произошла ошибка при загрузке позиций.',
             textAlign: TextAlign.center,
             style: TextStyle(
-                fontSize: size,
-                fontWeight: FontWeight.w500,
-                color: Colors.black),
+              fontSize: size,
+              fontWeight: FontWeight.w500,
+              color: Colors.black,
+            ),
           ),
           const SizedBox(
             height: 10,
           ),
           ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _loading = true;
-                  _error = false;
-                  _getItems();
-                });
-              },
-              child: const Text(
-                "Перезагрузить",
-                style: TextStyle(fontSize: 20, color: Colors.purpleAccent),
-              )),
+            onPressed: () {
+              setState(() {
+                _loading = true;
+                _error = false;
+                _getItems();
+              });
+            },
+            child: const Text(
+              "Перезагрузить",
+              style: TextStyle(fontSize: 20, color: Colors.purpleAccent),
+            ),
+          ),
         ],
       ),
     );
@@ -610,6 +652,7 @@ class _CategoryPageListState extends State<CategoryPageList>
   @override
   void initState() {
     super.initState();
+    _controller = TabController(length: 2, vsync: this);
     _pageNumber = 0;
     _items = [];
     _isLastPage = false;
@@ -620,6 +663,7 @@ class _CategoryPageListState extends State<CategoryPageList>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return buildPostsView();
   }
 }
