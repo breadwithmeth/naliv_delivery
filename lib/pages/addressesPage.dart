@@ -10,6 +10,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/pages/createAddress.dart';
+import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 
 class AddressesPage extends StatefulWidget {
   const AddressesPage(
@@ -171,11 +172,13 @@ class _AddressesPageState extends State<AddressesPage>
                         },
                       ),
                       children: [
+                        
                         TileLayer(
                           tileBuilder: _darkModeTileBuilder,
                           urlTemplate:
                               'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                           userAgentPackageName: 'com.example.app',
+                          tileProvider:  CancellableNetworkTileProvider(),
                         ),
                         MarkerLayer(markers: [
                           Marker(point: _selectedAddress, child: FlutterLogo())

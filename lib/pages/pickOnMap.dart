@@ -10,6 +10,6 @@ class PickOnMapPage extends StatefulWidget {
 class _PickOnMapPageState extends State<PickOnMapPage> {
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return Scaffold();
   }
 }

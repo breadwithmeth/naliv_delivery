@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
+import 'package:naliv_delivery/pages/pickOnMap.dart';
 
 class PickAddressPage extends StatefulWidget {
   const PickAddressPage({super.key, required this.client});
@@ -29,7 +30,13 @@ class _PickAddressPageState extends State<PickAddressPage> {
         title: Text("Адреса"),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () {
+          Navigator.push(context, MaterialPageRoute(
+            builder: (context) {
+              return PickOnMapPage();
+            },
+          ));
+        },
         child: Icon(
           Icons.add,
           color: Colors.white,
