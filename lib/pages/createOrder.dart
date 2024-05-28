@@ -741,24 +741,39 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
             margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
             padding: const EdgeInsets.all(15),
             child: ElevatedButton(
-              onPressed:
-                  isCartLoading || isAddressesLoading || addresses.isEmpty
-                      ? null
-                      : () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => OrderConfirmation(
-                                delivery: delivery,
-                                items: items,
-                                address: currentAddress,
-                                cartInfo: cartInfo,
-                                user: user,
-                                selectedBusiness: selectedBusiness,
+              onPressed: isCartLoading ||
+                      isAddressesLoading ||
+                      (addresses.isEmpty && widget.customAddress.isEmpty)
+                  ? null
+                  : () {
+                      widget.customAddress.isEmpty
+                          ? Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => OrderConfirmation(
+                                  delivery: delivery,
+                                  items: items,
+                                  address: currentAddress,
+                                  cartInfo: cartInfo,
+                                  user: user,
+                                  selectedBusiness: selectedBusiness,
+                                ),
                               ),
-                            ),
-                          );
-                        },
+                            )
+                          : Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => OrderConfirmation(
+                                  delivery: delivery,
+                                  items: items,
+                                  address: widget.customAddress,
+                                  cartInfo: cartInfo,
+                                  user: widget.client,
+                                  selectedBusiness: selectedBusiness,
+                                ),
+                              ),
+                            );
+                    },
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.max,

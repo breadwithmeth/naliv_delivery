@@ -7,6 +7,7 @@ import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/cartPage.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
 import 'package:naliv_delivery/pages/searchPage.dart';
+import 'package:naliv_delivery/shared/cartButton.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -66,28 +67,7 @@ class _CategoryPageState extends State<CategoryPage> {
       length: widget.categories.length,
       child: Scaffold(
         key: _scaffoldKey,
-        floatingActionButton: SizedBox(
-          width: 65,
-          height: 65,
-          child: FloatingActionButton(
-            shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(10))),
-            child: Icon(
-              Icons.shopping_basket_rounded,
-              color: Theme.of(context).colorScheme.onPrimary,
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) {
-                    return const CartPage();
-                  },
-                ),
-              );
-            },
-          ),
-        ),
+        floatingActionButton: const CartButton(),
         appBar: AppBar(
           bottom: TabBar(
             tabAlignment: TabAlignment.start,
