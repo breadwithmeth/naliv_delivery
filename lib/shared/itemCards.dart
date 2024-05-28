@@ -60,7 +60,7 @@ class _ItemCardState extends State<ItemCard> {
           children: [
             Text(
               temp[1],
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: Colors.black),
@@ -93,6 +93,8 @@ class _ItemCardState extends State<ItemCard> {
 
   @override
   Widget build(BuildContext context) {
+    double screenSize = MediaQuery.of(context).size.width;
+
     chack = widget.chack;
     return Container(
       // margin: const EdgeInsets.all(10),
@@ -157,9 +159,9 @@ class _ItemCardState extends State<ItemCard> {
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       text: TextSpan(
-                        style: const TextStyle(
+                        style: TextStyle(
                           textBaseline: TextBaseline.alphabetic,
-                          fontSize: 20,
+                          fontSize: 40 * (screenSize / 720),
                           color: Colors.black,
                         ),
                         children: [
@@ -177,7 +179,7 @@ class _ItemCardState extends State<ItemCard> {
                                     ),
                                     child: Text(
                                       element["country"] ?? "",
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: Colors.black,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -197,17 +199,17 @@ class _ItemCardState extends State<ItemCard> {
                           children: [
                             Text(
                               formatCost(element['price'] ?? ""),
-                              style: const TextStyle(
+                              style: TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.w600,
-                                  fontSize: 28),
+                                  fontSize: 56 * (screenSize / 720)),
                             ),
                             Text(
                               "₸",
                               style: TextStyle(
                                   color: Colors.grey.shade600,
                                   fontWeight: FontWeight.w900,
-                                  fontSize: 28),
+                                  fontSize: 56 * (screenSize / 720)),
                             )
                           ],
                         ),
@@ -224,7 +226,7 @@ class _ItemCardState extends State<ItemCard> {
                                           decorationColor: Colors.grey.shade500,
                                           decorationThickness: 1.85,
                                           color: Colors.grey.shade500,
-                                          fontSize: 14,
+                                          fontSize: 28 * (screenSize / 720),
                                           fontWeight: FontWeight.w500),
                                     ),
                                     Text(
@@ -232,7 +234,7 @@ class _ItemCardState extends State<ItemCard> {
                                       style: TextStyle(
                                           color: Colors.grey.shade600,
                                           fontWeight: FontWeight.w900,
-                                          fontSize: 14),
+                                          fontSize: 28 * (screenSize / 720)),
                                     )
                                   ],
                                 ),
@@ -340,7 +342,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
           children: [
             Text(
               temp[1],
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 color: Colors.black,
@@ -374,6 +376,8 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
 
   @override
   Widget build(BuildContext context) {
+    double screenSize = MediaQuery.of(context).size.width;
+
     chack = widget.chack;
     return Container(
       // margin: const EdgeInsets.all(10),
@@ -455,15 +459,15 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                     text: TextSpan(
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         textBaseline: TextBaseline.alphabetic,
-                                        fontSize: 14,
+                                        fontSize: 28 * (screenSize / 720),
                                         color: Colors.black,
                                       ),
                                       children: [
                                         TextSpan(
                                           text: element["name"],
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                               fontWeight: FontWeight.w500),
                                         ),
                                         element["country"] != null
@@ -483,7 +487,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                                   ),
                                                   child: Text(
                                                     element["country"] ?? "",
-                                                    style: const TextStyle(
+                                                    style: TextStyle(
                                                       color: Colors.black,
                                                       fontWeight:
                                                           FontWeight.w600,
@@ -503,7 +507,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                               style: TextStyle(
                                   color:
                                       Theme.of(context).colorScheme.secondary,
-                                  fontSize: 14,
+                                  fontSize: 28 * (screenSize / 720),
                                   fontWeight: FontWeight.w500),
                             ),
                           ],
@@ -528,7 +532,8 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                                   color: Theme.of(context)
                                                       .colorScheme
                                                       .secondary,
-                                                  fontSize: 14,
+                                                  fontSize:
+                                                      28 * (screenSize / 720),
                                                   fontWeight: FontWeight.w500),
                                             ),
                                           ],
@@ -538,17 +543,17 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                     children: [
                                       Text(
                                         formatCost(element['price'] ?? ""),
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             color: Colors.black,
                                             fontWeight: FontWeight.w600,
-                                            fontSize: 18),
+                                            fontSize: 36 * (screenSize / 720)),
                                       ),
                                       Text(
                                         "₸",
                                         style: TextStyle(
                                             color: Colors.grey.shade600,
                                             fontWeight: FontWeight.w700,
-                                            fontSize: 18),
+                                            fontSize: 36 * (screenSize / 720)),
                                       )
                                     ],
                                   ),
@@ -637,7 +642,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
           children: [
             Text(
               temp[1],
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: Colors.black),
@@ -670,6 +675,8 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
 
   @override
   Widget build(BuildContext context) {
+    double screenSize = MediaQuery.of(context).size.width;
+
     chack = widget.chack;
     return Container(
       // margin: const EdgeInsets.all(10),
@@ -737,15 +744,15 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       text: TextSpan(
-                        style: const TextStyle(
+                        style: TextStyle(
                           textBaseline: TextBaseline.alphabetic,
-                          fontSize: 14,
+                          fontSize: 28 * (screenSize / 720),
                           color: Colors.black,
                         ),
                         children: [
                           TextSpan(
                             text: element["name"],
-                            style: const TextStyle(fontWeight: FontWeight.w500),
+                            style: TextStyle(fontWeight: FontWeight.w500),
                           ),
                           element["country"] != null
                               ? WidgetSpan(
@@ -760,7 +767,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                     ),
                                     child: Text(
                                       element["country"] ?? "",
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: Colors.black,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -784,7 +791,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                   .secondary
                                   .withOpacity(0.2),
                               fontWeight: FontWeight.w600,
-                              fontSize: 14,
+                              fontSize: 28 * (screenSize / 720),
                             ),
                           ),
                         ),
@@ -797,20 +804,20 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                       children: [
                         Text(
                           "${formatCost((int.parse(element['price']) * int.parse(element["amount"])).toString())} ₸",
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.w600,
-                            fontSize: 16,
+                            fontSize: 32 * (screenSize / 720),
                           ),
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 4),
                           child: Text(
                             "${element["amount"]} шт.",
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.black,
                               fontWeight: FontWeight.w700,
-                              fontSize: 16,
+                              fontSize: 32 * (screenSize / 720),
                             ),
                           ),
                         ),
@@ -830,7 +837,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                         //     //                       Colors.grey.shade500,
                         //     //                   decorationThickness: 1.85,
                         //     //                   color: Colors.grey.shade500,
-                        //     //                   fontSize: 12,
+                        //     //                   fontSize: 12 * (screenSize / 720),
                         //     //                   fontWeight: FontWeight.w500),
                         //     //             ),
                         //     //             Text(
@@ -838,7 +845,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                         //     //               style: TextStyle(
                         //     //                   color: Colors.grey.shade600,
                         //     //                   fontWeight: FontWeight.w700,
-                        //     //                   fontSize: 12),
+                        //     //                   fontSize: 12 * (screenSize / 720)),
                         //     //             )
                         //     //           ],
                         //     //         ),
@@ -935,7 +942,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
           children: [
             Text(
               temp[1],
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: Colors.black),
@@ -968,6 +975,8 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
 
   @override
   Widget build(BuildContext context) {
+    double screenSize = MediaQuery.of(context).size.width;
+
     chack = widget.chack;
     return Container(
       // margin: const EdgeInsets.all(10),
@@ -987,10 +996,10 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                   maxLines: 1,
                   text: TextSpan(
                     text: "x ${element["amount"]}",
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.w600,
-                      fontSize: 16,
+                      fontSize: 32 * (screenSize / 720),
                     ),
                   ),
                 ),
@@ -1012,15 +1021,15 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     text: TextSpan(
-                      style: const TextStyle(
+                      style: TextStyle(
                         textBaseline: TextBaseline.alphabetic,
-                        fontSize: 14,
+                        fontSize: 28 * (screenSize / 720),
                         color: Colors.black,
                       ),
                       children: [
                         TextSpan(
                           text: element["name"],
-                          style: const TextStyle(fontWeight: FontWeight.w500),
+                          style: TextStyle(fontWeight: FontWeight.w500),
                         ),
                         element["country"] != null
                             ? WidgetSpan(
@@ -1035,7 +1044,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                                   ),
                                   child: Text(
                                     element["country"] ?? "",
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: Colors.black,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -1059,7 +1068,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                                 .secondary
                                 .withOpacity(0.2),
                             fontWeight: FontWeight.w600,
-                            fontSize: 14,
+                            fontSize: 28 * (screenSize / 720),
                           ),
                         ),
                       ),
@@ -1097,10 +1106,10 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                   text: TextSpan(
                     text:
                         "${formatCost((int.parse(element['price']) * int.parse(element['amount'])).toString())} ₸",
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.w600,
-                      fontSize: 16,
+                      fontSize: 32 * (screenSize / 720),
                     ),
                   ),
                 ),
@@ -1114,17 +1123,17 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
           //       children: [
           //         Text(
           //           "${formatCost(element['price'])} ₸",
-          //           style: const TextStyle(
+          //           style: TextStyle(
           //               color: Colors.black,
           //               fontWeight: FontWeight.w600,
-          //               fontSize: 16),
+          //               fontSize: 16 * (screenSize / 720)),
           //         ),
           //         // Text(
           //         //   "₸",
           //         //   style: TextStyle(
           //         //       color: Colors.grey.shade600,
           //         //       fontWeight: FontWeight.w700,
-          //         //       fontSize: 16),
+          //         //       fontSize: 16 * (screenSize / 720)),
           //         // // ),
           //         // element["prev_price"] != null
           //         //     ? Padding(
@@ -1138,7 +1147,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
           //         //                   decorationColor: Colors.grey.shade500,
           //         //                   decorationThickness: 1.85,
           //         //                   color: Colors.grey.shade500,
-          //         //                   fontSize: 12,
+          //         //                   fontSize: 12 * (screenSize / 720),
           //         //                   fontWeight: FontWeight.w500),
           //         //             ),
           //         //             Text(
@@ -1146,7 +1155,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
           //         //               style: TextStyle(
           //         //                   color: Colors.grey.shade600,
           //         //                   fontWeight: FontWeight.w700,
-          //         //                   fontSize: 12),
+          //         //                   fontSize: 12 * (screenSize / 720)),
           //         //             )
           //         //           ],
           //         //         ),

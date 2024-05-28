@@ -161,27 +161,31 @@ class _SearchResultPageState extends State<SearchResultPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            'An error occurred when fetching the posts.',
+            'Произошла ошибка при загрузке позиций.',
+            textAlign: TextAlign.center,
             style: TextStyle(
-                fontSize: size,
-                fontWeight: FontWeight.w500,
-                color: Colors.black),
+              fontSize: size,
+              fontWeight: FontWeight.w500,
+              color: Colors.black,
+            ),
           ),
           const SizedBox(
             height: 10,
           ),
           ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _loading = true;
-                  _error = false;
-                  _getItems();
-                });
-              },
-              child: const Text(
-                "Retry",
-                style: TextStyle(fontSize: 20, color: Colors.purpleAccent),
-              )),
+            onPressed: () {
+              setState(() {
+                _loading = true;
+                _error = false;
+                _getItems();
+              });
+            },
+            child: const Text(
+              "Перезагрузить",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 20, color: Colors.purpleAccent),
+            ),
+          ),
         ],
       ),
     );

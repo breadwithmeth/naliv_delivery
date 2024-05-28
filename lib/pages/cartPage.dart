@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -348,71 +349,61 @@ class _CartPageState extends State<CartPage>
                           children: [
                             Row(
                               children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 5),
-                                  child: Text(
-                                    formatCost(localSum
-                                        .toString()), // CHANGE THIS TO REPRESENT SUM WITHOUT DISCOUNT
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.black,
+                                Flexible(
+                                  child: FittedBox(
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(right: 5),
+                                      child: Text(
+                                        "${formatCost(localSum.toString())} ₸", // CHANGE THIS TO REPRESENT SUM WITHOUT DISCOUNT
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.black,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const Text(
-                                  "₸",
-                                  style: TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 18),
                                 ),
                               ],
                             ),
                             const Divider(),
                             Row(
                               children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 5),
-                                  child: Text(
-                                    formatCost(localDiscount
-                                        .toString()), // CHANGE THIS TO REPRESENT DISCOUNT
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.black,
+                                Flexible(
+                                  child: FittedBox(
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(right: 5),
+                                      child: Text(
+                                        "${formatCost(localDiscount.toString())} ₸", // CHANGE THIS TO REPRESENT DISCOUNT
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.black,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const Text(
-                                  "₸",
-                                  style: TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 18),
                                 ),
                               ],
                             ),
                             const Divider(),
                             Row(
                               children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 5),
-                                  child: Text(
-                                    formatCost(localSum.toString()),
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.black,
+                                Flexible(
+                                  fit: FlexFit.tight,
+                                  child: FittedBox(
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(right: 5),
+                                      child: Text(
+                                        "${formatCost(localSum.toString())} ₸",
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.black,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const Text(
-                                  "₸",
-                                  style: TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 18),
                                 ),
                               ],
                             ),
@@ -441,7 +432,7 @@ class _CartPageState extends State<CartPage>
                         context,
                         MaterialPageRoute(
                           builder: (context) {
-                            return const findCreateUserPage();
+                            return const CreateOrderPage();
                           },
                         ),
                       );
@@ -516,8 +507,7 @@ class _CartPageState extends State<CartPage>
                                           horizontal: 15, vertical: 15),
                                     ),
                                     onPressed: () {
-                                      print(
-                                          "Hell, add promo-codes functional here, lol");
+                                      print("Добавить функционал промо-кодов");
                                     },
                                     child: Row(
                                       mainAxisAlignment:

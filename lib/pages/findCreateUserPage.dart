@@ -5,14 +5,14 @@ import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
 
-class findCreateUserPage extends StatefulWidget {
-  const findCreateUserPage({super.key});
+class FindCreateUserPage extends StatefulWidget {
+  const FindCreateUserPage({super.key});
 
   @override
-  State<findCreateUserPage> createState() => _findCreateUserPageState();
+  State<FindCreateUserPage> createState() => _FindCreateUserPageState();
 }
 
-class _findCreateUserPageState extends State<findCreateUserPage> {
+class _FindCreateUserPageState extends State<FindCreateUserPage> {
   final TextEditingController _phone_number = TextEditingController();
   Map<String, dynamic> client = {};
   bool isClientReady = false;
@@ -26,20 +26,13 @@ class _findCreateUserPageState extends State<findCreateUserPage> {
       floatingActionButton: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 35),
         child: ElevatedButton(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                "Продолжить",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
-              )
-            ],
-          ),
           onPressed: isClientReady
               ? () {
                   Navigator.push(context, MaterialPageRoute(
                     builder: (context) {
-                      return PickAddressPage(client: client,);
+                      return PickAddressPage(
+                        client: client,
+                      );
                     },
                   ));
                   // Navigator.push(
@@ -52,10 +45,19 @@ class _findCreateUserPageState extends State<findCreateUserPage> {
                   // );
                 }
               : null,
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "Продолжить",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+              )
+            ],
+          ),
         ),
       ),
       appBar: AppBar(
-        title: Text("Укажите клиента"),
+        title: const Text("Укажите клиента"),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -120,7 +122,9 @@ class _findCreateUserPageState extends State<findCreateUserPage> {
                   ),
                 ),
               ),
-              isSearchInProgress ? CircularProgressIndicator() : SizedBox(),
+              isSearchInProgress
+                  ? const CircularProgressIndicator()
+                  : const SizedBox(),
               isClientReady
                   ? Container(
                       child: Column(
@@ -136,7 +140,7 @@ class _findCreateUserPageState extends State<findCreateUserPage> {
                         ],
                       ),
                     )
-                  : SizedBox(),
+                  : const SizedBox(),
             ],
           ),
         ),

@@ -24,7 +24,7 @@ class OrderConfirmation extends StatefulWidget {
   final Map? address;
   final List items;
   final Map<String, dynamic> cartInfo;
-  final Map<String, dynamic>? user;
+  final Map<dynamic, dynamic>? user;
   final Map<String, dynamic>? selectedBusiness;
   @override
   State<OrderConfirmation> createState() => _OrderConfirmationState();

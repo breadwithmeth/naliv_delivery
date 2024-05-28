@@ -15,9 +15,11 @@ import 'package:intl/intl.dart';
 import '../misc/api.dart';
 
 class CreateOrderPage extends StatefulWidget {
-  const CreateOrderPage({super.key, this.client = const {}});
+  const CreateOrderPage(
+      {super.key, this.client = const {}, this.customAddress = const {}});
 
-  final Map<String, dynamic> client;
+  final Map<dynamic, dynamic> client;
+  final Map<String, dynamic> customAddress;
 
   @override
   State<CreateOrderPage> createState() => _CreateOrderPageState();
@@ -155,6 +157,13 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   }
 
   Future<void> _getAddresses() async {
+    if (widget.customAddress.isNotEmpty) {
+      setState(() {
+        currentAddress = widget.customAddress;
+        isAddressesLoading = false;
+      });
+      return;
+    }
     setState(() {
       isAddressesLoading = true;
     });
@@ -647,26 +656,30 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                         ],
                       ),
                     ),
-          Container(
-            decoration: BoxDecoration(
-                border: Border.all(
-                  width: 2,
-                  color: Colors.grey.shade100,
-                ),
-                color: Colors.white,
-                borderRadius: const BorderRadius.all(Radius.circular(10))),
-            margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
-            padding: const EdgeInsets.all(15),
-            child: Text(
-              "Здесь мы расчитываем стоймость доставки",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 16,
-                color: Theme.of(context).colorScheme.secondary,
-              ),
-            ),
-          ),
+          delivery
+              ? Container(
+                  decoration: BoxDecoration(
+                      border: Border.all(
+                        width: 2,
+                        color: Colors.grey.shade100,
+                      ),
+                      color: Colors.white,
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(10))),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
+                  padding: const EdgeInsets.all(15),
+                  child: Text(
+                    "Детали доставки",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
+                  ),
+                )
+              : const SizedBox(),
           Container(
             decoration: BoxDecoration(
                 border: Border.all(
@@ -685,7 +698,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                       child: Text(
                         user == null
                             ? "Счёт на каспи:"
-                            : "Счёт на каспи: ${user!["login"].toString()}", //! TODO: CHANGE IF NOT KASPI BUT CASH
+                            : widget.client.isEmpty
+                                ? "Счёт на каспи: ${user!["login"].toString()}" //! TODO: CHANGE IF NOT KASPI BUT CASH
+                                : "Счёт на каспи: ${widget.client["login"].toString()}",
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
@@ -726,24 +741,39 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
             margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
             padding: const EdgeInsets.all(15),
             child: ElevatedButton(
-              onPressed:
-                  isCartLoading || isAddressesLoading || addresses.isEmpty
-                      ? null
-                      : () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => OrderConfirmation(
-                                delivery: delivery,
-                                items: items,
-                                address: currentAddress,
-                                cartInfo: cartInfo,
-                                user: user,
-                                selectedBusiness: selectedBusiness,
+              onPressed: isCartLoading ||
+                      isAddressesLoading ||
+                      (addresses.isEmpty && widget.customAddress.isEmpty)
+                  ? null
+                  : () {
+                      widget.customAddress.isEmpty
+                          ? Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => OrderConfirmation(
+                                  delivery: delivery,
+                                  items: items,
+                                  address: currentAddress,
+                                  cartInfo: cartInfo,
+                                  user: user,
+                                  selectedBusiness: selectedBusiness,
+                                ),
                               ),
-                            ),
-                          );
-                        },
+                            )
+                          : Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => OrderConfirmation(
+                                  delivery: delivery,
+                                  items: items,
+                                  address: widget.customAddress,
+                                  cartInfo: cartInfo,
+                                  user: widget.client,
+                                  selectedBusiness: selectedBusiness,
+                                ),
+                              ),
+                            );
+                    },
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.max,

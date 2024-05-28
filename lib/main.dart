@@ -98,7 +98,7 @@ class _MainState extends State<Main> {
     String? token = await getToken();
     if (token != null) {
       setState(() {
-        _redirect = const HomePage();
+        _redirect = const OrganizationSelectPage();
       });
       // determinePosition().then((value) {
       //   setCityAuto(value.latitude, value.longitude).then((value) {
