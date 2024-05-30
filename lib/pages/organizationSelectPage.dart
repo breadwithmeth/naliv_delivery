@@ -22,6 +22,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
     {"organization_id": "1", "name": "НАЛИВ"},
     {"organization_id": "2", "name": "Название бизнеса"},
     {"organization_id": "3", "name": "Название бизнеса"},
+    {"organization_id": "4", "name": "Название бизнеса"},
   ];
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -187,14 +188,13 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
               const Divider(),
               Container(
                 padding:
-                    const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+                    const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
                 child: Column(
                   children: [
                     TextButton(
                       style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 20)),
                       onPressed: () {
-                        toggleDrawer();
                         setState(() {
                           Navigator.push(context, MaterialPageRoute(
                             builder: (context) {
@@ -204,22 +204,39 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                         });
                       },
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.shopping_bag_outlined,
-                            size: 24,
-                            color: Colors.black,
+                          const Flexible(
+                            fit: FlexFit.tight,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Icon(
+                                    Icons.shopping_bag_outlined,
+                                    size: 24,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          SizedBox(
-                            width: 10,
+                          Flexible(
+                            child: SizedBox(),
                           ),
-                          Text(
-                            "История заказов",
-                            style: TextStyle(
+                          Flexible(
+                            flex: 12,
+                            fit: FlexFit.tight,
+                            child: Text(
+                              "История заказов",
+                              textAlign: TextAlign.start,
+                              style: TextStyle(
                                 color: Colors.black,
                                 fontWeight: FontWeight.w400,
-                                fontSize: 40 * (screenSize / 720)),
+                                fontSize: 40 * (screenSize / 720),
+                              ),
+                            ),
                           )
                         ],
                       ),
@@ -242,22 +259,39 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                         ).then((value) => print(_getAddresses()));
                       },
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.home_outlined,
-                            size: 24,
-                            color: Colors.black,
+                          const Flexible(
+                            fit: FlexFit.tight,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Icon(
+                                    Icons.home_outlined,
+                                    size: 24,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          SizedBox(
-                            width: 10,
+                          Flexible(
+                            child: SizedBox(),
                           ),
-                          Text(
-                            "Адреса доставки",
-                            style: TextStyle(
+                          Flexible(
+                            flex: 12,
+                            fit: FlexFit.tight,
+                            child: Text(
+                              "Адреса доставки",
+                              textAlign: TextAlign.start,
+                              style: TextStyle(
                                 color: Colors.black,
                                 fontWeight: FontWeight.w400,
-                                fontSize: 40 * (screenSize / 720)),
+                                fontSize: 40 * (screenSize / 720),
+                              ),
+                            ),
                           )
                         ],
                       ),
@@ -267,27 +301,42 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                       style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 20)),
                       onPressed: () {
-                        setState(() {
-                          toggleDrawer();
-                        });
+                        toggleDrawer();
                       },
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.credit_card,
-                            size: 24,
-                            color: Colors.black,
+                          const Flexible(
+                            fit: FlexFit.tight,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Icon(
+                                    Icons.credit_card_outlined,
+                                    size: 24,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          SizedBox(
-                            width: 10,
+                          Flexible(
+                            child: SizedBox(),
                           ),
-                          Text(
-                            "Карты оплаты",
-                            style: TextStyle(
+                          Flexible(
+                            flex: 12,
+                            fit: FlexFit.tight,
+                            child: Text(
+                              "Карты оплаты",
+                              textAlign: TextAlign.start,
+                              style: TextStyle(
                                 color: Colors.grey,
                                 fontWeight: FontWeight.w400,
-                                fontSize: 40 * (screenSize / 720)),
+                                fontSize: 40 * (screenSize / 720),
+                              ),
+                            ),
                           )
                         ],
                       ),
@@ -298,31 +347,47 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                           padding: const EdgeInsets.symmetric(horizontal: 20)),
                       onPressed: () {
                         setState(() {
-                          toggleDrawer();
+                          Navigator.push(context, MaterialPageRoute(
+                            builder: (context) {
+                              return const FavPage();
+                            },
+                          ));
                         });
-                        Navigator.push(context, MaterialPageRoute(
-                          builder: (context) {
-                            return const FavPage();
-                          },
-                        ));
                       },
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.favorite_border_rounded,
-                            size: 24,
-                            color: Colors.black,
+                          const Flexible(
+                            fit: FlexFit.tight,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Icon(
+                                    Icons.favorite_border_rounded,
+                                    size: 24,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          SizedBox(
-                            width: 10,
+                          Flexible(
+                            child: SizedBox(),
                           ),
-                          Text(
-                            "Избранное",
-                            style: TextStyle(
+                          Flexible(
+                            flex: 12,
+                            fit: FlexFit.tight,
+                            child: Text(
+                              "Избранное",
+                              textAlign: TextAlign.start,
+                              style: TextStyle(
                                 color: Colors.black,
                                 fontWeight: FontWeight.w400,
-                                fontSize: 40 * (screenSize / 720)),
+                                fontSize: 40 * (screenSize / 720),
+                              ),
+                            ),
                           )
                         ],
                       ),
@@ -333,31 +398,47 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                           padding: const EdgeInsets.symmetric(horizontal: 20)),
                       onPressed: () {
                         setState(() {
-                          toggleDrawer();
+                          Navigator.push(context, MaterialPageRoute(
+                            builder: (context) {
+                              return const SettingsPage();
+                            },
+                          ));
                         });
-                        Navigator.push(context, MaterialPageRoute(
-                          builder: (context) {
-                            return const SettingsPage();
-                          },
-                        ));
                       },
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.settings_outlined,
-                            size: 24,
-                            color: Colors.black,
+                          const Flexible(
+                            fit: FlexFit.tight,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Icon(
+                                    Icons.settings_outlined,
+                                    size: 24,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          SizedBox(
-                            width: 10,
+                          Flexible(
+                            child: SizedBox(),
                           ),
-                          Text(
-                            "Настройки",
-                            style: TextStyle(
+                          Flexible(
+                            flex: 12,
+                            fit: FlexFit.tight,
+                            child: Text(
+                              "Настройки",
+                              textAlign: TextAlign.start,
+                              style: TextStyle(
                                 color: Colors.black,
                                 fontWeight: FontWeight.w400,
-                                fontSize: 40 * (screenSize / 720)),
+                                fontSize: 40 * (screenSize / 720),
+                              ),
+                            ),
                           )
                         ],
                       ),
@@ -368,30 +449,47 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                           padding: const EdgeInsets.symmetric(horizontal: 20)),
                       onPressed: () {
                         setState(() {
-                          toggleDrawer();
-                          Navigator.push(context,
-                              MaterialPageRoute(builder: (context) {
-                            return const SupportPage();
-                          }));
+                          Navigator.pushReplacement(context, MaterialPageRoute(
+                            builder: (context) {
+                              return const SupportPage();
+                            },
+                          ));
                         });
                       },
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.chat_bubble_outline,
-                            size: 24,
-                            color: Colors.black,
+                          const Flexible(
+                            fit: FlexFit.tight,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Icon(
+                                    Icons.chat_bubble_outline_outlined,
+                                    size: 24,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          SizedBox(
-                            width: 10,
+                          Flexible(
+                            child: SizedBox(),
                           ),
-                          Text(
-                            "Поддержка",
-                            style: TextStyle(
+                          Flexible(
+                            flex: 12,
+                            fit: FlexFit.tight,
+                            child: Text(
+                              "Поддержка",
+                              textAlign: TextAlign.start,
+                              style: TextStyle(
                                 color: Colors.black,
                                 fontWeight: FontWeight.w400,
-                                fontSize: 40 * (screenSize / 720)),
+                                fontSize: 40 * (screenSize / 720),
+                              ),
+                            ),
                           )
                         ],
                       ),
@@ -499,35 +597,42 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                             );
                           },
                         );
-                        // setState(() {
-                        //   toggleDrawer();
-                        // });
-                        // print(123);
-                        // logout();
-                        // Navigator.pushReplacement(context, MaterialPageRoute(
-                        //   builder: (context) {
-                        //     return const LoginPage();
-                        //   },
-                        // ));
                       },
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.exit_to_app_outlined,
-                            size: 24,
-                            color: Colors.black,
+                          const Flexible(
+                            fit: FlexFit.tight,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Icon(
+                                    Icons.logout_outlined,
+                                    size: 24,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          SizedBox(
-                            width: 10,
+                          Flexible(
+                            child: SizedBox(),
                           ),
-                          Text(
-                            "Выйти",
-                            style: TextStyle(
+                          Flexible(
+                            flex: 12,
+                            fit: FlexFit.tight,
+                            child: Text(
+                              "Выйти",
+                              textAlign: TextAlign.start,
+                              style: TextStyle(
                                 color: Colors.black,
                                 fontWeight: FontWeight.w400,
-                                fontSize: 40 * (screenSize / 720)),
-                          )
+                                fontSize: 40 * (screenSize / 720),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -539,296 +644,71 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 465 * (screenSize / 720),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Flexible(
-                        fit: FlexFit.tight,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: Text("Бар-маркеты", style: titleStyle),
-                        ),
-                      ),
-                      Flexible(
-                        flex: 4,
-                        fit: FlexFit.tight,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            physics: const BouncingScrollPhysics(),
-                            itemCount: bars.length,
-                            itemBuilder: (context, index) {
-                              return GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) {
-                                        return const HomePage(); //! TOOD: Change to redirect page to a different organizations or do this right here.
-                                      },
-                                    ),
-                                  );
-                                },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.black),
-                                    borderRadius: const BorderRadius.all(
-                                      Radius.circular(10),
-                                    ),
-                                  ),
-                                  margin:
-                                      const EdgeInsets.symmetric(horizontal: 5),
-                                  width: 550 * (screenSize / 720),
-                                  child: Column(
-                                    children: [
-                                      Flexible(
-                                        flex: 3,
-                                        fit: FlexFit.tight,
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Flexible(
-                                              child: Text(
-                                                "Картинка бизнеса",
-                                                style: plainStyle,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const Divider(
-                                        color: Colors.black,
-                                      ),
-                                      Flexible(
-                                        fit: FlexFit.tight,
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Flexible(
-                                              child: Text(
-                                                bars[index]["name"],
-                                                style: plainStyle,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 465 * (screenSize / 720),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Flexible(
-                        fit: FlexFit.tight,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: Text("Другие места", style: titleStyle),
-                        ),
-                      ),
-                      Flexible(
-                        flex: 4,
-                        fit: FlexFit.tight,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            physics: const BouncingScrollPhysics(),
-                            itemCount: bars.length,
-                            itemBuilder: (context, index) {
-                              return GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) {
-                                        return const HomePage(); //! TOOD: Change to redirect page to a different organizations or do this right here.
-                                      },
-                                    ),
-                                  );
-                                },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.black),
-                                    borderRadius: const BorderRadius.all(
-                                      Radius.circular(10),
-                                    ),
-                                  ),
-                                  margin:
-                                      const EdgeInsets.symmetric(horizontal: 5),
-                                  width: 550 * (screenSize / 720),
-                                  child: Column(
-                                    children: [
-                                      Flexible(
-                                        flex: 3,
-                                        fit: FlexFit.tight,
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Flexible(
-                                              child: Text(
-                                                "Картинка бизнеса",
-                                                style: plainStyle,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const Divider(
-                                        color: Colors.black,
-                                      ),
-                                      Flexible(
-                                        fit: FlexFit.tight,
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Flexible(
-                                              child: Text(
-                                                bars[index]["name"],
-                                                style: plainStyle,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 465 * (screenSize / 720),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Flexible(
-                        fit: FlexFit.tight,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: Text("Другие места", style: titleStyle),
-                        ),
-                      ),
-                      Flexible(
-                        flex: 4,
-                        fit: FlexFit.tight,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            physics: const BouncingScrollPhysics(),
-                            itemCount: bars.length,
-                            itemBuilder: (context, index) {
-                              return GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) {
-                                        return const HomePage(); //! TOOD: Change to redirect page to a different organizations or do this right here.
-                                      },
-                                    ),
-                                  );
-                                },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.black),
-                                    borderRadius: const BorderRadius.all(
-                                      Radius.circular(10),
-                                    ),
-                                  ),
-                                  margin:
-                                      const EdgeInsets.symmetric(horizontal: 5),
-                                  width: 550 * (screenSize / 720),
-                                  child: Column(
-                                    children: [
-                                      Flexible(
-                                        flex: 3,
-                                        fit: FlexFit.tight,
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Flexible(
-                                              child: Text(
-                                                "Картинка бизнеса",
-                                                style: plainStyle,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const Divider(
-                                        color: Colors.black,
-                                      ),
-                                      Flexible(
-                                        fit: FlexFit.tight,
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Flexible(
-                                              child: Text(
-                                                bars[index]["name"],
-                                                style: plainStyle,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+        child: GridView.builder(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
           ),
+          itemCount: 4,
+          itemBuilder: (context, index) {
+            return GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) {
+                      return const HomePage(); //! TOOD: Change to redirect page to a different organizations or do this right here.
+                    },
+                  ),
+                );
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black),
+                  borderRadius: const BorderRadius.all(
+                    Radius.circular(10),
+                  ),
+                ),
+                margin: const EdgeInsets.symmetric(horizontal: 5),
+                width: 550 * (screenSize / 720),
+                child: Column(
+                  children: [
+                    Flexible(
+                      flex: 3,
+                      fit: FlexFit.tight,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              "Картинка бизнеса",
+                              style: plainStyle,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(
+                      color: Colors.black,
+                    ),
+                    Flexible(
+                      fit: FlexFit.tight,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              bars[index]["name"],
+                              style: plainStyle,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
