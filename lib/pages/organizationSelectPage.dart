@@ -717,8 +717,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
               slivers: <Widget>[
                 SliverAppBar(
                   shadowColor: Colors.transparent,
-                  backgroundColor:
-                      !isCollapsed ? Colors.blueGrey.shade100 : Colors.transparent,
+                  backgroundColor: !isCollapsed
+                      ? Colors.blueGrey.shade100
+                      : Colors.transparent,
                   surfaceTintColor: Colors.transparent,
                   foregroundColor: Colors.transparent,
                   // scrolledUnderElevation: collapsedBarHeight,
@@ -740,7 +741,12 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                           ? Container(
                               padding: EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                  boxShadow: [BoxShadow(color: Colors.blueGrey.shade200, offset: Offset(5, 5), blurRadius: 5)],
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color: Colors.blueGrey.shade200,
+                                        offset: Offset(5, 5),
+                                        blurRadius: 5)
+                                  ],
                                   color: Colors.white,
                                   borderRadius:
                                       BorderRadius.all(Radius.circular(20))),
@@ -775,19 +781,46 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.center,
                                       children: [
-                                        TextButton(
-                                            onPressed: () {},
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Text(
-                                                  _currentAddress["city_name"],
-                                                  style:
-                                                      TextStyle(fontSize: 24),
-                                                ),
-                                                Icon(Icons.arrow_drop_down)
-                                              ],
-                                            ))
+                                        Row(crossAxisAlignment: CrossAxisAlignment.end,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          mainAxisSize: MainAxisSize.max,
+                                          children: [
+                                            TextButton(
+                                                onPressed: () {},
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.max,
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    Row(
+                                                      children: [
+                                                        Text(
+                                                          _currentAddress[
+                                                              "city_name"],
+                                                          style: TextStyle(
+                                                              fontSize: 24),
+                                                        ),
+                                                        Icon(Icons
+                                                            .arrow_drop_down),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                )),
+                                            IconButton(
+                                                onPressed: () {},
+                                                icon: Icon(
+                                                  Icons.menu,
+                                                  color: Colors.black,
+                                                )),
+
+                                            // IconButton(
+                                            //     onPressed: () {},
+                                            //     icon: Icon(Icons.settings, color: Colors.black,)),
+                                          ],
+                                        )
                                       ],
                                     ),
                                   );
@@ -872,7 +905,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                 SliverToBoxAdapter(
                     child: AnimatedContainer(
                         duration: Durations.extralong1,
-                        color: !isStartingToCollapse ? Colors.blueGrey.shade100 : Colors.white,
+                        color: !isStartingToCollapse
+                            ? Colors.blueGrey.shade100
+                            : Colors.white,
                         child: Stack(
                           alignment: Alignment.bottomCenter,
                           children: [
@@ -901,7 +936,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                                 AnimatedContainer(
                                   foregroundDecoration: BoxDecoration(
                                       color: !isStartingToCollapse
-                                          ? Colors.blueGrey.shade100.withOpacity(0)
+                                          ? Colors.blueGrey.shade100
+                                              .withOpacity(0)
                                           : Colors.white),
                                   duration: Durations.extralong2,
                                   child: Column(
