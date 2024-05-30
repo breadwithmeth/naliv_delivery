@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
+import 'package:naliv_delivery/pages/createOrder.dart';
 import 'package:naliv_delivery/pages/pickOnMap.dart';
 
 class PickAddressPage extends StatefulWidget {
@@ -64,7 +65,16 @@ class _PickAddressPageState extends State<PickAddressPage> {
                       return ListTile(
                         onTap: () {
                           selectAddressClient(_addresses[index]["address_id"],
-                              widget.client["user_id"]);
+                                  widget.client["user_id"])
+                              .whenComplete(
+                            () {
+                              Navigator.push(context, MaterialPageRoute(
+                                builder: (context) {
+                                  return const CreateOrderPage();
+                                },
+                              ));
+                            },
+                          );
                         },
                         contentPadding:
                             EdgeInsets.symmetric(horizontal: 35, vertical: 5),

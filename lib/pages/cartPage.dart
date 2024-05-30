@@ -136,6 +136,8 @@ class _CartPageState extends State<CartPage>
 
   @override
   Widget build(BuildContext context) {
+    double screenSize = MediaQuery.of(context).size.width;
+
     return Scaffold(
       appBar: AppBar(
         title: const Row(
@@ -273,8 +275,9 @@ class _CartPageState extends State<CartPage>
                           SizedBox(
                             width: MediaQuery.of(context).size.width,
                             height: items.length < 4
-                                ? (MediaQuery.of(context).size.height * 0.122) *
-                                    (4 - items.length)
+                                ? (MediaQuery.of(context).size.height * 0.244) *
+                                    (4 - items.length) *
+                                    (screenSize / 720)
                                 : 0,
                           ),
                           const Divider(

@@ -644,73 +644,134 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
         ),
       ),
       body: SafeArea(
-        child: GridView.builder(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-          ),
-          itemCount: 4,
-          itemBuilder: (context, index) {
-            return GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) {
-                      return const HomePage(); //! TOOD: Change to redirect page to a different organizations or do this right here.
-                    },
-                  ),
-                );
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.black),
-                  borderRadius: const BorderRadius.all(
-                    Radius.circular(10),
-                  ),
-                ),
-                margin: const EdgeInsets.symmetric(horizontal: 5),
-                width: 550 * (screenSize / 720),
-                child: Column(
-                  children: [
-                    Flexible(
-                      flex: 3,
-                      fit: FlexFit.tight,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              "Картинка бизнеса",
-                              style: plainStyle,
-                            ),
-                          ),
-                        ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 25),
+          child: Column(
+            children: [
+              Flexible(
+                flex: 2,
+                fit: FlexFit.tight,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) {
+                          return const HomePage();
+                        },
                       ),
+                    );
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color.fromARGB(255, 200, 200, 200),
+                          offset: Offset(0, 2),
+                          blurRadius: 4,
+                          blurStyle: BlurStyle.solid,
+                        ),
+                      ],
                     ),
-                    const Divider(
-                      color: Colors.black,
-                    ),
-                    Flexible(
-                      fit: FlexFit.tight,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              bars[index]["name"],
-                              style: plainStyle,
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(bars[0]["name"], style: titleStyle),
+                            Text(
+                              "Бар-маркет",
+                              style: TextStyle(
+                                fontSize: 23,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.grey,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            );
-          },
+              const Flexible(
+                flex: 6,
+                fit: FlexFit.tight,
+                child: SizedBox(),
+              ),
+            ],
+          ),
         ),
       ),
+      // child: GridView.builder(
+      //   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+      //     crossAxisCount: 2,
+      //   ),
+      //   itemCount: 4,
+      //   itemBuilder: (context, index) {
+      //     return GestureDetector(
+      //       onTap: () {
+      //         Navigator.push(
+      //           context,
+      //           MaterialPageRoute(
+      //             builder: (context) {
+      //               return const HomePage(); //! TOOD: Change to redirect page to a different organizations or do this right here.
+      //             },
+      //           ),
+      //         );
+      //       },
+      //       child: Container(
+      //         decoration: BoxDecoration(
+      //           border: Border.all(color: Colors.black),
+      //           borderRadius: const BorderRadius.all(
+      //             Radius.circular(10),
+      //           ),
+      //         ),
+      //         margin: const EdgeInsets.symmetric(horizontal: 5),
+      //         width: 550 * (screenSize / 720),
+      //         child: Column(
+      //           children: [
+      //             Flexible(
+      //               flex: 3,
+      //               fit: FlexFit.tight,
+      //               child: Column(
+      //                 mainAxisAlignment: MainAxisAlignment.center,
+      //                 children: [
+      //                   Flexible(
+      //                     child: Text(
+      //                       "Картинка бизнеса",
+      //                       style: plainStyle,
+      //                     ),
+      //                   ),
+      //                 ],
+      //               ),
+      //             ),
+      //             const Divider(
+      //               color: Colors.black,
+      //             ),
+      //             Flexible(
+      //               fit: FlexFit.tight,
+      //               child: Column(
+      //                 mainAxisAlignment: MainAxisAlignment.center,
+      //                 children: [
+      //                   Flexible(
+      //                     child: Text(
+      //                       bars[index]["name"],
+      //                       style: plainStyle,
+      //                     ),
+      //                   ),
+      //                 ],
+      //               ),
+      //             ),
+      //           ],
+      //         ),
+      //       ),
+      //     );
+      //   },
+      // ),
     );
   }
 }

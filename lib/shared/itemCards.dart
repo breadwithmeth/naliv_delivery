@@ -98,8 +98,8 @@ class _ItemCardState extends State<ItemCard> {
     chack = widget.chack;
     return Container(
       // margin: const EdgeInsets.all(10),
-      width: MediaQuery.of(context).size.width,
-      height: MediaQuery.of(context).size.height * 0.28,
+      width: (MediaQuery.of(context).size.width * 2) * (screenSize / 720),
+      height: (MediaQuery.of(context).size.height * 0.56) * (screenSize / 720),
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -382,8 +382,8 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
     return Container(
       // margin: const EdgeInsets.all(10),
       padding: const EdgeInsets.symmetric(horizontal: 10),
-      width: MediaQuery.of(context).size.width,
-      height: MediaQuery.of(context).size.height * 0.2,
+      width: (MediaQuery.of(context).size.width * 2) * (screenSize / 720),
+      height: (MediaQuery.of(context).size.height * 0.4) * (screenSize / 720),
       child: Stack(
         children: [
           // Image.asset(
@@ -396,6 +396,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
             children: [
               Flexible(
                 flex: 2,
+                fit: FlexFit.tight,
                 child: Container(
                   decoration: const BoxDecoration(
                     borderRadius: BorderRadius.all(Radius.circular(2)),
@@ -502,13 +503,15 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                 ),
                               ],
                             ),
-                            Text(
-                              "В наличии ${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт.",
-                              style: TextStyle(
-                                  color:
-                                      Theme.of(context).colorScheme.secondary,
-                                  fontSize: 28 * (screenSize / 720),
-                                  fontWeight: FontWeight.w500),
+                            Flexible(
+                              child: Text(
+                                "В наличии ${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт.",
+                                style: TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.secondary,
+                                    fontSize: 28 * (screenSize / 720),
+                                    fontWeight: FontWeight.w500),
+                              ),
                             ),
                           ],
                         ),
@@ -526,34 +529,43 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                           element["amount"] != "0"
                                       ? Row(
                                           children: [
-                                            Text(
-                                              "В корзине ${element["amount"]} шт.",
-                                              style: TextStyle(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .secondary,
-                                                  fontSize:
-                                                      28 * (screenSize / 720),
-                                                  fontWeight: FontWeight.w500),
+                                            Flexible(
+                                              child: Text(
+                                                "В корзине ${element["amount"]} шт.",
+                                                style: TextStyle(
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .secondary,
+                                                    fontSize:
+                                                        28 * (screenSize / 720),
+                                                    fontWeight:
+                                                        FontWeight.w500),
+                                              ),
                                             ),
                                           ],
                                         )
                                       : Container(),
                                   Row(
                                     children: [
-                                      Text(
-                                        formatCost(element['price'] ?? ""),
-                                        style: TextStyle(
-                                            color: Colors.black,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 36 * (screenSize / 720)),
+                                      Flexible(
+                                        child: Text(
+                                          formatCost(element['price'] ?? ""),
+                                          style: TextStyle(
+                                              color: Colors.black,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize:
+                                                  36 * (screenSize / 720)),
+                                        ),
                                       ),
-                                      Text(
-                                        "₸",
-                                        style: TextStyle(
-                                            color: Colors.grey.shade600,
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 36 * (screenSize / 720)),
+                                      Flexible(
+                                        child: Text(
+                                          "₸",
+                                          style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize:
+                                                  36 * (screenSize / 720)),
+                                        ),
                                       )
                                     ],
                                   ),
@@ -564,9 +576,11 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  LikeButton(
-                                    is_liked: element["is_liked"],
-                                    item_id: element["item_id"],
+                                  Flexible(
+                                    child: LikeButton(
+                                      is_liked: element["is_liked"],
+                                      item_id: element["item_id"],
+                                    ),
                                   ),
                                 ],
                               ),

@@ -1215,6 +1215,7 @@ class _HomePageState extends State<HomePage>
                                           ),
                                         )
                                       : const Flexible(
+                                          flex: 12,
                                           fit: FlexFit.tight,
                                           child: Column(
                                             mainAxisSize: MainAxisSize.max,
