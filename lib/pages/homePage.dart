@@ -10,6 +10,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/pages/categoryPage.dart';
 import 'package:naliv_delivery/pages/orderHistoryPage.dart';
+import 'package:naliv_delivery/pages/organizationSelectPage.dart';
 import 'package:naliv_delivery/pages/supportPage.dart';
 import 'package:naliv_delivery/shared/activeOrderButton.dart';
 import 'package:naliv_delivery/shared/cartButton.dart';
@@ -390,7 +391,7 @@ class _HomePageState extends State<HomePage>
                     const Divider(),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          vertical: 20, horizontal: 20),
+                          vertical: 20, horizontal: 10),
                       child: Column(
                         children: [
                           TextButton(
@@ -398,7 +399,6 @@ class _HomePageState extends State<HomePage>
                                 padding:
                                     const EdgeInsets.symmetric(horizontal: 20)),
                             onPressed: () {
-                              toggleDrawer();
                               setState(() {
                                 Navigator.push(context, MaterialPageRoute(
                                   builder: (context) {
@@ -408,22 +408,39 @@ class _HomePageState extends State<HomePage>
                               });
                             },
                             child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Icon(
-                                  Icons.shopping_bag_outlined,
-                                  size: 24,
-                                  color: Colors.black,
+                                const Flexible(
+                                  fit: FlexFit.tight,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Flexible(
+                                        child: Icon(
+                                          Icons.shopping_bag_outlined,
+                                          size: 24,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                SizedBox(
-                                  width: 10,
+                                Flexible(
+                                  child: SizedBox(),
                                 ),
-                                Text(
-                                  "История заказов",
-                                  style: TextStyle(
+                                Flexible(
+                                  flex: 12,
+                                  fit: FlexFit.tight,
+                                  child: Text(
+                                    "История заказов",
+                                    textAlign: TextAlign.start,
+                                    style: TextStyle(
                                       color: Colors.black,
                                       fontWeight: FontWeight.w400,
-                                      fontSize: 40 * (screenSize / 720)),
+                                      fontSize: 40 * (screenSize / 720),
+                                    ),
+                                  ),
                                 )
                               ],
                             ),
@@ -447,22 +464,39 @@ class _HomePageState extends State<HomePage>
                               ).then((value) => print(_getAddresses()));
                             },
                             child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Icon(
-                                  Icons.home_outlined,
-                                  size: 24,
-                                  color: Colors.black,
+                                const Flexible(
+                                  fit: FlexFit.tight,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Flexible(
+                                        child: Icon(
+                                          Icons.home_outlined,
+                                          size: 24,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                SizedBox(
-                                  width: 10,
+                                Flexible(
+                                  child: SizedBox(),
                                 ),
-                                Text(
-                                  "Адреса доставки",
-                                  style: TextStyle(
+                                Flexible(
+                                  flex: 12,
+                                  fit: FlexFit.tight,
+                                  child: Text(
+                                    "Адреса доставки",
+                                    textAlign: TextAlign.start,
+                                    style: TextStyle(
                                       color: Colors.black,
                                       fontWeight: FontWeight.w400,
-                                      fontSize: 40 * (screenSize / 720)),
+                                      fontSize: 40 * (screenSize / 720),
+                                    ),
+                                  ),
                                 )
                               ],
                             ),
@@ -473,27 +507,42 @@ class _HomePageState extends State<HomePage>
                                 padding:
                                     const EdgeInsets.symmetric(horizontal: 20)),
                             onPressed: () {
-                              setState(() {
-                                toggleDrawer();
-                              });
+                              toggleDrawer();
                             },
                             child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Icon(
-                                  Icons.credit_card,
-                                  size: 24,
-                                  color: Colors.black,
+                                const Flexible(
+                                  fit: FlexFit.tight,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Flexible(
+                                        child: Icon(
+                                          Icons.credit_card_outlined,
+                                          size: 24,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                SizedBox(
-                                  width: 10,
+                                Flexible(
+                                  child: SizedBox(),
                                 ),
-                                Text(
-                                  "Карты оплаты",
-                                  style: TextStyle(
+                                Flexible(
+                                  flex: 12,
+                                  fit: FlexFit.tight,
+                                  child: Text(
+                                    "Карты оплаты",
+                                    textAlign: TextAlign.start,
+                                    style: TextStyle(
                                       color: Colors.grey,
                                       fontWeight: FontWeight.w400,
-                                      fontSize: 40 * (screenSize / 720)),
+                                      fontSize: 40 * (screenSize / 720),
+                                    ),
+                                  ),
                                 )
                               ],
                             ),
@@ -505,31 +554,47 @@ class _HomePageState extends State<HomePage>
                                     const EdgeInsets.symmetric(horizontal: 20)),
                             onPressed: () {
                               setState(() {
-                                toggleDrawer();
+                                Navigator.push(context, MaterialPageRoute(
+                                  builder: (context) {
+                                    return const FavPage();
+                                  },
+                                ));
                               });
-                              Navigator.push(context, MaterialPageRoute(
-                                builder: (context) {
-                                  return const FavPage();
-                                },
-                              ));
                             },
                             child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Icon(
-                                  Icons.favorite_border_rounded,
-                                  size: 24,
-                                  color: Colors.black,
+                                const Flexible(
+                                  fit: FlexFit.tight,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Flexible(
+                                        child: Icon(
+                                          Icons.favorite_border_rounded,
+                                          size: 24,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                SizedBox(
-                                  width: 10,
+                                Flexible(
+                                  child: SizedBox(),
                                 ),
-                                Text(
-                                  "Избранное",
-                                  style: TextStyle(
+                                Flexible(
+                                  flex: 12,
+                                  fit: FlexFit.tight,
+                                  child: Text(
+                                    "Избранное",
+                                    textAlign: TextAlign.start,
+                                    style: TextStyle(
                                       color: Colors.black,
                                       fontWeight: FontWeight.w400,
-                                      fontSize: 40 * (screenSize / 720)),
+                                      fontSize: 40 * (screenSize / 720),
+                                    ),
+                                  ),
                                 )
                               ],
                             ),
@@ -541,31 +606,47 @@ class _HomePageState extends State<HomePage>
                                     const EdgeInsets.symmetric(horizontal: 20)),
                             onPressed: () {
                               setState(() {
-                                toggleDrawer();
+                                Navigator.push(context, MaterialPageRoute(
+                                  builder: (context) {
+                                    return const SettingsPage();
+                                  },
+                                ));
                               });
-                              Navigator.push(context, MaterialPageRoute(
-                                builder: (context) {
-                                  return const SettingsPage();
-                                },
-                              ));
                             },
                             child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Icon(
-                                  Icons.settings_outlined,
-                                  size: 24,
-                                  color: Colors.black,
+                                const Flexible(
+                                  fit: FlexFit.tight,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Flexible(
+                                        child: Icon(
+                                          Icons.settings_outlined,
+                                          size: 24,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                SizedBox(
-                                  width: 10,
+                                Flexible(
+                                  child: SizedBox(),
                                 ),
-                                Text(
-                                  "Настройки",
-                                  style: TextStyle(
+                                Flexible(
+                                  flex: 12,
+                                  fit: FlexFit.tight,
+                                  child: Text(
+                                    "Настройки",
+                                    textAlign: TextAlign.start,
+                                    style: TextStyle(
                                       color: Colors.black,
                                       fontWeight: FontWeight.w400,
-                                      fontSize: 40 * (screenSize / 720)),
+                                      fontSize: 40 * (screenSize / 720),
+                                    ),
+                                  ),
                                 )
                               ],
                             ),
@@ -577,30 +658,91 @@ class _HomePageState extends State<HomePage>
                                     const EdgeInsets.symmetric(horizontal: 20)),
                             onPressed: () {
                               setState(() {
-                                toggleDrawer();
-                                Navigator.push(context,
-                                    MaterialPageRoute(builder: (context) {
-                                  return const SupportPage();
-                                }));
+                                Navigator.pushReplacement(context,
+                                    MaterialPageRoute(
+                                  builder: (context) {
+                                    return const OrganizationSelectPage();
+                                  },
+                                ));
                               });
                             },
                             child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Icon(
-                                  Icons.chat_bubble_outline,
-                                  size: 24,
-                                  color: Colors.black,
+                                const Flexible(
+                                  fit: FlexFit.tight,
+                                  child: Icon(
+                                    Icons.home_work_outlined,
+                                    size: 24,
+                                    color: Colors.black,
+                                  ),
                                 ),
-                                SizedBox(
-                                  width: 10,
-                                ),
-                                Text(
-                                  "Поддержка",
-                                  style: TextStyle(
+                                Flexible(
+                                  flex: 9,
+                                  fit: FlexFit.tight,
+                                  child: Text(
+                                    "К выбору заведений",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
                                       color: Colors.black,
                                       fontWeight: FontWeight.w400,
-                                      fontSize: 40 * (screenSize / 720)),
+                                      fontSize: 40 * (screenSize / 720),
+                                    ),
+                                  ),
+                                )
+                              ],
+                            ),
+                          ),
+                          const Divider(),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 20)),
+                            onPressed: () {
+                              setState(() {
+                                Navigator.pushReplacement(context,
+                                    MaterialPageRoute(
+                                  builder: (context) {
+                                    return const SupportPage();
+                                  },
+                                ));
+                              });
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                const Flexible(
+                                  fit: FlexFit.tight,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Flexible(
+                                        child: Icon(
+                                          Icons.chat_bubble_outline_outlined,
+                                          size: 24,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Flexible(
+                                  child: SizedBox(),
+                                ),
+                                Flexible(
+                                  flex: 12,
+                                  fit: FlexFit.tight,
+                                  child: Text(
+                                    "Поддержка",
+                                    textAlign: TextAlign.start,
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w400,
+                                      fontSize: 40 * (screenSize / 720),
+                                    ),
+                                  ),
                                 )
                               ],
                             ),
@@ -717,38 +859,188 @@ class _HomePageState extends State<HomePage>
                                   );
                                 },
                               );
-                              // setState(() {
-                              //   toggleDrawer();
-                              // });
-                              // print(123);
-                              // logout();
-                              // Navigator.pushReplacement(context, MaterialPageRoute(
-                              //   builder: (context) {
-                              //     return const LoginPage();
-                              //   },
-                              // ));
                             },
                             child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Icon(
-                                  Icons.exit_to_app_outlined,
-                                  size: 24,
-                                  color: Colors.black,
+                                const Flexible(
+                                  fit: FlexFit.tight,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Flexible(
+                                        child: Icon(
+                                          Icons.logout_outlined,
+                                          size: 24,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                SizedBox(
-                                  width: 10,
+                                Flexible(
+                                  child: SizedBox(),
                                 ),
-                                Text(
-                                  "Выйти",
-                                  style: TextStyle(
+                                Flexible(
+                                  flex: 12,
+                                  fit: FlexFit.tight,
+                                  child: Text(
+                                    "Выйти",
+                                    textAlign: TextAlign.start,
+                                    style: TextStyle(
                                       color: Colors.black,
                                       fontWeight: FontWeight.w400,
-                                      fontSize: 40 * (screenSize / 720)),
-                                )
+                                      fontSize: 40 * (screenSize / 720),
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
+                          // TextButton(
+                          //   style: TextButton.styleFrom(
+                          //       padding:
+                          //           const EdgeInsets.symmetric(horizontal: 20)),
+                          // onPressed: () {
+                          //   showDialog(
+                          //     context: context,
+                          //     builder: (context) {
+                          //       return AlertDialog.adaptive(
+                          //         shape: const RoundedRectangleBorder(
+                          //           borderRadius:
+                          //               BorderRadius.all(Radius.circular(10)),
+                          //         ),
+                          //         title: Text(
+                          //           "Вы точно хотите выйти из аккаунта?",
+                          //           textAlign: TextAlign.center,
+                          //           style: TextStyle(
+                          //             color: Theme.of(context)
+                          //                 .colorScheme
+                          //                 .onBackground,
+                          //             fontSize: 20,
+                          //             fontWeight: FontWeight.w700,
+                          //           ),
+                          //         ),
+                          //         actionsAlignment: MainAxisAlignment.center,
+                          //         actions: [
+                          //           Row(
+                          //             mainAxisAlignment:
+                          //                 MainAxisAlignment.spaceBetween,
+                          //             children: [
+                          //               Flexible(
+                          //                 child: Padding(
+                          //                   padding:
+                          //                       const EdgeInsets.symmetric(
+                          //                           horizontal: 5),
+                          //                   child: ElevatedButton(
+                          //                     onPressed: () {
+                          //                       logout();
+                          //                       Navigator.pushAndRemoveUntil(
+                          //                           context,
+                          //                           MaterialPageRoute(
+                          //                             builder: (context) =>
+                          //                                 const LoginPage(),
+                          //                           ),
+                          //                           (route) => false);
+                          //                     },
+                          //                     child: Row(
+                          //                       mainAxisAlignment:
+                          //                           MainAxisAlignment.center,
+                          //                       children: [
+                          //                         Flexible(
+                          //                           child: Text(
+                          //                             "Да",
+                          //                             textAlign:
+                          //                                 TextAlign.center,
+                          //                             style: TextStyle(
+                          //                               color:
+                          //                                   Theme.of(context)
+                          //                                       .colorScheme
+                          //                                       .onPrimary,
+                          //                               fontSize: 16,
+                          //                               fontWeight:
+                          //                                   FontWeight.w700,
+                          //                             ),
+                          //                           ),
+                          //                         )
+                          //                       ],
+                          //                     ),
+                          //                   ),
+                          //                 ),
+                          //               ),
+                          //               Flexible(
+                          //                 child: Padding(
+                          //                   padding:
+                          //                       const EdgeInsets.symmetric(
+                          //                           horizontal: 5),
+                          //                   child: ElevatedButton(
+                          //                     onPressed: () {
+                          //                       Navigator.pop(context);
+                          //                     },
+                          //                     child: Row(
+                          //                       mainAxisAlignment:
+                          //                           MainAxisAlignment.center,
+                          //                       children: [
+                          //                         Flexible(
+                          //                           child: Text(
+                          //                             "Нет",
+                          //                             textAlign:
+                          //                                 TextAlign.center,
+                          //                             style: TextStyle(
+                          //                               color:
+                          //                                   Theme.of(context)
+                          //                                       .colorScheme
+                          //                                       .onPrimary,
+                          //                               fontSize: 16,
+                          //                               fontWeight:
+                          //                                   FontWeight.w700,
+                          //                             ),
+                          //                           ),
+                          //                         )
+                          //                       ],
+                          //                     ),
+                          //                   ),
+                          //                 ),
+                          //               ),
+                          //             ],
+                          //           ),
+                          //         ],
+                          //       );
+                          //     },
+                          //   );
+                          //   // setState(() {
+                          //   //   toggleDrawer();
+                          //   // });
+                          //   // print(123);
+                          //   // logout();
+                          //   // Navigator.pushReplacement(context, MaterialPageRoute(
+                          //   //   builder: (context) {
+                          //   //     return const LoginPage();
+                          //   //   },
+                          //   // ));
+                          // },
+                          //   child: Row(
+                          //     crossAxisAlignment: CrossAxisAlignment.center,
+                          //     children: [
+                          //       const Icon(
+                          //         Icons.exit_to_app_outlined,
+                          //         size: 24,
+                          //         color: Colors.black,
+                          //       ),
+                          //       const SizedBox(
+                          //         width: 10,
+                          //       ),
+                          //       Text(
+                          //         "Выйти",
+                          //         style: TextStyle(
+                          //             color: Colors.black,
+                          //             fontWeight: FontWeight.w400,
+                          //             fontSize: 40 * (screenSize / 720)),
+                          //       )
+                          //     ],
+                          //   ),
+                          // ),
                         ],
                       ),
                     )
@@ -833,195 +1125,217 @@ class _HomePageState extends State<HomePage>
             body: Column(
               children: [
                 Flexible(
-                  flex: 7,
+                  flex: 6,
                   fit: FlexFit.tight,
                   child: Column(
                     children: [
                       Flexible(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            _getAddressPickDialog(screenSize);
-                          },
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            padding: const EdgeInsets.all(10),
-                            decoration: const BoxDecoration(
-                                color: Colors.black12,
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(10))),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                _addresses.firstWhere(
-                                          (element) =>
-                                              element["is_selected"] == "1",
-                                          orElse: () {
-                                            return null;
-                                          },
-                                        ) !=
-                                        null
-                                    ? Flexible(
-                                        flex: 12,
-                                        fit: FlexFit.tight,
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.max,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.start,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Flexible(
-                                              child: Row(
-                                                children: [
-                                                  Flexible(
-                                                    child: Text(
-                                                      _currentAddress["name"] ??
-                                                          "",
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      style: const TextStyle(
-                                                        color: Colors.black,
-                                                        fontWeight:
-                                                            FontWeight.w700,
+                        fit: FlexFit.tight,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              _getAddressPickDialog(screenSize);
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                              ),
+                              padding: const EdgeInsets.all(10),
+                              decoration: const BoxDecoration(
+                                  color: Colors.black12,
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(10))),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  _addresses.firstWhere(
+                                            (element) =>
+                                                element["is_selected"] == "1",
+                                            orElse: () {
+                                              return null;
+                                            },
+                                          ) !=
+                                          null
+                                      ? Flexible(
+                                          flex: 12,
+                                          fit: FlexFit.tight,
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.max,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Flexible(
+                                                child: Row(
+                                                  children: [
+                                                    Flexible(
+                                                      child: Text(
+                                                        _currentAddress[
+                                                                "name"] ??
+                                                            "",
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                        style: const TextStyle(
+                                                          color: Colors.black,
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                        ),
                                                       ),
-                                                    ),
-                                                  )
-                                                ],
+                                                    )
+                                                  ],
+                                                ),
                                               ),
-                                            ),
-                                            Flexible(
-                                              child: Row(
-                                                children: [
-                                                  Flexible(
-                                                    child: Text(
-                                                      _currentAddress[
-                                                              "address"] ??
-                                                          "",
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      style: const TextStyle(
-                                                        color: Colors.black,
-                                                        fontWeight:
-                                                            FontWeight.w700,
+                                              Flexible(
+                                                fit: FlexFit.tight,
+                                                child: Row(
+                                                  children: [
+                                                    Flexible(
+                                                      fit: FlexFit.tight,
+                                                      child: Text(
+                                                        _currentAddress[
+                                                                "address"] ??
+                                                            "",
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                        style: const TextStyle(
+                                                          color: Colors.black,
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                        ),
                                                       ),
-                                                    ),
-                                                  )
-                                                ],
+                                                    )
+                                                  ],
+                                                ),
+                                              )
+                                            ],
+                                          ),
+                                        )
+                                      : const Flexible(
+                                          fit: FlexFit.tight,
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.max,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Flexible(
+                                                fit: FlexFit.tight,
+                                                child: Row(
+                                                  children: [
+                                                    Flexible(
+                                                      fit: FlexFit.tight,
+                                                      child: Text(
+                                                        "Выберите ваш адрес",
+                                                        style: TextStyle(
+                                                          color: Colors.black,
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                        ),
+                                                      ),
+                                                    )
+                                                  ],
+                                                ),
                                               ),
-                                            )
-                                          ],
+                                            ],
+                                          ),
                                         ),
-                                      )
-                                    : const Flexible(
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.max,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.start,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Flexible(
-                                              child: Row(
-                                                children: [
-                                                  Flexible(
-                                                    child: Text(
-                                                      "Выберите ваш адрес",
-                                                      style: TextStyle(
-                                                        color: Colors.black,
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                      ),
-                                                    ),
-                                                  )
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                const Flexible(
-                                  fit: FlexFit.tight,
-                                  child: Icon(Icons.arrow_forward_ios),
-                                )
-                              ],
+                                  const Flexible(
+                                    fit: FlexFit.tight,
+                                    child: Icon(Icons.arrow_forward_ios),
+                                  )
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
                       Flexible(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            Navigator.pushReplacement(context,
-                                MaterialPageRoute(
-                              builder: (context) {
-                                return BusinessSelectStartPage(
-                                  businesses: businesses,
-                                );
-                              },
-                            ));
-                          },
-                          child: Container(
-                            margin: const EdgeInsets.all(10),
-                            padding: const EdgeInsets.all(10),
-                            decoration: const BoxDecoration(
+                        fit: FlexFit.tight,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              Navigator.pushReplacement(context,
+                                  MaterialPageRoute(
+                                builder: (context) {
+                                  return BusinessSelectStartPage(
+                                    businesses: businesses,
+                                  );
+                                },
+                              ));
+                            },
+                            child: Container(
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 10),
+                              padding: const EdgeInsets.all(10),
+                              decoration: const BoxDecoration(
                                 color: Colors.black12,
                                 borderRadius:
-                                    BorderRadius.all(Radius.circular(10))),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Flexible(
-                                  flex: 12,
-                                  fit: FlexFit.tight,
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.max,
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Flexible(
-                                        child: Row(
-                                          children: [
-                                            Flexible(
-                                              child: Text(
-                                                _business?["name"] ?? "",
-                                                style: const TextStyle(
-                                                    color: Colors.black,
-                                                    fontWeight:
-                                                        FontWeight.w700),
-                                              ),
-                                            )
-                                          ],
-                                        ),
-                                      ),
-                                      Flexible(
-                                        child: Row(
-                                          children: [
-                                            Flexible(
-                                              child: Text(
-                                                _business?["address"] ?? "",
-                                                style: const TextStyle(
-                                                  color: Colors.black,
-                                                  fontWeight: FontWeight.w700,
+                                    BorderRadius.all(Radius.circular(10)),
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Flexible(
+                                    flex: 12,
+                                    fit: FlexFit.tight,
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.max,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Flexible(
+                                          fit: FlexFit.tight,
+                                          child: Row(
+                                            children: [
+                                              Flexible(
+                                                fit: FlexFit.tight,
+                                                child: Text(
+                                                  _business?["name"] ?? "",
+                                                  style: const TextStyle(
+                                                      color: Colors.black,
+                                                      fontWeight:
+                                                          FontWeight.w700),
                                                 ),
-                                              ),
-                                            )
-                                          ],
+                                              )
+                                            ],
+                                          ),
                                         ),
-                                      )
-                                    ],
+                                        Flexible(
+                                          fit: FlexFit.tight,
+                                          child: Row(
+                                            children: [
+                                              Flexible(
+                                                fit: FlexFit.tight,
+                                                child: Text(
+                                                  _business?["address"] ?? "",
+                                                  style: const TextStyle(
+                                                    color: Colors.black,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                              )
+                                            ],
+                                          ),
+                                        )
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                const Flexible(
-                                  fit: FlexFit.tight,
-                                  child: Icon(Icons.arrow_forward_ios),
-                                )
-                              ],
+                                  const Flexible(
+                                    fit: FlexFit.tight,
+                                    child: Icon(Icons.arrow_forward_ios),
+                                  )
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -1104,413 +1418,6 @@ class _HomePageState extends State<HomePage>
                 )
               ],
             ),
-            // appBar: AppBar(
-            //     titleSpacing: 10,
-            //     // scrolledUnderElevation: 100,
-            //     automaticallyImplyLeading: true,
-            //     // leading: IconButton(
-            //     //   icon: Icon(Icons.menu),
-            //     //   onPressed: () {},
-            //     // ),
-
-            //     title:),
-            // body: CustomScrollView(
-            //   slivers: [
-            //     SliverAppBar(
-            //       toolbarHeight: 120,
-            //       automaticallyImplyLeading: false,
-            //       backgroundColor: Colors.white,
-            //       surfaceTintColor: Colors.transparent,
-            //       stretch: true,
-            //       // stretchTriggerOffset: 300.0,
-            //       pinned: true,
-            //       // floating: true,
-            //       // snap: true,
-            //       titleSpacing: 0,
-            //     ),
-            //     SliverToBoxAdapter(
-            //       child: Column(
-            //         mainAxisAlignment: MainAxisAlignment.start,
-            //         mainAxisSize: MainAxisSize.max,
-            //         children: [
-            //           // Image.network(
-            //           //   _business!["logo"],
-            //           //   fit: BoxFit.cover,
-            //           // ),
-            // GestureDetector(
-            //   behavior: HitTestBehavior.opaque,
-            //   onTap: () {
-            //     _getAddressPickDialog(screenSize);
-            //   },
-            //   child: Container(
-            //     margin: const EdgeInsets.symmetric(
-            //       horizontal: 10,
-            //       vertical: 4,
-            //     ),
-            //     padding: const EdgeInsets.all(10),
-            //     decoration: const BoxDecoration(
-            //         color: Colors.black12,
-            //         borderRadius:
-            //             BorderRadius.all(Radius.circular(10))),
-            //     child: Row(
-            //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            //       children: [
-            //         _addresses.firstWhere(
-            //                   (element) =>
-            //                       element["is_selected"] == "1",
-            //                   orElse: () {
-            //                     return null;
-            //                   },
-            //                 ) !=
-            //                 null
-            //             ? Column(
-            //                 mainAxisSize: MainAxisSize.max,
-            //                 mainAxisAlignment:
-            //                     MainAxisAlignment.start,
-            //                 crossAxisAlignment:
-            //                     CrossAxisAlignment.start,
-            //                 children: [
-            //                   Row(
-            //                     children: [
-            //                       SizedBox(
-            //                         width: MediaQuery.of(context)
-            //                                 .size
-            //                                 .width *
-            //                             0.8,
-            //                         child: Text(
-            //                           _currentAddress["name"] ?? "",
-            //                           overflow: TextOverflow.ellipsis,
-            //                           style: const TextStyle(
-            //                             color: Colors.black,
-            //                             fontWeight: FontWeight.w700,
-            //                           ),
-            //                         ),
-            //                       )
-            //                     ],
-            //                   ),
-            //                   Row(
-            //                     children: [
-            //                       SizedBox(
-            //                         width: MediaQuery.of(context)
-            //                                 .size
-            //                                 .width *
-            //                             0.8,
-            //                         child: Text(
-            //                           _currentAddress["address"] ??
-            //                               "",
-            //                           overflow: TextOverflow.ellipsis,
-            //                           style: const TextStyle(
-            //                               color: Colors.black,
-            //                               fontWeight:
-            //                                   FontWeight.w700),
-            //                         ),
-            //                       )
-            //                     ],
-            //                   )
-            //                 ],
-            //               )
-            //             : const Column(
-            //                 mainAxisSize: MainAxisSize.max,
-            //                 mainAxisAlignment:
-            //                     MainAxisAlignment.start,
-            //                 crossAxisAlignment:
-            //                     CrossAxisAlignment.start,
-            //                 children: [
-            //                   Row(
-            //                     children: [
-            //                       Text(
-            //                         "Выберите ваш адрес",
-            //                         style: TextStyle(
-            //                             color: Colors.black,
-            //                             fontWeight: FontWeight.w700),
-            //                       )
-            //                     ],
-            //                   ),
-            //                 ],
-            //               ),
-            //         const Icon(Icons.arrow_forward_ios)
-            //       ],
-            //     ),
-            //   ),
-            // ),
-            // GestureDetector(
-            //   behavior: HitTestBehavior.opaque,
-            //   onTap: () {
-            //     Navigator.pushReplacement(context, MaterialPageRoute(
-            //       builder: (context) {
-            //         return BusinessSelectStartPage(
-            //           businesses: businesses,
-            //         );
-            //       },
-            //     ));
-            //   },
-            //   child: Container(
-            //       margin: const EdgeInsets.all(10),
-            //       padding: const EdgeInsets.all(10),
-            //       decoration: const BoxDecoration(
-            //           color: Colors.black12,
-            //           borderRadius:
-            //               BorderRadius.all(Radius.circular(10))),
-            //       child: Row(
-            //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            //         children: [
-            //           Column(
-            //             mainAxisSize: MainAxisSize.max,
-            //             mainAxisAlignment: MainAxisAlignment.start,
-            //             crossAxisAlignment: CrossAxisAlignment.start,
-            //             children: [
-            //               Row(
-            //                 children: [
-            //                   Text(
-            //                     _business?["name"] ?? "",
-            //                     style: const TextStyle(
-            //                         color: Colors.black,
-            //                         fontWeight: FontWeight.w700),
-            //                   )
-            //                 ],
-            //               ),
-            //               Row(
-            //                 children: [
-            //                   Text(
-            //                     _business?["address"] ?? "",
-            //                     style: const TextStyle(
-            //                         color: Colors.black,
-            //                         fontWeight: FontWeight.w700),
-            //                   )
-            //                 ],
-            //               )
-            //             ],
-            //           ),
-            //           const Icon(Icons.arrow_forward_ios)
-            //         ],
-            //       )),
-            // ),
-            //           // SizedBox(
-            //           //     height: 150,
-            //           //     width: MediaQuery.of(context).size.width,
-            //           //     child: PageView.builder(
-            //           //       onPageChanged: (value) {
-            //           //         setState(
-            //           //           () {
-            //           //             activePage = value;
-            //           //           },
-            //           //         );
-            //           //       },
-            //           //       itemCount: images.length,
-            //           //       itemBuilder: (context, index) {
-            //           //         return Container(
-            //           //           decoration: BoxDecoration(
-            //           //               borderRadius:
-            //           //                   const BorderRadius.all(Radius.circular(10)),
-            //           //               image: DecorationImage(
-            //           //                   opacity: 0.5,
-            //           //                   image: NetworkImage(images[index]["image"]),
-            //           //                   fit: BoxFit.cover)),
-            //           //           margin: const EdgeInsets.all(10),
-            //           //           padding: const EdgeInsets.all(10),
-            //           //           child: TextButton(
-            //           //             style: TextButton.styleFrom(
-            //           //                 alignment: Alignment.topLeft),
-            //           //             child: Text(
-            //           //               images[index]["text"],
-            //           //               style: const TextStyle(
-            //           //                   fontSize: 20,
-            //           //                   fontWeight: FontWeight.w700,
-            //           //                   color: Colors.black),
-            //           //             ),
-            //           //             onPressed: () {
-            //           //               print("object");
-            //           //             },
-            //           //           ),
-            //           //         );
-            //           //       },
-            //           //       controller: _pageController,
-            //           //       padEnds: false,
-            //           //       pageSnapping: false,
-            //           //     )),
-            //           // Row(
-            //           //     mainAxisAlignment: MainAxisAlignment.center,
-            //           //     children: indicators(images.length, activePage)),
-            //           // SizedBox(
-            //           //   width: MediaQuery.of(context).size.width,
-            //           //   // height: 170,
-            //           //   child: GridView(
-            //           //     primary: false,
-            //           //     shrinkWrap: true,
-            //           //     gridDelegate:
-            //           //         const SliverGridDelegateWithFixedCrossAxisCount(
-            //           //             crossAxisCount: 4),
-            //           //     children: [
-            //           //       Container(
-            //           //         width: MediaQuery.of(context).size.width * 0.25,
-            //           //         height: MediaQuery.of(context).size.width * 0.25,
-            //           //         margin: const EdgeInsets.all(5),
-            //           //         child: Column(
-            //           //           children: [
-            //           //             Container(
-            //           //               decoration: BoxDecoration(
-            //           //                   color:
-            //           //                       Theme.of(context).colorScheme.primary,
-            //           //                   borderRadius: const BorderRadius.all(
-            //           //                       Radius.circular(10))),
-            //           //               width: MediaQuery.of(context).size.width * 0.15,
-            //           //               height:
-            //           //                   MediaQuery.of(context).size.width * 0.15,
-            //           //             ),
-            //           //             const Text(
-            //           //               "Новинки",
-            //           //               style: TextStyle(fontSize: 12),
-            //           //             )
-            //           //           ],
-            //           //         ),
-            //           //       ),
-            //           //       Container(
-            //           //         width: MediaQuery.of(context).size.width * .25,
-            //           //         height: MediaQuery.of(context).size.width * .25,
-            //           //         margin: const EdgeInsets.all(5),
-            //           //         child: Column(
-            //           //           children: [
-            //           //             Container(
-            //           //               decoration: BoxDecoration(
-            //           //                   color:
-            //           //                       Theme.of(context).colorScheme.primary,
-            //           //                   borderRadius: const BorderRadius.all(
-            //           //                       Radius.circular(10))),
-            //           //               width: MediaQuery.of(context).size.width * 0.15,
-            //           //               height:
-            //           //                   MediaQuery.of(context).size.width * 0.15,
-            //           //             ),
-            //           //             const Text(
-            //           //               "Со скидкой",
-            //           //               style: TextStyle(fontSize: 12),
-            //           //             )
-            //           //           ],
-            //           //         ),
-            //           //       ),
-            //           //       Container(
-            //           //         width: MediaQuery.of(context).size.width * .25,
-            //           //         height: MediaQuery.of(context).size.width * .25,
-            //           //         margin: const EdgeInsets.all(5),
-            //           //         child: Column(
-            //           //           children: [
-            //           //             Container(
-            //           //               decoration: BoxDecoration(
-            //           //                   color:
-            //           //                       Theme.of(context).colorScheme.primary,
-            //           //                   borderRadius: const BorderRadius.all(
-            //           //                       Radius.circular(10))),
-            //           //               width: MediaQuery.of(context).size.width * 0.15,
-            //           //               height:
-            //           //                   MediaQuery.of(context).size.width * 0.15,
-            //           //             ),
-            //           //             const Text(
-            //           //               "Хит продаж",
-            //           //               style: TextStyle(fontSize: 12),
-            //           //             )
-            //           //           ],
-            //           //         ),
-            //           //       ),
-            //           //       Container(
-            //           //         width: MediaQuery.of(context).size.width * .25,
-            //           //         height: MediaQuery.of(context).size.width * 0.33,
-            //           //         margin: const EdgeInsets.all(5),
-            //           //         child: Column(
-            //           //           children: [
-            //           //             Container(
-            //           //               decoration: BoxDecoration(
-            //           //                   color:
-            //           //                       Theme.of(context).colorScheme.primary,
-            //           //                   borderRadius: const BorderRadius.all(
-            //           //                       Radius.circular(10))),
-            //           //               width: MediaQuery.of(context).size.width * 0.15,
-            //           //               height:
-            //           //                   MediaQuery.of(context).size.width * 0.15,
-            //           //             ),
-            //           //             const Text(
-            //           //               "Вы покупали",
-            //           //               style: TextStyle(fontSize: 12),
-            //           //             )
-            //           //           ],
-            //           //         ),
-            //           //       )
-            //           //     ],
-            //           //   ),
-            //           // ),
-            // categoryIsLoading
-            //     ? Padding(
-            //         padding: const EdgeInsets.all(10),
-            //         child: GridView.builder(
-            //           padding: const EdgeInsets.all(0),
-            //           physics: const NeverScrollableScrollPhysics(),
-            //           shrinkWrap: true,
-            //           gridDelegate:
-            //               const SliverGridDelegateWithMaxCrossAxisExtent(
-            //                   maxCrossAxisExtent: 150,
-            //                   childAspectRatio: 1,
-            //                   crossAxisSpacing: 0,
-            //                   mainAxisSpacing: 0),
-            //           itemCount: 9,
-            //           itemBuilder: (BuildContext ctx, index) {
-            //             return Shimmer.fromColors(
-            //               baseColor: Theme.of(context)
-            //                   .colorScheme
-            //                   .secondary
-            //                   .withOpacity(0.05),
-            //               highlightColor:
-            //                   Theme.of(context).colorScheme.secondary,
-            //               child: Container(
-            //                 width: MediaQuery.of(context).size.width,
-            //                 height: 50,
-            //                 decoration: const BoxDecoration(
-            //                   borderRadius: BorderRadius.all(
-            //                       Radius.circular(10)),
-            //                   color: Colors.white,
-            //                 ),
-            //                 child: null,
-            //               ),
-            //             );
-            //           },
-            //         ),
-            //       )
-            //     : Padding(
-            //         padding: const EdgeInsets.all(10),
-            //         child: Container(
-            //           decoration: const BoxDecoration(
-            //             borderRadius:
-            //                 BorderRadius.all(Radius.circular(10)),
-            //           ),
-            //           clipBehavior: Clip.antiAlias,
-            //           child: SingleChildScrollView(
-            //             child: GridView.builder(
-            //               padding: const EdgeInsets.all(0),
-            //               physics:
-            //                   const NeverScrollableScrollPhysics(),
-            //               shrinkWrap: true,
-            //               gridDelegate:
-            //                   const SliverGridDelegateWithMaxCrossAxisExtent(
-            //                       maxCrossAxisExtent: 200,
-            //                       childAspectRatio: 10 / 8,
-            //                       crossAxisSpacing: 0,
-            //                       mainAxisSpacing: 0),
-            //               itemCount: categories.length,
-            //               itemBuilder: (BuildContext ctx, index) {
-            //                 return CategoryItem(
-            //                   category_id: categories[index]
-            //                       ["category_id"],
-            //                   name: categories[index]["name"],
-            //                   image: categories[index]["photo"],
-            //                   categories: categories,
-            //                 );
-            //               },
-            //             ),
-            //           ),
-            //         ),
-            //       ),
-            //       ],
-            //     ),
-            //   )
-            // ],
-            // ),
           );
   }
 }
@@ -1548,8 +1455,9 @@ class _CategoryItemState extends State<CategoryItem> {
       // Beer
       case '1':
       case '17':
+      case '28':
         setState(() {
-          firstColor = const Color(0xFFFFDE67);
+          firstColor = Color.fromARGB(255, 255, 228, 128);
           secondColor = const Color(0xFFF5A265);
           imageBG = Image.asset(
             'assets/vectors/beer.png',
@@ -1574,7 +1482,7 @@ class _CategoryItemState extends State<CategoryItem> {
       // Wine
       case '13':
         setState(() {
-          firstColor = const Color(0xFFFF8CB6);
+          firstColor = Color.fromARGB(255, 255, 134, 178);
           secondColor = const Color(0xFFE3427C);
           imageBG = Image.asset(
             'assets/vectors/wine.png',
@@ -1587,7 +1495,7 @@ class _CategoryItemState extends State<CategoryItem> {
       // Vodka
       case '14':
         setState(() {
-          firstColor = const Color(0xFFC4DCDF);
+          firstColor = Color.fromARGB(255, 205, 222, 224);
           secondColor = const Color(0xFF8C9698);
           imageBG = Image.asset(
             'assets/vectors/vodka.png',
@@ -1599,7 +1507,7 @@ class _CategoryItemState extends State<CategoryItem> {
         break;
       case '20':
         setState(() {
-          firstColor = const Color(0xFF92EAFD);
+          firstColor = Color.fromARGB(255, 132, 233, 255);
           secondColor = const Color(0xFF285B98);
           imageBG = Image.asset(
             'assets/vectors/drinks.png',
@@ -1611,7 +1519,7 @@ class _CategoryItemState extends State<CategoryItem> {
         break;
       case '23':
         setState(() {
-          firstColor = Color.fromARGB(255, 238, 196, 118);
+          firstColor = Color.fromARGB(255, 255, 211, 129);
           secondColor = const Color(0xFF8C9698);
           imageBG = Image.asset(
             'assets/vectors/snacks.png',
@@ -1620,6 +1528,43 @@ class _CategoryItemState extends State<CategoryItem> {
           );
           _offset = const Offset(0.18, 0.05);
           _rotation = -20 / 360;
+        });
+        break;
+      // Meat snacks
+      case '24':
+        setState(() {
+          firstColor = Color.fromARGB(255, 218, 150, 161);
+        });
+        break;
+      // Chocolate
+      case '12':
+        setState(() {
+          firstColor = Color.fromARGB(255, 255, 158, 123);
+        });
+        break;
+      // Cheese snakcs
+      case '9':
+      case '27':
+        setState(() {
+          firstColor = Color.fromARGB(255, 255, 192, 109);
+        });
+        break;
+      // Peanut
+      case '16':
+        setState(() {
+          firstColor = Color.fromARGB(255, 235, 228, 171);
+        });
+        break;
+      // Seeds
+      case '22':
+      case '30':
+        setState(() {
+          firstColor = Color.fromARGB(255, 143, 143, 143);
+        });
+        break;
+      case '31':
+        setState(() {
+          firstColor = Color.fromARGB(255, 207, 140, 140);
         });
         break;
       default:
