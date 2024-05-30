@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -46,7 +47,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
 
   Map _currentAddress = {};
 
-  Map<String, dynamic>? user;
+  Map<String, dynamic> user = {};
 
   void toggleDrawer() async {
     if (_scaffoldKey.currentState!.isDrawerOpen) {
@@ -73,7 +74,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
   void _getUser() async {
     await getUser().then((value) {
       setState(() {
-        user = value;
+        if (value != null) {
+          user = value;
+        }
       });
     });
   }
@@ -90,11 +93,12 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
   }
 
   bool isCollapsed = false;
+  bool isStartingToCollapse = false;
 
   @override
   Widget build(BuildContext context) {
     const collapsedBarHeight = 100.0;
-    const expandedBarHeight = 400.0;
+    const expandedBarHeight = 200.0;
     double screenSize = MediaQuery.of(context).size.width;
 
     TextStyle titleStyle = TextStyle(
@@ -131,6 +135,17 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
           } else {
             setState(() {
               isCollapsed = false;
+            });
+          }
+          if (notification.metrics.minScrollExtent + 100 <
+              notification.metrics.pixels) {
+            print(true);
+            setState(() {
+              isStartingToCollapse = true;
+            });
+          } else {
+            setState(() {
+              isStartingToCollapse = false;
             });
           }
 
@@ -696,163 +711,379 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
             //     ),
             //   ),
             // ),
-
+            backgroundColor: Colors.white,
             body: SafeArea(
                 child: CustomScrollView(
-          slivers: <Widget>[
-            SliverAppBar(
-              snap: true,
-              centerTitle: false,
-              stretch: true,
-              // Provide a standard title.
-              // title: ,
-              pinned: true,
-              // Allows the user to reveal the app bar if they begin scrolling
-              // back up the list of items.
-              floating: true,
-              title: AnimatedSwitcher(
-                duration: Durations.extralong4,
-                child: isCollapsed
-                    ? Container(
-                        child: Text("1"),
-                        color: Colors.red,
-                      )
-                    : Container(),
-              ),
-              // Display a placeholder widget to visualize the shrinking size.
-              flexibleSpace: AnimatedSwitcher(
-                transitionBuilder: (Widget child, Animation<double> animation) {
-                  return ScaleTransition(scale: animation, child: child);
-                },
-                duration: Durations.extralong1,
-                child: !isCollapsed
-                    ? Container(
-                        padding: EdgeInsets.all(10),
-                        width: double.infinity,
-                        margin: EdgeInsets.all(30),
-                        decoration: BoxDecoration(
-                            boxShadow: [
-                              BoxShadow(
-                                  offset: Offset(5, 5),
-                                  spreadRadius: -2,
-                                  blurRadius: 10,
-                                  color: Colors.black.withOpacity(0.4))
-                            ],
-                            color: Colors.white,
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(20))),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.amber,
-                                  borderRadius: BorderRadius.all(Radius.circular(5))),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 24,
+              slivers: <Widget>[
+                SliverAppBar(
+                  shadowColor: Colors.transparent,
+                  backgroundColor:
+                      !isCollapsed ? Colors.blueGrey.shade100 : Colors.transparent,
+                  surfaceTintColor: Colors.transparent,
+                  foregroundColor: Colors.transparent,
+                  // scrolledUnderElevation: collapsedBarHeight,
+                  toolbarHeight: collapsedBarHeight,
+                  snap: true,
+                  centerTitle: false,
+                  // stretch: true,
+                  // Provide a standard title.
+                  // title: ,
+                  pinned: true,
+                  // Allows the user to reveal the app bar if they begin scrolling
+                  // back up the list of items.
+                  floating: true,
+                  expandedHeight: 0,
+                  flexibleSpace: Container(),
+                  title: AnimatedSwitcher(
+                      duration: Duration(seconds: 1),
+                      child: isCollapsed
+                          ? Container(
+                              padding: EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                  boxShadow: [BoxShadow(color: Colors.blueGrey.shade200, offset: Offset(5, 5), blurRadius: 5)],
+                                  color: Colors.white,
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(20))),
+                              child: TextButton(
+                                  onPressed: () {},
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          _currentAddress["address"],
+                                          style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w700),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 10,
+                                      ),
+                                      Icon(Icons.edit_outlined),
+                                    ],
+                                  )))
+                          : FutureBuilder(
+                              future: getAddresses(),
+                              builder: (context, snapshot) {
+                                if (snapshot.hasData) {
+                                  return Container(
+                                    alignment: Alignment.center,
+                                    color: Colors.blueGrey.shade100,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        TextButton(
+                                            onPressed: () {},
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  _currentAddress["city_name"],
+                                                  style:
+                                                      TextStyle(fontSize: 24),
+                                                ),
+                                                Icon(Icons.arrow_drop_down)
+                                              ],
+                                            ))
+                                      ],
                                     ),
-                                    Text(
-                                      user!["name"] ?? "Нет имени",
-                                      style: TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.w500),
-                                    )
+                                  );
+                                } else if (snapshot.hasError) {
+                                  return Center();
+                                }
+                                return Center(
+                                    child: CircularProgressIndicator());
+                              },
+                            )),
+                  // Display a placeholder widget to visualize the shrinking size.
+                  // flexibleSpace: AnimatedSwitcher(
+                  //   transitionBuilder: (Widget child, Animation<double> animation) {
+                  //     return ScaleTransition(scale: animation, child: child);
+                  //   },
+                  //   duration: Durations.extralong1,
+                  //   child: !isCollapsed
+                  //       ? Container(
+                  //           width: double.infinity,
+                  //           decoration: BoxDecoration(
+                  //             color: Colors.grey.shade100,
+                  //             // borderRadius:
+                  //             //     BorderRadius.all(Radius.circular(20)
+                  //             // )
+                  //           ),
+                  //           child: Stack(
+                  //             children: [
+                  //               Column(
+                  //                 mainAxisAlignment: MainAxisAlignment.end,
+                  //                 children: [],
+                  //               ),
+                  //               Column(
+                  //                 mainAxisAlignment: MainAxisAlignment.start,
+                  //                 crossAxisAlignment: CrossAxisAlignment.start,
+                  //                 children: [
+                  //                   Container(
+                  //                     decoration: BoxDecoration(
+                  //                         color: Colors.white,
+                  //                         borderRadius:
+                  //                             BorderRadius.all(Radius.circular(5))),
+                  //                     child: Row(
+                  //                       mainAxisSize: MainAxisSize.min,
+                  //                       crossAxisAlignment:
+                  //                           CrossAxisAlignment.center,
+                  //                       children: [
+                  //                         CircleAvatar(
+                  //                           radius: 24,
+                  //                         ),
+                  //                         // Text(
+                  //                         //   user!["name"] ?? "Нет имени",
+                  //                         //   style: TextStyle(
+                  //                         //       fontSize: 24,
+                  //                         //       fontWeight: FontWeight.w500),
+                  //                         // )
+                  //                       ],
+                  //                     ),
+                  //                   ),
+                  //                   Text(
+                  //                     "ЗДЕСЬ БУДЕТ ЛОГОТИП",
+                  //                     style: TextStyle(
+                  //                         fontWeight: FontWeight.w700,
+                  //                         fontSize: 24),
+                  //                   ),
+                  //                   Text("title"),
+                  //                   Text("title"),
+                  //                 ],
+                  //               ),
+                  //               BackdropFilter(
+                  //                 filter: ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+                  //                 child: Container(
+                  //                   width: double.infinity,
+                  //                   height: double.infinity,
+                  //                 ),
+                  //               )
+                  //             ],
+                  //           ))
+                  //       : Container(),
+                  // ),
+                  // Make the initial height of the SliverAppBar larger than normal.
+                  // collapsedHeight: collapsedBarHeight,
+                ),
+                SliverToBoxAdapter(
+                    child: AnimatedContainer(
+                        duration: Durations.extralong1,
+                        color: !isStartingToCollapse ? Colors.blueGrey.shade100 : Colors.white,
+                        child: Stack(
+                          alignment: Alignment.bottomCenter,
+                          children: [
+                            AnimatedContainer(
+                              duration: Durations.extralong1,
+                              height: 100,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                  boxShadow: [
+                                    !isStartingToCollapse
+                                        ? BoxShadow(
+                                            offset: Offset(0, -10),
+                                            color: Colors.black26,
+                                            blurRadius: 20)
+                                        : BoxShadow(color: Colors.white)
+                                  ],
+                                  color: Colors.white,
+                                  borderRadius: !isCollapsed
+                                      ? BorderRadius.only(
+                                          topLeft: Radius.elliptical(100, 50),
+                                          topRight: Radius.elliptical(100, 50))
+                                      : BorderRadius.all(Radius.zero)),
+                            ),
+                            Column(
+                              children: [
+                                AnimatedContainer(
+                                  foregroundDecoration: BoxDecoration(
+                                      color: !isStartingToCollapse
+                                          ? Colors.blueGrey.shade100.withOpacity(0)
+                                          : Colors.white),
+                                  duration: Durations.extralong2,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.max,
+                                    children: [
+                                      AnimatedContainer(
+                                          duration: Durations.extralong1,
+                                          // foregroundDecoration: BoxDecoration(color: isCollapsed ? Colors.grey.shade100 : Colors.transparent),
+                                          width: double.infinity,
+                                          height: MediaQuery.of(context)
+                                                  .size
+                                                  .height /
+                                              4,
+                                          margin: EdgeInsets.all(15),
+                                          decoration: BoxDecoration(
+                                              // color: Colors.pinkAccent,
+
+                                              ),
+                                          child: Column(
+                                            children: [
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Spacer(
+                                                    flex: 2,
+                                                  ),
+                                                  CircleAvatar(
+                                                    radius:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .height /
+                                                            16,
+                                                  ),
+                                                  Spacer(),
+                                                  Flexible(
+                                                      flex: 3,
+                                                      child: Text(
+                                                        user["name"],
+                                                        style: TextStyle(
+                                                            fontSize: 24),
+                                                      )),
+                                                  Spacer(
+                                                    flex: 2,
+                                                  )
+                                                ],
+                                              ),
+                                              Spacer(),
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  TextButton(
+                                                      onPressed: () {},
+                                                      child: Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        mainAxisSize:
+                                                            MainAxisSize.max,
+                                                        children: [
+                                                          Text(
+                                                            _currentAddress[
+                                                                "address"],
+                                                            style: TextStyle(
+                                                                fontSize: 16,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700),
+                                                          ),
+                                                          SizedBox(
+                                                            width: 10,
+                                                          ),
+                                                          Icon(Icons
+                                                              .edit_outlined),
+                                                        ],
+                                                      ))
+                                                ],
+                                              ),
+                                              Spacer(
+                                                flex: 2,
+                                              )
+                                            ],
+                                          ))
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  width: double.infinity,
+                                  height:
+                                      MediaQuery.of(context).size.height / 5,
+                                  margin: EdgeInsets.all(15),
+                                  padding: EdgeInsets.all(30),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blueGrey,
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(30)),
+                                    boxShadow: [
+                                      BoxShadow(
+                                          offset: Offset(0, -1),
+                                          color: Colors.black26,
+                                          blurRadius: 5)
+                                    ],
+                                  ),
+                                  child: Text(
+                                      "здесь будет какой то баннер, возможно надо будет марджины везде одинаковые сделать"),
+                                )
+                              ],
+                            )
+                          ],
+                        ))),
+                SliverToBoxAdapter(
+                  child: GridView.builder(
+                    primary: false,
+                    shrinkWrap: true,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                    ),
+                    itemCount: 16,
+                    itemBuilder: (context, index) {
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) {
+                                return const HomePage(); //! TOOD: Change to redirect page to a different organizations or do this right here.
+                              },
+                            ),
+                          );
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.black),
+                            borderRadius: const BorderRadius.all(
+                              Radius.circular(10),
+                            ),
+                          ),
+                          margin: const EdgeInsets.symmetric(horizontal: 5),
+                          width: 550 * (screenSize / 720),
+                          child: Column(
+                            children: [
+                              Flexible(
+                                flex: 3,
+                                fit: FlexFit.tight,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        "Картинка бизнеса",
+                                        style: plainStyle,
+                                      ),
+                                    ),
                                   ],
                                 ),
-                              
-                            ),
-                            Text(
-                              "ЗДЕСЬ БУДЕТ ЛОГОТИП",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w700, fontSize: 24),
-                            ),
-                            Text("title"),
-                            Text("title"),
-                          ],
-                        ),
-                      )
-                    : Container(),
-              ),
-              // Make the initial height of the SliverAppBar larger than normal.
-              expandedHeight: expandedBarHeight,
-              // collapsedHeight: collapsedBarHeight,
-            ),
-            SliverToBoxAdapter(
-              child: GridView.builder(
-                primary: false,
-                shrinkWrap: true,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                ),
-                itemCount: 16,
-                itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) {
-                            return const HomePage(); //! TOOD: Change to redirect page to a different organizations or do this right here.
-                          },
+                              ),
+                              const Divider(
+                                color: Colors.black,
+                              ),
+                              Flexible(
+                                fit: FlexFit.tight,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        bars[index]["name"],
+                                        style: plainStyle,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.black),
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(10),
-                        ),
-                      ),
-                      margin: const EdgeInsets.symmetric(horizontal: 5),
-                      width: 550 * (screenSize / 720),
-                      child: Column(
-                        children: [
-                          Flexible(
-                            flex: 3,
-                            fit: FlexFit.tight,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    "Картинка бизнеса",
-                                    style: plainStyle,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Divider(
-                            color: Colors.black,
-                          ),
-                          Flexible(
-                            fit: FlexFit.tight,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    bars[index]["name"],
-                                    style: plainStyle,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            )
-          ],
-        ))));
+                  ),
+                )
+              ],
+            ))));
   }
 }
