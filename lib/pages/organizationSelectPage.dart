@@ -21,7 +21,10 @@ class OrganizationSelectPage extends StatefulWidget {
   State<OrganizationSelectPage> createState() => _OrganizationSelectPageState();
 }
 
-class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
+class _OrganizationSelectPageState extends State<OrganizationSelectPage>
+    with AutomaticKeepAliveClientMixin {
+  bool get wantKeepAlive => true;
+
   List<Map<String, dynamic>> bars = [
     {"organization_id": "1", "name": "НАЛИВ"},
     {"organization_id": "2", "name": "Название бизнеса"},
@@ -92,9 +95,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
     });
   }
 
-  bool isCollapsed = false;
-  bool isStartingToCollapse = false;
-
+    bool isCollapsed = false;
+    bool isStartingToCollapse = false;
   @override
   Widget build(BuildContext context) {
     const collapsedBarHeight = 100.0;
@@ -124,29 +126,33 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
           // } else {
           //   print(false);
           // }
-          print(notification.metrics.minScrollExtent);
-          print(notification.metrics.pixels);
           if (notification.metrics.minScrollExtent + 200 <
               notification.metrics.pixels) {
-            print(true);
-            setState(() {
-              isCollapsed = true;
-            });
+            if (!isCollapsed) {
+              setState(() {
+                isCollapsed = true;
+              });
+            }
           } else {
-            setState(() {
-              isCollapsed = false;
-            });
+            if (isCollapsed) {
+              setState(() {
+                isCollapsed = false;
+              });
+            }
           }
           if (notification.metrics.minScrollExtent + 100 <
               notification.metrics.pixels) {
-            print(true);
-            setState(() {
-              isStartingToCollapse = true;
-            });
+            if (!isStartingToCollapse) {
+              setState(() {
+                isStartingToCollapse = true;
+              });
+            }
           } else {
-            setState(() {
-              isStartingToCollapse = false;
-            });
+            if (isStartingToCollapse) {
+              setState(() {
+                isStartingToCollapse = false;
+              });
+            }
           }
 
           /// 2
@@ -717,9 +723,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
               slivers: <Widget>[
                 SliverAppBar(
                   shadowColor: Colors.transparent,
-                  backgroundColor: !isCollapsed
-                      ? Colors.blueGrey.shade100
-                      : Colors.transparent,
+                  backgroundColor:
+                      !isCollapsed ? Color(0xFFef8354) : Colors.transparent,
                   surfaceTintColor: Colors.transparent,
                   foregroundColor: Colors.transparent,
                   // scrolledUnderElevation: collapsedBarHeight,
@@ -736,7 +741,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                   expandedHeight: 0,
                   flexibleSpace: Container(),
                   title: AnimatedSwitcher(
-                      duration: Duration(seconds: 1),
+                      duration: Durations.medium1,
                       child: isCollapsed
                           ? Container(
                               padding: EdgeInsets.all(10),
@@ -776,12 +781,14 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                                 if (snapshot.hasData) {
                                   return Container(
                                     alignment: Alignment.center,
-                                    color: Colors.blueGrey.shade100,
+                                    color: Color(0xFFef8354),
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.center,
                                       children: [
-                                        Row(crossAxisAlignment: CrossAxisAlignment.end,
+                                        Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
                                           mainAxisAlignment:
                                               MainAxisAlignment.spaceBetween,
                                           mainAxisSize: MainAxisSize.max,
@@ -801,10 +808,14 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                                                           _currentAddress[
                                                               "city_name"],
                                                           style: TextStyle(
-                                                              fontSize: 24),
+                                                              fontSize: 24,
+                                                              color:
+                                                                  Colors.white),
                                                         ),
-                                                        Icon(Icons
-                                                            .arrow_drop_down),
+                                                        Icon(
+                                                          Icons.arrow_drop_down,
+                                                          color: Colors.white,
+                                                        ),
                                                       ],
                                                     ),
                                                   ],
@@ -813,7 +824,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                                                 onPressed: () {},
                                                 icon: Icon(
                                                   Icons.menu,
-                                                  color: Colors.black,
+                                                  color: Colors.white,
                                                 )),
 
                                             // IconButton(
@@ -841,7 +852,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                   //       ? Container(
                   //           width: double.infinity,
                   //           decoration: BoxDecoration(
-                  //             color: Colors.grey.shade100,
+                  //             color: Color(0xFFef8354),
                   //             // borderRadius:
                   //             //     BorderRadius.all(Radius.circular(20)
                   //             // )
@@ -903,10 +914,28 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                   // collapsedHeight: collapsedBarHeight,
                 ),
                 SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      Container(
+                        color: Color(0xFFef8354),
+                        child: Container(
+                          height: 200,
+                          width: double.infinity,
+                          margin: EdgeInsets.all(15),
+                          decoration: BoxDecoration(
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(30)),
+                              color: Colors.white),
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+                SliverToBoxAdapter(
                     child: AnimatedContainer(
                         duration: Durations.extralong1,
                         color: !isStartingToCollapse
-                            ? Colors.blueGrey.shade100
+                            ? Color(0xFFef8354)
                             : Colors.white,
                         child: Stack(
                           alignment: Alignment.bottomCenter,
@@ -936,8 +965,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                                 AnimatedContainer(
                                   foregroundDecoration: BoxDecoration(
                                       color: !isStartingToCollapse
-                                          ? Colors.blueGrey.shade100
-                                              .withOpacity(0)
+                                          ? Color(0xFFef8354).withOpacity(0)
                                           : Colors.white),
                                   duration: Durations.extralong2,
                                   child: Column(
@@ -945,7 +973,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                                     children: [
                                       AnimatedContainer(
                                           duration: Durations.extralong1,
-                                          // foregroundDecoration: BoxDecoration(color: isCollapsed ? Colors.grey.shade100 : Colors.transparent),
+                                          // foregroundDecoration: BoxDecoration(color: isCollapsed ? Color(0xFFef8354) : Colors.transparent),
                                           width: double.infinity,
                                           height: MediaQuery.of(context)
                                                   .size
@@ -978,7 +1006,11 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                                                       child: Text(
                                                         user["name"],
                                                         style: TextStyle(
-                                                            fontSize: 24),
+                                                            fontSize: 24,
+                                                            color: Colors.white,
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .w500),
                                                       )),
                                                   Spacer(
                                                     flex: 2,
@@ -1006,13 +1038,17 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> {
                                                                 fontSize: 16,
                                                                 fontWeight:
                                                                     FontWeight
-                                                                        .w700),
+                                                                        .w500,
+                                                                color: Colors
+                                                                    .white),
                                                           ),
                                                           SizedBox(
                                                             width: 10,
                                                           ),
-                                                          Icon(Icons
-                                                              .edit_outlined),
+                                                          Icon(
+                                                            Icons.edit_outlined,
+                                                            color: Colors.white,
+                                                          ),
                                                         ],
                                                       ))
                                                 ],
