@@ -113,8 +113,8 @@ class _MarqueeTextState extends State<MarqueeText>
                   position: i.isOdd ? _animationOne : _animationTwo,
                   child: Text(
                     i.isOdd
-                        ? "НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ НАЛИВ "
-                        : "ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ГРАДУСЫ ",
+                        ? "Вставьте  Вставьте  Вставьте  Вставьте  Вставьте  Вставьте  Вставьте  Вставьте  "
+                        : "название название название название название название название название ",
                     style: TextStyle(
                       fontSize: 140 * (screenSize / 720),
                       fontWeight: FontWeight.w900,

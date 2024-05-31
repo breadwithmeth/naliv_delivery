@@ -11,6 +11,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/pages/categoryPage.dart';
 import 'package:naliv_delivery/pages/orderHistoryPage.dart';
 import 'package:naliv_delivery/pages/organizationSelectPage.dart';
+import 'package:naliv_delivery/pages/preLoadDataPage.dart';
 import 'package:naliv_delivery/pages/supportPage.dart';
 import 'package:naliv_delivery/shared/activeOrderButton.dart';
 import 'package:naliv_delivery/shared/cartButton.dart';
@@ -661,7 +662,7 @@ class _HomePageState extends State<HomePage>
                                 Navigator.pushReplacement(context,
                                     MaterialPageRoute(
                                   builder: (context) {
-                                    return const OrganizationSelectPage();
+                                    return PreLoadDataPage();
                                   },
                                 ));
                               });

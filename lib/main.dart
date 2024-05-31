@@ -6,6 +6,7 @@ import 'package:naliv_delivery/misc/colors.dart';
 import 'package:naliv_delivery/pages/homePage.dart';
 import 'package:naliv_delivery/pages/organizationSelectPage.dart';
 import 'package:naliv_delivery/pages/permissionPage.dart';
+import 'package:naliv_delivery/pages/preLoadDataPage.dart';
 import 'package:naliv_delivery/pages/startLoadingPage.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -98,7 +99,7 @@ class _MainState extends State<Main> {
     String? token = await getToken();
     if (token != null) {
       setState(() {
-        _redirect = const OrganizationSelectPage();
+        _redirect = PreLoadDataPage();
       });
       // determinePosition().then((value) {
       //   setCityAuto(value.latitude, value.longitude).then((value) {
