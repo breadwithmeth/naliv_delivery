@@ -125,6 +125,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
   bool isCollapsed = false;
   bool isStartingToCollapse = false;
   double scrollExtent = 0;
+  bool isMenuOpen = false;
   @override
   Widget build(BuildContext context) {
     const collapsedBarHeight = 100.0;
@@ -163,24 +164,25 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
             }
           } else {
             if (isCollapsed) {
+              _sc.animateTo(0,
+                  duration: Durations.medium1, curve: Curves.easeIn);
               setState(() {
                 isCollapsed = false;
               });
             }
           }
-          if (notification.metrics.minScrollExtent + 100 <
+          if (notification.metrics.minScrollExtent + 10 <
               notification.metrics.pixels) {
             if (!isStartingToCollapse) {
               _sc.animateTo(scrollExtent + collapsedBarHeight * 2,
                   duration: Durations.medium1, curve: Curves.easeIn);
               setState(() {
+                isMenuOpen = false;
                 isStartingToCollapse = true;
               });
             }
           } else {
             if (isStartingToCollapse) {
-              _sc.animateTo(0,
-                  duration: Durations.medium1, curve: Curves.easeIn);
               setState(() {
                 isStartingToCollapse = false;
               });
@@ -200,7 +202,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
               controller: _sc,
               slivers: <Widget>[
                 SliverAppBar(
-                  shadowColor: Colors.transparent,
+                  shadowColor: !isCollapsed
+                      ? const Color(0xFFef8354)
+                      : Colors.transparent,
                   backgroundColor: !isCollapsed
                       ? const Color(0xFFef8354)
                       : Colors.transparent,
@@ -291,9 +295,16 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                             ],
                                           )),
                                       IconButton(
-                                          onPressed: () {},
-                                          icon: const Icon(
-                                            Icons.menu,
+                                          onPressed: () {
+                                            setState(() {
+                                              isMenuOpen =
+                                                  isMenuOpen ? false : true;
+                                            });
+                                          },
+                                          icon: Icon(
+                                            !isMenuOpen
+                                                ? Icons.menu
+                                                : Icons.close,
                                             color: Colors.white,
                                           )),
 
@@ -305,92 +316,122 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                 ],
                               ),
                             )),
-                  // Display a placeholder widget to visualize the shrinking size.
-                  // flexibleSpace: AnimatedSwitcher(
-                  //   transitionBuilder: (Widget child, Animation<double> animation) {
-                  //     return ScaleTransition(scale: animation, child: child);
-                  //   },
-                  // duration: Durations.medium1,
-                  //   child: !isCollapsed
-                  //       ? Container(
-                  //           width: double.infinity,
-                  //           decoration: BoxDecoration(
-                  //             color: Color(0xFFef8354),
-                  //             // borderRadius:
-                  //             //     BorderRadius.all(Radius.circular(20)
-                  //             // )
-                  //           ),
-                  //           child: Stack(
-                  //             children: [
-                  //               Column(
-                  //                 mainAxisAlignment: MainAxisAlignment.end,
-                  //                 children: [],
-                  //               ),
-                  //               Column(
-                  //                 mainAxisAlignment: MainAxisAlignment.start,
-                  //                 crossAxisAlignment: CrossAxisAlignment.start,
-                  //                 children: [
-                  //                   Container(
-                  //                     decoration: BoxDecoration(
-                  //                         color: Colors.white,
-                  //                         borderRadius:
-                  //                             BorderRadius.all(Radius.circular(5))),
-                  //                     child: Row(
-                  //                       mainAxisSize: MainAxisSize.min,
-                  //                       crossAxisAlignment:
-                  //                           CrossAxisAlignment.center,
-                  //                       children: [
-                  //                         CircleAvatar(
-                  //                           radius: 24,
-                  //                         ),
-                  //                         // Text(
-                  //                         //   user!["name"] ?? "Нет имени",
-                  //                         //   style: TextStyle(
-                  //                         //       fontSize: 24,
-                  //                         //       fontWeight: FontWeight.w500),
-                  //                         // )
-                  //                       ],
-                  //                     ),
-                  //                   ),
-                  //                   Text(
-                  //                     "ЗДЕСЬ БУДЕТ ЛОГОТИП",
-                  //                     style: TextStyle(
-                  //                         fontWeight: FontWeight.w700,
-                  //                         fontSize: 24),
-                  //                   ),
-                  //                   Text("title"),
-                  //                   Text("title"),
-                  //                 ],
-                  //               ),
-                  //               BackdropFilter(
-                  //                 filter: ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-                  //                 child: Container(
-                  //                   width: double.infinity,
-                  //                   height: double.infinity,
-                  //                 ),
-                  //               )
-                  //             ],
-                  //           ))
-                  //       : Container(),
-                  // ),
-                  // Make the initial height of the SliverAppBar larger than normal.
-                  // collapsedHeight: collapsedBarHeight,
                 ),
                 SliverToBoxAdapter(
                   child: Column(
                     children: [
-                      Container(
-                        color: const Color(0xFFef8354),
-                        child: Container(
-                          height: 200,
-                          width: double.infinity,
-                          margin: const EdgeInsets.all(15),
-                          decoration: const BoxDecoration(
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(30)),
-                              color: Colors.white),
-                        ),
-                      )
+                      AnimatedCrossFade(
+                          crossFadeState: isMenuOpen
+                              ? CrossFadeState.showFirst
+                              : CrossFadeState.showSecond,
+                          duration: Durations.medium1,
+                          firstChild: Container(
+                            key: ValueKey<int>(0),
+                            alignment: Alignment.centerRight,
+                            color: Colors.white,
+                            child: Container(
+                              key: ValueKey<int>(3),
+                              padding: EdgeInsets.all(10),
+                              margin:
+                                  const EdgeInsets.only(top: 10, bottom: 10),
+                              decoration: const BoxDecoration(
+                                borderRadius: BorderRadius.only(
+                                    topLeft: Radius.circular(30),
+                                    bottomLeft: Radius.circular(30)),
+                                color: Colors.white,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  TextButton(
+
+                                      // style: ElevatedButton.styleFrom(
+                                      //     backgroundColor: Colors.white,
+                                      //     foregroundColor: Colors.black),
+                                      onPressed: () {},
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            "История заказов",
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w400,
+                                                fontSize: 48 *
+                                                    (MediaQuery.of(context)
+                                                            .size
+                                                            .width /
+                                                        720)),
+                                          ),
+                                          SizedBox(
+                                            width: 10,
+                                          ),
+                                          Icon(Icons.list_alt)
+                                        ],
+                                      )),
+                                  TextButton(
+
+                                      // style: ElevatedButton.styleFrom(
+                                      //     backgroundColor: Colors.white,
+                                      //     foregroundColor: Colors.black),
+                                      onPressed: () {},
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            "Адреса доставки",
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w400,
+                                                fontSize: 48 *
+                                                    (MediaQuery.of(context)
+                                                            .size
+                                                            .width /
+                                                        720)),
+                                          ),
+                                          SizedBox(
+                                            width: 10,
+                                          ),
+                                          Icon(Icons.list_alt)
+                                        ],
+                                      )),
+                                  TextButton(
+
+                                      // style: ElevatedButton.styleFrom(
+                                      //     backgroundColor: Colors.white,
+                                      //     foregroundColor: Colors.black),
+                                      onPressed: () {},
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            "Выйти",
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w400,
+                                                fontSize: 48 *
+                                                    (MediaQuery.of(context)
+                                                            .size
+                                                            .width /
+                                                        720)),
+                                          ),
+                                          SizedBox(
+                                            width: 10,
+                                          ),
+                                          Icon(Icons.list_alt)
+                                        ],
+                                      ))
+                                ],
+                              ),
+                            ),
+                          ),
+                          secondChild: Container(
+                            key: ValueKey<int>(1),
+                            color: const Color(0xFFef8354),
+                          ))
                     ],
                   ),
                 ),
@@ -405,7 +446,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                     }
                     return SliverToBoxAdapter(
                       child: AnimatedContainer(
-                          duration: Durations.medium1,
+                          duration: Durations.medium2,
                           color: !isStartingToCollapse
                               ? const Color(0xFFef8354)
                               : Colors.white,
@@ -567,6 +608,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                   },
                 ),
                 SliverToBoxAdapter(
+                    child: Container(
+                  color: Colors.white,
                   child: GridView.builder(
                     primary: false,
                     shrinkWrap: true,
@@ -636,7 +679,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                       );
                     },
                   ),
-                )
+                ))
               ],
             ))));
   }

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/organizationSelectPage.dart';
+import 'package:naliv_delivery/shared/loadingScreen.dart';
 
 class PreLoadDataPage extends StatefulWidget {
   const PreLoadDataPage({super.key});
@@ -57,6 +58,6 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
 
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return const LoadingScreen();
   }
 }
