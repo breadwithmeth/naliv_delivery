@@ -557,7 +557,7 @@ Future<Map<String, dynamic>?> getCity() async {
   return data;
 }
 
-Future<Map<String, dynamic>> createOrder() async {
+Future<Map<String, dynamic>> createOrder([String user_id = ""]) async {
   // Returns null in two situations, token is null or wrong order (406)
   String? token = await getToken();
   if (token == null) {
@@ -567,6 +567,7 @@ Future<Map<String, dynamic>> createOrder() async {
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
+    body: user_id.isNotEmpty ? json.encode({"user_id": user_id}) : null,
   );
 
   // List<dynamic> list = json.decode(response.body);
@@ -755,7 +756,6 @@ Future<List<dynamic>> getUserAddresses(String userID) async {
   return result;
 }
 
-
 Future<bool> selectAddressClient(String addressId, String user_id) async {
   String? token = await getToken();
   if (token == null) {
@@ -764,7 +764,7 @@ Future<bool> selectAddressClient(String addressId, String user_id) async {
   var url = Uri.https(URL_API, 'api/user/selectAddress.php');
   var response = await http.post(
     url,
-    body: json.encode({"address_id": addressId, "user_id":user_id}),
+    body: json.encode({"address_id": addressId, "user_id": user_id}),
     headers: {"Content-Type": "application/json", "AUTH": token},
   );
   Map<String, dynamic>? data = json.decode(utf8.decode(response.bodyBytes));

@@ -40,7 +40,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
 
   Map<String, dynamic> selectedBusiness = {};
 
-  Map<String, dynamic>? user;
+  Map<String, dynamic> user = {};
 
   List<Map<dynamic, dynamic>> wrongAmountItems = [];
 
@@ -696,10 +696,10 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                   children: [
                     Flexible(
                       child: Text(
-                        user == null
+                        user.isEmpty
                             ? "Счёт на каспи:"
                             : widget.client.isEmpty
-                                ? "Счёт на каспи: ${user!["login"].toString()}" //! TODO: CHANGE IF NOT KASPI BUT CASH
+                                ? "Счёт на каспи: ${user["login"].toString()}" //! TODO: CHANGE IF NOT KASPI BUT CASH
                                 : "Счёт на каспи: ${widget.client["login"].toString()}",
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
@@ -746,7 +746,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                       (addresses.isEmpty && widget.customAddress.isEmpty)
                   ? null
                   : () {
-                      widget.customAddress.isEmpty
+                      widget.client.isEmpty
                           ? Navigator.push(
                               context,
                               MaterialPageRoute(
