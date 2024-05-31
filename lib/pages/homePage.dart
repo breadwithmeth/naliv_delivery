@@ -1301,7 +1301,8 @@ class _HomePageState extends State<HomePage>
                                               Flexible(
                                                 fit: FlexFit.tight,
                                                 child: Text(
-                                                  _business?["name"] ?? "",
+                                                  _business?["name"] ??
+                                                      "Текущий магазин",
                                                   style: const TextStyle(
                                                       color: Colors.black,
                                                       fontWeight:

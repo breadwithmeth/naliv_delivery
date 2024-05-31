@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:naliv_delivery/misc/api.dart';
@@ -12,7 +13,6 @@ import 'package:naliv_delivery/pages/loginPage.dart';
 import 'package:naliv_delivery/pages/orderHistoryPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
 import 'package:naliv_delivery/pages/supportPage.dart';
-// import 'package:flutter_hooks/flutter_hooks.dart';
 
 class OrganizationSelectPage extends StatefulWidget {
   const OrganizationSelectPage({super.key});
@@ -30,18 +30,11 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     {"organization_id": "2", "name": "Название бизнеса"},
     {"organization_id": "3", "name": "Название бизнеса"},
     {"organization_id": "4", "name": "Название бизнеса"},
-    {"organization_id": "1", "name": "НАЛИВ"},
-    {"organization_id": "2", "name": "Название бизнеса"},
-    {"organization_id": "3", "name": "Название бизнеса"},
-    {"organization_id": "4", "name": "Название бизнеса"},
-    {"organization_id": "1", "name": "НАЛИВ"},
-    {"organization_id": "2", "name": "Название бизнеса"},
-    {"organization_id": "3", "name": "Название бизнеса"},
-    {"organization_id": "4", "name": "Название бизнеса"},
-    {"organization_id": "1", "name": "НАЛИВ"},
-    {"organization_id": "2", "name": "Название бизнеса"},
-    {"organization_id": "3", "name": "Название бизнеса"},
-    {"organization_id": "4", "name": "Название бизнеса"},
+    {"organization_id": "5", "name": "Название бизнеса"},
+    {"organization_id": "6", "name": "Название бизнеса"},
+    {"organization_id": "7", "name": "Название бизнеса"},
+    {"organization_id": "8", "name": "Название бизнеса"},
+    {"organization_id": "9", "name": "Название бизнеса"},
   ];
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
