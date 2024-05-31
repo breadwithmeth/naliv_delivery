@@ -6,6 +6,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/addressesPage.dart';
 import 'package:naliv_delivery/pages/favPage.dart';
@@ -16,8 +17,14 @@ import 'package:naliv_delivery/pages/settingsPage.dart';
 import 'package:naliv_delivery/pages/supportPage.dart';
 
 class OrganizationSelectPage extends StatefulWidget {
-  const OrganizationSelectPage({super.key});
-
+  OrganizationSelectPage(
+      {super.key,
+      required this.addresses,
+      required this.currentAddress,
+      required this.user});
+  final List addresses;
+  final Map currentAddress;
+  final Map<String, dynamic> user;
   @override
   State<OrganizationSelectPage> createState() => _OrganizationSelectPageState();
 }
@@ -56,11 +63,11 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  List _addresses = [];
+  // List widget.addresses = [];
 
-  Map _currentAddress = {};
+  // Map currentAddress = {};
 
-  Map<String, dynamic> user = {};
+  // Map<String, dynamic> user = {};
 
   void toggleDrawer() async {
     if (_scaffoldKey.currentState!.isDrawerOpen) {
@@ -70,39 +77,48 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     }
   }
 
-  Future<void> _getAddresses() async {
-    List addresses = await getAddresses();
-    print(addresses);
-    setState(() {
-      _addresses = addresses;
-      _currentAddress = _addresses.firstWhere(
-        (element) => element["is_selected"] == "1",
-        orElse: () {
-          return null;
-        },
-      );
-    });
-  }
+  // Future<void> _getAddresses() async {
+  //   List addresses = await getAddresses();
+  //   print(addresses);
+  //   setState(() {
+  //     widget.addresses = addresses;
+  //     widget.currentAddress = widget.addresses.firstWhere(
+  //       (element) => element["is_selected"] == "1",
+  //       orElse: () {
+  //         return null;
+  //       },
+  //     );
+  //   });
+  // }
 
-  void _getUser() async {
-    await getUser().then((value) {
-      setState(() {
-        if (value != null) {
-          user = value;
-        }
-      });
+  // void _getUser() async {
+  //   await getUser().then((value) {
+  //     setState(() {
+  //       if (value != null) {
+  //         user = value;
+  //       }
+  //     });
+  //   });
+  // }
+
+  void _initData() {
+    setState(() {
+      // widget.currentAddress = widget.currentAddress;
+      // user = widget.user;
+      // widget.addresses = widget.addresses;
     });
   }
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration.zero).then((value) async {
-      _getUser();
-    });
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      _getAddresses();
-    });
+    // Future.delayed(Duration.zero).then((value) async {
+    //   _getUser();
+    // });
+    // WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+    //   _getAddresses();
+    // });
+    // _initData();
   }
 
   ScrollController _sc = ScrollController();
@@ -155,7 +171,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
           if (notification.metrics.minScrollExtent + 100 <
               notification.metrics.pixels) {
             if (!isStartingToCollapse) {
-              _sc.animateTo(scrollExtent + collapsedBarHeight*2,
+              _sc.animateTo(scrollExtent + collapsedBarHeight * 2,
                   duration: Durations.medium1, curve: Curves.easeIn);
               setState(() {
                 isStartingToCollapse = true;
@@ -178,561 +194,6 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
           return false;
         },
         child: Scaffold(
-            // appBar: AppBar(
-            //   // centerTitle: true,
-            //   title: Row(
-            //     children: [
-            //       Flexible(
-            //         fit: FlexFit.tight,
-            //         child: Row(
-            //           mainAxisAlignment: MainAxisAlignment.start,
-            //           children: [
-            //             IconButton(
-            //               padding: EdgeInsets.zero,
-            //               onPressed: () {
-            //                 toggleDrawer();
-            //               },
-            //               icon: const Icon(Icons.menu_rounded),
-            //             ),
-            //           ],
-            //         ),
-            //       ),
-            //       Flexible(
-            //           flex: 3,
-            //           fit: FlexFit.tight,
-            //           child: Container(
-            //             padding: EdgeInsets.all(5),
-            //             decoration: BoxDecoration(
-            //               color: Colors.amber.withOpacity(0.1),
-            //               borderRadius: BorderRadius.all(Radius.circular(20))
-            //             ),
-            //             child: Row(
-            //               mainAxisAlignment: MainAxisAlignment.center,
-            //               children: [Text("Едыге би 76",  style: TextStyle(color: Colors.amberAccent,fontSize: 16, fontWeight: FontWeight.w200),)],
-            //             ),
-            //           )),
-            //       Flexible(
-            //         fit: FlexFit.tight,
-            //         child: const SizedBox(),
-            //       ),
-            //     ],
-            //   ),
-            //   automaticallyImplyLeading: false,
-            // ),
-            // drawer: Drawer(
-            //   child: SafeArea(
-            //     child: Column(
-            //       children: [
-            //         Container(
-            //           padding:
-            //               const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-            //           child: Padding(
-            //             padding: const EdgeInsets.all(8.0),
-            //             child: Row(
-            //               children: [
-            //                 CircleAvatar(
-            //                   radius: MediaQuery.of(context).size.width * 0.10,
-            //                   backgroundImage: const CachedNetworkImageProvider(
-            //                     "https://air-fom.com/wp-content/uploads/2018/06/real_1920.jpg",
-            //                   ),
-            //                 ),
-            //                 const SizedBox(
-            //                   width: 10,
-            //                 ),
-            //                 // TODO: activate this code in production
-            //                 SizedBox(
-            //                   width: MediaQuery.of(context).size.width * 0.3,
-            //                   child: user != null
-            //                       ? Column(
-            //                           crossAxisAlignment: CrossAxisAlignment.start,
-            //                           children: [
-            //                             Text(
-            //                               user!["name"] ?? "Нет имени",
-            //                               style: TextStyle(
-            //                                   color: Colors.black,
-            //                                   fontWeight: FontWeight.w500,
-            //                                   fontSize: 32 * (screenSize / 720)),
-            //                             ),
-            //                             Text(
-            //                               user!["login"] ?? "",
-            //                               style: TextStyle(
-            //                                   color: Colors.black,
-            //                                   fontWeight: FontWeight.w400,
-            //                                   fontSize: 28 * (screenSize / 720)),
-            //                             ),
-            //                             Text(
-            //                               user!["user_id"] ?? "",
-            //                               style: TextStyle(
-            //                                   color: Colors.grey.shade400,
-            //                                   fontWeight: FontWeight.w400,
-            //                                   fontSize: 28 * (screenSize / 720)),
-            //                             )
-            //                           ],
-            //                         )
-            //                       : Container(),
-            //                 )
-            //               ],
-            //             ),
-            //           ),
-            //         ),
-            //         const Divider(),
-            //         Container(
-            //           padding:
-            //               const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
-            //           child: Column(
-            //             children: [
-            //               TextButton(
-            //                 style: TextButton.styleFrom(
-            //                     padding: const EdgeInsets.symmetric(horizontal: 20)),
-            //                 onPressed: () {
-            //                   setState(() {
-            //                     Navigator.push(context, MaterialPageRoute(
-            //                       builder: (context) {
-            //                         return const OrderHistoryPage();
-            //                       },
-            //                     ));
-            //                   });
-            //                 },
-            //                 child: Row(
-            //                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            //                   crossAxisAlignment: CrossAxisAlignment.center,
-            //                   children: [
-            //                     const Flexible(
-            //                       fit: FlexFit.tight,
-            //                       child: Row(
-            //                         mainAxisAlignment: MainAxisAlignment.center,
-            //                         children: [
-            //                           Flexible(
-            //                             child: Icon(
-            //                               Icons.shopping_bag_outlined,
-            //                               size: 24,
-            //                               color: Colors.black,
-            //                             ),
-            //                           ),
-            //                         ],
-            //                       ),
-            //                     ),
-            //                     Flexible(
-            //                       child: SizedBox(),
-            //                     ),
-            //                     Flexible(
-            //                       flex: 12,
-            //                       fit: FlexFit.tight,
-            //                       child: Text(
-            //                         "История заказов",
-            //                         textAlign: TextAlign.start,
-            //                         style: TextStyle(
-            //                           color: Colors.black,
-            //                           fontWeight: FontWeight.w400,
-            //                           fontSize: 40 * (screenSize / 720),
-            //                         ),
-            //                       ),
-            //                     )
-            //                   ],
-            //                 ),
-            //               ),
-            //               const Divider(),
-            //               TextButton(
-            //                 style: TextButton.styleFrom(
-            //                     padding: const EdgeInsets.symmetric(horizontal: 20)),
-            //                 onPressed: () {
-            //                   setState(() {
-            //                     toggleDrawer();
-            //                   });
-            //                   Navigator.push(
-            //                     context,
-            //                     MaterialPageRoute(
-            //                         builder: (context) => AddressesPage(
-            //                               addresses: _addresses,
-            //                               isExtended: true,
-            //                             )),
-            //                   ).then((value) => print(_getAddresses()));
-            //                 },
-            //                 child: Row(
-            //                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            //                   crossAxisAlignment: CrossAxisAlignment.center,
-            //                   children: [
-            //                     const Flexible(
-            //                       fit: FlexFit.tight,
-            //                       child: Row(
-            //                         mainAxisAlignment: MainAxisAlignment.center,
-            //                         children: [
-            //                           Flexible(
-            //                             child: Icon(
-            //                               Icons.home_outlined,
-            //                               size: 24,
-            //                               color: Colors.black,
-            //                             ),
-            //                           ),
-            //                         ],
-            //                       ),
-            //                     ),
-            //                     Flexible(
-            //                       child: SizedBox(),
-            //                     ),
-            //                     Flexible(
-            //                       flex: 12,
-            //                       fit: FlexFit.tight,
-            //                       child: Text(
-            //                         "Адреса доставки",
-            //                         textAlign: TextAlign.start,
-            //                         style: TextStyle(
-            //                           color: Colors.black,
-            //                           fontWeight: FontWeight.w400,
-            //                           fontSize: 40 * (screenSize / 720),
-            //                         ),
-            //                       ),
-            //                     )
-            //                   ],
-            //                 ),
-            //               ),
-            //               const Divider(),
-            //               TextButton(
-            //                 style: TextButton.styleFrom(
-            //                     padding: const EdgeInsets.symmetric(horizontal: 20)),
-            //                 onPressed: () {
-            //                   toggleDrawer();
-            //                 },
-            //                 child: Row(
-            //                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            //                   crossAxisAlignment: CrossAxisAlignment.center,
-            //                   children: [
-            //                     const Flexible(
-            //                       fit: FlexFit.tight,
-            //                       child: Row(
-            //                         mainAxisAlignment: MainAxisAlignment.center,
-            //                         children: [
-            //                           Flexible(
-            //                             child: Icon(
-            //                               Icons.credit_card_outlined,
-            //                               size: 24,
-            //                               color: Colors.black,
-            //                             ),
-            //                           ),
-            //                         ],
-            //                       ),
-            //                     ),
-            //                     Flexible(
-            //                       child: SizedBox(),
-            //                     ),
-            //                     Flexible(
-            //                       flex: 12,
-            //                       fit: FlexFit.tight,
-            //                       child: Text(
-            //                         "Карты оплаты",
-            //                         textAlign: TextAlign.start,
-            //                         style: TextStyle(
-            //                           color: Colors.grey,
-            //                           fontWeight: FontWeight.w400,
-            //                           fontSize: 40 * (screenSize / 720),
-            //                         ),
-            //                       ),
-            //                     )
-            //                   ],
-            //                 ),
-            //               ),
-            //               const Divider(),
-            //               TextButton(
-            //                 style: TextButton.styleFrom(
-            //                     padding: const EdgeInsets.symmetric(horizontal: 20)),
-            //                 onPressed: () {
-            //                   setState(() {
-            //                     Navigator.push(context, MaterialPageRoute(
-            //                       builder: (context) {
-            //                         return const FavPage();
-            //                       },
-            //                     ));
-            //                   });
-            //                 },
-            //                 child: Row(
-            //                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            //                   crossAxisAlignment: CrossAxisAlignment.center,
-            //                   children: [
-            //                     const Flexible(
-            //                       fit: FlexFit.tight,
-            //                       child: Row(
-            //                         mainAxisAlignment: MainAxisAlignment.center,
-            //                         children: [
-            //                           Flexible(
-            //                             child: Icon(
-            //                               Icons.favorite_border_rounded,
-            //                               size: 24,
-            //                               color: Colors.black,
-            //                             ),
-            //                           ),
-            //                         ],
-            //                       ),
-            //                     ),
-            //                     Flexible(
-            //                       child: SizedBox(),
-            //                     ),
-            //                     Flexible(
-            //                       flex: 12,
-            //                       fit: FlexFit.tight,
-            //                       child: Text(
-            //                         "Избранное",
-            //                         textAlign: TextAlign.start,
-            //                         style: TextStyle(
-            //                           color: Colors.black,
-            //                           fontWeight: FontWeight.w400,
-            //                           fontSize: 40 * (screenSize / 720),
-            //                         ),
-            //                       ),
-            //                     )
-            //                   ],
-            //                 ),
-            //               ),
-            //               const Divider(),
-            //               TextButton(
-            //                 style: TextButton.styleFrom(
-            //                     padding: const EdgeInsets.symmetric(horizontal: 20)),
-            //                 onPressed: () {
-            //                   setState(() {
-            //                     Navigator.push(context, MaterialPageRoute(
-            //                       builder: (context) {
-            //                         return const SettingsPage();
-            //                       },
-            //                     ));
-            //                   });
-            //                 },
-            //                 child: Row(
-            //                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            //                   crossAxisAlignment: CrossAxisAlignment.center,
-            //                   children: [
-            //                     const Flexible(
-            //                       fit: FlexFit.tight,
-            //                       child: Row(
-            //                         mainAxisAlignment: MainAxisAlignment.center,
-            //                         children: [
-            //                           Flexible(
-            //                             child: Icon(
-            //                               Icons.settings_outlined,
-            //                               size: 24,
-            //                               color: Colors.black,
-            //                             ),
-            //                           ),
-            //                         ],
-            //                       ),
-            //                     ),
-            //                     Flexible(
-            //                       child: SizedBox(),
-            //                     ),
-            //                     Flexible(
-            //                       flex: 12,
-            //                       fit: FlexFit.tight,
-            //                       child: Text(
-            //                         "Настройки",
-            //                         textAlign: TextAlign.start,
-            //                         style: TextStyle(
-            //                           color: Colors.black,
-            //                           fontWeight: FontWeight.w400,
-            //                           fontSize: 40 * (screenSize / 720),
-            //                         ),
-            //                       ),
-            //                     )
-            //                   ],
-            //                 ),
-            //               ),
-            //               const Divider(),
-            //               TextButton(
-            //                 style: TextButton.styleFrom(
-            //                     padding: const EdgeInsets.symmetric(horizontal: 20)),
-            //                 onPressed: () {
-            //                   setState(() {
-            //                     Navigator.pushReplacement(context, MaterialPageRoute(
-            //                       builder: (context) {
-            //                         return const SupportPage();
-            //                       },
-            //                     ));
-            //                   });
-            //                 },
-            //                 child: Row(
-            //                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            //                   crossAxisAlignment: CrossAxisAlignment.center,
-            //                   children: [
-            //                     const Flexible(
-            //                       fit: FlexFit.tight,
-            //                       child: Row(
-            //                         mainAxisAlignment: MainAxisAlignment.center,
-            //                         children: [
-            //                           Flexible(
-            //                             child: Icon(
-            //                               Icons.chat_bubble_outline_outlined,
-            //                               size: 24,
-            //                               color: Colors.black,
-            //                             ),
-            //                           ),
-            //                         ],
-            //                       ),
-            //                     ),
-            //                     Flexible(
-            //                       child: SizedBox(),
-            //                     ),
-            //                     Flexible(
-            //                       flex: 12,
-            //                       fit: FlexFit.tight,
-            //                       child: Text(
-            //                         "Поддержка",
-            //                         textAlign: TextAlign.start,
-            //                         style: TextStyle(
-            //                           color: Colors.black,
-            //                           fontWeight: FontWeight.w400,
-            //                           fontSize: 40 * (screenSize / 720),
-            //                         ),
-            //                       ),
-            //                     )
-            //                   ],
-            //                 ),
-            //               ),
-            //               const Divider(),
-            //               TextButton(
-            //                 style: TextButton.styleFrom(
-            //                     padding: const EdgeInsets.symmetric(horizontal: 20)),
-            //                 onPressed: () {
-            //                   showDialog(
-            //                     context: context,
-            //                     builder: (context) {
-            //                       return AlertDialog.adaptive(
-            //                         shape: const RoundedRectangleBorder(
-            //                           borderRadius:
-            //                               BorderRadius.all(Radius.circular(10)),
-            //                         ),
-            //                         title: Text(
-            //                           "Вы точно хотите выйти из аккаунта?",
-            //                           textAlign: TextAlign.center,
-            //                           style: TextStyle(
-            //                             color: Theme.of(context)
-            //                                 .colorScheme
-            //                                 .onBackground,
-            //                             fontSize: 20,
-            //                             fontWeight: FontWeight.w700,
-            //                           ),
-            //                         ),
-            //                         actionsAlignment: MainAxisAlignment.center,
-            //                         actions: [
-            //                           Row(
-            //                             mainAxisAlignment:
-            //                                 MainAxisAlignment.spaceBetween,
-            //                             children: [
-            //                               Flexible(
-            //                                 child: Padding(
-            //                                   padding: const EdgeInsets.symmetric(
-            //                                       horizontal: 5),
-            //                                   child: ElevatedButton(
-            //                                     onPressed: () {
-            //                                       logout();
-            //                                       Navigator.pushAndRemoveUntil(
-            //                                           context,
-            //                                           MaterialPageRoute(
-            //                                             builder: (context) =>
-            //                                                 const LoginPage(),
-            //                                           ),
-            //                                           (route) => false);
-            //                                     },
-            //                                     child: Row(
-            //                                       mainAxisAlignment:
-            //                                           MainAxisAlignment.center,
-            //                                       children: [
-            //                                         Flexible(
-            //                                           child: Text(
-            //                                             "Да",
-            //                                             textAlign: TextAlign.center,
-            //                                             style: TextStyle(
-            //                                               color: Theme.of(context)
-            //                                                   .colorScheme
-            //                                                   .onPrimary,
-            //                                               fontSize: 16,
-            //                                               fontWeight: FontWeight.w700,
-            //                                             ),
-            //                                           ),
-            //                                         )
-            //                                       ],
-            //                                     ),
-            //                                   ),
-            //                                 ),
-            //                               ),
-            //                               Flexible(
-            //                                 child: Padding(
-            //                                   padding: const EdgeInsets.symmetric(
-            //                                       horizontal: 5),
-            //                                   child: ElevatedButton(
-            //                                     onPressed: () {
-            //                                       Navigator.pop(context);
-            //                                     },
-            //                                     child: Row(
-            //                                       mainAxisAlignment:
-            //                                           MainAxisAlignment.center,
-            //                                       children: [
-            //                                         Flexible(
-            //                                           child: Text(
-            //                                             "Нет",
-            //                                             textAlign: TextAlign.center,
-            //                                             style: TextStyle(
-            //                                               color: Theme.of(context)
-            //                                                   .colorScheme
-            //                                                   .onPrimary,
-            //                                               fontSize: 16,
-            //                                               fontWeight: FontWeight.w700,
-            //                                             ),
-            //                                           ),
-            //                                         )
-            //                                       ],
-            //                                     ),
-            //                                   ),
-            //                                 ),
-            //                               ),
-            //                             ],
-            //                           ),
-            //                         ],
-            //                       );
-            //                     },
-            //                   );
-            //                 },
-            //                 child: Row(
-            //                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            //                   crossAxisAlignment: CrossAxisAlignment.center,
-            //                   children: [
-            //                     const Flexible(
-            //                       fit: FlexFit.tight,
-            //                       child: Row(
-            //                         mainAxisAlignment: MainAxisAlignment.center,
-            //                         children: [
-            //                           Flexible(
-            //                             child: Icon(
-            //                               Icons.logout_outlined,
-            //                               size: 24,
-            //                               color: Colors.black,
-            //                             ),
-            //                           ),
-            //                         ],
-            //                       ),
-            //                     ),
-            //                     Flexible(
-            //                       child: SizedBox(),
-            //                     ),
-            //                     Flexible(
-            //                       flex: 12,
-            //                       fit: FlexFit.tight,
-            //                       child: Text(
-            //                         "Выйти",
-            //                         textAlign: TextAlign.start,
-            //                         style: TextStyle(
-            //                           color: Colors.black,
-            //                           fontWeight: FontWeight.w400,
-            //                           fontSize: 40 * (screenSize / 720),
-            //                         ),
-            //                       ),
-            //                     ),
-            //                   ],
-            //                 ),
-            //               ),
-            //             ],
-            //           ),
-            //         )
-            //       ],
-            //     ),
-            //   ),
-            // ),
             backgroundColor: Colors.white,
             body: SafeArea(
                 child: CustomScrollView(
@@ -740,8 +201,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
               slivers: <Widget>[
                 SliverAppBar(
                   shadowColor: Colors.transparent,
-                  backgroundColor: 
-                      !isCollapsed ? Color(0xFFef8354) : Colors.transparent,
+                  backgroundColor: !isCollapsed
+                      ? const Color(0xFFef8354)
+                      : Colors.transparent,
                   surfaceTintColor: Colors.transparent,
                   foregroundColor: Colors.transparent,
                   // scrolledUnderElevation: collapsedBarHeight,
@@ -761,17 +223,17 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                       duration: Durations.medium1,
                       child: isCollapsed
                           ? Container(
-                              padding: EdgeInsets.all(10),
+                              padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
                                   boxShadow: [
                                     BoxShadow(
                                         color: Colors.blueGrey.shade200,
-                                        offset: Offset(5, 5),
+                                        offset: const Offset(5, 5),
                                         blurRadius: 5)
                                   ],
                                   color: Colors.white,
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(20))),
+                                  borderRadius: const BorderRadius.all(
+                                      Radius.circular(20))),
                               child: TextButton(
                                   onPressed: () {},
                                   child: Row(
@@ -780,84 +242,68 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                     children: [
                                       Flexible(
                                         child: Text(
-                                          _currentAddress["address"],
-                                          style: TextStyle(
+                                          widget.currentAddress["address"],
+                                          style: const TextStyle(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w700),
                                         ),
                                       ),
-                                      SizedBox(
+                                      const SizedBox(
                                         width: 10,
                                       ),
-                                      Icon(Icons.edit_outlined),
+                                      const Icon(Icons.edit_outlined),
                                     ],
                                   )))
-                          : FutureBuilder(
-                              future: getAddresses(),
-                              builder: (context, snapshot) {
-                                if (snapshot.hasData) {
-                                  return Container(
-                                    alignment: Alignment.center,
-                                    color: Color(0xFFef8354),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.end,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          mainAxisSize: MainAxisSize.max,
-                                          children: [
-                                            TextButton(
-                                                onPressed: () {},
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.max,
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    Row(
-                                                      children: [
-                                                        Text(
-                                                          _currentAddress[
-                                                              "city_name"],
-                                                          style: TextStyle(
-                                                              fontSize: 24,
-                                                              color:
-                                                                  Colors.white),
-                                                        ),
-                                                        Icon(
-                                                          Icons.arrow_drop_down,
-                                                          color: Colors.white,
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ],
-                                                )),
-                                            IconButton(
-                                                onPressed: () {},
-                                                icon: Icon(
-                                                  Icons.menu,
-                                                  color: Colors.white,
-                                                )),
+                          : Container(
+                              alignment: Alignment.center,
+                              color: const Color(0xFFef8354),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    mainAxisSize: MainAxisSize.max,
+                                    children: [
+                                      TextButton(
+                                          onPressed: () {},
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.max,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                    widget.currentAddress[
+                                                        "city_name"],
+                                                    style: const TextStyle(
+                                                        fontSize: 24,
+                                                        color: Colors.white),
+                                                  ),
+                                                  const Icon(
+                                                    Icons.arrow_drop_down,
+                                                    color: Colors.white,
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          )),
+                                      IconButton(
+                                          onPressed: () {},
+                                          icon: const Icon(
+                                            Icons.menu,
+                                            color: Colors.white,
+                                          )),
 
-                                            // IconButton(
-                                            //     onPressed: () {},
-                                            //     icon: Icon(Icons.settings, color: Colors.black,)),
-                                          ],
-                                        )
-                                      ],
-                                    ),
-                                  );
-                                } else if (snapshot.hasError) {
-                                  return Center();
-                                }
-                                return Center(
-                                    child: CircularProgressIndicator());
-                              },
+                                      // IconButton(
+                                      //     onPressed: () {},
+                                      //     icon: Icon(Icons.settings, color: Colors.black,)),
+                                    ],
+                                  )
+                                ],
+                              ),
                             )),
                   // Display a placeholder widget to visualize the shrinking size.
                   // flexibleSpace: AnimatedSwitcher(
@@ -934,12 +380,12 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                   child: Column(
                     children: [
                       Container(
-                        color: Color(0xFFef8354),
+                        color: const Color(0xFFef8354),
                         child: Container(
                           height: 200,
                           width: double.infinity,
-                          margin: EdgeInsets.all(15),
-                          decoration: BoxDecoration(
+                          margin: const EdgeInsets.all(15),
+                          decoration: const BoxDecoration(
                               borderRadius:
                                   BorderRadius.all(Radius.circular(30)),
                               color: Colors.white),
@@ -951,15 +397,17 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                 SliverLayoutBuilder(
                   builder: (context, constraints) {
                     if (scrollExtent == 0) {
-                      setState(() {
-                        scrollExtent = constraints.precedingScrollExtent;
+                      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+                        setState(() {
+                          scrollExtent = constraints.precedingScrollExtent;
+                        });
                       });
                     }
                     return SliverToBoxAdapter(
                       child: AnimatedContainer(
                           duration: Durations.medium1,
                           color: !isStartingToCollapse
-                              ? Color(0xFFef8354)
+                              ? const Color(0xFFef8354)
                               : Colors.white,
                           child: Stack(
                             alignment: Alignment.bottomCenter,
@@ -971,19 +419,19 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                 decoration: BoxDecoration(
                                     boxShadow: [
                                       !isStartingToCollapse
-                                          ? BoxShadow(
+                                          ? const BoxShadow(
                                               offset: Offset(0, -10),
                                               color: Colors.black26,
                                               blurRadius: 20)
-                                          : BoxShadow(color: Colors.white)
+                                          : const BoxShadow(color: Colors.white)
                                     ],
                                     color: Colors.white,
                                     borderRadius: !isCollapsed
-                                        ? BorderRadius.only(
+                                        ? const BorderRadius.only(
                                             topLeft: Radius.elliptical(100, 50),
                                             topRight:
                                                 Radius.elliptical(100, 50))
-                                        : BorderRadius.all(Radius.zero)),
+                                        : const BorderRadius.all(Radius.zero)),
                               ),
                               Column(
                                 mainAxisSize: MainAxisSize.min,
@@ -991,7 +439,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                   AnimatedContainer(
                                     foregroundDecoration: BoxDecoration(
                                         color: !isStartingToCollapse
-                                            ? Color(0xFFef8354).withOpacity(0)
+                                            ? const Color(0xFFef8354)
+                                                .withOpacity(0)
                                             : Colors.white),
                                     duration: Durations.medium1,
                                     child: Column(
@@ -1005,8 +454,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                     .size
                                                     .height /
                                                 4,
-                                            margin: EdgeInsets.all(15),
-                                            decoration: BoxDecoration(
+                                            margin: const EdgeInsets.all(15),
+                                            decoration: const BoxDecoration(
                                                 // color: Colors.pinkAccent,
 
                                                 ),
@@ -1016,7 +465,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                   mainAxisAlignment:
                                                       MainAxisAlignment.center,
                                                   children: [
-                                                    Spacer(
+                                                    const Spacer(
                                                       flex: 2,
                                                     ),
                                                     CircleAvatar(
@@ -1026,12 +475,12 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                                   .height /
                                                               16,
                                                     ),
-                                                    Spacer(),
+                                                    const Spacer(),
                                                     Flexible(
                                                         flex: 3,
                                                         child: Text(
-                                                          user["name"],
-                                                          style: TextStyle(
+                                                          widget.user["name"],
+                                                          style: const TextStyle(
                                                               fontSize: 24,
                                                               color:
                                                                   Colors.white,
@@ -1039,12 +488,12 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                                   FontWeight
                                                                       .w500),
                                                         )),
-                                                    Spacer(
+                                                    const Spacer(
                                                       flex: 2,
                                                     )
                                                   ],
                                                 ),
-                                                Spacer(),
+                                                const Spacer(),
                                                 Row(
                                                   mainAxisAlignment:
                                                       MainAxisAlignment.center,
@@ -1059,9 +508,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                               MainAxisSize.max,
                                                           children: [
                                                             Text(
-                                                              _currentAddress[
+                                                              widget.currentAddress[
                                                                   "address"],
-                                                              style: TextStyle(
+                                                              style: const TextStyle(
                                                                   fontSize: 16,
                                                                   fontWeight:
                                                                       FontWeight
@@ -1069,10 +518,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                                   color: Colors
                                                                       .white),
                                                             ),
-                                                            SizedBox(
+                                                            const SizedBox(
                                                               width: 10,
                                                             ),
-                                                            Icon(
+                                                            const Icon(
                                                               Icons
                                                                   .edit_outlined,
                                                               color:
@@ -1082,7 +531,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                         ))
                                                   ],
                                                 ),
-                                                Spacer(
+                                                const Spacer(
                                                   flex: 2,
                                                 )
                                               ],
@@ -1094,9 +543,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                     width: double.infinity,
                                     height:
                                         MediaQuery.of(context).size.height / 5,
-                                    margin: EdgeInsets.all(15),
-                                    padding: EdgeInsets.all(30),
-                                    decoration: BoxDecoration(
+                                    margin: const EdgeInsets.all(15),
+                                    padding: const EdgeInsets.all(30),
+                                    decoration: const BoxDecoration(
                                       color: Colors.blueGrey,
                                       borderRadius:
                                           BorderRadius.all(Radius.circular(30)),
@@ -1107,7 +556,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                             blurRadius: 5)
                                       ],
                                     ),
-                                    child: Text(
+                                    child: const Text(
                                         "здесь будет какой то баннер, возможно надо будет марджины везде одинаковые сделать"),
                                   )
                                 ],
@@ -1121,7 +570,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                   child: GridView.builder(
                     primary: false,
                     shrinkWrap: true,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                     ),
                     itemCount: 16,
