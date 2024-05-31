@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/addressesPage.dart';
 import 'package:naliv_delivery/pages/favPage.dart';
@@ -27,6 +28,22 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
 
   List<Map<String, dynamic>> bars = [
     {"organization_id": "1", "name": "НАЛИВ"},
+    {"organization_id": "2", "name": "Название бизнеса"},
+    {"organization_id": "3", "name": "Название бизнеса"},
+    {"organization_id": "4", "name": "Название бизнеса"},
+    {"organization_id": "5", "name": "Название бизнеса"},
+    {"organization_id": "6", "name": "Название бизнеса"},
+    {"organization_id": "7", "name": "Название бизнеса"},
+    {"organization_id": "8", "name": "Название бизнеса"},
+    {"organization_id": "9", "name": "Название бизнеса"},
+    {"organization_id": "2", "name": "Название бизнеса"},
+    {"organization_id": "3", "name": "Название бизнеса"},
+    {"organization_id": "4", "name": "Название бизнеса"},
+    {"organization_id": "5", "name": "Название бизнеса"},
+    {"organization_id": "6", "name": "Название бизнеса"},
+    {"organization_id": "7", "name": "Название бизнеса"},
+    {"organization_id": "8", "name": "Название бизнеса"},
+    {"organization_id": "9", "name": "Название бизнеса"},
     {"organization_id": "2", "name": "Название бизнеса"},
     {"organization_id": "3", "name": "Название бизнеса"},
     {"organization_id": "4", "name": "Название бизнеса"},
@@ -88,8 +105,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     });
   }
 
-    bool isCollapsed = false;
-    bool isStartingToCollapse = false;
+  ScrollController _sc = ScrollController();
+  bool isCollapsed = false;
+  bool isStartingToCollapse = false;
+  double scrollExtent = 0;
   @override
   Widget build(BuildContext context) {
     const collapsedBarHeight = 100.0;
@@ -136,12 +155,16 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
           if (notification.metrics.minScrollExtent + 100 <
               notification.metrics.pixels) {
             if (!isStartingToCollapse) {
+              _sc.animateTo(scrollExtent + collapsedBarHeight*2,
+                  duration: Durations.medium1, curve: Curves.easeIn);
               setState(() {
                 isStartingToCollapse = true;
               });
             }
           } else {
             if (isStartingToCollapse) {
+              _sc.animateTo(0,
+                  duration: Durations.medium1, curve: Curves.easeIn);
               setState(() {
                 isStartingToCollapse = false;
               });
@@ -713,10 +736,11 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
             backgroundColor: Colors.white,
             body: SafeArea(
                 child: CustomScrollView(
+              controller: _sc,
               slivers: <Widget>[
                 SliverAppBar(
                   shadowColor: Colors.transparent,
-                  backgroundColor:
+                  backgroundColor: 
                       !isCollapsed ? Color(0xFFef8354) : Colors.transparent,
                   surfaceTintColor: Colors.transparent,
                   foregroundColor: Colors.transparent,
@@ -840,7 +864,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                   //   transitionBuilder: (Widget child, Animation<double> animation) {
                   //     return ScaleTransition(scale: animation, child: child);
                   //   },
-                  //   duration: Durations.extralong1,
+                  // duration: Durations.medium1,
                   //   child: !isCollapsed
                   //       ? Container(
                   //           width: double.infinity,
@@ -924,160 +948,175 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                     ],
                   ),
                 ),
-                SliverToBoxAdapter(
-                    child: AnimatedContainer(
-                        duration: Durations.extralong1,
-                        color: !isStartingToCollapse
-                            ? Color(0xFFef8354)
-                            : Colors.white,
-                        child: Stack(
-                          alignment: Alignment.bottomCenter,
-                          children: [
-                            AnimatedContainer(
-                              duration: Durations.extralong1,
-                              height: 100,
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                  boxShadow: [
-                                    !isStartingToCollapse
-                                        ? BoxShadow(
-                                            offset: Offset(0, -10),
-                                            color: Colors.black26,
-                                            blurRadius: 20)
-                                        : BoxShadow(color: Colors.white)
-                                  ],
-                                  color: Colors.white,
-                                  borderRadius: !isCollapsed
-                                      ? BorderRadius.only(
-                                          topLeft: Radius.elliptical(100, 50),
-                                          topRight: Radius.elliptical(100, 50))
-                                      : BorderRadius.all(Radius.zero)),
-                            ),
-                            Column(
-                              children: [
-                                AnimatedContainer(
-                                  foregroundDecoration: BoxDecoration(
-                                      color: !isStartingToCollapse
-                                          ? Color(0xFFef8354).withOpacity(0)
-                                          : Colors.white),
-                                  duration: Durations.extralong2,
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.max,
-                                    children: [
-                                      AnimatedContainer(
-                                          duration: Durations.extralong1,
-                                          // foregroundDecoration: BoxDecoration(color: isCollapsed ? Color(0xFFef8354) : Colors.transparent),
-                                          width: double.infinity,
-                                          height: MediaQuery.of(context)
-                                                  .size
-                                                  .height /
-                                              4,
-                                          margin: EdgeInsets.all(15),
-                                          decoration: BoxDecoration(
-                                              // color: Colors.pinkAccent,
-
-                                              ),
-                                          child: Column(
-                                            children: [
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Spacer(
-                                                    flex: 2,
-                                                  ),
-                                                  CircleAvatar(
-                                                    radius:
-                                                        MediaQuery.of(context)
-                                                                .size
-                                                                .height /
-                                                            16,
-                                                  ),
-                                                  Spacer(),
-                                                  Flexible(
-                                                      flex: 3,
-                                                      child: Text(
-                                                        user["name"],
-                                                        style: TextStyle(
-                                                            fontSize: 24,
-                                                            color: Colors.white,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .w500),
-                                                      )),
-                                                  Spacer(
-                                                    flex: 2,
-                                                  )
-                                                ],
-                                              ),
-                                              Spacer(),
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  TextButton(
-                                                      onPressed: () {},
-                                                      child: Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .center,
-                                                        mainAxisSize:
-                                                            MainAxisSize.max,
-                                                        children: [
-                                                          Text(
-                                                            _currentAddress[
-                                                                "address"],
-                                                            style: TextStyle(
-                                                                fontSize: 16,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w500,
-                                                                color: Colors
-                                                                    .white),
-                                                          ),
-                                                          SizedBox(
-                                                            width: 10,
-                                                          ),
-                                                          Icon(
-                                                            Icons.edit_outlined,
-                                                            color: Colors.white,
-                                                          ),
-                                                        ],
-                                                      ))
-                                                ],
-                                              ),
-                                              Spacer(
-                                                flex: 2,
-                                              )
-                                            ],
-                                          ))
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  width: double.infinity,
-                                  height:
-                                      MediaQuery.of(context).size.height / 5,
-                                  margin: EdgeInsets.all(15),
-                                  padding: EdgeInsets.all(30),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blueGrey,
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(30)),
+                SliverLayoutBuilder(
+                  builder: (context, constraints) {
+                    if (scrollExtent == 0) {
+                      setState(() {
+                        scrollExtent = constraints.precedingScrollExtent;
+                      });
+                    }
+                    return SliverToBoxAdapter(
+                      child: AnimatedContainer(
+                          duration: Durations.medium1,
+                          color: !isStartingToCollapse
+                              ? Color(0xFFef8354)
+                              : Colors.white,
+                          child: Stack(
+                            alignment: Alignment.bottomCenter,
+                            children: [
+                              AnimatedContainer(
+                                duration: Durations.medium1,
+                                height: 100,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
                                     boxShadow: [
-                                      BoxShadow(
-                                          offset: Offset(0, -1),
-                                          color: Colors.black26,
-                                          blurRadius: 5)
+                                      !isStartingToCollapse
+                                          ? BoxShadow(
+                                              offset: Offset(0, -10),
+                                              color: Colors.black26,
+                                              blurRadius: 20)
+                                          : BoxShadow(color: Colors.white)
                                     ],
+                                    color: Colors.white,
+                                    borderRadius: !isCollapsed
+                                        ? BorderRadius.only(
+                                            topLeft: Radius.elliptical(100, 50),
+                                            topRight:
+                                                Radius.elliptical(100, 50))
+                                        : BorderRadius.all(Radius.zero)),
+                              ),
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  AnimatedContainer(
+                                    foregroundDecoration: BoxDecoration(
+                                        color: !isStartingToCollapse
+                                            ? Color(0xFFef8354).withOpacity(0)
+                                            : Colors.white),
+                                    duration: Durations.medium1,
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.max,
+                                      children: [
+                                        AnimatedContainer(
+                                            duration: Durations.medium1,
+                                            // foregroundDecoration: BoxDecoration(color: isCollapsed ? Color(0xFFef8354) : Colors.transparent),
+                                            width: double.infinity,
+                                            height: MediaQuery.of(context)
+                                                    .size
+                                                    .height /
+                                                4,
+                                            margin: EdgeInsets.all(15),
+                                            decoration: BoxDecoration(
+                                                // color: Colors.pinkAccent,
+
+                                                ),
+                                            child: Column(
+                                              children: [
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Spacer(
+                                                      flex: 2,
+                                                    ),
+                                                    CircleAvatar(
+                                                      radius:
+                                                          MediaQuery.of(context)
+                                                                  .size
+                                                                  .height /
+                                                              16,
+                                                    ),
+                                                    Spacer(),
+                                                    Flexible(
+                                                        flex: 3,
+                                                        child: Text(
+                                                          user["name"],
+                                                          style: TextStyle(
+                                                              fontSize: 24,
+                                                              color:
+                                                                  Colors.white,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500),
+                                                        )),
+                                                    Spacer(
+                                                      flex: 2,
+                                                    )
+                                                  ],
+                                                ),
+                                                Spacer(),
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    TextButton(
+                                                        onPressed: () {},
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          mainAxisSize:
+                                                              MainAxisSize.max,
+                                                          children: [
+                                                            Text(
+                                                              _currentAddress[
+                                                                  "address"],
+                                                              style: TextStyle(
+                                                                  fontSize: 16,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500,
+                                                                  color: Colors
+                                                                      .white),
+                                                            ),
+                                                            SizedBox(
+                                                              width: 10,
+                                                            ),
+                                                            Icon(
+                                                              Icons
+                                                                  .edit_outlined,
+                                                              color:
+                                                                  Colors.white,
+                                                            ),
+                                                          ],
+                                                        ))
+                                                  ],
+                                                ),
+                                                Spacer(
+                                                  flex: 2,
+                                                )
+                                              ],
+                                            ))
+                                      ],
+                                    ),
                                   ),
-                                  child: Text(
-                                      "здесь будет какой то баннер, возможно надо будет марджины везде одинаковые сделать"),
-                                )
-                              ],
-                            )
-                          ],
-                        ))),
+                                  Container(
+                                    width: double.infinity,
+                                    height:
+                                        MediaQuery.of(context).size.height / 5,
+                                    margin: EdgeInsets.all(15),
+                                    padding: EdgeInsets.all(30),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blueGrey,
+                                      borderRadius:
+                                          BorderRadius.all(Radius.circular(30)),
+                                      boxShadow: [
+                                        BoxShadow(
+                                            offset: Offset(0, -1),
+                                            color: Colors.black26,
+                                            blurRadius: 5)
+                                      ],
+                                    ),
+                                    child: Text(
+                                        "здесь будет какой то баннер, возможно надо будет марджины везде одинаковые сделать"),
+                                  )
+                                ],
+                              )
+                            ],
+                          )),
+                    );
+                  },
+                ),
                 SliverToBoxAdapter(
                   child: GridView.builder(
                     primary: false,
