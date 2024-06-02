@@ -27,15 +27,7 @@ class _MainState extends State<Main> {
   late Timer _timer;
   // int _tick = 0;
 
-  Widget _redirect = const Center(
-    child: CircularProgressIndicator(),
-  );
-
-  void _initLoadingScreen() {
-    setState(() {
-      _redirect = const StartLoadingPage();
-    });
-  }
+  Widget _redirect = const StartLoadingPage();
 
   Future<bool> _requestPermission() async {
     bool isGranted = true;
@@ -87,7 +79,6 @@ class _MainState extends State<Main> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    _initLoadingScreen();
 
     _checkAuth();
     // setState(() {
@@ -187,10 +178,16 @@ class _MainState extends State<Main> {
         dividerTheme: DividerThemeData(
           color: Colors.grey.shade300,
         ),
-        textTheme: const TextTheme(
-            bodyMedium: TextStyle(color: gray1),
-            titleSmall: TextStyle(
-                color: gray1, fontWeight: FontWeight.w400, fontSize: 16)),
+        textTheme: GoogleFonts.montserratTextTheme(
+          
+        ).copyWith(
+          labelLarge: GoogleFonts.montserratAlternates(fontWeight: FontWeight.w400),
+        ),
+
+        // textTheme: const TextTheme(
+        //     bodyMedium: TextStyle(color: gray1),
+        //     titleSmall: TextStyle(
+        //         color: gray1, fontWeight: FontWeight.w400, fontSize: 16)),
       ),
       debugShowCheckedModeBanner: false,
       home: _redirect,

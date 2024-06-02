@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:naliv_delivery/pages/categoryPage.dart';
 import 'package:naliv_delivery/pages/orderHistoryPage.dart';
 import 'package:naliv_delivery/pages/organizationSelectPage.dart';
@@ -1125,227 +1126,227 @@ class _HomePageState extends State<HomePage>
             ),
             body: Column(
               children: [
-                Flexible(
-                  flex: 6,
-                  fit: FlexFit.tight,
-                  child: Column(
-                    children: [
-                      Flexible(
-                        fit: FlexFit.tight,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 5),
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () {
-                              _getAddressPickDialog(screenSize);
-                            },
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                              ),
-                              padding: const EdgeInsets.all(10),
-                              decoration: const BoxDecoration(
-                                  color: Colors.black12,
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(10))),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  _addresses.firstWhere(
-                                            (element) =>
-                                                element["is_selected"] == "1",
-                                            orElse: () {
-                                              return null;
-                                            },
-                                          ) !=
-                                          null
-                                      ? Flexible(
-                                          flex: 12,
-                                          fit: FlexFit.tight,
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.max,
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.start,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Flexible(
-                                                child: Row(
-                                                  children: [
-                                                    Flexible(
-                                                      child: Text(
-                                                        _currentAddress[
-                                                                "name"] ??
-                                                            "",
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        style: const TextStyle(
-                                                          color: Colors.black,
-                                                          fontWeight:
-                                                              FontWeight.w700,
-                                                        ),
-                                                      ),
-                                                    )
-                                                  ],
-                                                ),
-                                              ),
-                                              Flexible(
-                                                fit: FlexFit.tight,
-                                                child: Row(
-                                                  children: [
-                                                    Flexible(
-                                                      fit: FlexFit.tight,
-                                                      child: Text(
-                                                        _currentAddress[
-                                                                "address"] ??
-                                                            "",
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        style: const TextStyle(
-                                                          color: Colors.black,
-                                                          fontWeight:
-                                                              FontWeight.w700,
-                                                        ),
-                                                      ),
-                                                    )
-                                                  ],
-                                                ),
-                                              )
-                                            ],
-                                          ),
-                                        )
-                                      : const Flexible(
-                                          flex: 12,
-                                          fit: FlexFit.tight,
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.max,
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.start,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Flexible(
-                                                fit: FlexFit.tight,
-                                                child: Row(
-                                                  children: [
-                                                    Flexible(
-                                                      fit: FlexFit.tight,
-                                                      child: Text(
-                                                        "Выберите ваш адрес",
-                                                        style: TextStyle(
-                                                          color: Colors.black,
-                                                          fontWeight:
-                                                              FontWeight.w700,
-                                                        ),
-                                                      ),
-                                                    )
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                  const Flexible(
-                                    fit: FlexFit.tight,
-                                    child: Icon(Icons.arrow_forward_ios),
-                                  )
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Flexible(
-                        fit: FlexFit.tight,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 5),
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () {
-                              Navigator.pushReplacement(context,
-                                  MaterialPageRoute(
-                                builder: (context) {
-                                  return BusinessSelectStartPage(
-                                    businesses: businesses,
-                                  );
-                                },
-                              ));
-                            },
-                            child: Container(
-                              margin:
-                                  const EdgeInsets.symmetric(horizontal: 10),
-                              padding: const EdgeInsets.all(10),
-                              decoration: const BoxDecoration(
-                                color: Colors.black12,
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(10)),
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Flexible(
-                                    flex: 12,
-                                    fit: FlexFit.tight,
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.max,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Flexible(
-                                          fit: FlexFit.tight,
-                                          child: Row(
-                                            children: [
-                                              Flexible(
-                                                fit: FlexFit.tight,
-                                                child: Text(
-                                                  _business?["name"] ??
-                                                      "Текущий магазин",
-                                                  style: const TextStyle(
-                                                      color: Colors.black,
-                                                      fontWeight:
-                                                          FontWeight.w700),
-                                                ),
-                                              )
-                                            ],
-                                          ),
-                                        ),
-                                        Flexible(
-                                          fit: FlexFit.tight,
-                                          child: Row(
-                                            children: [
-                                              Flexible(
-                                                fit: FlexFit.tight,
-                                                child: Text(
-                                                  _business?["address"] ?? "",
-                                                  style: const TextStyle(
-                                                    color: Colors.black,
-                                                    fontWeight: FontWeight.w700,
-                                                  ),
-                                                ),
-                                              )
-                                            ],
-                                          ),
-                                        )
-                                      ],
-                                    ),
-                                  ),
-                                  const Flexible(
-                                    fit: FlexFit.tight,
-                                    child: Icon(Icons.arrow_forward_ios),
-                                  )
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // Flexible(
+                //   flex: 6,
+                //   fit: FlexFit.tight,
+                //   child: Column(
+                //     children: [
+                //       Flexible(
+                //         fit: FlexFit.tight,
+                //         child: Padding(
+                //           padding: const EdgeInsets.symmetric(vertical: 5),
+                //           child: GestureDetector(
+                //             behavior: HitTestBehavior.opaque,
+                //             onTap: () {
+                //               _getAddressPickDialog(screenSize);
+                //             },
+                //             child: Container(
+                //               margin: const EdgeInsets.symmetric(
+                //                 horizontal: 10,
+                //               ),
+                //               padding: const EdgeInsets.all(10),
+                //               decoration: const BoxDecoration(
+                //                   color: Colors.black12,
+                //                   borderRadius:
+                //                       BorderRadius.all(Radius.circular(10))),
+                //               child: Row(
+                //                 mainAxisAlignment:
+                //                     MainAxisAlignment.spaceBetween,
+                //                 children: [
+                //                   _addresses.firstWhere(
+                //                             (element) =>
+                //                                 element["is_selected"] == "1",
+                //                             orElse: () {
+                //                               return null;
+                //                             },
+                //                           ) !=
+                //                           null
+                //                       ? Flexible(
+                //                           flex: 12,
+                //                           fit: FlexFit.tight,
+                //                           child: Column(
+                //                             mainAxisSize: MainAxisSize.max,
+                //                             mainAxisAlignment:
+                //                                 MainAxisAlignment.start,
+                //                             crossAxisAlignment:
+                //                                 CrossAxisAlignment.start,
+                //                             children: [
+                //                               Flexible(
+                //                                 child: Row(
+                //                                   children: [
+                //                                     Flexible(
+                //                                       child: Text(
+                //                                         _currentAddress[
+                //                                                 "name"] ??
+                //                                             "",
+                //                                         overflow: TextOverflow
+                //                                             .ellipsis,
+                //                                         style: const TextStyle(
+                //                                           color: Colors.black,
+                //                                           fontWeight:
+                //                                               FontWeight.w700,
+                //                                         ),
+                //                                       ),
+                //                                     )
+                //                                   ],
+                //                                 ),
+                //                               ),
+                //                               Flexible(
+                //                                 fit: FlexFit.tight,
+                //                                 child: Row(
+                //                                   children: [
+                //                                     Flexible(
+                //                                       fit: FlexFit.tight,
+                //                                       child: Text(
+                //                                         _currentAddress[
+                //                                                 "address"] ??
+                //                                             "",
+                //                                         overflow: TextOverflow
+                //                                             .ellipsis,
+                //                                         style: const TextStyle(
+                //                                           color: Colors.black,
+                //                                           fontWeight:
+                //                                               FontWeight.w700,
+                //                                         ),
+                //                                       ),
+                //                                     )
+                //                                   ],
+                //                                 ),
+                //                               )
+                //                             ],
+                //                           ),
+                //                         )
+                //                       : const Flexible(
+                //                           flex: 12,
+                //                           fit: FlexFit.tight,
+                //                           child: Column(
+                //                             mainAxisSize: MainAxisSize.max,
+                //                             mainAxisAlignment:
+                //                                 MainAxisAlignment.start,
+                //                             crossAxisAlignment:
+                //                                 CrossAxisAlignment.start,
+                //                             children: [
+                //                               Flexible(
+                //                                 fit: FlexFit.tight,
+                //                                 child: Row(
+                //                                   children: [
+                //                                     Flexible(
+                //                                       fit: FlexFit.tight,
+                //                                       child: Text(
+                //                                         "Выберите ваш адрес",
+                //                                         style: TextStyle(
+                //                                           color: Colors.black,
+                //                                           fontWeight:
+                //                                               FontWeight.w700,
+                //                                         ),
+                //                                       ),
+                //                                     )
+                //                                   ],
+                //                                 ),
+                //                               ),
+                //                             ],
+                //                           ),
+                //                         ),
+                //                   const Flexible(
+                //                     fit: FlexFit.tight,
+                //                     child: Icon(Icons.arrow_forward_ios),
+                //                   )
+                //                 ],
+                //               ),
+                //             ),
+                //           ),
+                //         ),
+                //       ),
+                //       Flexible(
+                //         fit: FlexFit.tight,
+                //         child: Padding(
+                //           padding: const EdgeInsets.symmetric(vertical: 5),
+                //           child: GestureDetector(
+                //             behavior: HitTestBehavior.opaque,
+                //             onTap: () {
+                //               Navigator.pushReplacement(context,
+                //                   MaterialPageRoute(
+                //                 builder: (context) {
+                //                   return BusinessSelectStartPage(
+                //                     businesses: businesses,
+                //                   );
+                //                 },
+                //               ));
+                //             },
+                //             child: Container(
+                //               margin:
+                //                   const EdgeInsets.symmetric(horizontal: 10),
+                //               padding: const EdgeInsets.all(10),
+                //               decoration: const BoxDecoration(
+                //                 color: Colors.black12,
+                //                 borderRadius:
+                //                     BorderRadius.all(Radius.circular(10)),
+                //               ),
+                //               child: Row(
+                //                 mainAxisAlignment:
+                //                     MainAxisAlignment.spaceBetween,
+                //                 children: [
+                //                   Flexible(
+                //                     flex: 12,
+                //                     fit: FlexFit.tight,
+                //                     child: Column(
+                //                       mainAxisSize: MainAxisSize.max,
+                //                       mainAxisAlignment:
+                //                           MainAxisAlignment.start,
+                //                       crossAxisAlignment:
+                //                           CrossAxisAlignment.start,
+                //                       children: [
+                //                         Flexible(
+                //                           fit: FlexFit.tight,
+                //                           child: Row(
+                //                             children: [
+                //                               Flexible(
+                //                                 fit: FlexFit.tight,
+                //                                 child: Text(
+                //                                   _business?["name"] ??
+                //                                       "Текущий магазин",
+                //                                   style: const TextStyle(
+                //                                       color: Colors.black,
+                //                                       fontWeight:
+                //                                           FontWeight.w700),
+                //                                 ),
+                //                               )
+                //                             ],
+                //                           ),
+                //                         ),
+                //                         Flexible(
+                //                           fit: FlexFit.tight,
+                //                           child: Row(
+                //                             children: [
+                //                               Flexible(
+                //                                 fit: FlexFit.tight,
+                //                                 child: Text(
+                //                                   _business?["address"] ?? "",
+                //                                   style: const TextStyle(
+                //                                     color: Colors.black,
+                //                                     fontWeight: FontWeight.w700,
+                //                                   ),
+                //                                 ),
+                //                               )
+                //                             ],
+                //                           ),
+                //                         )
+                //                       ],
+                //                     ),
+                //                   ),
+                //                   const Flexible(
+                //                     fit: FlexFit.tight,
+                //                     child: Icon(Icons.arrow_forward_ios),
+                //                   )
+                //                 ],
+                //               ),
+                //             ),
+                //           ),
+                //         ),
+                //       ),
+                //     ],
+                //   ),
+                // ),
                 Flexible(
                   flex: 20,
                   fit: FlexFit.tight,
@@ -1734,29 +1735,30 @@ class _CategoryItemState extends State<CategoryItem> {
             decoration: const BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.circular(5))),
             child: Container(
-              decoration: BoxDecoration(
-                  color: textBG,
-                  borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(5),
-                      bottomRight: Radius.circular(5))),
-              child: Text(
-                widget.name,
-                style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    fontSize: 38 * (screenSize / 720),
-                    height: 1.2,
-                    shadows: [
-                      Shadow(
-                        blurRadius: 8,
-                        color: Colors.black.withOpacity(0.3),
-                        offset: const Offset(0, 2),
-                      )
-                    ]
-                    // background: Paint()..color = textBG)
-                    ),
-              ),
-            ),
+                decoration: BoxDecoration(
+                    color: textBG,
+                    borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(5),
+                        bottomRight: Radius.circular(5))),
+                child: Text(
+                  widget.name,
+                  style: GoogleFonts.montserratAlternates(
+                    textStyle: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        fontSize: 38 * (screenSize / 720),
+                        height: 1.2,
+                        shadows: [
+                          Shadow(
+                            blurRadius: 8,
+                            color: Colors.black.withOpacity(0.3),
+                            offset: const Offset(0, 2),
+                          )
+                        ]
+                        // background: Paint()..color = textBG)
+                        ),
+                  ),
+                )),
           ),
         ],
       ),

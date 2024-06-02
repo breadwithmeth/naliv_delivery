@@ -15,16 +15,19 @@ import 'package:naliv_delivery/pages/loginPage.dart';
 import 'package:naliv_delivery/pages/orderHistoryPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
 import 'package:naliv_delivery/pages/supportPage.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class OrganizationSelectPage extends StatefulWidget {
   OrganizationSelectPage(
       {super.key,
       required this.addresses,
       required this.currentAddress,
-      required this.user});
+      required this.user,
+      required this.businesses});
   final List addresses;
   final Map currentAddress;
   final Map<String, dynamic> user;
+  final List businesses;
   @override
   State<OrganizationSelectPage> createState() => _OrganizationSelectPageState();
 }
@@ -126,6 +129,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
   bool isStartingToCollapse = false;
   double scrollExtent = 0;
   bool isMenuOpen = false;
+  final GlobalKey<ScaffoldState> _key = GlobalKey(
+      debugLabel:
+          "вот это ключ, всем ключам ключ, надеюсь он тут не потеряется");
   @override
   Widget build(BuildContext context) {
     const collapsedBarHeight = 100.0;
@@ -196,15 +202,88 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
           return false;
         },
         child: Scaffold(
-            backgroundColor: Colors.white,
+            key: _key,
+            drawerEnableOpenDragGesture: false,
+            drawerScrimColor: Colors.white,
+            endDrawer: SafeArea(
+                child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        Flexible(
+                            child: Container(
+                          alignment: Alignment.center,
+                          height: MediaQuery.of(context).size.height / 4,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.max,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text("НАЗВАНИЕ",
+                                  style: GoogleFonts.montserratAlternates(
+                                    textStyle: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 48 *
+                                            (MediaQuery.of(context).size.width /
+                                                720)),
+                                  )),
+                              Icon(
+                                Icons.local_dining_outlined,
+                                color: Colors.black,
+                                size: 48 *
+                                    (MediaQuery.of(context).size.width / 720),
+                              )
+                            ],
+                          ),
+                        )),
+                        Flexible(
+                            child: Container(
+                                child: GridView.count(
+                          padding: EdgeInsets.all(10),
+                          mainAxisSpacing: 10,
+                          crossAxisSpacing: 10,
+                          childAspectRatio: 2 / 1,
+                          crossAxisCount: 2,
+                          children: [
+                            DrawerMenuItem(
+                              name: "История заказов",
+                              icon: Icons.book_outlined,
+                              route: SettingsPage(),
+                            ),
+                            DrawerMenuItem(
+                              name: "Адреса доставки",
+                              icon: Icons.book_outlined,
+                              route: SettingsPage(),
+                            ),
+                            DrawerMenuItem(
+                              name: "Поддержка",
+                              icon: Icons.support_agent_rounded,
+                              route: SettingsPage(),
+                            ),
+                            DrawerMenuItem(
+                              name: "Настройки",
+                              icon: Icons.book_outlined,
+                              route: SettingsPage(),
+                            )
+                          ],
+                        )))
+                      ],
+                    ))),
+            backgroundColor: Colors.blueGrey.shade50,
+            // !isCollapsed ? const Color(0xFFef8354) : Colors.white,
             body: SafeArea(
                 child: CustomScrollView(
               controller: _sc,
               slivers: <Widget>[
                 SliverAppBar(
-                  shadowColor: !isCollapsed
-                      ? const Color(0xFFef8354)
-                      : Colors.transparent,
+                  actions: [Container()],
+                  automaticallyImplyLeading: false,
+                  elevation: 0,
+                  forceElevated: true,
+                  shape: LinearBorder(bottom: LinearBorderEdge(size: 1)),
+                  shadowColor: Colors.transparent,
                   backgroundColor: !isCollapsed
                       ? const Color(0xFFef8354)
                       : Colors.transparent,
@@ -283,6 +362,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                     widget.currentAddress[
                                                         "city_name"],
                                                     style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w700,
                                                         fontSize: 24,
                                                         color: Colors.white),
                                                   ),
@@ -294,19 +375,27 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                               ),
                                             ],
                                           )),
-                                      IconButton(
-                                          onPressed: () {
-                                            setState(() {
-                                              isMenuOpen =
-                                                  isMenuOpen ? false : true;
-                                            });
-                                          },
-                                          icon: Icon(
-                                            !isMenuOpen
-                                                ? Icons.menu
-                                                : Icons.close,
-                                            color: Colors.white,
-                                          )),
+                                      Row(
+                                        children: [
+                                          IconButton(
+                                              onPressed: () {},
+                                              icon: Icon(
+                                                Icons.favorite,
+                                                color: Colors.white,
+                                                size: 24,
+                                              )),
+                                          IconButton(
+                                              onPressed: () {
+                                                _key.currentState!
+                                                    .openEndDrawer();
+                                              },
+                                              icon: Icon(
+                                                Icons.menu,
+                                                color: Colors.white,
+                                                size: 24,
+                                              )),
+                                        ],
+                                      )
 
                                       // IconButton(
                                       //     onPressed: () {},
@@ -316,124 +405,6 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                 ],
                               ),
                             )),
-                ),
-                SliverToBoxAdapter(
-                  child: Column(
-                    children: [
-                      AnimatedCrossFade(
-                          crossFadeState: isMenuOpen
-                              ? CrossFadeState.showFirst
-                              : CrossFadeState.showSecond,
-                          duration: Durations.medium1,
-                          firstChild: Container(
-                            key: ValueKey<int>(0),
-                            alignment: Alignment.centerRight,
-                            color: Colors.white,
-                            child: Container(
-                              key: ValueKey<int>(3),
-                              padding: EdgeInsets.all(10),
-                              margin:
-                                  const EdgeInsets.only(top: 10, bottom: 10),
-                              decoration: const BoxDecoration(
-                                borderRadius: BorderRadius.only(
-                                    topLeft: Radius.circular(30),
-                                    bottomLeft: Radius.circular(30)),
-                                color: Colors.white,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  TextButton(
-
-                                      // style: ElevatedButton.styleFrom(
-                                      //     backgroundColor: Colors.white,
-                                      //     foregroundColor: Colors.black),
-                                      onPressed: () {},
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            "История заказов",
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w400,
-                                                fontSize: 48 *
-                                                    (MediaQuery.of(context)
-                                                            .size
-                                                            .width /
-                                                        720)),
-                                          ),
-                                          SizedBox(
-                                            width: 10,
-                                          ),
-                                          Icon(Icons.list_alt)
-                                        ],
-                                      )),
-                                  TextButton(
-
-                                      // style: ElevatedButton.styleFrom(
-                                      //     backgroundColor: Colors.white,
-                                      //     foregroundColor: Colors.black),
-                                      onPressed: () {},
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            "Адреса доставки",
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w400,
-                                                fontSize: 48 *
-                                                    (MediaQuery.of(context)
-                                                            .size
-                                                            .width /
-                                                        720)),
-                                          ),
-                                          SizedBox(
-                                            width: 10,
-                                          ),
-                                          Icon(Icons.list_alt)
-                                        ],
-                                      )),
-                                  TextButton(
-
-                                      // style: ElevatedButton.styleFrom(
-                                      //     backgroundColor: Colors.white,
-                                      //     foregroundColor: Colors.black),
-                                      onPressed: () {},
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            "Выйти",
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w400,
-                                                fontSize: 48 *
-                                                    (MediaQuery.of(context)
-                                                            .size
-                                                            .width /
-                                                        720)),
-                                          ),
-                                          SizedBox(
-                                            width: 10,
-                                          ),
-                                          Icon(Icons.list_alt)
-                                        ],
-                                      ))
-                                ],
-                              ),
-                            ),
-                          ),
-                          secondChild: Container(
-                            key: ValueKey<int>(1),
-                            color: const Color(0xFFef8354),
-                          ))
-                    ],
-                  ),
                 ),
                 SliverLayoutBuilder(
                   builder: (context, constraints) {
@@ -447,9 +418,21 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                     return SliverToBoxAdapter(
                       child: AnimatedContainer(
                           duration: Durations.medium2,
-                          color: !isStartingToCollapse
-                              ? const Color(0xFFef8354)
-                              : Colors.white,
+                          decoration: BoxDecoration(
+                            boxShadow: [
+                              BoxShadow(
+                                spreadRadius: 5,
+                                offset: Offset(0, -100),
+                                
+                                color: !isStartingToCollapse
+                                    ? const Color(0xFFef8354)
+                                    : Colors.blueGrey.shade50,
+                              )
+                            ],
+                            color: !isStartingToCollapse
+                                ? const Color(0xFFef8354)
+                                : Colors.blueGrey.shade50,
+                          ),
                           child: Stack(
                             alignment: Alignment.bottomCenter,
                             children: [
@@ -464,9 +447,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                               offset: Offset(0, -10),
                                               color: Colors.black26,
                                               blurRadius: 20)
-                                          : const BoxShadow(color: Colors.white)
+                                          : const BoxShadow(color: Colors.white),
+                                          BoxShadow(color: Colors.blueGrey.shade50, offset: Offset(0, 5), blurRadius: 5)
                                     ],
-                                    color: Colors.white,
+                                    color: Colors.blueGrey.shade50,
                                     borderRadius: !isCollapsed
                                         ? const BorderRadius.only(
                                             topLeft: Radius.elliptical(100, 50),
@@ -482,7 +466,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                         color: !isStartingToCollapse
                                             ? const Color(0xFFef8354)
                                                 .withOpacity(0)
-                                            : Colors.white),
+                                            : Colors.blueGrey.shade50),
                                     duration: Durations.medium1,
                                     child: Column(
                                       mainAxisSize: MainAxisSize.max,
@@ -520,15 +504,17 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                     Flexible(
                                                         flex: 3,
                                                         child: Text(
-                                                          widget.user["name"],
-                                                          style: const TextStyle(
-                                                              fontSize: 24,
-                                                              color:
-                                                                  Colors.white,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w500),
-                                                        )),
+                                                            widget.user["name"],
+                                                            style: GoogleFonts
+                                                                .montserratAlternates(
+                                                              textStyle: TextStyle(
+                                                                  fontSize: 24,
+                                                                  color: Colors
+                                                                      .white,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w700),
+                                                            ))),
                                                     const Spacer(
                                                       flex: 2,
                                                     )
@@ -607,80 +593,126 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                     );
                   },
                 ),
-                SliverToBoxAdapter(
-                    child: Container(
-                  color: Colors.white,
-                  child: GridView.builder(
-                    primary: false,
-                    shrinkWrap: true,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
+                SliverGrid.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
-                    ),
-                    itemCount: 16,
-                    itemBuilder: (context, index) {
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) {
-                                return const HomePage(); //! TOOD: Change to redirect page to a different organizations or do this right here.
-                              },
-                            ),
-                          );
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.black),
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(10),
-                            ),
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 5),
+                  itemCount: widget.businesses.length,
+                  itemBuilder: (context, index) {
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) {
+                              return const HomePage(); //! TOOD: Change to redirect page to a different organizations or do this right here.
+                            },
                           ),
-                          margin: const EdgeInsets.symmetric(horizontal: 5),
-                          width: 550 * (screenSize / 720),
-                          child: Column(
-                            children: [
-                              Flexible(
-                                flex: 3,
-                                fit: FlexFit.tight,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        "Картинка бизнеса",
-                                        style: plainStyle,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const Divider(
-                                color: Colors.black,
-                              ),
-                              Flexible(
-                                fit: FlexFit.tight,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        bars[index]["name"],
-                                        style: plainStyle,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                        );
+                      },
+                      child: Container(
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                                offset: Offset(2, 2),
+                                blurRadius: 2,
+                                color: Colors.black12),
+                          ],
+                          borderRadius: const BorderRadius.all(
+                            Radius.circular(10),
                           ),
                         ),
-                      );
-                    },
+                        margin: const EdgeInsets.symmetric(horizontal: 5),
+                        child: Column(
+                          children: [
+                            Flexible(
+                                flex: 3,
+                                fit: FlexFit.tight,
+                                child: Image.network(
+                                  widget.businesses[index]["img"],
+                                  fit: BoxFit.cover,
+                                )),
+                            Flexible(
+                              fit: FlexFit.tight,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      widget.businesses[index]["name"],
+                                      style: plainStyle,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                SliverToBoxAdapter(
+                  child: Container(
+                    height: 10000,
                   ),
-                ))
+                )
               ],
             ))));
+  }
+}
+
+class DrawerMenuItem extends StatefulWidget {
+  const DrawerMenuItem(
+      {super.key, required this.name, required this.icon, required this.route});
+  final String name;
+  final IconData icon;
+  final Widget route;
+  @override
+  State<DrawerMenuItem> createState() => _DrawerMenuItemState();
+}
+
+class _DrawerMenuItemState extends State<DrawerMenuItem> {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        print(1);
+      },
+      child: Container(
+        decoration: BoxDecoration(
+            borderRadius: BorderRadius.only(bottomRight: Radius.circular(15)),
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                  offset: Offset(5, 3), blurRadius: 5, color: Colors.black12)
+            ]),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Flexible(
+                flex: 1,
+                child: IconButton(
+                  color: Colors.black,
+                  onPressed: () {},
+                  icon: Icon(
+                    widget.icon,
+                    size: 48 * (MediaQuery.of(context).size.width / 720),
+                  ),
+                )),
+            Flexible(
+                flex: 2,
+                child: Text(widget.name,
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize:
+                            36 * (MediaQuery.of(context).size.width / 720))))
+          ],
+        ),
+      ),
+    );
   }
 }

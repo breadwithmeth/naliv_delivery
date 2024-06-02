@@ -41,17 +41,33 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
     });
   }
 
+  Future<List> _getBusinesses() async {
+    List? businesses = await getBusinesses();
+    if (businesses == null) {
+      return [];
+    } else {
+      return businesses;
+    }
+  }
+
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     _getAddresses().then((v) {
       _getUser().then((vv) {
-        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
-          builder: (context) {
-            return OrganizationSelectPage(addresses: _addresses, currentAddress: _currentAddress, user: user,);
-          },
-        ), (Route<dynamic> route) => false);
+        _getBusinesses().then((b) {
+          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+            builder: (context) {
+              return OrganizationSelectPage(
+                addresses: _addresses,
+                currentAddress: _currentAddress,
+                user: user,
+                businesses: b,
+              );
+            },
+          ), (Route<dynamic> route) => false);
+        });
       });
     });
   }
