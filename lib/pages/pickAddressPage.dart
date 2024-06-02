@@ -70,7 +70,10 @@ class _PickAddressPageState extends State<PickAddressPage> {
                             () {
                               Navigator.push(context, MaterialPageRoute(
                                 builder: (context) {
-                                  return const CreateOrderPage();
+                                  return CreateOrderPage(
+                                    client: widget.client,
+                                    customAddress: _addresses[index],
+                                  );
                                 },
                               ));
                             },

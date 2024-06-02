@@ -17,14 +17,14 @@ class OrderConfirmation extends StatefulWidget {
     required this.address,
     required this.items,
     required this.cartInfo,
-    required this.user,
+    this.user = const {},
     required this.selectedBusiness,
   });
   final bool delivery;
   final Map? address;
   final List items;
   final Map<String, dynamic> cartInfo;
-  final Map<dynamic, dynamic>? user;
+  final Map<dynamic, dynamic> user;
   final Map<String, dynamic>? selectedBusiness;
   @override
   State<OrderConfirmation> createState() => _OrderConfirmationState();
@@ -67,7 +67,8 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
     timer = Timer(const Duration(seconds: 6), () {
       Future.delayed(const Duration(milliseconds: 0)).then((value) async {
         print("Creating order...!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        await createOrder().then((value) {
+        String user_id = widget.user.isNotEmpty ? widget.user["user_id"] : "";
+        await createOrder(user_id).then((value) {
           if (value["status"] == true) {
             isOrderCorrect = true;
             print("Order was created successfully");
