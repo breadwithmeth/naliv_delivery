@@ -113,9 +113,51 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     });
   }
 
+  double collapsedBarHeight = 100.0;
+  double expandedBarHeight = 200.0;
+  _scrollListener() {
+    if (_sc.position.minScrollExtent + 200 < _sc.offset) {
+      if (!isCollapsed) {
+        setState(() {
+          isCollapsed = true;
+        });
+      }
+    } else {
+      if (isCollapsed) {
+        _sc.animateTo(0, duration: Durations.medium1, curve: Curves.easeIn);
+        setState(() {
+          isCollapsed = false;
+        });
+      }
+    }
+    if (_sc.position.minScrollExtent + 10 < _sc.offset) {
+      if (!isStartingToCollapse) {
+        _sc.animateTo(scrollExtent + collapsedBarHeight * 2,
+            duration: Durations.medium1, curve: Curves.easeIn);
+        setState(() {
+          isMenuOpen = false;
+          isStartingToCollapse = true;
+        });
+      }
+    } else {
+      if (isStartingToCollapse) {
+        setState(() {
+          isStartingToCollapse = false;
+        });
+      }
+    }
+
+    /// 2
+    // isCollapsed.value = scrollController.hasClients &&
+    //     scrollController.offset >
+    //         (expandedBarHeight - collapsedBarHeight);
+  }
+
   @override
   void initState() {
     super.initState();
+    _sc.addListener(_scrollListener);
+
     // Future.delayed(Duration.zero).then((value) async {
     //   _getUser();
     // });
@@ -135,8 +177,6 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
           "вот это ключ, всем ключам ключ, надеюсь он тут не потеряется");
   @override
   Widget build(BuildContext context) {
-    const collapsedBarHeight = 100.0;
-    const expandedBarHeight = 200.0;
     double screenSize = MediaQuery.of(context).size.width;
 
     TextStyle titleStyle = TextStyle(
@@ -162,44 +202,44 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
           // } else {
           //   print(false);
           // }
-          if (notification.metrics.minScrollExtent + 200 <
-              notification.metrics.pixels) {
-            if (!isCollapsed) {
-              setState(() {
-                isCollapsed = true;
-              });
-            }
-          } else {
-            if (isCollapsed) {
-              _sc.animateTo(0,
-                  duration: Durations.medium1, curve: Curves.easeIn);
-              setState(() {
-                isCollapsed = false;
-              });
-            }
-          }
-          if (notification.metrics.minScrollExtent + 10 <
-              notification.metrics.pixels) {
-            if (!isStartingToCollapse) {
-              _sc.animateTo(scrollExtent + collapsedBarHeight * 2,
-                  duration: Durations.medium1, curve: Curves.easeIn);
-              setState(() {
-                isMenuOpen = false;
-                isStartingToCollapse = true;
-              });
-            }
-          } else {
-            if (isStartingToCollapse) {
-              setState(() {
-                isStartingToCollapse = false;
-              });
-            }
-          }
+          // if (notification.metrics.minScrollExtent + 200 <
+          //     notification.metrics.pixels) {
+          //   if (!isCollapsed) {
+          //     setState(() {
+          //       isCollapsed = true;
+          //     });
+          //   }
+          // } else {
+          //   if (isCollapsed) {
+          //     _sc.animateTo(0,
+          //         duration: Durations.medium1, curve: Curves.easeIn);
+          //     setState(() {
+          //       isCollapsed = false;
+          //     });
+          //   }
+          // }
+          // if (notification.metrics.minScrollExtent + 10 <
+          //     notification.metrics.pixels) {
+          //   if (!isStartingToCollapse) {
+          //     _sc.animateTo(scrollExtent + collapsedBarHeight * 2,
+          //         duration: Durations.medium1, curve: Curves.easeIn);
+          //     setState(() {
+          //       isMenuOpen = false;
+          //       isStartingToCollapse = true;
+          //     });
+          //   }
+          // } else {
+          //   if (isStartingToCollapse) {
+          //     setState(() {
+          //       isStartingToCollapse = false;
+          //     });
+          //   }
+          // }
 
-          /// 2
-          // isCollapsed.value = scrollController.hasClients &&
-          //     scrollController.offset >
-          //         (expandedBarHeight - collapsedBarHeight);
+          // /// 2
+          // // isCollapsed.value = scrollController.hasClients &&
+          // //     scrollController.offset >
+          // //         (expandedBarHeight - collapsedBarHeight);
           return false;
         },
         child: Scaffold(
@@ -213,10 +253,23 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                       mainAxisAlignment: MainAxisAlignment.start,
                       mainAxisSize: MainAxisSize.max,
                       children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            IconButton(
+                                onPressed: () {
+                                  _key.currentState!.closeEndDrawer();
+                                },
+                                icon: Container(
+                                  padding: EdgeInsets.all(20),
+                                  child: Icon(Icons.close),
+                                ))
+                          ],
+                        ),
                         Flexible(
                             child: Container(
                           alignment: Alignment.center,
-                          height: MediaQuery.of(context).size.height / 4,
+                          height: MediaQuery.of(context).size.height / 5,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             mainAxisSize: MainAxisSize.max,
@@ -599,71 +652,24 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                     );
                   },
                 ),
-                SliverGrid.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 10,
-                      crossAxisSpacing: 5),
-                  itemCount: widget.businesses.length,
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) {
-                              return HomePage(
-                                business_id: widget.businesses[index]
-                                    ["business_id"],
-                              ); //! TOOD: Change to redirect page to a different organizations or do this right here.
-                            },
-                          ),
-                        );
+                SliverToBoxAdapter(
+                    child: Container(
+                  width: 300,
+                  height: 300,
+                  child: SingleChildScrollView(
+                    controller: ScrollController(),
+                    scrollDirection: Axis.horizontal,
+                    child: ListView.builder(
+                      primary: false,
+                      shrinkWrap: true,
+                      scrollDirection: Axis.horizontal,
+                      itemCount: widget.businesses.length,
+                      itemBuilder: (context, index) {
+                        return BusinessItem(business: widget.businesses[index]);
                       },
-                      child: Container(
-                        clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          boxShadow: [
-                            BoxShadow(
-                                offset: Offset(2, 2),
-                                blurRadius: 2,
-                                color: Colors.black12),
-                          ],
-                          borderRadius: const BorderRadius.all(
-                            Radius.circular(10),
-                          ),
-                        ),
-                        margin: const EdgeInsets.symmetric(horizontal: 5),
-                        child: Column(
-                          children: [
-                            Flexible(
-                                flex: 3,
-                                fit: FlexFit.tight,
-                                child: Image.network(
-                                  widget.businesses[index]["img"],
-                                  fit: BoxFit.cover,
-                                )),
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      widget.businesses[index]["name"],
-                                      style: plainStyle,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                )),
                 SliverToBoxAdapter(
                   child: Container(
                     height: 10000,
@@ -689,7 +695,11 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        print(1);
+        Navigator.push(context, MaterialPageRoute(
+          builder: (context) {
+            return widget.route;
+          },
+        ));
       },
       child: Container(
         decoration: BoxDecoration(
@@ -704,10 +714,9 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
           children: [
             Flexible(
                 flex: 1,
-                child: IconButton(
-                  color: Colors.black,
-                  onPressed: () {},
-                  icon: Icon(
+                child: Container(
+                  margin: EdgeInsets.all(10),
+                  child: Icon(
                     widget.icon,
                     size: 48 * (MediaQuery.of(context).size.width / 720),
                   ),
@@ -719,6 +728,91 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
                         fontWeight: FontWeight.w700,
                         fontSize:
                             36 * (MediaQuery.of(context).size.width / 720))))
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class BusinessItem extends StatefulWidget {
+  const BusinessItem({super.key, required this.business});
+  final Map business;
+  @override
+  State<BusinessItem> createState() => BusinessItemState();
+}
+
+class BusinessItemState extends State<BusinessItem> {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) {
+              return HomePage(
+                business_id: widget.business["business_id"],
+              ); //! TOOD: Change to redirect page to a different organizations or do this right here.
+            },
+          ),
+        );
+      },
+      child: Container(
+        width: 300,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+                offset: Offset(2, 2), blurRadius: 2, color: Colors.black12),
+          ],
+          borderRadius: const BorderRadius.all(
+            Radius.circular(10),
+          ),
+        ),
+        child: Column(
+          children: [
+            Expanded(
+                child: Container(
+              child: Image.network(
+                widget.business["img"],
+                fit: BoxFit.cover,
+              ),
+            )),
+            Expanded(
+                child: Container(
+                    padding: EdgeInsets.all(10),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                widget.business["name"],
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w900, fontSize: 16),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                "Короткое описание",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w500, fontSize: 14),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ))),
           ],
         ),
       ),
