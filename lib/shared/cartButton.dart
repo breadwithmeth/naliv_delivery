@@ -16,8 +16,8 @@ class _CartButtonState extends State<CartButton> {
     final double screenWidth = MediaQuery.of(context).size.width;
 
     return SizedBox(
-      width: 130 * (screenWidth / 720),
-      height: 130 * (screenWidth / 720),
+      width: 160 * (screenWidth / 720),
+      height: 160 * (screenWidth / 720),
       child: FloatingActionButton(
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(10))),

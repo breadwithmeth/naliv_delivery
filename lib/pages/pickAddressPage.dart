@@ -16,6 +16,8 @@ class _PickAddressPageState extends State<PickAddressPage> {
   Future<List> _getAddresses() async {
     List addresses = await getUserAddresses(widget.client["user_id"]);
 
+    print("HEHEHHE");
+
     return addresses;
   }
 

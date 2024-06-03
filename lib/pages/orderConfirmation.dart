@@ -23,7 +23,7 @@ class OrderConfirmation extends StatefulWidget {
   final bool delivery;
   final Map? address;
   final List items;
-  final Map<String, dynamic> cartInfo;
+  final String cartInfo;
   final Map<dynamic, dynamic> user;
   final Map<String, dynamic>? selectedBusiness;
   @override
@@ -504,7 +504,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                           Flexible(
                             child: Text(
                               widget.cartInfo.isNotEmpty
-                                  ? "Сумма к оплате: ${widget.cartInfo["sum"].toString()} ₸"
+                                  ? "Сумма к оплате: ${widget.cartInfo.toString()} ₸"
                                   : "Сумма к оплате: 0 ₸",
                               textAlign: TextAlign.center,
                               style: TextStyle(
