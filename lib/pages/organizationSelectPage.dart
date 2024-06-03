@@ -510,14 +510,16 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                         child: Text(
                                                             widget.user["name"],
                                                             style: GoogleFonts
-                                                                .montserratAlternates(
+                                                                .mulish(
                                                               textStyle: TextStyle(
+                                                                  letterSpacing:
+                                                                      1,
                                                                   fontSize: 24,
                                                                   color: Colors
                                                                       .white,
                                                                   fontWeight:
                                                                       FontWeight
-                                                                          .w700),
+                                                                          .w900),
                                                             ))),
                                                     const Spacer(
                                                       flex: 2,
@@ -610,7 +612,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                           context,
                           MaterialPageRoute(
                             builder: (context) {
-                              return const HomePage(); //! TOOD: Change to redirect page to a different organizations or do this right here.
+                              return HomePage(
+                                business_id: widget.businesses[index]
+                                    ["business_id"],
+                              ); //! TOOD: Change to redirect page to a different organizations or do this right here.
                             },
                           ),
                         );

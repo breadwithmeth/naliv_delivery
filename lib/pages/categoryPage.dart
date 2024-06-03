@@ -16,10 +16,12 @@ class CategoryPage extends StatefulWidget {
       {super.key,
       required this.categoryId,
       required this.categoryName,
-      required this.categories});
+      required this.categories,
+      required this.business_id});
   final String categoryId;
   final String categoryName;
   final List<dynamic> categories;
+  final String business_id;
   @override
   State<CategoryPage> createState() => _CategoryPageState();
 }
@@ -400,7 +402,7 @@ class _CategoryPageState extends State<CategoryPage> {
           children: [
             for (int j = 0; j < widget.categories.length; j++)
               CategoryPageList(
-                categoryId: categoriesWidgetList[j]["category_id"],
+                categoryId: categoriesWidgetList[j]["category_id"], business_id: widget.business_id,
               )
           ],
         ),
@@ -416,10 +418,10 @@ class Item {
 }
 
 class CategoryPageList extends StatefulWidget {
-  const CategoryPageList({super.key, required this.categoryId});
+  const CategoryPageList({super.key, required this.categoryId, required this.business_id});
 
   final String categoryId;
-
+  final String business_id;
   @override
   State<CategoryPageList> createState() => _CategoryPageListState();
 }
@@ -449,8 +451,8 @@ class _CategoryPageListState extends State<CategoryPageList>
   Future<void> _getItems() async {
     try {
       //! TODO: SEND SEARCH PARAMETER TO API
-      List? responseList =
-          await getItemsMain(_pageNumber, "", widget.categoryId);
+      List? responseList = await getItemsMain(
+          _pageNumber, widget.business_id, "", widget.categoryId);
       if (responseList != null) {
         List<Item> itemList = responseList.map((data) => Item(data)).toList();
 
