@@ -255,7 +255,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                             ),
                             DrawerMenuItem(
                               name: "Адреса доставки",
-                              icon: Icons.book_outlined,
+                              icon: Icons.map_outlined,
                               route: SettingsPage(),
                             ),
                             DrawerMenuItem(
@@ -265,7 +265,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                             ),
                             DrawerMenuItem(
                               name: "Настройки",
-                              icon: Icons.book_outlined,
+                              icon: Icons.settings_outlined,
                               route: SettingsPage(),
                             )
                           ],
