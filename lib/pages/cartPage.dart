@@ -37,7 +37,7 @@ class _CartPageState extends State<CartPage>
   }
 
   Future<void> _getCart() async {
-    Map<String, dynamic> cart = await getCart();
+    Map<String, dynamic> cart = await getCart(widget.businessId);
     print(cart);
 
     // Map<String, dynamic>? cartInfo = await getCartInfo();
@@ -430,7 +430,9 @@ class _CartPageState extends State<CartPage>
                         context,
                         MaterialPageRoute(
                           builder: (context) {
-                            return const FindCreateUserPage();
+                            return FindCreateUserPage(
+                              businessId: widget.businessId,
+                            );
                           },
                         ),
                       );

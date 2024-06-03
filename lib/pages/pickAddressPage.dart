@@ -4,8 +4,10 @@ import 'package:naliv_delivery/pages/createOrder.dart';
 import 'package:naliv_delivery/pages/pickOnMap.dart';
 
 class PickAddressPage extends StatefulWidget {
-  const PickAddressPage({super.key, required this.client});
+  const PickAddressPage(
+      {super.key, required this.client, required this.businessId});
   final Map client;
+  final String businessId;
   @override
   State<PickAddressPage> createState() => _PickAddressPageState();
 }
@@ -71,6 +73,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                               Navigator.push(context, MaterialPageRoute(
                                 builder: (context) {
                                   return CreateOrderPage(
+                                    businessId: widget.businessId,
                                     client: widget.client,
                                     customAddress: _addresses[index],
                                   );

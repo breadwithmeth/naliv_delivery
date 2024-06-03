@@ -369,7 +369,7 @@ Future<String?> removeFromCart(String itemId) async {
   return data;
 }
 
-Future<Map<String, dynamic>> getCart() async {
+Future<Map<String, dynamic>> getCart(String businessId) async {
   String? token = await getToken();
   if (token == null) {
     return {};
@@ -378,6 +378,7 @@ Future<Map<String, dynamic>> getCart() async {
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
+    body: json.encode({'business_id': businessId}),
   );
 
   // List<dynamic> list = json.decode(response.body);
