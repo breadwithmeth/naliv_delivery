@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/cartPage.dart';
 
 class CartButton extends StatefulWidget {
-  const CartButton({super.key});
+  const CartButton({super.key, required this.businessId});
+
+  final String businessId;
 
   @override
   State<CartButton> createState() => _CartButtonState();
@@ -28,7 +30,9 @@ class _CartButtonState extends State<CartButton> {
             context,
             MaterialPageRoute(
               builder: (context) {
-                return const CartPage();
+                return CartPage(
+                  businessId: widget.businessId,
+                );
               },
             ),
           );

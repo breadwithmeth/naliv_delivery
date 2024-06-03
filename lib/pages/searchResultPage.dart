@@ -8,10 +8,12 @@ class SearchResultPage extends StatefulWidget {
       {super.key,
       required this.search,
       required this.page,
+      required this.businessId,
       this.result,
       this.category_id = ""});
   final String search;
   final int page;
+  final String businessId;
   final Widget? result;
   final String category_id;
   @override
@@ -122,6 +124,7 @@ class _SearchResultPageState extends State<SearchResultPage> {
                   item: item.data,
                   index: index,
                   returnDataAmount: updateDataAmount,
+                  businessId: widget.businessId,
                 );
               },
             );
