@@ -250,14 +250,12 @@ class _LoginPageState extends State<LoginPage> {
                               (value) => {
                                 if (value == true)
                                   {
-                                    Navigator.pushReplacement(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) {
-                                          return const Main();
-                                        },
-                                      ),
-                                    )
+                                    Navigator.pushAndRemoveUntil(context,
+                                        MaterialPageRoute(
+                                      builder: (context) {
+                                        return const Main();
+                                      },
+                                    ), (route) => false)
                                   }
                               },
                             );

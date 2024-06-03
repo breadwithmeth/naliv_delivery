@@ -115,9 +115,51 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     });
   }
 
+  double collapsedBarHeight = 100.0;
+  double expandedBarHeight = 200.0;
+  _scrollListener() {
+    if (_sc.position.minScrollExtent + 200 < _sc.offset) {
+      if (!isCollapsed) {
+        setState(() {
+          isCollapsed = true;
+        });
+      }
+    } else {
+      if (isCollapsed) {
+        _sc.animateTo(0, duration: Durations.medium1, curve: Curves.easeIn);
+        setState(() {
+          isCollapsed = false;
+        });
+      }
+    }
+    if (_sc.position.minScrollExtent + 10 < _sc.offset) {
+      if (!isStartingToCollapse) {
+        _sc.animateTo(scrollExtent + collapsedBarHeight * 2,
+            duration: Durations.medium1, curve: Curves.easeIn);
+        setState(() {
+          isMenuOpen = false;
+          isStartingToCollapse = true;
+        });
+      }
+    } else {
+      if (isStartingToCollapse) {
+        setState(() {
+          isStartingToCollapse = false;
+        });
+      }
+    }
+
+    /// 2
+    // isCollapsed.value = scrollController.hasClients &&
+    //     scrollController.offset >
+    //         (expandedBarHeight - collapsedBarHeight);
+  }
+
   @override
   void initState() {
     super.initState();
+    _sc.addListener(_scrollListener);
+
     // Future.delayed(Duration.zero).then((value) async {
     //   _getUser();
     // });
@@ -137,8 +179,6 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
           "вот это ключ, всем ключам ключ, надеюсь он тут не потеряется");
   @override
   Widget build(BuildContext context) {
-    const collapsedBarHeight = 100.0;
-    const expandedBarHeight = 200.0;
     double screenSize = MediaQuery.of(context).size.width;
 
     TextStyle titleStyle = TextStyle(
@@ -157,246 +197,278 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     // final isCollapsed = useState(false);
 
     return NotificationListener<ScrollNotification>(
-      onNotification: (notification) {
-        // if (expandedBarHeight - collapsedBarHeight <
-        //     notification.metrics.atEdge) {
-        //   print(true);
-        // } else {
-        //   print(false);
-        // }
-        if (notification.metrics.minScrollExtent + 200 <
-            notification.metrics.pixels) {
-          if (!isCollapsed) {
-            setState(() {
-              isCollapsed = true;
-            });
-          }
-        } else {
-          if (isCollapsed) {
-            _sc.animateTo(0, duration: Durations.medium1, curve: Curves.easeIn);
-            setState(() {
-              isCollapsed = false;
-            });
-          }
-        }
-        if (notification.metrics.minScrollExtent + 10 <
-            notification.metrics.pixels) {
-          if (!isStartingToCollapse) {
-            _sc.animateTo(scrollExtent + collapsedBarHeight * 2,
-                duration: Durations.medium1, curve: Curves.easeIn);
-            setState(() {
-              isMenuOpen = false;
-              isStartingToCollapse = true;
-            });
-          }
-        } else {
-          if (isStartingToCollapse) {
-            setState(() {
-              isStartingToCollapse = false;
-            });
-          }
-        }
+        onNotification: (notification) {
+          // if (expandedBarHeight - collapsedBarHeight <
+          //     notification.metrics.atEdge) {
+          //   print(true);
+          // } else {
+          //   print(false);
+          // }
+          // if (notification.metrics.minScrollExtent + 200 <
+          //     notification.metrics.pixels) {
+          //   if (!isCollapsed) {
+          //     setState(() {
+          //       isCollapsed = true;
+          //     });
+          //   }
+          // } else {
+          //   if (isCollapsed) {
+          //     _sc.animateTo(0,
+          //         duration: Durations.medium1, curve: Curves.easeIn);
+          //     setState(() {
+          //       isCollapsed = false;
+          //     });
+          //   }
+          // }
+          // if (notification.metrics.minScrollExtent + 10 <
+          //     notification.metrics.pixels) {
+          //   if (!isStartingToCollapse) {
+          //     _sc.animateTo(scrollExtent + collapsedBarHeight * 2,
+          //         duration: Durations.medium1, curve: Curves.easeIn);
+          //     setState(() {
+          //       isMenuOpen = false;
+          //       isStartingToCollapse = true;
+          //     });
+          //   }
+          // } else {
+          //   if (isStartingToCollapse) {
+          //     setState(() {
+          //       isStartingToCollapse = false;
+          //     });
+          //   }
+          // }
 
-        /// 2
-        // isCollapsed.value = scrollController.hasClients &&
-        //     scrollController.offset >
-        //         (expandedBarHeight - collapsedBarHeight);
-        return false;
-      },
-      child: Scaffold(
-        key: _key,
-        drawerEnableOpenDragGesture: false,
-        drawerScrimColor: Colors.white,
-        endDrawer: SafeArea(
-            child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    Flexible(
-                        child: Container(
-                      alignment: Alignment.center,
-                      height: MediaQuery.of(context).size.height / 4,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.max,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text("НАЗВАНИЕ",
-                              style: GoogleFonts.montserratAlternates(
-                                textStyle: TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 48 *
-                                        (MediaQuery.of(context).size.width /
-                                            720)),
-                              )),
-                          Icon(
-                            Icons.local_dining_outlined,
-                            color: Colors.black,
-                            size:
-                                48 * (MediaQuery.of(context).size.width / 720),
-                          )
-                        ],
-                      ),
-                    )),
-                    Flexible(
-                        child: Container(
-                            child: GridView.count(
-                      padding: EdgeInsets.all(10),
-                      mainAxisSpacing: 10,
-                      crossAxisSpacing: 10,
-                      childAspectRatio: 2 / 1,
-                      crossAxisCount: 2,
+          // /// 2
+          // // isCollapsed.value = scrollController.hasClients &&
+          // //     scrollController.offset >
+          // //         (expandedBarHeight - collapsedBarHeight);
+          return false;
+        },
+        child: Scaffold(
+            key: _key,
+            drawerEnableOpenDragGesture: false,
+            drawerScrimColor: Colors.white,
+            endDrawer: SafeArea(
+                child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.max,
                       children: [
-                        DrawerMenuItem(
-                          name: "История заказов",
-                          icon: Icons.book_outlined,
-                          route: OrderHistoryPage(),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            IconButton(
+                                onPressed: () {
+                                  _key.currentState!.closeEndDrawer();
+                                },
+                                icon: Container(
+                                  padding: EdgeInsets.all(20),
+                                  child: Icon(Icons.close),
+                                ))
+                          ],
                         ),
-                        DrawerMenuItem(
-                          name: "Адреса доставки",
-                          icon: Icons.book_outlined,
-                          route: SettingsPage(),
-                        ),
-                        DrawerMenuItem(
-                          name: "Поддержка",
-                          icon: Icons.support_agent_rounded,
-                          route: SupportPage(),
-                        ),
-                        DrawerMenuItem(
-                          name: "Настройки",
-                          icon: Icons.book_outlined,
-                          route: SettingsPage(),
-                        )
+                        Flexible(
+                            child: Container(
+                          alignment: Alignment.center,
+                          height: MediaQuery.of(context).size.height / 5,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.max,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text("НАЗВАНИЕ",
+                                  style: GoogleFonts.montserratAlternates(
+                                    textStyle: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 48 *
+                                            (MediaQuery.of(context).size.width /
+                                                720)),
+                                  )),
+                              Icon(
+                                Icons.local_dining_outlined,
+                                color: Colors.black,
+                                size: 48 *
+                                    (MediaQuery.of(context).size.width / 720),
+                              )
+                            ],
+                          ),
+                        )),
+                        Flexible(
+                            child: Container(
+                                child: GridView.count(
+                          padding: EdgeInsets.all(10),
+                          mainAxisSpacing: 10,
+                          crossAxisSpacing: 10,
+                          childAspectRatio: 2 / 1,
+                          crossAxisCount: 2,
+                          children: [
+                            DrawerMenuItem(
+                              name: "История заказов",
+                              icon: Icons.book_outlined,
+                              route: SettingsPage(),
+                            ),
+                            DrawerMenuItem(
+                              name: "Адреса доставки",
+                              icon: Icons.map_outlined,
+                              route: SettingsPage(),
+                            ),
+                            DrawerMenuItem(
+                              name: "Поддержка",
+                              icon: Icons.support_agent_rounded,
+                              route: SettingsPage(),
+                            ),
+                            DrawerMenuItem(
+                              name: "Настройки",
+                              icon: Icons.settings_outlined,
+                              route: SettingsPage(),
+                            )
+                          ],
+                        )))
                       ],
-                    )))
-                  ],
-                ))),
-        backgroundColor: Colors.blueGrey.shade50,
-        // !isCollapsed ? const Color(0xFFef8354) : Colors.white,
-        body: SafeArea(
-          child: CustomScrollView(
-            controller: _sc,
-            slivers: <Widget>[
-              SliverAppBar(
-                actions: [Container()],
-                automaticallyImplyLeading: false,
-                elevation: 0,
-                forceElevated: true,
-                shape: LinearBorder(bottom: LinearBorderEdge(size: 1)),
-                shadowColor: Colors.transparent,
-                backgroundColor:
-                    !isCollapsed ? const Color(0xFFef8354) : Colors.transparent,
-                surfaceTintColor: Colors.transparent,
-                foregroundColor: Colors.transparent,
-                // scrolledUnderElevation: collapsedBarHeight,
-                toolbarHeight: collapsedBarHeight,
-                snap: true,
-                centerTitle: false,
-                // stretch: true,
-                // Provide a standard title.
-                // title: ,
-                pinned: true,
-                // Allows the user to reveal the app bar if they begin scrolling
-                // back up the list of items.
-                floating: true,
-                expandedHeight: 0,
-                flexibleSpace: Container(),
-                title: AnimatedSwitcher(
-                    duration: Durations.medium1,
-                    child: isCollapsed
-                        ? Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                                boxShadow: [
-                                  BoxShadow(
-                                      color: Colors.blueGrey.shade200,
-                                      offset: const Offset(5, 5),
-                                      blurRadius: 5)
-                                ],
-                                color: Colors.white,
-                                borderRadius: const BorderRadius.all(
-                                    Radius.circular(20))),
-                            child: TextButton(
-                                onPressed: () {},
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        widget.currentAddress["address"],
-                                        style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w700),
-                                      ),
-                                    ),
-                                    const SizedBox(
-                                      width: 10,
-                                    ),
-                                    const Icon(Icons.edit_outlined),
+                    ))),
+            backgroundColor: Colors.blueGrey.shade50,
+            // !isCollapsed ? const Color(0xFFef8354) : Colors.white,
+            body: SafeArea(
+                child: CustomScrollView(
+              controller: _sc,
+              slivers: <Widget>[
+                SliverAppBar(
+                  actions: [Container()],
+                  automaticallyImplyLeading: false,
+                  elevation: 0,
+                  forceElevated: true,
+                  shape: LinearBorder(bottom: LinearBorderEdge(size: 1)),
+                  shadowColor: Colors.transparent,
+                  backgroundColor: !isCollapsed
+                      ? const Color(0xFFef8354)
+                      : Colors.transparent,
+                  surfaceTintColor: Colors.transparent,
+                  foregroundColor: Colors.transparent,
+                  // scrolledUnderElevation: collapsedBarHeight,
+                  toolbarHeight: collapsedBarHeight,
+                  snap: true,
+                  centerTitle: false,
+                  // stretch: true,
+                  // Provide a standard title.
+                  // title: ,
+                  pinned: true,
+                  // Allows the user to reveal the app bar if they begin scrolling
+                  // back up the list of items.
+                  floating: true,
+                  expandedHeight: 0,
+                  flexibleSpace: Container(),
+                  title: AnimatedSwitcher(
+                      duration: Durations.medium1,
+                      child: isCollapsed
+                          ? Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color: Colors.blueGrey.shade200,
+                                        offset: const Offset(5, 5),
+                                        blurRadius: 5)
                                   ],
-                                )))
-                        : Container(
-                            alignment: Alignment.center,
-                            color: const Color(0xFFef8354),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  mainAxisSize: MainAxisSize.max,
-                                  children: [
-                                    TextButton(
-                                        onPressed: () {},
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.max,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Text(
-                                                  widget.currentAddress[
-                                                      "city_name"],
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      fontSize: 24,
-                                                      color: Colors.white),
-                                                ),
-                                                const Icon(
-                                                  Icons.arrow_drop_down,
-                                                  color: Colors.white,
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        )),
-                                    Row(
-                                      children: [
-                                        IconButton(
-                                            onPressed: () {},
-                                            icon: Icon(
-                                              Icons.favorite,
-                                              color: Colors.white,
-                                              size: 24,
-                                            )),
-                                        IconButton(
-                                            onPressed: () {
-                                              _key.currentState!
-                                                  .openEndDrawer();
-                                            },
-                                            icon: Icon(
-                                              Icons.menu,
-                                              color: Colors.white,
-                                              size: 24,
-                                            )),
-                                      ],
-                                    )
+                                  color: Colors.white,
+                                  borderRadius: const BorderRadius.all(
+                                      Radius.circular(20))),
+                              child: TextButton(
+                                  onPressed: () {
+                                    Navigator.push(context, MaterialPageRoute(
+                                      builder: (context) {
+                                        return PickAddressPage(
+                                          client: widget.user,
+                                        );
+                                      },
+                                    ));
+                                  },
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          widget.currentAddress["address"],
+                                          style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w700),
+                                        ),
+                                      ),
+                                      const SizedBox(
+                                        width: 10,
+                                      ),
+                                      const Icon(Icons.edit_outlined),
+                                    ],
+                                  )))
+                          : Container(
+                              alignment: Alignment.center,
+                              color: const Color(0xFFef8354),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    mainAxisSize: MainAxisSize.max,
+                                    children: [
+                                      TextButton(
+                                          onPressed: () {
+                                            Navigator.push(context,
+                                                MaterialPageRoute(
+                                              builder: (context) {
+                                                return PickAddressPage(
+                                                  client: widget.user,
+                                                );
+                                              },
+                                            ));
+                                          },
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.max,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                    widget.currentAddress[
+                                                        "city_name"],
+                                                    style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        fontSize: 24,
+                                                        color: Colors.white),
+                                                  ),
+                                                  const Icon(
+                                                    Icons.arrow_drop_down,
+                                                    color: Colors.white,
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          )),
+                                      Row(
+                                        children: [
+                                          IconButton(
+                                              onPressed: () {},
+                                              icon: Icon(
+                                                Icons.favorite,
+                                                color: Colors.white,
+                                                size: 24,
+                                              )),
+                                          IconButton(
+                                              onPressed: () {
+                                                _key.currentState!
+                                                    .openEndDrawer();
+                                              },
+                                              icon: Icon(
+                                                Icons.menu,
+                                                color: Colors.white,
+                                                size: 24,
+                                              )),
+                                        ],
+                                      )
 
                                     // IconButton(
                                     //     onPressed: () {},
@@ -545,160 +617,81 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                                           .w500,
                                                                   color: Colors
                                                                       .white),
-                                                        ),
-                                                        const SizedBox(
-                                                          width: 10,
-                                                        ),
-                                                        const Icon(
-                                                          Icons.edit_outlined,
-                                                          color: Colors.white,
-                                                        ),
-                                                      ],
-                                                    ))
+                                                            ),
+                                                            const SizedBox(
+                                                              width: 10,
+                                                            ),
+                                                            const Icon(
+                                                              Icons
+                                                                  .edit_outlined,
+                                                              color:
+                                                                  Colors.white,
+                                                            ),
+                                                          ],
+                                                        ))
+                                                  ],
+                                                ),
+                                                const Spacer(
+                                                  flex: 2,
+                                                )
                                               ],
-                                            ),
-                                            const Spacer(
-                                              flex: 2,
-                                            )
-                                          ],
-                                        ))
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                width: double.infinity,
-                                height: MediaQuery.of(context).size.height / 5,
-                                margin: const EdgeInsets.all(15),
-                                padding: const EdgeInsets.all(30),
-                                decoration: const BoxDecoration(
-                                  color: Colors.blueGrey,
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(30)),
-                                  boxShadow: [
-                                    BoxShadow(
-                                        offset: Offset(0, -1),
-                                        color: Colors.black26,
-                                        blurRadius: 5)
-                                  ],
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Flexible(
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Flexible(
-                                            fit: FlexFit.tight,
-                                            child: Text(
-                                              "ALLCO",
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                fontSize: 68,
-                                                fontWeight: FontWeight.w500,
-                                                color: Colors.grey.shade50,
-                                                shadows: [
-                                                  Shadow(
-                                                    color: Colors.black26,
-                                                    blurRadius: 10,
-                                                    offset: Offset(0, 0),
-                                                  ),
-                                                ],
-                                                fontFamily: "montserrat",
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                            ))
+                                      ],
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                  Container(
+                                    width: double.infinity,
+                                    height:
+                                        MediaQuery.of(context).size.height / 5,
+                                    margin: const EdgeInsets.all(15),
+                                    padding: const EdgeInsets.all(30),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.blueGrey,
+                                      borderRadius:
+                                          BorderRadius.all(Radius.circular(30)),
+                                      boxShadow: [
+                                        BoxShadow(
+                                            offset: Offset(0, -1),
+                                            color: Colors.black26,
+                                            blurRadius: 5)
+                                      ],
+                                    ),
+                                    child: const Text(
+                                        "здесь будет какой то баннер, возможно надо будет марджины везде одинаковые сделать"),
+                                  )
+                                ],
                               )
                             ],
-                          )
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-              SliverGrid.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 5),
-                itemCount: widget.businesses.length,
-                itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) {
-                            return HomePage(
-                              business_id: widget.businesses[index]
-                                  ["business_id"],
-                            ); //! TOOD: Change to redirect page to a different organizations or do this right here.
-                          },
-                        ),
-                      );
-                    },
-                    child: Container(
-                      clipBehavior: Clip.antiAlias,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                              offset: Offset(2, 2),
-                              blurRadius: 2,
-                              color: Colors.black12),
-                        ],
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(10),
-                        ),
-                      ),
-                      margin: const EdgeInsets.symmetric(horizontal: 5),
-                      child: Column(
-                        children: [
-                          Flexible(
-                              flex: 3,
-                              fit: FlexFit.tight,
-                              child: Image.network(
-                                widget.businesses[index]["img"],
-                                fit: BoxFit.cover,
-                              )),
-                          Flexible(
-                            fit: FlexFit.tight,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    widget.businesses[index]["name"],
-                                    style: plainStyle,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-              SliverToBoxAdapter(
-                child: Container(
-                  height: 10000,
+                          )),
+                    );
+                  },
                 ),
-              )
-            ],
-          ),
-        ),
-      ),
-    );
+                SliverToBoxAdapter(
+                    child: Container(
+                  width: MediaQuery.of(context).size.width,
+                  height: 200,
+                  child: SingleChildScrollView(
+                    controller: ScrollController(),
+                    scrollDirection: Axis.horizontal,
+                    child: ListView.builder(
+                      padding: EdgeInsets.all(5),
+                      primary: false,
+                      shrinkWrap: true,
+                      scrollDirection: Axis.horizontal,
+                      itemCount: widget.businesses.length,
+                      itemBuilder: (context, index) {
+                        return BusinessItem(business: widget.businesses[index]);
+                      },
+                    ),
+                  ),
+                )),
+                SliverToBoxAdapter(
+                  child: Container(
+                    height: 10000,
+                  ),
+                )
+              ],
+            ))));
   }
 }
 
@@ -736,26 +729,109 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
             Flexible(
-              flex: 1,
-              child: IconButton(
-                color: Colors.black,
-                onPressed: () {},
-                icon: Icon(
-                  widget.icon,
-                  size: 48 * (MediaQuery.of(context).size.width / 720),
-                ),
-              ),
-            ),
+                flex: 1,
+                child: Container(
+                  margin: EdgeInsets.all(10),
+                  child: Icon(
+                    widget.icon,
+                    size: 48 * (MediaQuery.of(context).size.width / 720),
+                  ),
+                )),
             Flexible(
-              flex: 2,
-              child: Text(
-                widget.name,
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 36 * (MediaQuery.of(context).size.width / 720),
-                ),
+                flex: 2,
+                child: Text(widget.name,
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize:
+                            36 * (MediaQuery.of(context).size.width / 720))))
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class BusinessItem extends StatefulWidget {
+  const BusinessItem({super.key, required this.business});
+  final Map business;
+  @override
+  State<BusinessItem> createState() => BusinessItemState();
+}
+
+class BusinessItemState extends State<BusinessItem> {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) {
+              return HomePage(
+                business_id: widget.business["business_id"],
+              ); //! TOOD: Change to redirect page to a different organizations or do this right here.
+            },
+          ),
+        );
+      },
+      child: Container(
+        margin: EdgeInsets.all(5),
+        width: 300,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+                offset: Offset(2, 2), blurRadius: 2, color: Colors.black12),
+          ],
+          borderRadius: const BorderRadius.all(
+            Radius.circular(10),
+          ),
+        ),
+        child: Column(
+          children: [
+            Expanded(
+                child: Container(
+              height: double.infinity,
+              width: double.infinity,
+              child: Image.network(
+                widget.business["img"],
+                fit: BoxFit.cover,
               ),
-            ),
+            )),
+            Expanded(
+                child: Container(
+                    padding: EdgeInsets.all(10),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                widget.business["name"],
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w900, fontSize: 16),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                "Короткое описание",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w500, fontSize: 14),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ))),
           ],
         ),
       ),
