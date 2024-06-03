@@ -106,6 +106,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
 
   void _initData() {
     setState(() {
+      print(widget.businesses);
       // widget.currentAddress = widget.currentAddress;
       // user = widget.user;
       // widget.addresses = widget.addresses;
@@ -423,7 +424,6 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                               BoxShadow(
                                 spreadRadius: 5,
                                 offset: Offset(0, -100),
-                                
                                 color: !isStartingToCollapse
                                     ? const Color(0xFFef8354)
                                     : Colors.blueGrey.shade50,
@@ -447,8 +447,12 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                               offset: Offset(0, -10),
                                               color: Colors.black26,
                                               blurRadius: 20)
-                                          : const BoxShadow(color: Colors.white),
-                                          BoxShadow(color: Colors.blueGrey.shade50, offset: Offset(0, 5), blurRadius: 5)
+                                          : const BoxShadow(
+                                              color: Colors.white),
+                                      BoxShadow(
+                                          color: Colors.blueGrey.shade50,
+                                          offset: Offset(0, 5),
+                                          blurRadius: 5)
                                     ],
                                     color: Colors.blueGrey.shade50,
                                     borderRadius: !isCollapsed
