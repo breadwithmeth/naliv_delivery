@@ -917,7 +917,7 @@ class _ProductPageState extends State<ProductPage> {
               : SizedBox(
                   child: SlideTransition(
                     position: AlwaysStoppedAnimation(
-                      Offset(0, -2 * (MediaQuery.of(context).size.width / 720)),
+                      Offset(0, -1),
                     ),
                     child: const LinearProgressIndicator(),
                   ),
