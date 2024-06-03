@@ -654,12 +654,13 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                 ),
                 SliverToBoxAdapter(
                     child: Container(
-                  width: 300,
-                  height: 300,
+                  width: MediaQuery.of(context).size.width,
+                  height: 200,
                   child: SingleChildScrollView(
                     controller: ScrollController(),
                     scrollDirection: Axis.horizontal,
                     child: ListView.builder(
+                      padding: EdgeInsets.all(5),
                       primary: false,
                       shrinkWrap: true,
                       scrollDirection: Axis.horizontal,
@@ -759,6 +760,7 @@ class BusinessItemState extends State<BusinessItem> {
         );
       },
       child: Container(
+        margin: EdgeInsets.all(5),
         width: 300,
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
@@ -775,6 +777,8 @@ class BusinessItemState extends State<BusinessItem> {
           children: [
             Expanded(
                 child: Container(
+                  height: double.infinity,
+                  width: double.infinity,
               child: Image.network(
                 widget.business["img"],
                 fit: BoxFit.cover,
