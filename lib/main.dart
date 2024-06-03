@@ -181,7 +181,7 @@ class _MainState extends State<Main> {
         textTheme: GoogleFonts.montserratTextTheme(
           
         ).copyWith(
-          labelLarge: GoogleFonts.montserratAlternates(fontWeight: FontWeight.w400),
+          labelLarge: GoogleFonts.mulish(fontWeight: FontWeight.w700),
         ),
 
         // textTheme: const TextTheme(
