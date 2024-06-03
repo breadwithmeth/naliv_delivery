@@ -38,251 +38,257 @@ class _ProductPageState extends State<ProductPage> {
 
   int currentTab = 0;
   String? amount;
-  List<String> TabText = [
-    "Тестовый текст: Виски Ballantine's 12 лет — это бленд 40 отборных солодовых и зерновых дистиллятов, минимальный срок выдержки которых составляет 12 лет. ",
-    "Тестовый текст: Джордж Баллантайн (George Ballantine) – выходец из семьи простых фермеров, начал свою трудовую карьеру в возрасте девятнадцати лет в качестве подсобного рабочего в бакалейной лавке в Эдинбурге. Здесь, в 1827 году, Джордж открывает свой бакалейный магазин, в котором небольшими партиями начинает реализовывать собственный алкоголь. К 1865 году Баллантайну удается открыть еще один магазин в Глазго, куда и переезжает глава семьи, оставив торговлю в Эдинбурге старшему сыну Арчибальду. В это время виски под маркой Ballantine’s продают уже по всей Шотландии, а Джордж возглавляет компанию George Ballantine and Son, престижную репутацию которой в 1895 году подтвердил факт получения ордена Королевы Виктории.",
-    "Тестовый текст: Начиная с 2005 года производством Ballantine занимается компания Pernod Ricard, которая тщательно следит за репутацией бренда, сохраняя рецепты и старинные традиции."
-  ];
+  List<String> TabText = ["", "", ""];
+  bool isDescriptionLoaded = false;
 
   Future<void> _getItem() async {
-    item = await getItem(widget.item["item_id"]);
-    print(item);
-    if (item.isNotEmpty) {
-      List<Widget> groupItems = [];
-      List<TableRow> properties = [];
-      List<Widget> propertiesT = [];
+    await getItem(widget.item["item_id"]).then((value) {
+      print(value);
+      if (value.isNotEmpty) {
+        if (value["description"] != null) {
+          setState(() {
+            TabText[0] = value["description"];
 
-      // if (item["group"] != null) {
-      //   List temp = item["group"];
-      //   for (var element in temp) {
-      //     print(element);
-      //     groupItems.add(
-      //       GestureDetector(
-      //         onTap: () {
-      //           Navigator.pushReplacement(
-      //             context,
-      //             MaterialPageRoute(
-      //               builder: (context) {
-      //                 return ProductPage(item: element,);
-      //               },
-      //             ),
-      //           );
-      //         },
-      //         child: Container(
-      //           alignment: Alignment.center,
-      //           padding:
-      //               const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-      //           margin: const EdgeInsets.all(5),
-      //           decoration: BoxDecoration(
-      //               color: Colors.grey.shade400,
-      //               borderRadius: const BorderRadius.all(Radius.circular(5))),
-      //           child: Text(
-      //             element["amount"],
-      //             style: const TextStyle(
-      //                 color: Colors.white, fontWeight: FontWeight.w700),
-      //           ),
-      //         ),
-      //       ),
-      //     );
-      //   }
-      // }
-
-      if (item["properties"] != null) {
-        List temp = item["properties"];
-
-        for (var element in temp) {
-          propertiesT.add(
-            Container(
-              padding: const EdgeInsets.all(5),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    element["amount"],
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black),
-                  ),
-                  Image.asset(
-                    "assets/property_icons/${element["icon"]}.png",
-                    width: 14,
-                    height: 14,
-                  ),
-                  const SizedBox(
-                    width: 10,
-                  )
-                ],
-              ),
-            ),
-          );
-        }
-
-        if (item["country"] != null) {
-          propertiesT.add(
-            Container(
-              padding: const EdgeInsets.all(5),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    item["country"],
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black),
-                  ),
-                  Image.asset(
-                    "assets/property_icons/litr.png",
-                    width: 14,
-                    height: 14,
-                  ),
-                  const SizedBox(
-                    width: 10,
-                  )
-                ],
-              ),
-            ),
-          );
-        }
-
-        for (var element in temp) {
-          properties.add(
-            TableRow(
-              children: [
-                TableCell(
-                  child: Container(
-                    padding: const EdgeInsets.all(5),
-                    child: Text(
-                      element["name"],
-                      style: const TextStyle(color: Colors.black, fontSize: 14),
-                    ),
-                  ),
-                ),
-                TableCell(
-                  child: Container(
-                    padding: const EdgeInsets.all(5),
-                    child: Text(
-                      element["amount"] + element["unit"],
-                      style: const TextStyle(color: Colors.black, fontSize: 14),
-                    ),
-                  ),
-                )
-              ],
-            ),
-          );
+            isDescriptionLoaded = true;
+          });
         }
       }
-      properties.addAll(
-        [
-          TableRow(
-            children: [
-              TableCell(
-                child: Container(
-                  padding: const EdgeInsets.all(5),
-                  child: const Text(
-                    "Страна",
-                    style: TextStyle(color: Colors.black, fontSize: 14),
-                  ),
-                ),
-              ),
-              TableCell(
-                child: Container(
-                  padding: const EdgeInsets.all(5),
-                  child: Text(
-                    item["country"] ?? "",
-                    style: const TextStyle(color: Colors.black, fontSize: 14),
-                  ),
-                ),
-              )
-            ],
-          ),
-          TableRow(
-            children: [
-              TableCell(
-                child: Container(
-                  padding: const EdgeInsets.all(5),
-                  child: const Text(
-                    "Брэнд",
-                    style: TextStyle(color: Colors.black, fontSize: 14),
-                  ),
-                ),
-              ),
-              TableCell(
-                child: Container(
-                  padding: const EdgeInsets.all(5),
-                  child: Text(
-                    item["b_name"] ?? "",
-                    style: const TextStyle(color: Colors.black, fontSize: 14),
-                  ),
-                ),
-              )
-            ],
-          ),
-          TableRow(
-            children: [
-              TableCell(
-                child: Container(
-                  padding: const EdgeInsets.all(5),
-                  child: const Text(
-                    "Производитель",
-                    style: TextStyle(color: Colors.black, fontSize: 14),
-                  ),
-                ),
-              ),
-              TableCell(
-                child: Container(
-                  padding: const EdgeInsets.all(5),
-                  child: Text(
-                    item["m_name"] ?? "",
-                    style: const TextStyle(color: Colors.black, fontSize: 14),
-                  ),
-                ),
-              )
-            ],
-          ),
-        ],
-      );
+    });
 
-      setState(
-        () {
-          amount = item["amount"];
-          properties = properties;
-          TabText = [
-            item["description"] ?? "",
-            item["b_desc"] ?? "",
-            item["m_desc"] ?? ""
-          ];
-          groupItems = groupItems;
+    // List<Widget> groupItems = [];
+    // List<TableRow> properties = [];
+    // List<Widget> propertiesT = [];
 
-          propertiesWidget = propertiesT;
-        },
-      );
-      setState(() {
-        if (item.isNotEmpty) {
-          _image = CachedNetworkImage(
-            fit: BoxFit.fitHeight,
-            cacheManager: CacheManager(Config(
-              "itemImage",
-              stalePeriod: const Duration(days: 7),
-              //one week cache period
-            )),
-            imageUrl: 'https://naliv.kz/img/${item["photo"]}',
-            placeholder: ((context, url) {
-              return const CircularProgressIndicator();
-            }),
-            errorWidget: ((context, url, error) {
-              return const Text("Нет изображения");
-            }),
-          );
-          // _image = Image.network(
-          //   'https://naliv.kz/img/${item["photo"]}',
-          //   fit: BoxFit.cover,
-          //   // width: MediaQuery.of(context).size.width * 0.8,
-          // );
-        }
-      });
-    }
+    // if (item["group"] != null) {
+    //   List temp = item["group"];
+    //   for (var element in temp) {
+    //     print(element);
+    //     groupItems.add(
+    //       GestureDetector(
+    //         onTap: () {
+    //           Navigator.pushReplacement(
+    //             context,
+    //             MaterialPageRoute(
+    //               builder: (context) {
+    //                 return ProductPage(item: element,);
+    //               },
+    //             ),
+    //           );
+    //         },
+    //         child: Container(
+    //           alignment: Alignment.center,
+    //           padding:
+    //               const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+    //           margin: const EdgeInsets.all(5),
+    //           decoration: BoxDecoration(
+    //               color: Colors.grey.shade400,
+    //               borderRadius: const BorderRadius.all(Radius.circular(5))),
+    //           child: Text(
+    //             element["amount"],
+    //             style: const TextStyle(
+    //                 color: Colors.white, fontWeight: FontWeight.w700),
+    //           ),
+    //         ),
+    //       ),
+    //     );
+    //   }
+    // }
+
+    //   if (item["properties"] != null) {
+    //     List temp = item["properties"];
+
+    //     for (var element in temp) {
+    //       propertiesT.add(
+    //         Container(
+    //           padding: const EdgeInsets.all(5),
+    //           child: Row(
+    //             mainAxisSize: MainAxisSize.min,
+    //             children: [
+    //               Text(
+    //                 element["amount"],
+    //                 style: const TextStyle(
+    //                     fontSize: 14,
+    //                     fontWeight: FontWeight.w700,
+    //                     color: Colors.black),
+    //               ),
+    //               Image.asset(
+    //                 "assets/property_icons/${element["icon"]}.png",
+    //                 width: 14,
+    //                 height: 14,
+    //               ),
+    //               const SizedBox(
+    //                 width: 10,
+    //               )
+    //             ],
+    //           ),
+    //         ),
+    //       );
+    //     }
+
+    //     if (item["country"] != null) {
+    //       propertiesT.add(
+    //         Container(
+    //           padding: const EdgeInsets.all(5),
+    //           child: Row(
+    //             mainAxisSize: MainAxisSize.min,
+    //             children: [
+    //               Text(
+    //                 item["country"],
+    //                 style: const TextStyle(
+    //                     fontSize: 14,
+    //                     fontWeight: FontWeight.w700,
+    //                     color: Colors.black),
+    //               ),
+    //               Image.asset(
+    //                 "assets/property_icons/litr.png",
+    //                 width: 14,
+    //                 height: 14,
+    //               ),
+    //               const SizedBox(
+    //                 width: 10,
+    //               )
+    //             ],
+    //           ),
+    //         ),
+    //       );
+    //     }
+
+    //     for (var element in temp) {
+    //       properties.add(
+    //         TableRow(
+    //           children: [
+    //             TableCell(
+    //               child: Container(
+    //                 padding: const EdgeInsets.all(5),
+    //                 child: Text(
+    //                   element["name"],
+    //                   style: const TextStyle(color: Colors.black, fontSize: 14),
+    //                 ),
+    //               ),
+    //             ),
+    //             TableCell(
+    //               child: Container(
+    //                 padding: const EdgeInsets.all(5),
+    //                 child: Text(
+    //                   element["amount"] + element["unit"],
+    //                   style: const TextStyle(color: Colors.black, fontSize: 14),
+    //                 ),
+    //               ),
+    //             )
+    //           ],
+    //         ),
+    //       );
+    //     }
+    //   }
+    //   properties.addAll(
+    //     [
+    //       TableRow(
+    //         children: [
+    //           TableCell(
+    //             child: Container(
+    //               padding: const EdgeInsets.all(5),
+    //               child: const Text(
+    //                 "Страна",
+    //                 style: TextStyle(color: Colors.black, fontSize: 14),
+    //               ),
+    //             ),
+    //           ),
+    //           TableCell(
+    //             child: Container(
+    //               padding: const EdgeInsets.all(5),
+    //               child: Text(
+    //                 item["country"] ?? "",
+    //                 style: const TextStyle(color: Colors.black, fontSize: 14),
+    //               ),
+    //             ),
+    //           )
+    //         ],
+    //       ),
+    //       TableRow(
+    //         children: [
+    //           TableCell(
+    //             child: Container(
+    //               padding: const EdgeInsets.all(5),
+    //               child: const Text(
+    //                 "Брэнд",
+    //                 style: TextStyle(color: Colors.black, fontSize: 14),
+    //               ),
+    //             ),
+    //           ),
+    //           TableCell(
+    //             child: Container(
+    //               padding: const EdgeInsets.all(5),
+    //               child: Text(
+    //                 item["b_name"] ?? "",
+    //                 style: const TextStyle(color: Colors.black, fontSize: 14),
+    //               ),
+    //             ),
+    //           )
+    //         ],
+    //       ),
+    //       TableRow(
+    //         children: [
+    //           TableCell(
+    //             child: Container(
+    //               padding: const EdgeInsets.all(5),
+    //               child: const Text(
+    //                 "Производитель",
+    //                 style: TextStyle(color: Colors.black, fontSize: 14),
+    //               ),
+    //             ),
+    //           ),
+    //           TableCell(
+    //             child: Container(
+    //               padding: const EdgeInsets.all(5),
+    //               child: Text(
+    //                 item["m_name"] ?? "",
+    //                 style: const TextStyle(color: Colors.black, fontSize: 14),
+    //               ),
+    //             ),
+    //           )
+    //         ],
+    //       ),
+    //     ],
+    //   );
+
+    //   setState(
+    //     () {
+    //       amount = item["amount"];
+    //       properties = properties;
+    //       TabText = [
+    //         item["description"] ?? "",
+    //         item["b_desc"] ?? "",
+    //         item["m_desc"] ?? ""
+    //       ];
+    //       groupItems = groupItems;
+
+    //       propertiesWidget = propertiesT;
+    //     },
+    //   );
+    //   setState(() {
+    //     if (item.isNotEmpty) {
+    //       _image = CachedNetworkImage(
+    //         fit: BoxFit.fitHeight,
+    //         cacheManager: CacheManager(Config(
+    //           "itemImage",
+    //           stalePeriod: const Duration(days: 7),
+    //           //one week cache period
+    //         )),
+    //         imageUrl: 'https://naliv.kz/img/${item["photo"]}',
+    //         placeholder: ((context, url) {
+    //           return const CircularProgressIndicator();
+    //         }),
+    //         errorWidget: ((context, url, error) {
+    //           return const Text("Нет изображения");
+    //         }),
+    //       );
+    //       // _image = Image.network(
+    //       //   'https://naliv.kz/img/${item["photo"]}',
+    //       //   fit: BoxFit.cover,
+    //       //   // width: MediaQuery.of(context).size.width * 0.8,
+    //       // );
+    //     }
+    //   });
   }
 
   // @override
@@ -400,11 +406,11 @@ class _ProductPageState extends State<ProductPage> {
           return const Text("Нет изображения");
         }),
       );
-      // Future.delayed(const Duration(milliseconds: 0)).whenComplete(() async {
-      //   await _getItem().then((value) {
-      //     print("DATA RECIEVED!");
-      //   });
-      // });
+      Future.delayed(const Duration(milliseconds: 0)).whenComplete(() async {
+        await _getItem().then((value) {
+          print("DATA RECIEVED!");
+        });
+      });
     });
   }
 
@@ -752,7 +758,7 @@ class _ProductPageState extends State<ProductPage> {
                         item["name"] ?? "",
                         style: const TextStyle(
                           fontSize: 20,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w700,
                           color: Colors.black,
                         ),
                       ),
@@ -903,10 +909,19 @@ class _ProductPageState extends State<ProductPage> {
               )
             ],
           ),
-          Container(
-            padding: const EdgeInsets.all(15),
-            child: Text(TabText[currentTab]),
-          ),
+          isDescriptionLoaded
+              ? Container(
+                  padding: const EdgeInsets.all(15),
+                  child: Text(TabText[currentTab]),
+                )
+              : SizedBox(
+                  child: SlideTransition(
+                    position: AlwaysStoppedAnimation(
+                      Offset(0, -2 * (MediaQuery.of(context).size.width / 720)),
+                    ),
+                    child: const LinearProgressIndicator(),
+                  ),
+                ),
           Container(
             padding: const EdgeInsets.all(15),
             child: Table(
