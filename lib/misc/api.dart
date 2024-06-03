@@ -201,7 +201,7 @@ Future<bool> setCurrentStore(String businessId) async {
   }
 }
 
-Future<List> getCategories([bool parent_category = false]) async {
+Future<List> getCategories(String business_id, [bool parent_category = false]) async {
   String? token = await getToken();
   if (token == null) {
     return [];
@@ -209,7 +209,9 @@ Future<List> getCategories([bool parent_category = false]) async {
   var url = Uri.https(URL_API, 'api/category/get.php');
   var response = await http.post(url,
       headers: {"Content-Type": "application/json", "AUTH": token},
-      body: parent_category ? json.encode({'parent_category_only': "1"}) : []);
+      body: parent_category
+          ? json.encode({'parent_category_only': "1"})
+          : json.encode({"business_id":business_id}));
 
   // List<dynamic> list = json.decode(response.body);
   List data = json.decode(utf8.decode(response.bodyBytes));
@@ -217,7 +219,7 @@ Future<List> getCategories([bool parent_category = false]) async {
   return data;
 }
 
-Future<List?> getItemsMain(int page,
+Future<List?> getItemsMain(int page, String business_id,
     [String? search, String? categoryId]) async {
   String? token = await getToken();
   if (token == null) {
@@ -229,10 +231,10 @@ Future<List?> getItemsMain(int page,
   Map<String, String> queryBody = {};
 
   if (search != null) {
-    queryBody.addAll({'search': search});
+    queryBody.addAll({'search': search, 'business_id':business_id});
   }
   if (categoryId != null) {
-    queryBody.addAll({'category_id': categoryId});
+    queryBody.addAll({'category_id': categoryId, 'business_id':business_id});
   }
   queryBody.addAll({'page': page.toString()});
   var jsonBody = jsonEncode(queryBody);

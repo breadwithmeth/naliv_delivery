@@ -225,14 +225,14 @@ class _AddressesPageState extends State<AddressesPage>
                                       child: Text("Использовать этот адрес"),
                                     ),
                                     onTap: () {
-                                      Navigator.push(context, MaterialPageRoute(
-                                        builder: (context) {
-                                          return CreateAddressName(
-                                              street: _adressName,
-                                              lat: _selectedAddress.latitude,
-                                              lon: _selectedAddress.latitude);
-                                        },
-                                      ));
+                                      // Navigator.push(context, MaterialPageRoute(
+                                      //   builder: (context) {
+                                      //     return CreateAddressName(
+                                      //         street: _adressName,
+                                      //         lat: _selectedAddress.latitude,
+                                      //         lon: _selectedAddress.latitude);
+                                      //   },
+                                      // ));
                                     },
                                   )
                                 : Container(

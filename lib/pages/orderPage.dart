@@ -24,12 +24,12 @@ class _OrderPageState extends State<OrderPage> {
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(),
           onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) {
-                return const HomePage();
-              }),
-            );
+            // Navigator.pushReplacement(
+            //   context,
+            //   MaterialPageRoute(builder: (context) {
+            //     return const HomePage();
+            //   }),
+            // );
           },
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
