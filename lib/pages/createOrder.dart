@@ -16,8 +16,12 @@ import '../misc/api.dart';
 
 class CreateOrderPage extends StatefulWidget {
   const CreateOrderPage(
-      {super.key, this.client = const {}, this.customAddress = const {}});
+      {super.key,
+      required this.businessId,
+      this.client = const {},
+      this.customAddress = const {}});
 
+  final String businessId;
   final Map<dynamic, dynamic> client;
   final Map<String, dynamic> customAddress;
 
@@ -73,7 +77,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
     // List cart = await getCart();
     // print(cart);
 
-    Map<String, dynamic> cart = await getCart();
+    Map<String, dynamic> cart = await getCart(widget.businessId);
     Map<String, dynamic>? cartInfoFromAPI = await getCartInfo();
 
     setState(() {

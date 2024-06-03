@@ -6,7 +6,9 @@ import 'package:naliv_delivery/pages/createOrder.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
 
 class FindCreateUserPage extends StatefulWidget {
-  const FindCreateUserPage({super.key});
+  const FindCreateUserPage({super.key, required this.businessId});
+
+  final String businessId;
 
   @override
   State<FindCreateUserPage> createState() => _FindCreateUserPageState();
@@ -32,6 +34,7 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                     builder: (context) {
                       return PickAddressPage(
                         client: client,
+                        businessId: widget.businessId,
                       );
                     },
                   ));

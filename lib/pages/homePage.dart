@@ -330,7 +330,9 @@ class _HomePageState extends State<HomePage>
         ? const LoadingScreen()
         : Scaffold(
             key: _scaffoldKey,
-            floatingActionButton: const CartButton(),
+            floatingActionButton: CartButton(
+              businessId: widget.business_id,
+            ),
             appBar: AppBar(
               automaticallyImplyLeading: false,
               toolbarHeight: 120,
@@ -361,7 +363,9 @@ class _HomePageState extends State<HomePage>
                             onPressed: () {
                               Navigator.push(context, MaterialPageRoute(
                                 builder: (context) {
-                                  return const SearchPage();
+                                  return SearchPage(
+                                    businessId: widget.business_id,
+                                  );
                                 },
                               ));
                             },
@@ -714,7 +718,8 @@ class CategoryItem extends StatefulWidget {
       required this.category_id,
       required this.name,
       required this.image,
-      required this.categories, required this.business_id});
+      required this.categories,
+      required this.business_id});
   final String category_id;
   final String name;
   final String? image;

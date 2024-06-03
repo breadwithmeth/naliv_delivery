@@ -19,10 +19,12 @@ class ProductPage extends StatefulWidget {
       required this.item,
       required this.index,
       required this.returnDataAmount,
+      required this.businessId,
       this.openedFromCart = false});
   final Map<String, dynamic> item;
   final int index;
   final Function(String, int) returnDataAmount;
+  final String businessId;
   final bool openedFromCart;
   @override
   State<ProductPage> createState() => _ProductPageState();
@@ -46,11 +48,13 @@ class _ProductPageState extends State<ProductPage> {
       print(value);
       if (value.isNotEmpty) {
         if (value["description"] != null) {
-          setState(() {
-            TabText[0] = value["description"];
+          if (mounted) {
+            setState(() {
+              TabText[0] = value["description"];
 
-            isDescriptionLoaded = true;
-          });
+              isDescriptionLoaded = true;
+            });
+          }
         }
       }
     });
@@ -334,7 +338,7 @@ class _ProductPageState extends State<ProductPage> {
       return "0";
     }
     String? finalAmount;
-    await changeCartItem(item["item_id"], cacheAmount).then(
+    await changeCartItem(item["item_id"], cacheAmount, widget.businessId).then(
       (value) {
         print(value);
         finalAmount = value;
@@ -917,7 +921,7 @@ class _ProductPageState extends State<ProductPage> {
               : SizedBox(
                   child: SlideTransition(
                     position: AlwaysStoppedAnimation(
-                      Offset(0, -2 * (MediaQuery.of(context).size.width / 720)),
+                      Offset(0, -1),
                     ),
                     child: const LinearProgressIndicator(),
                   ),

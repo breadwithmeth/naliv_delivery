@@ -69,7 +69,9 @@ class _CategoryPageState extends State<CategoryPage> {
       length: widget.categories.length,
       child: Scaffold(
         key: _scaffoldKey,
-        floatingActionButton: const CartButton(),
+        floatingActionButton: CartButton(
+          businessId: widget.business_id,
+        ),
         appBar: AppBar(
           bottom: TabBar(
             tabAlignment: TabAlignment.start,
@@ -121,6 +123,7 @@ class _CategoryPageState extends State<CategoryPage> {
                             builder: (context) {
                               return SearchPage(
                                 category_id: widget.categoryId,
+                                businessId: widget.business_id,
                               );
                             },
                           ));
@@ -402,7 +405,8 @@ class _CategoryPageState extends State<CategoryPage> {
           children: [
             for (int j = 0; j < widget.categories.length; j++)
               CategoryPageList(
-                categoryId: categoriesWidgetList[j]["category_id"], business_id: widget.business_id,
+                categoryId: categoriesWidgetList[j]["category_id"],
+                business_id: widget.business_id,
               )
           ],
         ),
@@ -418,7 +422,8 @@ class Item {
 }
 
 class CategoryPageList extends StatefulWidget {
-  const CategoryPageList({super.key, required this.categoryId, required this.business_id});
+  const CategoryPageList(
+      {super.key, required this.categoryId, required this.business_id});
 
   final String categoryId;
   final String business_id;
@@ -554,6 +559,7 @@ class _CategoryPageListState extends State<CategoryPageList>
                         item: item.data,
                         index: index,
                         returnDataAmount: updateDataAmount,
+                        businessId: widget.business_id,
                       );
                     },
                   );
