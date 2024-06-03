@@ -2,21 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
 import 'package:naliv_delivery/pages/pickOnMap.dart';
+import 'package:geolocator/geolocator.dart';
 
 class PickAddressPage extends StatefulWidget {
-  const PickAddressPage(
-      {super.key, required this.client, required this.businessId});
+  const PickAddressPage({
+    super.key,
+    required this.client,
+  });
   final Map client;
-  final String businessId;
+  //  String businessId;
   @override
   State<PickAddressPage> createState() => _PickAddressPageState();
 }
 
 class _PickAddressPageState extends State<PickAddressPage> {
+  late Position _location;
   Future<List> _getAddresses() async {
     List addresses = await getUserAddresses(widget.client["user_id"]);
 
     return addresses;
+  }
+
+  Future<void> _getGeolocation() async {
+    await determinePosition(context).then((v) {
+      setState(() {
+        _location = v;
+      });
+    });
   }
 
   @override
@@ -24,6 +36,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
     // TODO: implement initState
     super.initState();
     _getAddresses();
+    _getGeolocation();
   }
 
   @override
@@ -36,7 +49,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
         onPressed: () {
           Navigator.push(context, MaterialPageRoute(
             builder: (context) {
-              return PickOnMapPage();
+              return PickOnMapPage(currentPosition: _location,);
             },
           ));
         },
@@ -70,24 +83,34 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                   widget.client["user_id"])
                               .whenComplete(
                             () {
-                              Navigator.push(context, MaterialPageRoute(
-                                builder: (context) {
-                                  return CreateOrderPage(
-                                    businessId: widget.businessId,
-                                    client: widget.client,
-                                    customAddress: _addresses[index],
-                                  );
-                                },
-                              ));
+                              // Navigator.push(context, MaterialPageRoute(
+                              //   builder: (context) {
+                              //     return CreateOrderPage(
+                              //       businessId: widget.businessId,
+                              //       client: widget.client,
+                              //       customAddress: _addresses[index],
+                              //     );
+                              //   },
+                              // ));
                             },
                           );
                         },
                         contentPadding:
                             EdgeInsets.symmetric(horizontal: 35, vertical: 5),
-                        title: Text(
-                          _addresses[index]["address"],
-                          style: TextStyle(
-                              fontWeight: FontWeight.w700, fontSize: 18),
+                        title: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _addresses[index]["address"],
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 18),
+                            ),
+                            Text(
+                              _addresses[index]["city_name"],
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 16),
+                            ),
+                          ],
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

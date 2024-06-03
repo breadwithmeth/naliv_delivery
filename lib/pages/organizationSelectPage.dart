@@ -13,6 +13,7 @@ import 'package:naliv_delivery/pages/favPage.dart';
 import 'package:naliv_delivery/pages/homePage.dart';
 import 'package:naliv_delivery/pages/loginPage.dart';
 import 'package:naliv_delivery/pages/orderHistoryPage.dart';
+import 'package:naliv_delivery/pages/pickAddressPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
 import 'package:naliv_delivery/pages/supportPage.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -372,7 +373,15 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                   borderRadius: const BorderRadius.all(
                                       Radius.circular(20))),
                               child: TextButton(
-                                  onPressed: () {},
+                                  onPressed: () {
+                                    Navigator.push(context, MaterialPageRoute(
+                                      builder: (context) {
+                                        return PickAddressPage(
+                                          client: widget.user,
+                                        );
+                                      },
+                                    ));
+                                  },
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     mainAxisSize: MainAxisSize.min,
@@ -404,7 +413,16 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                     mainAxisSize: MainAxisSize.max,
                                     children: [
                                       TextButton(
-                                          onPressed: () {},
+                                          onPressed: () {
+                                            Navigator.push(context,
+                                                MaterialPageRoute(
+                                              builder: (context) {
+                                                return PickAddressPage(
+                                                  client: widget.user,
+                                                );
+                                              },
+                                            ));
+                                          },
                                           child: Row(
                                             mainAxisSize: MainAxisSize.max,
                                             mainAxisAlignment:
@@ -777,8 +795,8 @@ class BusinessItemState extends State<BusinessItem> {
           children: [
             Expanded(
                 child: Container(
-                  height: double.infinity,
-                  width: double.infinity,
+              height: double.infinity,
+              width: double.infinity,
               child: Image.network(
                 widget.business["img"],
                 fit: BoxFit.cover,
