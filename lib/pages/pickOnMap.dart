@@ -212,26 +212,77 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                     IconButton(
                                         onPressed: () {
                                           showDialog(
+                                            barrierColor: Colors.white70,
                                             context: context,
                                             builder: (context) {
                                               return Dialog(
-                                                child: Container(
-                                                  padding: EdgeInsets.all(30),
-                                                  child: Column(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: [
-                                                      Flexible(
-                                                          child: TextField(
-                                                        decoration: InputDecoration(
-                                                            border: OutlineInputBorder(),
-                                                            labelText:
-                                                                "Введите адрес"),
-                                                      ))
-                                                    ],
-                                                  ),
-                                                ),
-                                              );
+                                                  backgroundColor:
+                                                      Colors.transparent,
+                                                  shape:
+                                                      RoundedRectangleBorder(),
+                                                  child: Container(
+                                                    color: Colors.transparent,
+                                                    padding: EdgeInsets.all(10),
+                                                    child: Column(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .end,
+                                                          mainAxisSize:
+                                                              MainAxisSize.max,
+                                                          children: [
+                                                            IconButton(
+                                                                onPressed: () {
+                                                                  Navigator.pop(
+                                                                      context);
+                                                                },
+                                                                icon: Icon(Icons
+                                                                    .close))
+                                                          ],
+                                                        ),
+                                                        Flexible(
+                                                            child: TextField(
+                                                          decoration: InputDecoration(
+                                                              border:
+                                                                  OutlineInputBorder(),
+                                                              labelText:
+                                                                  "Введите адрес"),
+                                                        )),
+                                                        SizedBox(
+                                                          height: 20,
+                                                        ),
+                                                        Flexible(
+                                                            child:
+                                                                GestureDetector(
+                                                                    onTap:
+                                                                        () {},
+                                                                    child:
+                                                                        Container(
+                                                                      padding:
+                                                                          EdgeInsets.all(
+                                                                              15),
+                                                                      decoration: BoxDecoration(
+                                                                          color: Colors
+                                                                              .deepOrangeAccent,
+                                                                          borderRadius:
+                                                                              BorderRadius.all(Radius.circular(5))),
+                                                                      child:
+                                                                          Row(
+                                                                        children: [
+                                                                          Text(
+                                                                            "Поиск",
+                                                                            style:
+                                                                                TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+                                                                          )
+                                                                        ],
+                                                                      ),
+                                                                    ))),
+                                                      ],
+                                                    ),
+                                                  ));
                                             },
                                           );
                                         },
