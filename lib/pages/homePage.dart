@@ -30,10 +30,10 @@ import 'package:naliv_delivery/pages/settingsPage.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage(
-      {super.key, this.setCurrentBusiness = "", required this.business_id});
+      {super.key, this.setCurrentBusiness = "", required this.business});
 
   final String setCurrentBusiness;
-  final String business_id;
+  final Map<dynamic, dynamic> business;
   @override
   State<HomePage> createState() => _HomePageState();
 }
@@ -110,7 +110,7 @@ class _HomePageState extends State<HomePage>
     setState(() {
       categoryIsLoading = true;
     });
-    await getCategories(widget.business_id).then((value) {
+    await getCategories(widget.business["business_id"]).then((value) {
       setState(() {
         categories = value;
         categoryIsLoading = false;
@@ -331,7 +331,7 @@ class _HomePageState extends State<HomePage>
         : Scaffold(
             key: _scaffoldKey,
             floatingActionButton: CartButton(
-              businessId: widget.business_id,
+              business: widget.business,
             ),
             appBar: AppBar(
               automaticallyImplyLeading: false,
@@ -364,7 +364,7 @@ class _HomePageState extends State<HomePage>
                               Navigator.push(context, MaterialPageRoute(
                                 builder: (context) {
                                   return SearchPage(
-                                    businessId: widget.business_id,
+                                    business: widget.business,
                                   );
                                 },
                               ));
@@ -698,7 +698,7 @@ class _HomePageState extends State<HomePage>
                                     name: categories[index]["name"],
                                     image: categories[index]["photo"],
                                     categories: categories,
-                                    business_id: widget.business_id,
+                                    business: widget.business,
                                   );
                                 },
                               ),
@@ -719,12 +719,12 @@ class CategoryItem extends StatefulWidget {
       required this.name,
       required this.image,
       required this.categories,
-      required this.business_id});
+      required this.business});
   final String category_id;
   final String name;
   final String? image;
   final List<dynamic> categories;
-  final String business_id;
+  final Map<dynamic, dynamic> business;
   @override
   State<CategoryItem> createState() => _CategoryItemState();
 }
@@ -887,7 +887,7 @@ class _CategoryItemState extends State<CategoryItem> {
               categoryId: widget.category_id,
               categoryName: widget.name,
               categories: widget.categories,
-              business_id: widget.business_id,
+              business: widget.business,
             ),
           ),
         );

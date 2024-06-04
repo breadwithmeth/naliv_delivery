@@ -19,12 +19,12 @@ class ProductPage extends StatefulWidget {
       required this.item,
       required this.index,
       required this.returnDataAmount,
-      required this.businessId,
+      required this.business,
       this.openedFromCart = false});
   final Map<String, dynamic> item;
   final int index;
   final Function(String, int) returnDataAmount;
-  final String businessId;
+  final Map<dynamic, dynamic> business;
   final bool openedFromCart;
   @override
   State<ProductPage> createState() => _ProductPageState();
@@ -338,7 +338,9 @@ class _ProductPageState extends State<ProductPage> {
       return "0";
     }
     String? finalAmount;
-    await changeCartItem(item["item_id"], cacheAmount, widget.businessId).then(
+    await changeCartItem(
+            item["item_id"], cacheAmount, widget.business["business_id"])
+        .then(
       (value) {
         print(value);
         finalAmount = value;

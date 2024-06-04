@@ -17,15 +17,15 @@ class OrderConfirmation extends StatefulWidget {
     required this.address,
     required this.items,
     required this.cartInfo,
+    required this.business,
     this.user = const {},
-    required this.selectedBusiness,
   });
   final bool delivery;
   final Map? address;
   final List items;
   final String cartInfo;
+  final Map<dynamic, dynamic> business;
   final Map<dynamic, dynamic> user;
-  final Map<String, dynamic>? selectedBusiness;
   @override
   State<OrderConfirmation> createState() => _OrderConfirmationState();
 }
@@ -56,8 +56,6 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
 
   @override
   void initState() {
-    print(widget.selectedBusiness);
-    // TODO: implement initState
     super.initState();
     Timer(const Duration(seconds: 1), () {
       setState(() {
@@ -68,7 +66,8 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
       Future.delayed(const Duration(milliseconds: 0)).then((value) async {
         print("Creating order...!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         String user_id = widget.user.isNotEmpty ? widget.user["user_id"] : "";
-        await createOrder(user_id).then((value) {
+        await createOrder(widget.business["business_id"], user_id)
+            .then((value) {
           if (value["status"] == true) {
             isOrderCorrect = true;
             print("Order was created successfully");
@@ -445,8 +444,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                             child: Text(
                                   widget.delivery
                                       ? widget.address!["address"] ?? ""
-                                      : widget.selectedBusiness!["address"] ??
-                                          "",
+                                      : widget.business["address"],
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,

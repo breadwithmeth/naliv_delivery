@@ -17,11 +17,11 @@ import '../misc/api.dart';
 class CreateOrderPage extends StatefulWidget {
   const CreateOrderPage(
       {super.key,
-      required this.businessId,
+      required this.business,
       this.client = const {},
       this.customAddress = const {}});
 
-  final String businessId;
+  final Map<dynamic, dynamic> business;
   final Map<dynamic, dynamic> client;
   final Map<String, dynamic> customAddress;
 
@@ -40,10 +40,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
 
   bool isAddressesLoading = true;
   bool isCartLoading = true;
-  bool isBusinessLoading = true;
-
-  Map<String, dynamic> selectedBusiness = {};
-
   Map<String, dynamic> user = {};
 
   List<Map<dynamic, dynamic>> wrongAmountItems = [];
@@ -51,16 +47,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   String formatCost(String costString) {
     int cost = int.parse(costString);
     return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
-  }
-
-  Future<void> _getLastSelectedBusiness() async {
-    await getLastSelectedBusiness().then((value) {
-      if (value != null) {
-        setState(() {
-          selectedBusiness = value;
-        });
-      }
-    });
   }
 
   Future<void> _getUser() async {
@@ -77,7 +63,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
     // List cart = await getCart();
     // print(cart);
 
-    Map<String, dynamic> cart = await getCart(widget.businessId);
+    Map<String, dynamic> cart = await getCart(widget.business["business_id"]);
     // Map<String, dynamic>? cartInfoFromAPI = await getCartInfo();
 
     setState(() {
@@ -330,18 +316,12 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    isBusinessLoading = true;
     Future.delayed(const Duration(microseconds: 0), () async {
       await _getCart();
       // SWITCH BETWEEN getAddresses and getClientAddresses depending on Client/Operator mode
       await _getAddresses();
       // await _getClientAddresses();
       await _getUser();
-      await _getLastSelectedBusiness().whenComplete(() {
-        setState(() {
-          isBusinessLoading = false;
-        });
-      });
     }).whenComplete(() => isCartLoading = false);
   }
 
@@ -632,7 +612,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                   child: Column(
                                 children: [
                                   Text(
-                                    "Самовывозом: ${isBusinessLoading ? "" : selectedBusiness["name"]}",
+                                    "Самовывозом: ${widget.business["name"]}",
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 16,
@@ -642,9 +622,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                     ),
                                   ),
                                   Text(
-                                    isBusinessLoading
-                                        ? ""
-                                        : selectedBusiness["address"],
+                                    widget.business["address"],
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 16,
@@ -759,8 +737,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                   items: items,
                                   address: currentAddress,
                                   cartInfo: cartInfo,
+                                  business: widget.business,
                                   user: user,
-                                  selectedBusiness: selectedBusiness,
                                 ),
                               ),
                             )
@@ -772,8 +750,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                   items: items,
                                   address: widget.customAddress,
                                   cartInfo: cartInfo,
+                                  business: widget.business,
                                   user: widget.client,
-                                  selectedBusiness: selectedBusiness,
                                 ),
                               ),
                             );

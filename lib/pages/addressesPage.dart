@@ -172,13 +172,12 @@ class _AddressesPageState extends State<AddressesPage>
                         },
                       ),
                       children: [
-                        
                         TileLayer(
                           tileBuilder: _darkModeTileBuilder,
                           urlTemplate:
                               'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                           userAgentPackageName: 'com.example.app',
-                          tileProvider:  CancellableNetworkTileProvider(),
+                          tileProvider: CancellableNetworkTileProvider(),
                         ),
                         MarkerLayer(markers: [
                           Marker(point: _selectedAddress, child: FlutterLogo())

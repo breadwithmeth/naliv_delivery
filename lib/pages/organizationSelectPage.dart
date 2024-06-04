@@ -259,13 +259,14 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             IconButton(
-                                onPressed: () {
-                                  _key.currentState!.closeEndDrawer();
-                                },
-                                icon: Container(
-                                  padding: EdgeInsets.all(20),
-                                  child: Icon(Icons.close),
-                                ))
+                              onPressed: () {
+                                _key.currentState!.closeEndDrawer();
+                              },
+                              icon: Container(
+                                padding: EdgeInsets.all(20),
+                                child: Icon(Icons.close),
+                              ),
+                            ),
                           ],
                         ),
                         Flexible(
@@ -306,17 +307,19 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                             DrawerMenuItem(
                               name: "История заказов",
                               icon: Icons.book_outlined,
-                              route: SettingsPage(),
+                              route: OrderHistoryPage(),
                             ),
                             DrawerMenuItem(
                               name: "Адреса доставки",
                               icon: Icons.map_outlined,
-                              route: SettingsPage(),
+                              route: PickAddressPage(
+                                client: widget.user,
+                              ),
                             ),
                             DrawerMenuItem(
                               name: "Поддержка",
                               icon: Icons.support_agent_rounded,
-                              route: SettingsPage(),
+                              route: SupportPage(),
                             ),
                             DrawerMenuItem(
                               name: "Настройки",
@@ -341,7 +344,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                   shape: LinearBorder(bottom: LinearBorderEdge(size: 1)),
                   shadowColor: Colors.transparent,
                   backgroundColor: !isCollapsed
-                      ?  Colors.deepOrangeAccent
+                      ? Colors.deepOrangeAccent
                       : Colors.transparent,
                   surfaceTintColor: Colors.transparent,
                   foregroundColor: Colors.transparent,
@@ -403,7 +406,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                   )))
                           : Container(
                               alignment: Alignment.center,
-                              color:  Colors.deepOrangeAccent,
+                              color: Colors.deepOrangeAccent,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
@@ -433,7 +436,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                 children: [
                                                   Text(
                                                     widget.currentAddress[
-                                                        "city_name"],
+                                                            "city_name"] ??
+                                                        "",
                                                     style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.w700,
@@ -497,12 +501,12 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                 spreadRadius: 5,
                                 offset: Offset(0, -100),
                                 color: !isStartingToCollapse
-                                    ?  Colors.deepOrangeAccent
+                                    ? Colors.deepOrangeAccent
                                     : Colors.blueGrey.shade50,
                               )
                             ],
                             color: !isStartingToCollapse
-                                ?  Colors.deepOrangeAccent
+                                ? Colors.deepOrangeAccent
                                 : Colors.blueGrey.shade50,
                           ),
                           child: Stack(
@@ -540,7 +544,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                   AnimatedContainer(
                                     foregroundDecoration: BoxDecoration(
                                         color: !isStartingToCollapse
-                                            ?  Colors.deepOrangeAccent
+                                            ? Colors.deepOrangeAccent
                                                 .withOpacity(0)
                                             : Colors.blueGrey.shade50),
                                     duration: Durations.medium1,
@@ -555,66 +559,67 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                     .size
                                                     .height /
                                                 4,
-                                        margin: const EdgeInsets.all(15),
-                                        decoration: const BoxDecoration(
-                                            // color: Colors.pinkAccent,
+                                            margin: const EdgeInsets.all(15),
+                                            decoration: const BoxDecoration(
+                                                // color: Colors.pinkAccent,
 
-                                            ),
-                                        child: Column(
-                                          children: [
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                const Spacer(
-                                                  flex: 2,
                                                 ),
-                                                CircleAvatar(
-                                                  radius: MediaQuery.of(context)
-                                                          .size
-                                                          .height /
-                                                      16,
+                                            child: Column(
+                                              children: [
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    const Spacer(
+                                                      flex: 2,
+                                                    ),
+                                                    CircleAvatar(
+                                                      radius:
+                                                          MediaQuery.of(context)
+                                                                  .size
+                                                                  .height /
+                                                              16,
+                                                    ),
+                                                    const Spacer(),
+                                                    Flexible(
+                                                        flex: 3,
+                                                        child: Text(
+                                                            widget.user["name"],
+                                                            style: GoogleFonts
+                                                                .mulish(
+                                                              textStyle: TextStyle(
+                                                                  letterSpacing:
+                                                                      1,
+                                                                  fontSize: 24,
+                                                                  color: Colors
+                                                                      .white,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w900),
+                                                            ))),
+                                                    const Spacer(
+                                                      flex: 2,
+                                                    )
+                                                  ],
                                                 ),
                                                 const Spacer(),
-                                                Flexible(
-                                                    flex: 3,
-                                                    child: Text(
-                                                        widget.user["name"],
-                                                        style:
-                                                            GoogleFonts.mulish(
-                                                          textStyle: TextStyle(
-                                                              letterSpacing: 1,
-                                                              fontSize: 24,
-                                                              color:
-                                                                  Colors.white,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w900),
-                                                        ))),
-                                                const Spacer(
-                                                  flex: 2,
-                                                )
-                                              ],
-                                            ),
-                                            const Spacer(),
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                TextButton(
-                                                    onPressed: () {},
-                                                    child: Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .center,
-                                                      mainAxisSize:
-                                                          MainAxisSize.max,
-                                                      children: [
-                                                        Text(
-                                                          widget.currentAddress[
-                                                              "address"],
-                                                          style:
-                                                              const TextStyle(
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    TextButton(
+                                                        onPressed: () {},
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          mainAxisSize:
+                                                              MainAxisSize.max,
+                                                          children: [
+                                                            Text(
+                                                              widget.currentAddress[
+                                                                  "address"],
+                                                              style: const TextStyle(
                                                                   fontSize: 16,
                                                                   fontWeight:
                                                                       FontWeight
@@ -660,8 +665,41 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                             blurRadius: 5)
                                       ],
                                     ),
-                                    child: const Text(
-                                        "здесь будет какой то баннер, возможно надо будет марджины везде одинаковые сделать"),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Flexible(
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Flexible(
+                                                fit: FlexFit.tight,
+                                                child: const Text(
+                                                  "ALLCO",
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 68,
+                                                    fontWeight: FontWeight.w700,
+                                                    fontFamily: "montserrat",
+                                                    shadows: [
+                                                      Shadow(
+                                                        color: Colors.black26,
+                                                        blurRadius: 15,
+                                                        offset: Offset(0, 0),
+                                                      ),
+                                                    ],
+                                                    height: 1,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   )
                                 ],
                               )
@@ -772,7 +810,7 @@ class BusinessItemState extends State<BusinessItem> {
           MaterialPageRoute(
             builder: (context) {
               return HomePage(
-                business_id: widget.business["business_id"],
+                business: widget.business,
               ); //! TOOD: Change to redirect page to a different organizations or do this right here.
             },
           ),
@@ -795,14 +833,16 @@ class BusinessItemState extends State<BusinessItem> {
         child: Column(
           children: [
             Expanded(
-                child: Container(
-              height: double.infinity,
-              width: double.infinity,
-              child: Image.network(
-                widget.business["img"],
-                fit: BoxFit.cover,
-              ),
-            )),
+              child: Container(
+                  height: double.infinity,
+                  width: double.infinity,
+                  child: CachedNetworkImage(
+                    imageUrl: widget.business["img"],
+                    errorWidget: (context, url, error) {
+                      return const SizedBox();
+                    },
+                  )),
+            ),
             Expanded(
                 child: Container(
                     padding: EdgeInsets.all(10),
@@ -819,6 +859,15 @@ class BusinessItemState extends State<BusinessItem> {
                                     fontWeight: FontWeight.w900, fontSize: 16),
                               ),
                             ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Text(
+                              widget.business["address"],
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w500, fontSize: 14),
+                            )
                           ],
                         ),
                         Row(
