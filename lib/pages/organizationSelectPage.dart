@@ -327,7 +327,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                       ],
                     ))),
             backgroundColor: Colors.blueGrey.shade50,
-            // !isCollapsed ? const Color(0xFFef8354) : Colors.white,
+            // !isCollapsed ? const Colors.deepOrangeAccent : Colors.white,
             body: SafeArea(
                 child: CustomScrollView(
               controller: _sc,
@@ -340,7 +340,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                   shape: LinearBorder(bottom: LinearBorderEdge(size: 1)),
                   shadowColor: Colors.transparent,
                   backgroundColor: !isCollapsed
-                      ? const Color(0xFFef8354)
+                      ?  Colors.deepOrangeAccent
                       : Colors.transparent,
                   surfaceTintColor: Colors.transparent,
                   foregroundColor: Colors.transparent,
@@ -402,7 +402,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                   )))
                           : Container(
                               alignment: Alignment.center,
-                              color: const Color(0xFFef8354),
+                              color:  Colors.deepOrangeAccent,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
@@ -496,12 +496,12 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                 spreadRadius: 5,
                                 offset: Offset(0, -100),
                                 color: !isStartingToCollapse
-                                    ? const Color(0xFFef8354)
+                                    ?  Colors.deepOrangeAccent
                                     : Colors.blueGrey.shade50,
                               )
                             ],
                             color: !isStartingToCollapse
-                                ? const Color(0xFFef8354)
+                                ?  Colors.deepOrangeAccent
                                 : Colors.blueGrey.shade50,
                           ),
                           child: Stack(
@@ -539,7 +539,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                   AnimatedContainer(
                                     foregroundDecoration: BoxDecoration(
                                         color: !isStartingToCollapse
-                                            ? const Color(0xFFef8354)
+                                            ?  Colors.deepOrangeAccent
                                                 .withOpacity(0)
                                             : Colors.blueGrey.shade50),
                                     duration: Durations.medium1,
@@ -548,7 +548,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                       children: [
                                         AnimatedContainer(
                                             duration: Durations.medium1,
-                                            // foregroundDecoration: BoxDecoration(color: isCollapsed ? Color(0xFFef8354) : Colors.transparent),
+                                            // foregroundDecoration: BoxDecoration(color: isCollapsed ? Colors.deepOrangeAccent : Colors.transparent),
                                             width: double.infinity,
                                             height: MediaQuery.of(context)
                                                     .size
