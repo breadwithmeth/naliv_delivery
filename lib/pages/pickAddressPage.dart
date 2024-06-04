@@ -79,8 +79,10 @@ class _PickAddressPageState extends State<PickAddressPage> {
                   );
                 },
               )).whenComplete(() {
-                _getAddresses().whenComplete(() {
+                _getCities().then((value) {
+                  _getAddresses().whenComplete(() {
                   setState(() {});
+                });
                 });
               });
             });
