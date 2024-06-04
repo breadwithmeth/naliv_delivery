@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/misc/colors.dart';
 import 'package:naliv_delivery/pages/homePage.dart';
+import 'package:naliv_delivery/pages/organizationSelectPage.dart';
 import 'package:naliv_delivery/pages/permissionPage.dart';
+import 'package:naliv_delivery/pages/preLoadDataPage.dart';
 import 'package:naliv_delivery/pages/startLoadingPage.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -25,15 +27,7 @@ class _MainState extends State<Main> {
   late Timer _timer;
   // int _tick = 0;
 
-  Widget _redirect = const Center(
-    child: CircularProgressIndicator(),
-  );
-
-  void _initLoadingScreen() {
-    setState(() {
-      _redirect = const StartLoadingPage();
-    });
-  }
+  Widget _redirect = const StartLoadingPage();
 
   Future<bool> _requestPermission() async {
     bool isGranted = true;
@@ -85,7 +79,6 @@ class _MainState extends State<Main> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    _initLoadingScreen();
 
     _checkAuth();
     // setState(() {
@@ -97,7 +90,7 @@ class _MainState extends State<Main> {
     String? token = await getToken();
     if (token != null) {
       setState(() {
-        _redirect = const HomePage();
+        _redirect = PreLoadDataPage();
       });
       // determinePosition().then((value) {
       //   setCityAuto(value.latitude, value.longitude).then((value) {
@@ -166,7 +159,7 @@ class _MainState extends State<Main> {
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(3))),
+                borderRadius: BorderRadius.all(Radius.circular(10))),
             backgroundColor: Colors.black,
             // backgroundColor: Color(0xFFFFCA3C),
             foregroundColor: Colors.white,
@@ -178,17 +171,22 @@ class _MainState extends State<Main> {
           backgroundColor: Colors.black,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.all(
-              Radius.circular(3),
+              Radius.circular(10),
             ),
           ),
         ),
         dividerTheme: DividerThemeData(
           color: Colors.grey.shade300,
         ),
-        textTheme: const TextTheme(
-            bodyMedium: TextStyle(color: gray1),
-            titleSmall: TextStyle(
-                color: gray1, fontWeight: FontWeight.w400, fontSize: 16)),
+        textTheme: GoogleFonts.montserratTextTheme(
+        ).copyWith(
+          labelLarge: GoogleFonts.mulish(fontWeight: FontWeight.w700),
+        ),
+
+        // textTheme: const TextTheme(
+        //     bodyMedium: TextStyle(color: gray1),
+        //     titleSmall: TextStyle(
+        //         color: gray1, fontWeight: FontWeight.w400, fontSize: 16)),
       ),
       debugShowCheckedModeBanner: false,
       home: _redirect,

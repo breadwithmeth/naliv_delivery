@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:naliv_delivery/pages/orderPage.dart';
+import 'package:flutter/cupertino.dart';
 
 class ActiveOrderButton extends StatefulWidget {
-  const ActiveOrderButton({
-    super.key,
-  });
+  const ActiveOrderButton({super.key, required this.business});
+
+  final Map<dynamic, dynamic> business;
 
   @override
   State<ActiveOrderButton> createState() => _ActiveOrderButtonState();
 }
 
 class _ActiveOrderButtonState extends State<ActiveOrderButton> {
+  late Timer orderTimer;
   // Map<String, String> orderStatuses = {
   //   "pending": "в обработке",
   //   "preparing": "собирается в магазине",
@@ -48,6 +50,7 @@ class _ActiveOrderButtonState extends State<ActiveOrderButton> {
   //   ],
   // };
 
+  late Timer _timer;
   // TODO: REMOVE LATER
   int index = 0;
   List<List<dynamic>> testOrderStatuses = [
@@ -83,15 +86,26 @@ class _ActiveOrderButtonState extends State<ActiveOrderButton> {
   void initState() {
     super.initState();
     orderCurrentStatus = testOrderStatuses[index];
-    Timer.periodic(const Duration(seconds: 5), (timer) {
-      setState(() {
-        orderCurrentStatus = testOrderStatuses[index];
-      });
-      index++;
-      if (index == testOrderStatuses.length) {
-        index = 0;
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) {
+        setState(() {
+          orderCurrentStatus = testOrderStatuses[index];
+        });
+        index++;
+        if (index == testOrderStatuses.length) {
+          index = 0;
+        }
+      } else {
+        _timer.cancel();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    _timer.cancel();
+    super.dispose();
   }
 
   @override
@@ -102,7 +116,9 @@ class _ActiveOrderButtonState extends State<ActiveOrderButton> {
       ),
       onPressed: () {
         Navigator.push(context, MaterialPageRoute(builder: (context) {
-          return const OrderPage();
+          return OrderPage(
+            business: widget.business,
+          );
         }));
       },
       child: AnimatedSwitcher(

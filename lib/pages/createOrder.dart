@@ -3,9 +3,10 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/pages/addressesPage.dart';
-import 'package:naliv_delivery/pages/createAddress.dart';
+import 'package:naliv_delivery/pages/createAddressPage.dart';
 import 'package:naliv_delivery/pages/orderConfirmation.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:shimmer/shimmer.dart';
@@ -14,7 +15,15 @@ import 'package:intl/intl.dart';
 import '../misc/api.dart';
 
 class CreateOrderPage extends StatefulWidget {
-  const CreateOrderPage({super.key});
+  const CreateOrderPage(
+      {super.key,
+      required this.business,
+      this.client = const {},
+      this.customAddress = const {}});
+
+  final Map<dynamic, dynamic> business;
+  final Map<dynamic, dynamic> client;
+  final Map<String, dynamic> customAddress;
 
   @override
   State<CreateOrderPage> createState() => _CreateOrderPageState();
@@ -23,7 +32,7 @@ class CreateOrderPage extends StatefulWidget {
 class _CreateOrderPageState extends State<CreateOrderPage> {
   bool delivery = true;
   List items = [];
-  Map<String, dynamic> cartInfo = {};
+  String cartInfo = "";
   // Widget? currentAddressWidget;
   List<Widget> addressesWidget = [];
   Map currentAddress = {};
@@ -31,26 +40,13 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
 
   bool isAddressesLoading = true;
   bool isCartLoading = true;
-
-  Map<String, dynamic> selectedBusiness = {};
-
-  Map<String, dynamic>? user;
+  Map<String, dynamic> user = {};
 
   List<Map<dynamic, dynamic>> wrongAmountItems = [];
 
   String formatCost(String costString) {
     int cost = int.parse(costString);
     return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
-  }
-
-  Future<void> _getLastSelectedBusiness() async {
-    await getLastSelectedBusiness().then((value) {
-      if (value != null) {
-        setState(() {
-          selectedBusiness = value;
-        });
-      }
-    });
   }
 
   Future<void> _getUser() async {
@@ -67,22 +63,28 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
     // List cart = await getCart();
     // print(cart);
 
-    Map<String, dynamic> cart = await getCart();
-    Map<String, dynamic>? cartInfoFromAPI = await getCartInfo();
+    Map<String, dynamic> cart = await getCart(widget.business["business_id"]);
+    // Map<String, dynamic>? cartInfoFromAPI = await getCartInfo();
 
     setState(() {
       // items = cart;
       items = cart["cart"];
-      cartInfo = cartInfoFromAPI!;
+      cartInfo = cart["sum"];
     });
   }
 
-  Future<void> _getAddresses() async {
+  Future<void> _getClientAddresses() async {
     setState(() {
       isAddressesLoading = true;
     });
     List<Widget> addressesWidget = [];
-    addresses = await getAddresses();
+    addresses = await getUserAddresses(widget.client["user_id"]);
+    if (addresses.isEmpty) {
+      setState(() {
+        isAddressesLoading = false;
+      });
+      return;
+    }
     for (var element in addresses) {
       addressesWidget.add(Container(
         margin: const EdgeInsets.symmetric(vertical: 5),
@@ -133,6 +135,91 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
         });
       }
     }
+    if (currentAddress.isEmpty) {
+      setState(() {
+        isAddressesLoading = false;
+      });
+    }
+
+    setState(() {
+      addressesWidget = addressesWidget;
+    });
+  }
+
+  Future<void> _getAddresses() async {
+    if (widget.customAddress.isNotEmpty) {
+      setState(() {
+        currentAddress = widget.customAddress;
+        isAddressesLoading = false;
+      });
+      return;
+    }
+    setState(() {
+      isAddressesLoading = true;
+    });
+    List<Widget> addressesWidget = [];
+    addresses = await getAddresses();
+    if (addresses.isEmpty) {
+      setState(() {
+        isAddressesLoading = false;
+      });
+      return;
+    }
+    for (var element in addresses) {
+      addressesWidget.add(Container(
+        margin: const EdgeInsets.symmetric(vertical: 5),
+        child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                side: BorderSide(color: Colors.grey.shade200),
+                backgroundColor: element["is_selected"] == "1"
+                    ? Colors.grey.shade200
+                    : Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(vertical: 20, horizontal: 5)),
+            onPressed: () {
+              selectAddress(element["address_id"]);
+              Timer(const Duration(microseconds: 300), () {
+                _getAddresses();
+              });
+
+              Navigator.pop(context);
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                Text(
+                  element["address"],
+                  style: const TextStyle(color: Colors.black),
+                )
+              ],
+            )),
+      ));
+      if (element["is_selected"] == "1") {
+        setState(() {
+          currentAddress = element;
+          isAddressesLoading = false;
+          // currentAddressWidget = GestureDetector(
+          //   behavior: HitTestBehavior.opaque,
+          //   child: Row(
+          //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //     mainAxisSize: MainAxisSize.max,
+          //     children: [
+          //       Text(element["address"]),
+          //       const Icon(Icons.arrow_forward_ios)
+          //     ],
+          //   ),
+          //   onTap: () {
+          //     _getAddressPickDialog();
+          //   },
+          // );
+        });
+      }
+    }
+    if (currentAddress.isEmpty) {
+      setState(() {
+        isAddressesLoading = false;
+      });
+    }
 
     setState(() {
       addressesWidget = addressesWidget;
@@ -155,7 +242,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
             ),
           ),
           shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(3))),
+              borderRadius: BorderRadius.all(Radius.circular(10))),
           insetPadding: const EdgeInsets.all(0),
           content: SizedBox(
             width: MediaQuery.of(context).size.width * 0.7,
@@ -231,9 +318,10 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
     super.initState();
     Future.delayed(const Duration(microseconds: 0), () async {
       await _getCart();
+      // SWITCH BETWEEN getAddresses and getClientAddresses depending on Client/Operator mode
       await _getAddresses();
+      // await _getClientAddresses();
       await _getUser();
-      await _getLastSelectedBusiness();
     }).whenComplete(() => isCartLoading = false);
   }
 
@@ -251,7 +339,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
           Container(
             decoration: BoxDecoration(
                 color: Colors.grey.shade100,
-                borderRadius: const BorderRadius.all(Radius.circular(3))),
+                borderRadius: const BorderRadius.all(Radius.circular(10))),
             margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
             padding: const EdgeInsets.all(5),
             child: Row(
@@ -270,7 +358,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                       decoration: BoxDecoration(
                           color: delivery ? Colors.white : Colors.grey.shade100,
                           borderRadius:
-                              const BorderRadius.all(Radius.circular(3))),
+                              const BorderRadius.all(Radius.circular(10))),
                       padding: const EdgeInsets.all(10),
                       alignment: Alignment.center,
                       child: Row(
@@ -309,7 +397,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                       decoration: BoxDecoration(
                           color: delivery ? Colors.grey.shade100 : Colors.white,
                           borderRadius:
-                              const BorderRadius.all(Radius.circular(3))),
+                              const BorderRadius.all(Radius.circular(10))),
                       padding: const EdgeInsets.all(10),
                       alignment: Alignment.center,
                       child: Row(
@@ -348,7 +436,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                   color: Colors.grey.shade100,
                 ),
                 color: Colors.white,
-                borderRadius: const BorderRadius.all(Radius.circular(3))),
+                borderRadius: const BorderRadius.all(Radius.circular(10))),
             margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
             padding: const EdgeInsets.all(5),
             child: ListView.builder(
@@ -392,7 +480,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 30),
                     child: Container(
                       decoration: const BoxDecoration(
-                        borderRadius: BorderRadius.all(Radius.circular(3)),
+                        borderRadius: BorderRadius.all(Radius.circular(10)),
                         color: Colors.white,
                       ),
                       width: double.infinity,
@@ -410,7 +498,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                           ),
                           color: Colors.white,
                           borderRadius:
-                              const BorderRadius.all(Radius.circular(3))),
+                              const BorderRadius.all(Radius.circular(10))),
                       margin: const EdgeInsets.symmetric(horizontal: 30),
                       // This should be null only if user doesn't have any addresses, else there will be user address
                       // child: currentAddressWidget ??
@@ -426,28 +514,39 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                     fit: FlexFit.tight,
                                     child: Row(
                                       mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                          MainAxisAlignment.spaceEvenly,
                                       children: [
-                                        Text(
-                                          currentAddress["address"],
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .primary,
+                                        Flexible(
+                                          flex: 5,
+                                          child: Column(
+                                            children: [
+                                              Text(
+                                                "Доставка: ${currentAddress["name"]}",
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .primary,
+                                                ),
+                                              ),
+                                              Text(
+                                                currentAddress["address"],
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .primary,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                  const Flexible(
-                                    fit: FlexFit.tight,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.add_box_rounded),
+                                        const Flexible(
+                                          flex: 1,
+                                          child: Icon(Icons.add_box_rounded),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -491,7 +590,78 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                               ),
                             ),
                     )
-                  : Container(),
+                  : Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                          border: Border.all(
+                            width: 2,
+                            color: Colors.grey.shade100,
+                          ),
+                          color: Colors.white,
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(10))),
+                      margin: const EdgeInsets.symmetric(horizontal: 30),
+                      // This should be null only if user doesn't have any addresses, else there will be user address
+                      // child: currentAddressWidget ??
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Flexible(
+                                  child: Column(
+                                children: [
+                                  Text(
+                                    "Самовывозом: ${widget.business["name"]}",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                  Text(
+                                    widget.business["address"],
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                    ),
+                                  )
+                                ],
+                              )),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+          delivery
+              ? Container(
+                  decoration: BoxDecoration(
+                      border: Border.all(
+                        width: 2,
+                        color: Colors.grey.shade100,
+                      ),
+                      color: Colors.white,
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(10))),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
+                  padding: const EdgeInsets.all(15),
+                  child: Text(
+                    "Детали доставки",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
+                  ),
+                )
+              : const SizedBox(),
           Container(
             decoration: BoxDecoration(
                 border: Border.all(
@@ -499,27 +669,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                   color: Colors.grey.shade100,
                 ),
                 color: Colors.white,
-                borderRadius: const BorderRadius.all(Radius.circular(3))),
-            margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
-            padding: const EdgeInsets.all(15),
-            child: Text(
-              "Здесь мы расчитываем стоймость доставки",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 16,
-                color: Theme.of(context).colorScheme.secondary,
-              ),
-            ),
-          ),
-          Container(
-            decoration: BoxDecoration(
-                border: Border.all(
-                  width: 2,
-                  color: Colors.grey.shade100,
-                ),
-                color: Colors.white,
-                borderRadius: const BorderRadius.all(Radius.circular(3))),
+                borderRadius: const BorderRadius.all(Radius.circular(10))),
             margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
             padding: const EdgeInsets.all(15),
             child: Column(
@@ -528,9 +678,11 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                   children: [
                     Flexible(
                       child: Text(
-                        user == null
+                        user.isEmpty
                             ? "Счёт на каспи:"
-                            : "Счёт на каспи: ${user!["login"].toString()}", //! TODO: CHANGE IF NOT KASPI BUT CASH
+                            : widget.client.isEmpty
+                                ? "Счёт на каспи: ${user["login"].toString()}" //! TODO: CHANGE IF NOT KASPI BUT CASH
+                                : "Счёт на каспи: ${widget.client["login"].toString()}",
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
@@ -545,7 +697,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                     Flexible(
                       child: Text(
                         cartInfo.isNotEmpty
-                            ? "Сумма к оплате: ${formatCost(cartInfo["sum"].toString())} ₸"
+                            ? "Сумма к оплате: ${formatCost(cartInfo).toString()} ₸"
                             : "Сумма к оплате: 0 ₸",
                         textAlign: TextAlign.center,
                         style: TextStyle(
@@ -567,26 +719,42 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                   color: Colors.grey.shade100,
                 ),
                 color: Colors.white,
-                borderRadius: const BorderRadius.all(Radius.circular(3))),
+                borderRadius: const BorderRadius.all(Radius.circular(10))),
             margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
             padding: const EdgeInsets.all(15),
             child: ElevatedButton(
-              onPressed: isCartLoading
+              onPressed: isCartLoading ||
+                      isAddressesLoading ||
+                      (addresses.isEmpty && widget.customAddress.isEmpty)
                   ? null
                   : () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => OrderConfirmation(
-                            delivery: delivery,
-                            items: items,
-                            address: currentAddress,
-                            cartInfo: cartInfo,
-                            user: user,
-                            selectedBusiness: selectedBusiness,
-                          ),
-                        ),
-                      );
+                      widget.client.isEmpty
+                          ? Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => OrderConfirmation(
+                                  delivery: delivery,
+                                  items: items,
+                                  address: currentAddress,
+                                  cartInfo: cartInfo,
+                                  business: widget.business,
+                                  user: user,
+                                ),
+                              ),
+                            )
+                          : Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => OrderConfirmation(
+                                  delivery: delivery,
+                                  items: items,
+                                  address: widget.customAddress,
+                                  cartInfo: cartInfo,
+                                  business: widget.business,
+                                  user: widget.client,
+                                ),
+                              ),
+                            );
                     },
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,

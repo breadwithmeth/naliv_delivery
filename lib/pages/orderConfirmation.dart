@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/orderPage.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
+import 'package:intl/intl.dart';
 
 // import 'createOrder.dart';
 
@@ -16,15 +17,15 @@ class OrderConfirmation extends StatefulWidget {
     required this.address,
     required this.items,
     required this.cartInfo,
-    required this.user,
-    required this.selectedBusiness,
+    required this.business,
+    this.user = const {},
   });
   final bool delivery;
   final Map? address;
   final List items;
-  final Map<String, dynamic> cartInfo;
-  final Map<String, dynamic>? user;
-  final Map<String, dynamic>? selectedBusiness;
+  final String cartInfo;
+  final Map<dynamic, dynamic> business;
+  final Map<dynamic, dynamic> user;
   @override
   State<OrderConfirmation> createState() => _OrderConfirmationState();
 }
@@ -40,6 +41,11 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
   List<dynamic> wrongPositions = [];
   List<dynamic> wrongItems = [];
 
+  String formatCost(String costString) {
+    int cost = int.parse(costString);
+    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
+  }
+
   void composeWrongItemsList() {
     if (!wrongPositions.isEmpty) {
      for (int i = 0; i < widget.items.length; i++) {
@@ -53,8 +59,6 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
 
   @override
   void initState() {
-    print(widget.selectedBusiness);
-    // TODO: implement initState
     super.initState();
     Timer(const Duration(seconds: 1), () {
       setState(() {
@@ -64,7 +68,9 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
     timer = Timer(const Duration(seconds: 6), () {
       Future.delayed(const Duration(milliseconds: 0)).then((value) async {
         print("Creating order...!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        await createOrder().then((value) {
+        String user_id = widget.user.isNotEmpty ? widget.user["user_id"] : "";
+        await createOrder(widget.business["business_id"], user_id)
+            .then((value) {
           if (value["status"] == true) {
             isOrderCorrect = true;
             print("Order was created successfully");
@@ -85,7 +91,9 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => const OrderPage(),
+                builder: (context) => OrderPage(
+                  business: widget.business,
+                ),
               ),
             );
           } else {
@@ -96,7 +104,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                 if (isOrderCorrect == false) {
                   return AlertDialog(
                     shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(3)),
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
                     ),
                     title: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -227,7 +235,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                 } else {
                   return AlertDialog(
                     shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(3)),
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
                     ),
                     title: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -361,7 +369,8 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         color: Colors.grey.shade100,
                       ),
                       color: Colors.white,
-                      borderRadius: const BorderRadius.all(Radius.circular(3))),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(10))),
                   margin:
                       const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
                   padding: const EdgeInsets.all(5),
@@ -372,12 +381,27 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     itemBuilder: (context, index) {
                       final item = widget.items[index];
 
-                      return ItemCardNoImage(
-                        element: item,
-                        item_id: item["item_id"],
-                        category_id: "",
-                        category_name: "",
-                        scroll: 0,
+                      return Column(
+                        children: [
+                          ItemCardNoImage(
+                            element: item,
+                            item_id: item["item_id"],
+                            category_id: "",
+                            category_name: "",
+                            scroll: 0,
+                          ),
+                          widget.items.length - 1 != index
+                              ? const Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 5,
+                                  ),
+                                  child: Divider(
+                                    height: 0,
+                                  ),
+                                )
+                              : Container(),
+                        ],
                       );
                     },
                   ),
@@ -388,32 +412,36 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                 fit: FlexFit.tight,
                 child: Container(
                   decoration: BoxDecoration(
-                      border: Border.all(
-                        width: 2,
-                        color: Colors.grey.shade100,
-                      ),
-                      color: Colors.white,
-                      borderRadius: const BorderRadius.all(Radius.circular(3))),
+                    border: Border.all(
+                      width: 2,
+                      color: Colors.grey.shade100,
+                    ),
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.all(Radius.circular(10)),
+                  ),
                   margin: const EdgeInsets.symmetric(horizontal: 30),
                   padding: const EdgeInsets.all(15),
                   child: Column(
                     children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              widget.delivery
-                                  ? "Доставка по адресу: "
-                                  : "Самовывоз из магазина: ",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color:
-                                    Theme.of(context).colorScheme.onBackground,
+                      Flexible(
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                widget.delivery
+                                    ? "Доставка по адресу: "
+                                    : "Самовывоз из магазина: ",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onBackground,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       Row(
                         children: [
@@ -421,8 +449,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                             child: Text(
                                   widget.delivery
                                       ? widget.address!["address"] ?? ""
-                                      : widget.selectedBusiness!["address"] ??
-                                          "",
+                                      : widget.business["address"],
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
@@ -439,94 +466,64 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                   ),
                 ),
               ),
-              // Flexible(
-              //   child: Container(
-              //     decoration: BoxDecoration(
-              //         border: Border.all(
-              //           width: 2,
-              //           color: Colors.grey.shade100,
-              //         ),
-              //         color: Colors.white,
-              //         borderRadius: const BorderRadius.all(Radius.circular(3))),
-              //     margin: const EdgeInsets.symmetric(horizontal: 30),
-              //     padding: const EdgeInsets.all(15),
-              //     child: Column(
-              //       children: [
-              //         Row(
-              //           children: [
-              //             Flexible(
-              //               child: Text(
-              //                 widget.user == null
-              //                     ? "Счёт на каспи:"
-              //                     : "Счёт на каспи: ${widget.user!["login"].toString()}",
-              //                 style: TextStyle(
-              //                   fontWeight: FontWeight.w700,
-              //                   fontSize: 16,
-              //                   color:
-              //                       Theme.of(context).colorScheme.onBackground,
-              //                 ),
-              //               ),
-              //             )
-              //           ],
-              //         ),
-              //         Row(
-              //           children: [
-              //             Flexible(
-              //               child: Text(
-              //                 widget.cartInfo.isNotEmpty
-              //                     ? "Сумма к оплате: ${widget.cartInfo["sum"].toString()} ₸"
-              //                     : "Сумма к оплате: 0 ₸",
-              //                 textAlign: TextAlign.center,
-              //                 style: TextStyle(
-              //                   fontWeight: FontWeight.w700,
-              //                   fontSize: 16,
-              //                   color:
-              //                       Theme.of(context).colorScheme.onBackground,
-              //                 ),
-              //               ),
-              //             ),
-              //           ],
-              //         ),
-              //       ],
-              //     ),
-              //   ),
-              // ),
-              // widget.delivery
-              //     ? Flexible(
-              //         flex: 2,
-              //         fit: FlexFit.tight,
-              //         child: Container(
-              //           decoration: BoxDecoration(
-              //               border: Border.all(
-              //                 width: 2,
-              //                 color: Colors.grey.shade100,
-              //               ),
-              //               color: Colors.white,
-              //               borderRadius:
-              //                   const BorderRadius.all(Radius.circular(3))),
-              //           margin: const EdgeInsets.symmetric(
-              //               horizontal: 30, vertical: 5),
-              //           padding: const EdgeInsets.all(15),
-              //           child: Row(
-              //             children: [
-              //               Flexible(
-              //                 child: Text(
-              //                       widget.address!["address"] ?? "",
-              //                       style: TextStyle(
-              //                         fontSize: 16,
-              //                         fontWeight: FontWeight.w700,
-              //                         color: Theme.of(context)
-              //                             .colorScheme
-              //                             .onBackground,
-              //                       ),
-              //                     ) ??
-              //                     Container(),
-              //               ),
-              //             ],
-              //           ),
-              //         ),
-              //       )
-              //     : Container(),
+              Flexible(
+                flex: 3,
+                fit: FlexFit.tight,
+                child: Container(
+                  decoration: BoxDecoration(
+                      border: Border.all(
+                        width: 2,
+                        color: Colors.grey.shade100,
+                      ),
+                      color: Colors.white,
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(10))),
+                  margin: const EdgeInsets.symmetric(horizontal: 30),
+                  padding: const EdgeInsets.all(15),
+                  child: Column(
+                    children: [
+                      Flexible(
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                widget.user == null
+                                    ? "Счёт на каспи:"
+                                    : "Счёт на каспи: ${widget.user!["login"].toString()}",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onBackground,
+                                ),
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              widget.cartInfo.isNotEmpty
+                                  ? "Сумма к оплате: ${widget.cartInfo.toString()} ₸"
+                                  : "Сумма к оплате: 0 ₸",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                                color:
+                                    Theme.of(context).colorScheme.onBackground,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               Flexible(
                 flex: 4,
                 fit: FlexFit.tight,
@@ -537,9 +534,9 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         color: Colors.grey.shade100,
                       ),
                       color: Colors.white,
-                      borderRadius: const BorderRadius.all(Radius.circular(3))),
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(10))),
+                  margin: const EdgeInsets.symmetric(horizontal: 30),
                   padding: const EdgeInsets.all(15),
                   child: ElevatedButton(
                     onPressed: () {

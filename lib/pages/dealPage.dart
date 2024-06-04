@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/agreements/offer.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/loginPage.dart';
+import 'package:flutter/cupertino.dart';
 
 class DealPage extends StatefulWidget {
   const DealPage({super.key});

@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/painting.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:naliv_delivery/misc/api.dart';
@@ -17,10 +19,12 @@ class ProductPage extends StatefulWidget {
       required this.item,
       required this.index,
       required this.returnDataAmount,
+      required this.business,
       this.openedFromCart = false});
   final Map<String, dynamic> item;
   final int index;
   final Function(String, int) returnDataAmount;
+  final Map<dynamic, dynamic> business;
   final bool openedFromCart;
   @override
   State<ProductPage> createState() => _ProductPageState();
@@ -36,251 +40,259 @@ class _ProductPageState extends State<ProductPage> {
 
   int currentTab = 0;
   String? amount;
-  List<String> TabText = [
-    "Тестовый текст: Виски Ballantine's 12 лет — это бленд 40 отборных солодовых и зерновых дистиллятов, минимальный срок выдержки которых составляет 12 лет. ",
-    "Тестовый текст: Джордж Баллантайн (George Ballantine) – выходец из семьи простых фермеров, начал свою трудовую карьеру в возрасте девятнадцати лет в качестве подсобного рабочего в бакалейной лавке в Эдинбурге. Здесь, в 1827 году, Джордж открывает свой бакалейный магазин, в котором небольшими партиями начинает реализовывать собственный алкоголь. К 1865 году Баллантайну удается открыть еще один магазин в Глазго, куда и переезжает глава семьи, оставив торговлю в Эдинбурге старшему сыну Арчибальду. В это время виски под маркой Ballantine’s продают уже по всей Шотландии, а Джордж возглавляет компанию George Ballantine and Son, престижную репутацию которой в 1895 году подтвердил факт получения ордена Королевы Виктории.",
-    "Тестовый текст: Начиная с 2005 года производством Ballantine занимается компания Pernod Ricard, которая тщательно следит за репутацией бренда, сохраняя рецепты и старинные традиции."
-  ];
+  List<String> TabText = ["", "", ""];
+  bool isDescriptionLoaded = false;
 
   Future<void> _getItem() async {
-    item = await getItem(widget.item["item_id"]);
-    print(item);
-    if (item.isNotEmpty) {
-      List<Widget> groupItems = [];
-      List<TableRow> properties = [];
-      List<Widget> propertiesT = [];
+    await getItem(widget.item["item_id"]).then((value) {
+      print(value);
+      if (value.isNotEmpty) {
+        if (value["description"] != null) {
+          if (mounted) {
+            setState(() {
+              TabText[0] = value["description"];
 
-      // if (item["group"] != null) {
-      //   List temp = item["group"];
-      //   for (var element in temp) {
-      //     print(element);
-      //     groupItems.add(
-      //       GestureDetector(
-      //         onTap: () {
-      //           Navigator.pushReplacement(
-      //             context,
-      //             MaterialPageRoute(
-      //               builder: (context) {
-      //                 return ProductPage(item: element,);
-      //               },
-      //             ),
-      //           );
-      //         },
-      //         child: Container(
-      //           alignment: Alignment.center,
-      //           padding:
-      //               const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-      //           margin: const EdgeInsets.all(5),
-      //           decoration: BoxDecoration(
-      //               color: Colors.grey.shade400,
-      //               borderRadius: const BorderRadius.all(Radius.circular(5))),
-      //           child: Text(
-      //             element["amount"],
-      //             style: const TextStyle(
-      //                 color: Colors.white, fontWeight: FontWeight.w700),
-      //           ),
-      //         ),
-      //       ),
-      //     );
-      //   }
-      // }
-
-      if (item["properties"] != null) {
-        List temp = item["properties"];
-
-        for (var element in temp) {
-          propertiesT.add(
-            Container(
-              padding: const EdgeInsets.all(5),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    element["amount"],
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black),
-                  ),
-                  Image.asset(
-                    "assets/property_icons/${element["icon"]}.png",
-                    width: 14,
-                    height: 14,
-                  ),
-                  const SizedBox(
-                    width: 10,
-                  )
-                ],
-              ),
-            ),
-          );
-        }
-
-        if (item["country"] != null) {
-          propertiesT.add(
-            Container(
-              padding: const EdgeInsets.all(5),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    item["country"],
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black),
-                  ),
-                  Image.asset(
-                    "assets/property_icons/litr.png",
-                    width: 14,
-                    height: 14,
-                  ),
-                  const SizedBox(
-                    width: 10,
-                  )
-                ],
-              ),
-            ),
-          );
-        }
-
-        for (var element in temp) {
-          properties.add(
-            TableRow(
-              children: [
-                TableCell(
-                  child: Container(
-                    padding: const EdgeInsets.all(5),
-                    child: Text(
-                      element["name"],
-                      style: const TextStyle(color: Colors.black, fontSize: 14),
-                    ),
-                  ),
-                ),
-                TableCell(
-                  child: Container(
-                    padding: const EdgeInsets.all(5),
-                    child: Text(
-                      element["amount"] + element["unit"],
-                      style: const TextStyle(color: Colors.black, fontSize: 14),
-                    ),
-                  ),
-                )
-              ],
-            ),
-          );
+              isDescriptionLoaded = true;
+            });
+          }
         }
       }
-      properties.addAll(
-        [
-          TableRow(
-            children: [
-              TableCell(
-                child: Container(
-                  padding: const EdgeInsets.all(5),
-                  child: const Text(
-                    "Страна",
-                    style: TextStyle(color: Colors.black, fontSize: 14),
-                  ),
-                ),
-              ),
-              TableCell(
-                child: Container(
-                  padding: const EdgeInsets.all(5),
-                  child: Text(
-                    item["country"] ?? "",
-                    style: const TextStyle(color: Colors.black, fontSize: 14),
-                  ),
-                ),
-              )
-            ],
-          ),
-          TableRow(
-            children: [
-              TableCell(
-                child: Container(
-                  padding: const EdgeInsets.all(5),
-                  child: const Text(
-                    "Брэнд",
-                    style: TextStyle(color: Colors.black, fontSize: 14),
-                  ),
-                ),
-              ),
-              TableCell(
-                child: Container(
-                  padding: const EdgeInsets.all(5),
-                  child: Text(
-                    item["b_name"] ?? "",
-                    style: const TextStyle(color: Colors.black, fontSize: 14),
-                  ),
-                ),
-              )
-            ],
-          ),
-          TableRow(
-            children: [
-              TableCell(
-                child: Container(
-                  padding: const EdgeInsets.all(5),
-                  child: const Text(
-                    "Производитель",
-                    style: TextStyle(color: Colors.black, fontSize: 14),
-                  ),
-                ),
-              ),
-              TableCell(
-                child: Container(
-                  padding: const EdgeInsets.all(5),
-                  child: Text(
-                    item["m_name"] ?? "",
-                    style: const TextStyle(color: Colors.black, fontSize: 14),
-                  ),
-                ),
-              )
-            ],
-          ),
-        ],
-      );
+    });
 
-      setState(
-        () {
-          amount = item["amount"];
-          properties = properties;
-          TabText = [
-            item["description"] ?? "",
-            item["b_desc"] ?? "",
-            item["m_desc"] ?? ""
-          ];
-          groupItems = groupItems;
+    // List<Widget> groupItems = [];
+    // List<TableRow> properties = [];
+    // List<Widget> propertiesT = [];
 
-          propertiesWidget = propertiesT;
-        },
-      );
-      setState(() {
-        if (item.isNotEmpty) {
-          _image = CachedNetworkImage(
-            fit: BoxFit.fitHeight,
-            cacheManager: CacheManager(Config(
-              "itemImage",
-              stalePeriod: const Duration(days: 7),
-              //one week cache period
-            )),
-            imageUrl: 'https://naliv.kz/img/${item["photo"]}',
-            placeholder: ((context, url) {
-              return const CircularProgressIndicator();
-            }),
-            errorWidget: ((context, url, error) {
-              return const Text("Нет изображения");
-            }),
-          );
-          // _image = Image.network(
-          //   'https://naliv.kz/img/${item["photo"]}',
-          //   fit: BoxFit.cover,
-          //   // width: MediaQuery.of(context).size.width * 0.8,
-          // );
-        }
-      });
-    }
+    // if (item["group"] != null) {
+    //   List temp = item["group"];
+    //   for (var element in temp) {
+    //     print(element);
+    //     groupItems.add(
+    //       GestureDetector(
+    //         onTap: () {
+    //           Navigator.pushReplacement(
+    //             context,
+    //             MaterialPageRoute(
+    //               builder: (context) {
+    //                 return ProductPage(item: element,);
+    //               },
+    //             ),
+    //           );
+    //         },
+    //         child: Container(
+    //           alignment: Alignment.center,
+    //           padding:
+    //               const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+    //           margin: const EdgeInsets.all(5),
+    //           decoration: BoxDecoration(
+    //               color: Colors.grey.shade400,
+    //               borderRadius: const BorderRadius.all(Radius.circular(5))),
+    //           child: Text(
+    //             element["amount"],
+    //             style: const TextStyle(
+    //                 color: Colors.white, fontWeight: FontWeight.w700),
+    //           ),
+    //         ),
+    //       ),
+    //     );
+    //   }
+    // }
+
+    //   if (item["properties"] != null) {
+    //     List temp = item["properties"];
+
+    //     for (var element in temp) {
+    //       propertiesT.add(
+    //         Container(
+    //           padding: const EdgeInsets.all(5),
+    //           child: Row(
+    //             mainAxisSize: MainAxisSize.min,
+    //             children: [
+    //               Text(
+    //                 element["amount"],
+    //                 style: const TextStyle(
+    //                     fontSize: 14,
+    //                     fontWeight: FontWeight.w700,
+    //                     color: Colors.black),
+    //               ),
+    //               Image.asset(
+    //                 "assets/property_icons/${element["icon"]}.png",
+    //                 width: 14,
+    //                 height: 14,
+    //               ),
+    //               const SizedBox(
+    //                 width: 10,
+    //               )
+    //             ],
+    //           ),
+    //         ),
+    //       );
+    //     }
+
+    //     if (item["country"] != null) {
+    //       propertiesT.add(
+    //         Container(
+    //           padding: const EdgeInsets.all(5),
+    //           child: Row(
+    //             mainAxisSize: MainAxisSize.min,
+    //             children: [
+    //               Text(
+    //                 item["country"],
+    //                 style: const TextStyle(
+    //                     fontSize: 14,
+    //                     fontWeight: FontWeight.w700,
+    //                     color: Colors.black),
+    //               ),
+    //               Image.asset(
+    //                 "assets/property_icons/litr.png",
+    //                 width: 14,
+    //                 height: 14,
+    //               ),
+    //               const SizedBox(
+    //                 width: 10,
+    //               )
+    //             ],
+    //           ),
+    //         ),
+    //       );
+    //     }
+
+    //     for (var element in temp) {
+    //       properties.add(
+    //         TableRow(
+    //           children: [
+    //             TableCell(
+    //               child: Container(
+    //                 padding: const EdgeInsets.all(5),
+    //                 child: Text(
+    //                   element["name"],
+    //                   style: const TextStyle(color: Colors.black, fontSize: 14),
+    //                 ),
+    //               ),
+    //             ),
+    //             TableCell(
+    //               child: Container(
+    //                 padding: const EdgeInsets.all(5),
+    //                 child: Text(
+    //                   element["amount"] + element["unit"],
+    //                   style: const TextStyle(color: Colors.black, fontSize: 14),
+    //                 ),
+    //               ),
+    //             )
+    //           ],
+    //         ),
+    //       );
+    //     }
+    //   }
+    //   properties.addAll(
+    //     [
+    //       TableRow(
+    //         children: [
+    //           TableCell(
+    //             child: Container(
+    //               padding: const EdgeInsets.all(5),
+    //               child: const Text(
+    //                 "Страна",
+    //                 style: TextStyle(color: Colors.black, fontSize: 14),
+    //               ),
+    //             ),
+    //           ),
+    //           TableCell(
+    //             child: Container(
+    //               padding: const EdgeInsets.all(5),
+    //               child: Text(
+    //                 item["country"] ?? "",
+    //                 style: const TextStyle(color: Colors.black, fontSize: 14),
+    //               ),
+    //             ),
+    //           )
+    //         ],
+    //       ),
+    //       TableRow(
+    //         children: [
+    //           TableCell(
+    //             child: Container(
+    //               padding: const EdgeInsets.all(5),
+    //               child: const Text(
+    //                 "Брэнд",
+    //                 style: TextStyle(color: Colors.black, fontSize: 14),
+    //               ),
+    //             ),
+    //           ),
+    //           TableCell(
+    //             child: Container(
+    //               padding: const EdgeInsets.all(5),
+    //               child: Text(
+    //                 item["b_name"] ?? "",
+    //                 style: const TextStyle(color: Colors.black, fontSize: 14),
+    //               ),
+    //             ),
+    //           )
+    //         ],
+    //       ),
+    //       TableRow(
+    //         children: [
+    //           TableCell(
+    //             child: Container(
+    //               padding: const EdgeInsets.all(5),
+    //               child: const Text(
+    //                 "Производитель",
+    //                 style: TextStyle(color: Colors.black, fontSize: 14),
+    //               ),
+    //             ),
+    //           ),
+    //           TableCell(
+    //             child: Container(
+    //               padding: const EdgeInsets.all(5),
+    //               child: Text(
+    //                 item["m_name"] ?? "",
+    //                 style: const TextStyle(color: Colors.black, fontSize: 14),
+    //               ),
+    //             ),
+    //           )
+    //         ],
+    //       ),
+    //     ],
+    //   );
+
+    //   setState(
+    //     () {
+    //       amount = item["amount"];
+    //       properties = properties;
+    //       TabText = [
+    //         item["description"] ?? "",
+    //         item["b_desc"] ?? "",
+    //         item["m_desc"] ?? ""
+    //       ];
+    //       groupItems = groupItems;
+
+    //       propertiesWidget = propertiesT;
+    //     },
+    //   );
+    //   setState(() {
+    //     if (item.isNotEmpty) {
+    //       _image = CachedNetworkImage(
+    //         fit: BoxFit.fitHeight,
+    //         cacheManager: CacheManager(Config(
+    //           "itemImage",
+    //           stalePeriod: const Duration(days: 7),
+    //           //one week cache period
+    //         )),
+    //         imageUrl: 'https://naliv.kz/img/${item["photo"]}',
+    //         placeholder: ((context, url) {
+    //           return const CircularProgressIndicator();
+    //         }),
+    //         errorWidget: ((context, url, error) {
+    //           return const Text("Нет изображения");
+    //         }),
+    //       );
+    //       // _image = Image.network(
+    //       //   'https://naliv.kz/img/${item["photo"]}',
+    //       //   fit: BoxFit.cover,
+    //       //   // width: MediaQuery.of(context).size.width * 0.8,
+    //       // );
+    //     }
+    //   });
   }
 
   // @override
@@ -308,12 +320,27 @@ class _ProductPageState extends State<ProductPage> {
 
   int cacheAmount = 0;
   bool isNumPickActive = false;
-  bool isAmountConfirmed = false;
+  bool isAmountChanged = false;
   late int inStock;
+  final ScrollController _scrollController = ScrollController();
+
+  Future<bool> _deleteFromCart(String itemId) async {
+    bool? result = await deleteFromCart(itemId);
+    result ??= false;
+
+    print(result);
+    return Future(() => result!);
+  }
 
   Future<String?> _finalizeCartAmount() async {
+    if (cacheAmount == 0) {
+      _deleteFromCart(widget.item["item_id"]);
+      return "0";
+    }
     String? finalAmount;
-    await changeCartItem(item["item_id"], cacheAmount).then(
+    await changeCartItem(
+            item["item_id"], cacheAmount, widget.business["business_id"])
+        .then(
       (value) {
         print(value);
         finalAmount = value;
@@ -328,7 +355,7 @@ class _ProductPageState extends State<ProductPage> {
 
   void _removeFromCart() {
     setState(() {
-      isAmountConfirmed = false;
+      isAmountChanged = true;
       if (cacheAmount > 0) {
         cacheAmount--;
       }
@@ -337,20 +364,9 @@ class _ProductPageState extends State<ProductPage> {
 
   void _addToCart() {
     setState(() {
-      isAmountConfirmed = false;
+      isAmountChanged = true;
       if (cacheAmount < inStock) {
         cacheAmount++;
-      }
-    });
-  }
-
-  void _changeCart() {
-    setState(() {
-      if (cacheAmount <= inStock) {
-        Future.delayed(const Duration(microseconds: 0), () async {
-          _finalizeCartAmount();
-        });
-        widget.returnDataAmount(cacheAmount.toString(), widget.index);
       }
     });
   }
@@ -358,7 +374,7 @@ class _ProductPageState extends State<ProductPage> {
   // BUTTON VARIABLES/FUNCS END
 
   String formatCost(String costString) {
-    int cost = int.parse(costString);
+    int cost = double.parse(costString).truncate();
     return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
   }
 
@@ -368,7 +384,11 @@ class _ProductPageState extends State<ProductPage> {
     super.initState();
     setState(() {
       cacheAmount = int.parse(widget.item["amount"] ?? "0");
-      inStock = double.parse(widget.item["in_stock"]).truncate();
+      if (widget.item["in_stock"] != null) {
+        inStock = double.parse(widget.item["in_stock"]).truncate();
+      } else {
+        inStock = 0;
+      }
 
       bool isImageDownloaded = false;
       _image = CachedNetworkImage(
@@ -392,16 +412,22 @@ class _ProductPageState extends State<ProductPage> {
           return const Text("Нет изображения");
         }),
       );
-      // Future.delayed(const Duration(milliseconds: 0)).whenComplete(() async {
-      //   await _getItem().then((value) {
-      //     print("DATA RECIEVED!");
-      //   });
-      // });
+      Future.delayed(const Duration(milliseconds: 0)).whenComplete(() async {
+        await _getItem().then((value) {
+          print("DATA RECIEVED!");
+        });
+      });
     });
   }
 
   @override
   void dispose() {
+    if (isAmountChanged) {
+      Future.delayed(const Duration(microseconds: 0), () async {
+        await _finalizeCartAmount();
+        widget.returnDataAmount(cacheAmount.toString(), widget.index);
+      });
+    }
     super.dispose();
   }
 
@@ -429,8 +455,10 @@ class _ProductPageState extends State<ProductPage> {
       floatingActionButton: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         child: item.isNotEmpty
-            ? cacheAmount != 0
-                ? ElevatedButton(
+            ? Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       disabledBackgroundColor:
                           Theme.of(context).colorScheme.primary,
@@ -445,274 +473,145 @@ class _ProductPageState extends State<ProductPage> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Flexible(
-                          flex: 2,
                           fit: FlexFit.tight,
-                          child: Text(
-                            "${formatCost(item["price"])} ₸",
-                            textHeightBehavior: const TextHeightBehavior(
-                              applyHeightToFirstAscent: false,
-                            ),
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 28,
-                              color: Theme.of(context).colorScheme.onPrimary,
+                          child: IconButton(
+                            padding: const EdgeInsets.all(0),
+                            onPressed: () {
+                              _removeFromCart();
+                            },
+                            icon: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color:
+                                      Theme.of(context).colorScheme.onPrimary,
+                                ),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Icon(
+                                Icons.remove_rounded,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
                             ),
                           ),
                         ),
                         Flexible(
-                          flex: 2,
+                          flex: 3,
                           fit: FlexFit.tight,
-                          child: GestureDetector(
-                            // onLongPress: (() {
-                            //   setState(() {
-                            //     isNumPickActive = true;
-                            //   });
-                            // }),
-                            onVerticalDragStart: (details) {
-                              setState(() {
-                                isNumPickActive = true;
-                              });
-                            },
-                            onVerticalDragEnd: (details) {
-                              setState(() {
-                                isNumPickActive = false;
-                              });
-                            },
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Flexible(
-                                  child: IconButton(
-                                    padding: const EdgeInsets.all(0),
-                                    onPressed: () {
-                                      _removeFromCart();
-                                    },
-                                    icon: Icon(
-                                      Icons.remove_rounded,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onPrimary,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  cacheAmount.toString(),
+                          child: Text(
+                            cacheAmount == 0
+                                ? "${formatCost(item["price"])} ₸"
+                                : "${formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
+                            textHeightBehavior: const TextHeightBehavior(
+                              applyHeightToFirstAscent: false,
+                            ),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 26,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          ),
+                        ),
+                        cacheAmount == 0
+                            ? Flexible(
+                                flex: 2,
+                                fit: FlexFit.tight,
+                                child: Text(
+                                  "Купить",
                                   textHeightBehavior: const TextHeightBehavior(
                                     applyHeightToFirstAscent: false,
                                   ),
+                                  textAlign: TextAlign.center,
                                   style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 20,
                                     color:
                                         Theme.of(context).colorScheme.onPrimary,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                Flexible(
-                                  child: IconButton(
-                                    padding: const EdgeInsets.all(0),
-                                    // style: IconButton.styleFrom(
-                                    //   shape: const RoundedRectangleBorder(
-                                    //     borderRadius:
-                                    //         BorderRadius.all(Radius.circular(12)),
-                                    //   ),
-                                    //   side: const BorderSide(
-                                    //     width: 2.6,
-                                    //     strokeAlign: -7.0,
-                                    //   ),
-                                    // ),
-                                    onPressed: () {
-                                      _addToCart();
-                                    },
-                                    icon: Icon(
-                                      Icons.add_rounded,
+                              )
+                            : Flexible(
+                                flex: 2,
+                                fit: FlexFit.tight,
+                                child: GestureDetector(
+                                  onLongPress: () {
+                                    setState(() {
+                                      isNumPickActive = true;
+                                    });
+                                  },
+                                  child: Text(
+                                    "$cacheAmount шт.",
+                                    textHeightBehavior:
+                                        const TextHeightBehavior(
+                                      applyHeightToFirstAscent: false,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 20,
                                       color: Theme.of(context)
                                           .colorScheme
                                           .onPrimary,
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                        ),
+                              ),
                         Flexible(
-                          flex: 1,
                           fit: FlexFit.tight,
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 200),
-                            transitionBuilder: (child, animation) {
-                              return ScaleTransition(
-                                scale: animation,
-                                child: child,
-                              );
+                          child: IconButton(
+                            padding: const EdgeInsets.all(0),
+                            onPressed: () {
+                              _addToCart();
                             },
-                            child: !isAmountConfirmed
-                                ? IconButton(
-                                    padding: const EdgeInsets.all(0),
-                                    key: const Key("add_cart"),
-                                    onPressed: () {
-                                      _finalizeCartAmount();
-                                      widget.returnDataAmount(
-                                          cacheAmount.toString(), widget.index);
-                                      setState(() {
-                                        isAmountConfirmed = true;
-                                      });
-                                      // Navigator.push(context,
-                                      //     MaterialPageRoute(builder: (context) {
-                                      //   return const CartPage();
-                                      // }));
-                                    },
-                                    icon: Icon(
-                                      Icons.add_shopping_cart_rounded,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onPrimary,
-                                    ),
-                                  )
-                                : IconButton(
-                                    padding: const EdgeInsets.all(0),
-                                    key: const Key("go_cart"),
-                                    onPressed: () {
-                                      // _finalizeCartAmount();
-                                      Navigator.pop(context);
-                                      if (widget.openedFromCart) {
-                                        return;
-                                      } else {
-                                        Navigator.pushReplacement(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) {
-                                              return const CartPage();
-                                            },
-                                          ),
-                                        );
-                                      }
-                                    },
-                                    icon: Icon(
-                                      Icons.shopping_cart_checkout_rounded,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onPrimary,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : ElevatedButton(
-                    // style: ElevatedButton.styleFrom(
-                    //   padding: const EdgeInsets.all(10),
-                    //   backgroundColor: Colors.grey.shade400,
-                    // ),
-                    onPressed: () {
-                      _addToCart();
-                    },
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            "${formatCost(item["price"])} ₸",
-                            textHeightBehavior: const TextHeightBehavior(
-                              applyHeightToFirstAscent: false,
-                            ),
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 28,
-                              color: Theme.of(context).colorScheme.onPrimary,
-                            ),
-                          ),
-                        ),
-                        Flexible(
-                          child: Text(
-                            "В корзину",
-                            textHeightBehavior: const TextHeightBehavior(
-                              applyHeightToFirstAscent: false,
-                            ),
-                            style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 22,
-                              color: Theme.of(context).colorScheme.onPrimary,
+                            icon: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color:
+                                      Theme.of(context).colorScheme.onPrimary,
+                                ),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Icon(
+                                Icons.add_rounded,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
                             ),
                           ),
                         ),
                       ],
                     ),
-                    // child: Row(
-                    //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    //   crossAxisAlignment: CrossAxisAlignment.center,
-                    //   mainAxisSize: MainAxisSize.max,
-                    //   children: [
-                    //     Flexible(
-                    //       child: Text(
-                    //         "В корзину",
-                    //         style: TextStyle(
-                    //           fontWeight: FontWeight.w900,
-                    //           fontSize: 18,
-                    //           color: Theme.of(context).colorScheme.onPrimary,
-                    //         ),
-                    //       ),
-                    //     ),
-                    //     Flexible(
-                    //       child: Row(
-                    //         mainAxisAlignment: MainAxisAlignment.end,
-                    //         crossAxisAlignment: CrossAxisAlignment.center,
-                    //         children: [
-                    //           item["prev_price"] != null
-                    //               ? Text(
-                    //                   formatCost(item["prev_price"]),
-                    //                   style: TextStyle(
-                    //                     decoration:
-                    //                         TextDecoration.lineThrough,
-                    //                     decorationColor: Theme.of(context)
-                    //                         .colorScheme
-                    //                         .onPrimary,
-                    //                     decorationThickness: 1.85,
-                    //                     color: Theme.of(context)
-                    //                         .colorScheme
-                    //                         .onPrimary,
-                    //                     fontSize: 16,
-                    //                     fontWeight: FontWeight.w500,
-                    //                   ),
-                    //                 )
-                    //               : Container(),
-                    //           Row(
-                    //             children: [
-                    //               Padding(
-                    //                 padding: const EdgeInsets.only(
-                    //                     left: 7, right: 5),
-                    //                 child: Text(
-                    //                   formatCost(item["price"] ?? ""),
-                    //                   style: TextStyle(
-                    //                     fontWeight: FontWeight.w700,
-                    //                     fontSize: 26,
-                    //                     color: Theme.of(context)
-                    //                         .colorScheme
-                    //                         .onPrimary,
-                    //                   ),
-                    //                 ),
-                    //               ),
-                    //               Text(
-                    //                 "₸",
-                    //                 style: TextStyle(
-                    //                   color: Theme.of(context)
-                    //                       .colorScheme
-                    //                       .onPrimary,
-                    //                   fontWeight: FontWeight.w900,
-                    //                   fontSize: 30,
-                    //                 ),
-                    //               ),
-                    //             ],
-                    //           ),
-                    //         ],
-                    //       ),
-                    //     ),
-                    //   ],
-                    // ),
-                  )
+                  ),
+                  isNumPickActive
+                      ? SizedBox(
+                          width: double.infinity,
+                          child: Row(
+                            children: [
+                              const Flexible(
+                                flex: 1,
+                                fit: FlexFit.tight,
+                                child: SizedBox(),
+                              ),
+                              const Flexible(
+                                flex: 3,
+                                fit: FlexFit.tight,
+                                child: SizedBox(),
+                              ),
+                              Flexible(
+                                flex: 2,
+                                fit: FlexFit.tight,
+                                child: _numberPicker(context),
+                              ),
+                              const Flexible(
+                                flex: 1,
+                                fit: FlexFit.tight,
+                                child: SizedBox(),
+                              )
+                            ],
+                          ),
+                        )
+                      : const SizedBox()
+                ],
+              )
             : Shimmer.fromColors(
                 baseColor:
                     Theme.of(context).colorScheme.secondary.withOpacity(0.05),
@@ -721,7 +620,7 @@ class _ProductPageState extends State<ProductPage> {
                   width: MediaQuery.of(context).size.width,
                   height: 50,
                   decoration: const BoxDecoration(
-                    borderRadius: BorderRadius.all(Radius.circular(3)),
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
                     color: Colors.white,
                   ),
                   child: null,
@@ -739,7 +638,15 @@ class _ProductPageState extends State<ProductPage> {
               children: [
                 Container(
                   alignment: Alignment.center,
-                  child: _image,
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.all(
+                        Radius.circular(10),
+                      ),
+                    ),
+                    clipBehavior: Clip.none,
+                    child: _image,
+                  ),
                 ),
                 SizedBox(
                   width: MediaQuery.of(context).size.width,
@@ -856,12 +763,18 @@ class _ProductPageState extends State<ProductPage> {
                       Text(
                         item["name"] ?? "",
                         style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black),
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black,
+                        ),
                       ),
                       Text(
-                        "${double.parse(item["in_stock"] ?? "0").truncate().toString()} шт в наличии",
+                        "${double.parse(item["in_stock"] ?? "0").truncate().toString()} шт. в наличии",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
                       ),
                     ],
                   ),
@@ -1002,10 +915,19 @@ class _ProductPageState extends State<ProductPage> {
               )
             ],
           ),
-          Container(
-            padding: const EdgeInsets.all(15),
-            child: Text(TabText[currentTab]),
-          ),
+          isDescriptionLoaded
+              ? Container(
+                  padding: const EdgeInsets.all(15),
+                  child: Text(TabText[currentTab]),
+                )
+              : SizedBox(
+                  child: SlideTransition(
+                    position: AlwaysStoppedAnimation(
+                      Offset(0, -1),
+                    ),
+                    child: const LinearProgressIndicator(),
+                  ),
+                ),
           Container(
             padding: const EdgeInsets.all(15),
             child: Table(
@@ -1021,6 +943,53 @@ class _ProductPageState extends State<ProductPage> {
             height: 100,
           )
         ],
+      ),
+    );
+  }
+
+  Container _numberPicker(BuildContext context) {
+    return Container(
+      height: 100,
+      margin: const EdgeInsets.symmetric(horizontal: 10),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.all(
+          Radius.circular(10),
+        ),
+        color: Theme.of(context).colorScheme.secondary.withOpacity(0.5),
+      ),
+      child: ListView.builder(
+        controller: _scrollController,
+        itemCount: double.parse(item["in_stock"]).truncate() + 2,
+        itemExtent: 33.3,
+        itemBuilder: (context, index) {
+          if (index == 0 ||
+              index == double.parse(item["in_stock"]).truncate() + 1) {
+            return const SizedBox(
+              height: 33.3,
+            );
+          }
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                cacheAmount = index;
+              });
+              isNumPickActive = false;
+            },
+            child: SizedBox(
+              height: 33.3,
+              child: Text(
+                index.toString(),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
+                  fontSize: 20,
+                  fontWeight:
+                      index == cacheAmount ? FontWeight.w900 : FontWeight.w500,
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

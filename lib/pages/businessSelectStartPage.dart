@@ -1,200 +1,207 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:naliv_delivery/main.dart';
-import 'package:naliv_delivery/pages/homePage.dart';
-import 'package:shimmer/shimmer.dart';
+// import 'dart:io';
 
-import '../misc/api.dart';
+// import 'package:flutter/material.dart';
+// import 'package:flutter/widgets.dart';
+// import 'package:geolocator/geolocator.dart';
+// import 'package:naliv_delivery/main.dart';
+// import 'package:naliv_delivery/pages/homePage.dart';
+// import 'package:shimmer/shimmer.dart';
 
-class BusinessSelectStartPage extends StatefulWidget {
-  const BusinessSelectStartPage({super.key});
+// import '../misc/api.dart';
 
-  @override
-  State<BusinessSelectStartPage> createState() =>
-      _BusinessSelectStartPageState();
-}
+// class BusinessSelectStartPage extends StatefulWidget {
+//   const BusinessSelectStartPage({super.key, this.businesses = const []});
 
-class _BusinessSelectStartPageState extends State<BusinessSelectStartPage> {
-  Widget _stores = Container(
-    child: const Text("К сожалению в вашем регионе нет наших магазинов"),
-  );
+//   final List<dynamic> businesses;
 
-  List<Widget> _stores1 = [];
+//   @override
+//   State<BusinessSelectStartPage> createState() =>
+//       _BusinessSelectStartPageState();
+// }
 
-  bool isBusinessesLoading = false;
+// class _BusinessSelectStartPageState extends State<BusinessSelectStartPage> {
+//   Widget _stores = Container(
+//     child: const Text("К сожалению в вашем регионе нет наших магазинов"),
+//   );
 
-  Future<void> getPosition() async {
-    Position location = await determinePosition(context);
-    print(location.latitude);
-    print(location.longitude);
-    setCityAuto(location.latitude, location.longitude);
-  }
+//   List<Widget> _stores1 = [];
 
-  Future<void> _getBusinesses() async {
-    setState(() {
-      isBusinessesLoading = true;
-    });
-    List? businesses = await getBusinesses();
-    if (businesses == null) {
-    } else {
-      List<Widget> businessesWidget = [];
-      for (var element in businesses) {
-        businessesWidget.add(Padding(
-          padding: const EdgeInsets.symmetric(vertical: 3),
-          child: Card(
-            color: Colors.black12,
-            elevation: 0.0,
-            shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(3))),
-            child: ListTile(
-              onTap: () async {
-                if (await setCurrentStore(element["business_id"])) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const Main()),
-                  );
-                }
-              },
-              title: Container(
-                child: Text(element["name"].toString().toUpperCase()),
-              ),
-              subtitle: Text(element["address"]),
-            ),
-          ),
-        ));
-      }
-      setState(() {
-        _stores = Column(
-          children: businessesWidget,
-        );
-        _stores1 = businessesWidget;
-        isBusinessesLoading = false;
-      });
-    }
-  }
+//   bool isBusinessesLoading = false;
 
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    _getBusinesses();
-  }
+//   Future<void> getPosition() async {
+//     Position location = await determinePosition(context);
+//     print(location.latitude);
+//     print(location.longitude);
+//     setCityAuto(location.latitude, location.longitude);
+//   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        alignment: Alignment.center,
-        padding: const EdgeInsets.all(30),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Text(
-                "Выберите магазин",
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 18,
-                  color: Theme.of(context).colorScheme.onBackground,
-                ),
-              ),
-            ),
-            isBusinessesLoading
-                ? Shimmer.fromColors(
-                    baseColor: Theme.of(context)
-                        .colorScheme
-                        .secondary
-                        .withOpacity(0.05),
-                    highlightColor: Theme.of(context).colorScheme.secondary,
-                    child: Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Container(
-                            width: MediaQuery.of(context).size.width,
-                            height: 70,
-                            decoration: BoxDecoration(
-                              borderRadius: const BorderRadius.all(
-                                Radius.circular(3),
-                              ),
-                              color: Theme.of(context).colorScheme.background,
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Container(
-                            width: MediaQuery.of(context).size.width,
-                            height: 70,
-                            decoration: BoxDecoration(
-                              borderRadius: const BorderRadius.all(
-                                Radius.circular(3),
-                              ),
-                              color: Theme.of(context).colorScheme.background,
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Container(
-                            width: MediaQuery.of(context).size.width,
-                            height: 70,
-                            decoration: BoxDecoration(
-                              borderRadius: const BorderRadius.all(
-                                Radius.circular(3),
-                              ),
-                              color: Theme.of(context).colorScheme.background,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : Flexible(
-                    flex: 2,
-                    child: ListView(
-                      padding: EdgeInsets.zero,
-                      primary: false,
-                      shrinkWrap: true,
-                      children: _stores1,
-                    ),
-                  ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Card(
-                color: Theme.of(context).colorScheme.primary,
-                elevation: 0.0,
-                shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(3))),
-                child: ListTile(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) {
-                        return const HomePage();
-                      }),
-                    );
-                  },
-                  title: Container(
-                    child: Text(
-                      "Назад",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 18,
-                        color: Theme.of(context).colorScheme.onPrimary,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+//   Future<void> _getBusinesses() async {
+//     if (mounted) {
+//       setState(() {
+//         isBusinessesLoading = true;
+//       });
+//     }
+//     List? businesses = [];
+//     if (widget.businesses.isEmpty) {
+//       businesses = await getBusinesses();
+//     } else {
+//       businesses = widget.businesses;
+//     }
+//     if (businesses == null) {
+//     } else {
+//       List<Widget> businessesWidget = [];
+//       for (var element in businesses) {
+//         businessesWidget.add(Padding(
+//           padding: const EdgeInsets.symmetric(vertical: 3),
+//           child: Card(
+//             color: Colors.black12,
+//             elevation: 0.0,
+//             shape: const RoundedRectangleBorder(
+//                 borderRadius: BorderRadius.all(Radius.circular(10))),
+//             child: ListTile(
+//               onTap: () {
+//                 Navigator.pushAndRemoveUntil(context,
+//                     MaterialPageRoute(builder: (context) {
+//                   return HomePage(setCurrentBusiness: element["business_id"], business_id: "1",);
+//                 }), (route) => false);
+//               },
+//               title: Container(
+//                 child: Text(element["name"].toString().toUpperCase()),
+//               ),
+//               subtitle: Text(element["address"]),
+//             ),
+//           ),
+//         ));
+//       }
+//       setState(() {
+//         _stores = Column(
+//           children: businessesWidget,
+//         );
+//         _stores1 = businessesWidget;
+//         isBusinessesLoading = false;
+//       });
+//     }
+//   }
+
+//   @override
+//   void initState() {
+//     // TODO: implement initState
+//     super.initState();
+//     _getBusinesses();
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       body: Container(
+//         alignment: Alignment.center,
+//         padding: const EdgeInsets.all(30),
+//         child: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           crossAxisAlignment: CrossAxisAlignment.center,
+//           children: [
+//             Padding(
+//               padding: const EdgeInsets.symmetric(vertical: 20),
+//               child: Text(
+//                 "Выберите магазин",
+//                 style: TextStyle(
+//                   fontWeight: FontWeight.w900,
+//                   fontSize: 18,
+//                   color: Theme.of(context).colorScheme.onBackground,
+//                 ),
+//               ),
+//             ),
+//             isBusinessesLoading
+//                 ? Shimmer.fromColors(
+//                     baseColor: Theme.of(context)
+//                         .colorScheme
+//                         .secondary
+//                         .withOpacity(0.05),
+//                     highlightColor: Theme.of(context).colorScheme.secondary,
+//                     child: Column(
+//                       children: [
+//                         Padding(
+//                           padding: const EdgeInsets.symmetric(vertical: 8),
+//                           child: Container(
+//                             width: MediaQuery.of(context).size.width,
+//                             height: 70,
+//                             decoration: BoxDecoration(
+//                               borderRadius: const BorderRadius.all(
+//                                 Radius.circular(10),
+//                               ),
+//                               color: Theme.of(context).colorScheme.background,
+//                             ),
+//                           ),
+//                         ),
+//                         Padding(
+//                           padding: const EdgeInsets.symmetric(vertical: 8),
+//                           child: Container(
+//                             width: MediaQuery.of(context).size.width,
+//                             height: 70,
+//                             decoration: BoxDecoration(
+//                               borderRadius: const BorderRadius.all(
+//                                 Radius.circular(10),
+//                               ),
+//                               color: Theme.of(context).colorScheme.background,
+//                             ),
+//                           ),
+//                         ),
+//                         Padding(
+//                           padding: const EdgeInsets.symmetric(vertical: 8),
+//                           child: Container(
+//                             width: MediaQuery.of(context).size.width,
+//                             height: 70,
+//                             decoration: BoxDecoration(
+//                               borderRadius: const BorderRadius.all(
+//                                 Radius.circular(10),
+//                               ),
+//                               color: Theme.of(context).colorScheme.background,
+//                             ),
+//                           ),
+//                         ),
+//                       ],
+//                     ),
+//                   )
+//                 : Flexible(
+//                     flex: 2,
+//                     child: ListView(
+//                       padding: EdgeInsets.zero,
+//                       primary: false,
+//                       shrinkWrap: true,
+//                       children: _stores1,
+//                     ),
+//                   ),
+//             Padding(
+//               padding: const EdgeInsets.symmetric(vertical: 20),
+//               child: Card(
+//                 color: Theme.of(context).colorScheme.primary,
+//                 elevation: 0.0,
+//                 shape: const RoundedRectangleBorder(
+//                     borderRadius: BorderRadius.all(Radius.circular(10))),
+//                 child: ListTile(
+//                   onTap: () {
+//                     Navigator.pushAndRemoveUntil(context,
+//                         MaterialPageRoute(builder: (context) {
+//                       return const HomePage();
+//                     }), (route) => false);
+//                   },
+//                   title: Container(
+//                     child: Text(
+//                       "Назад",
+//                       textAlign: TextAlign.center,
+//                       style: TextStyle(
+//                         fontWeight: FontWeight.w900,
+//                         fontSize: 18,
+//                         color: Theme.of(context).colorScheme.onPrimary,
+//                       ),
+//                     ),
+//                   ),
+//                 ),
+//               ),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }

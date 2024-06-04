@@ -3,6 +3,7 @@ import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/misc/colors.dart';
 import 'package:naliv_delivery/pages/loginPage.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
+import 'package:flutter/cupertino.dart';
 
 class RegistrationPage extends StatefulWidget {
   const RegistrationPage({super.key});

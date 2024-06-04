@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/cartPage.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
+import 'package:naliv_delivery/shared/cartButton.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 
 import 'package:naliv_delivery/misc/api.dart';
 
 class FavPage extends StatefulWidget {
-  const FavPage({super.key});
+  const FavPage({super.key, required this.business});
+
+  final Map<dynamic, dynamic> business;
 
   @override
   State<FavPage> createState() => _FavPageState();
@@ -97,27 +100,8 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: SizedBox(
-        width: 65,
-        height: 65,
-        child: FloatingActionButton(
-          shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(3))),
-          child: Icon(
-            Icons.shopping_basket_rounded,
-            color: Theme.of(context).colorScheme.onPrimary,
-          ),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) {
-                  return const CartPage();
-                },
-              ),
-            );
-          },
-        ),
+      floatingActionButton: CartButton(
+        business: widget.business,
       ),
       appBar: AppBar(
         title: const Row(
@@ -169,6 +153,7 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
                           item: items[index],
                           index: index,
                           returnDataAmount: updateDataAmount,
+                          business: widget.business,
                         );
                       },
                     );
@@ -176,8 +161,24 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
                 );
               },
             )
-          : const Center(
-              child: Text("Вы пока не добавили товары в этом магазине"),
+          : Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.8,
+                    child: Text(
+                      "Вы пока ничего не добавили в избранное",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.secondary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
     );
   }

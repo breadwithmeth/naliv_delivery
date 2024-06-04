@@ -4,7 +4,9 @@ import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/pages/searchResultPage.dart';
 
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key, this.category_id = ""});
+  const SearchPage({super.key, required this.business, this.category_id = ""});
+
+  final Map<dynamic, dynamic> business;
   final String category_id;
 
   @override
@@ -24,6 +26,7 @@ class _SearchPageState extends State<SearchPage> {
           return SearchResultPage(
             search: _keyword.text,
             page: 0,
+            business: widget.business,
           );
         } else {
           print("SEARCH INSIDE CATEGORY");
@@ -31,6 +34,7 @@ class _SearchPageState extends State<SearchPage> {
             search: _keyword.text,
             page: 0,
             category_id: widget.category_id,
+            business: widget.business,
           );
         }
       },
@@ -60,7 +64,7 @@ class _SearchPageState extends State<SearchPage> {
                   )
                 ],
                 color: Colors.grey.shade100,
-                borderRadius: const BorderRadius.all(Radius.circular(3))),
+                borderRadius: const BorderRadius.all(Radius.circular(10))),
             child: Column(
               children: [
                 TextField(
@@ -96,19 +100,19 @@ class _SearchPageState extends State<SearchPage> {
                               width: 2,
                               color: Theme.of(context).colorScheme.primary),
                           borderRadius:
-                              const BorderRadius.all(Radius.circular(3))),
+                              const BorderRadius.all(Radius.circular(10))),
                       enabledBorder: OutlineInputBorder(
                           borderSide: BorderSide(
                               width: 2,
                               color: Theme.of(context).colorScheme.primary),
                           borderRadius:
-                              const BorderRadius.all(Radius.circular(3))),
+                              const BorderRadius.all(Radius.circular(10))),
                       border: OutlineInputBorder(
                           borderSide: BorderSide(
                               width: 5,
                               color: Theme.of(context).colorScheme.primary),
                           borderRadius:
-                              const BorderRadius.all(Radius.circular(3)))),
+                              const BorderRadius.all(Radius.circular(10)))),
                 ),
                 const SizedBox(
                   height: 5,

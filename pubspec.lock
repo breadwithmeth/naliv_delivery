@@ -25,6 +25,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.11.0"
+  aura_box:
+    dependency: "direct main"
+    description:
+      name: aura_box
+      sha256: "944986570485c44b98e1e719895448eb3889e1cd5d6b8f7fd4a9b4349401f2d8"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.2"
   boolean_selector:
     dependency: transitive
     description:
@@ -121,6 +129,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.5"
+  dio:
+    dependency: transitive
+    description:
+      name: dio
+      sha256: "11e40df547d418cc0c4900a9318b26304e665da6fa4755399a9ff9efd09034b5"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.4.3+1"
   equatable:
     dependency: transitive
     description:
@@ -174,6 +190,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.3.1"
+  flutter_hooks:
+    dependency: "direct main"
+    description:
+      name: flutter_hooks
+      sha256: cde36b12f7188c85286fba9b38cc5a902e7279f36dd676967106c041dc9dde70
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.20.5"
   flutter_launcher_icons:
     dependency: "direct main"
     description:
@@ -203,6 +227,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.1.0"
+  flutter_map_cancellable_tile_provider:
+    dependency: "direct main"
+    description:
+      name: flutter_map_cancellable_tile_provider
+      sha256: ae18dd59faf74f3eca1d28f83e59b47741bbff962e123bbebe9335c04d432f44
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.0"
   flutter_markdown:
     dependency: "direct main"
     description:

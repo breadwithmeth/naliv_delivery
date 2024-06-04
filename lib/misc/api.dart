@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 
 //var URL_API = '10.8.0.3';
@@ -11,23 +11,25 @@ import 'package:http/http.dart' as http;
 var URL_API = 'naliv.kz';
 
 Future<Position> determinePosition(BuildContext ctx) async {
-  bool serviceEnabled;
   LocationPermission permission;
 
   // Test if location services are enabled.
-  serviceEnabled = await Geolocator.isLocationServiceEnabled();
-  if (!serviceEnabled) {
-    // Location services are not enabled don't continue
-    // accessing the position and request users of the
-    // App to enable the location services.
-    Navigator.push(ctx, MaterialPageRoute(
-      builder: (context) {
-        return Container();
-      },
-    ));
-    Geolocator.openLocationSettings();
-    return Future.error('Location services are disabled.');
-  }
+  await Geolocator.isLocationServiceEnabled().then((value) {
+    if (!value) {
+      // Location services are not enabled don't continue
+      // accessing the position and request users of the
+      // App to enable the location services.
+      Navigator.push(ctx, MaterialPageRoute(
+        builder: (context) {
+          return Container();
+        },
+      ));
+      Geolocator.openLocationSettings().whenComplete(() {
+        Navigator.pop(ctx);
+      });
+      return Future.error('Location services are disabled.');
+    }
+  });
 
   permission = await Geolocator.checkPermission();
   if (permission == LocationPermission.denied) {
@@ -200,7 +202,8 @@ Future<bool> setCurrentStore(String businessId) async {
   }
 }
 
-Future<List> getCategories([bool parent_category = false]) async {
+Future<List> getCategories(String business_id,
+    [bool parent_category = false]) async {
   String? token = await getToken();
   if (token == null) {
     return [];
@@ -208,7 +211,9 @@ Future<List> getCategories([bool parent_category = false]) async {
   var url = Uri.https(URL_API, 'api/category/get.php');
   var response = await http.post(url,
       headers: {"Content-Type": "application/json", "AUTH": token},
-      body: parent_category ? json.encode({'parent_category_only': "1"}) : []);
+      body: parent_category
+          ? json.encode({'parent_category_only': "1"})
+          : json.encode({"business_id": business_id}));
 
   // List<dynamic> list = json.decode(response.body);
   List data = json.decode(utf8.decode(response.bodyBytes));
@@ -216,7 +221,7 @@ Future<List> getCategories([bool parent_category = false]) async {
   return data;
 }
 
-Future<List?> getItemsMain(int page,
+Future<List?> getItemsMain(int page, String business_id,
     [String? search, String? categoryId]) async {
   String? token = await getToken();
   if (token == null) {
@@ -228,10 +233,10 @@ Future<List?> getItemsMain(int page,
   Map<String, String> queryBody = {};
 
   if (search != null) {
-    queryBody.addAll({'search': search});
+    queryBody.addAll({'search': search, 'business_id': business_id});
   }
   if (categoryId != null) {
-    queryBody.addAll({'category_id': categoryId});
+    queryBody.addAll({'category_id': categoryId, 'business_id': business_id});
   }
   queryBody.addAll({'page': page.toString()});
   var jsonBody = jsonEncode(queryBody);
@@ -321,7 +326,8 @@ Future<Map<String, dynamic>> getItem(String itemId, {List? filter}) async {
   }
 }
 
-Future<String?> changeCartItem(String itemId, int amount) async {
+Future<String?> changeCartItem(
+    String itemId, int amount, String businessId) async {
   String? token = await getToken();
   print("ADD TO CARD");
   if (token == null) {
@@ -330,7 +336,8 @@ Future<String?> changeCartItem(String itemId, int amount) async {
   var url = Uri.https(URL_API, 'api/item/addToCart.php');
   var response = await http.post(
     url,
-    body: json.encode({'item_id': itemId, 'amount': amount}),
+    body: json.encode(
+        {'item_id': itemId, 'amount': amount, 'business_id': businessId}),
     headers: {"Content-Type": "application/json", "AUTH": token},
   );
   String? data;
@@ -363,7 +370,7 @@ Future<String?> removeFromCart(String itemId) async {
   return data;
 }
 
-Future<Map<String, dynamic>> getCart() async {
+Future<Map<String, dynamic>> getCart(String businessId) async {
   String? token = await getToken();
   if (token == null) {
     return {};
@@ -372,6 +379,7 @@ Future<Map<String, dynamic>> getCart() async {
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
+    body: json.encode({'business_id': businessId}),
   );
 
   // List<dynamic> list = json.decode(response.body);
@@ -556,7 +564,8 @@ Future<Map<String, dynamic>?> getCity() async {
   return data;
 }
 
-Future<Map<String, dynamic>> createOrder() async {
+Future<Map<String, dynamic>> createOrder(String businessId,
+    [String user_id = ""]) async {
   // Returns null in two situations, token is null or wrong order (406)
   String? token = await getToken();
   if (token == null) {
@@ -566,6 +575,9 @@ Future<Map<String, dynamic>> createOrder() async {
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
+    body: user_id.isNotEmpty
+        ? json.encode({"user_id": user_id, 'business_id': businessId})
+        : json.encode({'business_id': businessId}),
   );
 
   // List<dynamic> list = json.decode(response.body);
@@ -584,10 +596,10 @@ Future<Map<String, dynamic>> createOrder() async {
   }
 }
 
-Future<bool?> getOrder() async {
+Future<List<dynamic>> getOrders() async {
   String? token = await getToken();
   if (token == null) {
-    return false;
+    return [];
   }
   var url = Uri.https(URL_API, 'api/item/getOrder.php');
   var response = await http.post(
@@ -595,16 +607,16 @@ Future<bool?> getOrder() async {
     headers: {"Content-Type": "application/json", "AUTH": token},
   );
 
-  // List<dynamic> list = json.decode(response.body);
+  List<dynamic> list = json.decode(response.body);
   print(json.encode(response.statusCode));
   print(response.body);
   int data = response.statusCode;
   if (data == 200) {
-    return true;
+    return list;
   } else if (data == 400) {
-    return false;
+    return [];
   } else {
-    return null;
+    return [];
   }
 }
 
@@ -710,4 +722,92 @@ Future<Map?> getGeoData(String search) async {
   // List<dynamic> list = json.decode(response.body);
   Map? data = json.decode(utf8.decode(response.bodyBytes));
   return data;
+}
+
+Future<Map<String, dynamic>> getCreateUser(String phoneNumber) async {
+  String? token = await getToken();
+  if (token == null) {
+    return {};
+  }
+  var url = Uri.https(URL_API, 'api/user/getClient.php');
+  var response = await http.post(
+    url,
+    headers: {
+      "Content-Type": "application/json",
+      "AUTH": token,
+    },
+    body: json.encode({"phone_number": phoneNumber}),
+  );
+
+  Map<String, dynamic> result = json.decode(response.body);
+  print(json.encode(response.statusCode));
+  print(response.body);
+  return result;
+}
+
+Future<List<dynamic>> getUserAddresses(String userID) async {
+  String? token = await getToken();
+  if (token == null) {
+    return [];
+  }
+  var url = Uri.https(URL_API, 'api/user/getAddressesPerUser.php');
+  var response = await http.post(
+    url,
+    headers: {
+      "Content-Type": "application/json",
+      "AUTH": token,
+    },
+    body: json.encode({"user_id": userID}),
+  );
+
+  List<dynamic> result = json.decode(response.body);
+  print(json.encode(response.statusCode));
+  print(response.body);
+  return result;
+}
+
+Future<bool> selectAddressClient(String addressId, String user_id) async {
+  String? token = await getToken();
+  if (token == null) {
+    return false;
+  }
+  var url = Uri.https(URL_API, 'api/user/selectAddress.php');
+  var response = await http.post(
+    url,
+    body: json.encode({"address_id": addressId, "user_id": user_id}),
+    headers: {"Content-Type": "application/json", "AUTH": token},
+  );
+  Map<String, dynamic>? data = json.decode(utf8.decode(response.bodyBytes));
+  if (data == null) {
+    return false;
+  } else {
+    if (data["result"] == true) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
+
+
+
+Future<List<dynamic>> getCities() async {
+  String? token = await getToken();
+  if (token == null) {
+    return [];
+  }
+  var url = Uri.https(URL_API, 'api/user/getCities.php');
+  var response = await http.post(
+    url,
+    headers: {
+      "Content-Type": "application/json",
+      "AUTH": token,
+    },
+    // body: json.encode({"user_id": userID}),
+  );
+
+  List<dynamic> result = json.decode(response.body);
+  print(json.encode(response.statusCode));
+  print(response.body);
+  return result;
 }

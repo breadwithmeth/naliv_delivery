@@ -60,7 +60,7 @@ class _ItemCardState extends State<ItemCard> {
           children: [
             Text(
               temp[1],
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: Colors.black),
@@ -93,11 +93,13 @@ class _ItemCardState extends State<ItemCard> {
 
   @override
   Widget build(BuildContext context) {
+    double screenSize = MediaQuery.of(context).size.width;
+
     chack = widget.chack;
     return Container(
       // margin: const EdgeInsets.all(10),
-      width: MediaQuery.of(context).size.width,
-      height: MediaQuery.of(context).size.height * 0.28,
+      width: (MediaQuery.of(context).size.width * 2) * (screenSize / 720),
+      height: (MediaQuery.of(context).size.height * 0.56) * (screenSize / 720),
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -157,9 +159,9 @@ class _ItemCardState extends State<ItemCard> {
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       text: TextSpan(
-                        style: const TextStyle(
+                        style: TextStyle(
                           textBaseline: TextBaseline.alphabetic,
-                          fontSize: 20,
+                          fontSize: 40 * (screenSize / 720),
                           color: Colors.black,
                         ),
                         children: [
@@ -177,7 +179,7 @@ class _ItemCardState extends State<ItemCard> {
                                     ),
                                     child: Text(
                                       element["country"] ?? "",
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: Colors.black,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -197,17 +199,17 @@ class _ItemCardState extends State<ItemCard> {
                           children: [
                             Text(
                               formatCost(element['price'] ?? ""),
-                              style: const TextStyle(
+                              style: TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.w600,
-                                  fontSize: 28),
+                                  fontSize: 56 * (screenSize / 720)),
                             ),
                             Text(
                               "₸",
                               style: TextStyle(
                                   color: Colors.grey.shade600,
                                   fontWeight: FontWeight.w900,
-                                  fontSize: 28),
+                                  fontSize: 56 * (screenSize / 720)),
                             )
                           ],
                         ),
@@ -224,7 +226,7 @@ class _ItemCardState extends State<ItemCard> {
                                           decorationColor: Colors.grey.shade500,
                                           decorationThickness: 1.85,
                                           color: Colors.grey.shade500,
-                                          fontSize: 14,
+                                          fontSize: 28 * (screenSize / 720),
                                           fontWeight: FontWeight.w500),
                                     ),
                                     Text(
@@ -232,7 +234,7 @@ class _ItemCardState extends State<ItemCard> {
                                       style: TextStyle(
                                           color: Colors.grey.shade600,
                                           fontWeight: FontWeight.w900,
-                                          fontSize: 14),
+                                          fontSize: 28 * (screenSize / 720)),
                                     )
                                   ],
                                 ),
@@ -340,7 +342,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
           children: [
             Text(
               temp[1],
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 color: Colors.black,
@@ -374,12 +376,14 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
 
   @override
   Widget build(BuildContext context) {
+    double screenSize = MediaQuery.of(context).size.width;
+
     chack = widget.chack;
     return Container(
       // margin: const EdgeInsets.all(10),
       padding: const EdgeInsets.symmetric(horizontal: 10),
-      width: MediaQuery.of(context).size.width,
-      height: MediaQuery.of(context).size.height * 0.2,
+      width: (MediaQuery.of(context).size.width * 2) * (screenSize / 720),
+      height: (MediaQuery.of(context).size.height * 0.4) * (screenSize / 720),
       child: Stack(
         children: [
           // Image.asset(
@@ -392,6 +396,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
             children: [
               Flexible(
                 flex: 2,
+                fit: FlexFit.tight,
                 child: Container(
                   decoration: const BoxDecoration(
                     borderRadius: BorderRadius.all(Radius.circular(2)),
@@ -435,7 +440,8 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                 flex: 5,
                 fit: FlexFit.tight,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     mainAxisSize: MainAxisSize.max,
@@ -454,13 +460,17 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                     text: TextSpan(
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         textBaseline: TextBaseline.alphabetic,
-                                        fontSize: 14,
+                                        fontSize: 28 * (screenSize / 720),
                                         color: Colors.black,
                                       ),
                                       children: [
-                                        TextSpan(text: element["name"]),
+                                        TextSpan(
+                                          text: element["name"],
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w500),
+                                        ),
                                         element["country"] != null
                                             ? WidgetSpan(
                                                 child: Container(
@@ -478,7 +488,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                                   ),
                                                   child: Text(
                                                     element["country"] ?? "",
-                                                    style: const TextStyle(
+                                                    style: TextStyle(
                                                       color: Colors.black,
                                                       fontWeight:
                                                           FontWeight.w600,
@@ -493,8 +503,15 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                 ),
                               ],
                             ),
-                            Text(
-                              "${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт в наличии",
+                            Flexible(
+                              child: Text(
+                                "В наличии ${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт.",
+                                style: TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.secondary,
+                                    fontSize: 28 * (screenSize / 720),
+                                    fontWeight: FontWeight.w500),
+                              ),
                             ),
                           ],
                         ),
@@ -508,46 +525,47 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                               flex: 5,
                               child: Column(
                                 children: [
-                                  element["prev_price"] != null
+                                  element["amount"] != null &&
+                                          element["amount"] != "0"
                                       ? Row(
                                           children: [
-                                            Text(
-                                              formatCost(element["prev_price"]),
-                                              style: TextStyle(
-                                                  decoration: TextDecoration
-                                                      .lineThrough,
-                                                  decorationColor:
-                                                      Colors.grey.shade500,
-                                                  decorationThickness: 1.85,
-                                                  color: Colors.grey.shade500,
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w500),
+                                            Flexible(
+                                              child: Text(
+                                                "В корзине ${element["amount"]} шт.",
+                                                style: TextStyle(
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .secondary,
+                                                    fontSize:
+                                                        28 * (screenSize / 720),
+                                                    fontWeight:
+                                                        FontWeight.w500),
+                                              ),
                                             ),
-                                            Text(
-                                              "₸",
-                                              style: TextStyle(
-                                                  color: Colors.grey.shade600,
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize: 12),
-                                            )
                                           ],
                                         )
                                       : Container(),
                                   Row(
                                     children: [
-                                      Text(
-                                        formatCost(element['price'] ?? ""),
-                                        style: const TextStyle(
-                                            color: Colors.black,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 16),
+                                      Flexible(
+                                        child: Text(
+                                          formatCost(element['price'] ?? ""),
+                                          style: TextStyle(
+                                              color: Colors.black,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize:
+                                                  36 * (screenSize / 720)),
+                                        ),
                                       ),
-                                      Text(
-                                        "₸",
-                                        style: TextStyle(
-                                            color: Colors.grey.shade600,
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 16),
+                                      Flexible(
+                                        child: Text(
+                                          "₸",
+                                          style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize:
+                                                  36 * (screenSize / 720)),
+                                        ),
                                       )
                                     ],
                                   ),
@@ -558,9 +576,11 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  LikeButton(
-                                    is_liked: element["is_liked"],
-                                    item_id: element["item_id"],
+                                  Flexible(
+                                    child: LikeButton(
+                                      is_liked: element["is_liked"],
+                                      item_id: element["item_id"],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -636,7 +656,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
           children: [
             Text(
               temp[1],
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: Colors.black),
@@ -669,6 +689,8 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
 
   @override
   Widget build(BuildContext context) {
+    double screenSize = MediaQuery.of(context).size.width;
+
     chack = widget.chack;
     return Container(
       // margin: const EdgeInsets.all(10),
@@ -730,17 +752,22 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Flexible(
+                    flex: 2,
+                    fit: FlexFit.tight,
                     child: RichText(
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       text: TextSpan(
-                        style: const TextStyle(
+                        style: TextStyle(
                           textBaseline: TextBaseline.alphabetic,
-                          fontSize: 14,
+                          fontSize: 28 * (screenSize / 720),
                           color: Colors.black,
                         ),
                         children: [
-                          TextSpan(text: element["name"]),
+                          TextSpan(
+                            text: element["name"],
+                            style: TextStyle(fontWeight: FontWeight.w500),
+                          ),
                           element["country"] != null
                               ? WidgetSpan(
                                   child: Container(
@@ -754,7 +781,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                     ),
                                     child: Text(
                                       element["country"] ?? "",
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: Colors.black,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -768,60 +795,78 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                   ),
                   Flexible(
                     child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            "${formatCost(element["price"])} ₸ за шт.",
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .secondary
+                                  .withOpacity(0.2),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 28 * (screenSize / 720),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Flexible(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Text(
-                              "${formatCost((int.parse(element['price']) * int.parse(element["amount"])).toString())} ₸",
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
-                            ),
-                            // element["prev_price"] != null
-                            //     ? Padding(
-                            //         padding: const EdgeInsets.only(left: 5),
-                            //         child: Row(
-                            //           children: [
-                            //             Text(
-                            //               formatCost(element["prev_price"]),
-                            //               style: TextStyle(
-                            //                   decoration:
-                            //                       TextDecoration.lineThrough,
-                            //                   decorationColor:
-                            //                       Colors.grey.shade500,
-                            //                   decorationThickness: 1.85,
-                            //                   color: Colors.grey.shade500,
-                            //                   fontSize: 12,
-                            //                   fontWeight: FontWeight.w500),
-                            //             ),
-                            //             Text(
-                            //               "₸",
-                            //               style: TextStyle(
-                            //                   color: Colors.grey.shade600,
-                            //                   fontWeight: FontWeight.w700,
-                            //                   fontSize: 12),
-                            //             )
-                            //           ],
-                            //         ),
-                            //       )
-                            //     : Container(),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 4),
-                              child: Text(
-                                "x ${element["amount"]}",
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                          ],
+                        Text(
+                          "${formatCost((int.parse(element['price']) * int.parse(element["amount"])).toString())} ₸",
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 32 * (screenSize / 720),
+                          ),
                         ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            "${element["amount"]} шт.",
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 32 * (screenSize / 720),
+                            ),
+                          ),
+                        ),
+                        // Row(
+                        //   children: [
+                        //     // element["prev_price"] != null
+                        //     //     ? Padding(
+                        //     //         padding: const EdgeInsets.only(left: 5),
+                        //     //         child: Row(
+                        //     //           children: [
+                        //     //             Text(
+                        //     //               formatCost(element["prev_price"]),
+                        //     //               style: TextStyle(
+                        //     //                   decoration:
+                        //     //                       TextDecoration.lineThrough,
+                        //     //                   decorationColor:
+                        //     //                       Colors.grey.shade500,
+                        //     //                   decorationThickness: 1.85,
+                        //     //                   color: Colors.grey.shade500,
+                        //     //                   fontSize: 12 * (screenSize / 720),
+                        //     //                   fontWeight: FontWeight.w500),
+                        //     //             ),
+                        //     //             Text(
+                        //     //               "₸",
+                        //     //               style: TextStyle(
+                        //     //                   color: Colors.grey.shade600,
+                        //     //                   fontWeight: FontWeight.w700,
+                        //     //                   fontSize: 12 * (screenSize / 720)),
+                        //     //             )
+                        //     //           ],
+                        //     //         ),
+                        //     //       )
+                        //     //     : Container(),
+                        //   ],
+                        // ),
                         Flexible(
                           flex: 1,
                           child: LikeButton(
@@ -911,7 +956,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
           children: [
             Text(
               temp[1],
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: Colors.black),
@@ -944,11 +989,13 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
 
   @override
   Widget build(BuildContext context) {
+    double screenSize = MediaQuery.of(context).size.width;
+
     chack = widget.chack;
     return Container(
       // margin: const EdgeInsets.all(10),
       width: MediaQuery.of(context).size.width,
-      height: MediaQuery.of(context).size.height * 0.07,
+      height: MediaQuery.of(context).size.height * 0.08,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         mainAxisSize: MainAxisSize.max,
@@ -963,10 +1010,10 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                   maxLines: 1,
                   text: TextSpan(
                     text: "x ${element["amount"]}",
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.w600,
-                      fontSize: 16,
+                      fontSize: 32 * (screenSize / 720),
                     ),
                   ),
                 ),
@@ -982,17 +1029,22 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Flexible(
+                  flex: 2,
+                  fit: FlexFit.tight,
                   child: RichText(
-                    maxLines: 3,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     text: TextSpan(
-                      style: const TextStyle(
+                      style: TextStyle(
                         textBaseline: TextBaseline.alphabetic,
-                        fontSize: 14,
+                        fontSize: 28 * (screenSize / 720),
                         color: Colors.black,
                       ),
                       children: [
-                        TextSpan(text: element["name"]),
+                        TextSpan(
+                          text: element["name"],
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
                         element["country"] != null
                             ? WidgetSpan(
                                 child: Container(
@@ -1006,7 +1058,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                                   ),
                                   child: Text(
                                     element["country"] ?? "",
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: Colors.black,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -1018,7 +1070,25 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                     ),
                   ),
                 ),
-
+                Flexible(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          "${formatCost(element["price"])} ₸ за шт.",
+                          style: TextStyle(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .secondary
+                                .withOpacity(0.2),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 28 * (screenSize / 720),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 // Flexible(
                 //   child: Row(
                 //     mainAxisAlignment: MainAxisAlignment.end,
@@ -1050,10 +1120,10 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                   text: TextSpan(
                     text:
                         "${formatCost((int.parse(element['price']) * int.parse(element['amount'])).toString())} ₸",
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.w600,
-                      fontSize: 16,
+                      fontSize: 32 * (screenSize / 720),
                     ),
                   ),
                 ),
@@ -1067,17 +1137,17 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
           //       children: [
           //         Text(
           //           "${formatCost(element['price'])} ₸",
-          //           style: const TextStyle(
+          //           style: TextStyle(
           //               color: Colors.black,
           //               fontWeight: FontWeight.w600,
-          //               fontSize: 16),
+          //               fontSize: 16 * (screenSize / 720)),
           //         ),
           //         // Text(
           //         //   "₸",
           //         //   style: TextStyle(
           //         //       color: Colors.grey.shade600,
           //         //       fontWeight: FontWeight.w700,
-          //         //       fontSize: 16),
+          //         //       fontSize: 16 * (screenSize / 720)),
           //         // // ),
           //         // element["prev_price"] != null
           //         //     ? Padding(
@@ -1091,7 +1161,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
           //         //                   decorationColor: Colors.grey.shade500,
           //         //                   decorationThickness: 1.85,
           //         //                   color: Colors.grey.shade500,
-          //         //                   fontSize: 12,
+          //         //                   fontSize: 12 * (screenSize / 720),
           //         //                   fontWeight: FontWeight.w500),
           //         //             ),
           //         //             Text(
@@ -1099,7 +1169,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
           //         //               style: TextStyle(
           //         //                   color: Colors.grey.shade600,
           //         //                   fontWeight: FontWeight.w700,
-          //         //                   fontSize: 12),
+          //         //                   fontSize: 12 * (screenSize / 720)),
           //         //             )
           //         //           ],
           //         //         ),

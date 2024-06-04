@@ -5,11 +5,11 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Program requires GPS to track cars and job orders</string>
+	<string>Приложение использует данные глобальной системы позиционирования (GPS) для определения местоположения пользователя на уровне города.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Program requires GPS to track cars and job orders</string>
+	<string>Приложение использует данные глобальной системы позиционирования (GPS) для определения местоположения пользователя на уровне города.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Program requires GPS to track cars and job orders</string>
+	<string>Приложение использует данные глобальной системы позиционирования (GPS) для определения местоположения пользователя на уровне города.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

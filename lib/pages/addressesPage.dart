@@ -9,7 +9,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:naliv_delivery/pages/createAddress.dart';
+import 'package:naliv_delivery/pages/createAddressPage.dart';
+import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 
 class AddressesPage extends StatefulWidget {
   const AddressesPage(
@@ -102,7 +103,7 @@ class _AddressesPageState extends State<AddressesPage>
       // Location services are not enabled don't continue
       // accessing the position and request users of the
       // App to enable the location services.
-      return Future.error('Location services are disabled.');
+      return Future.error('Сервис местоположения отключен.');
     }
 
     permission = await Geolocator.checkPermission();
@@ -114,14 +115,14 @@ class _AddressesPageState extends State<AddressesPage>
         // Android's shouldShowRequestPermissionRationale
         // returned true. According to Android guidelines
         // your App should show an explanatory UI now.
-        return Future.error('Location permissions are denied');
+        return Future.error('Нет разрешения к сервису местоположения');
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
       // Permissions are denied forever, handle appropriately.
       return Future.error(
-          'Location permissions are permanently denied, we cannot request permissions.');
+          'Доступ к местоположению полностью заблокирован, мы не можем запросить разрешение.');
     }
 
     // When we reach here, permissions are granted and we can
@@ -176,6 +177,7 @@ class _AddressesPageState extends State<AddressesPage>
                           urlTemplate:
                               'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                           userAgentPackageName: 'com.example.app',
+                          tileProvider: CancellableNetworkTileProvider(),
                         ),
                         MarkerLayer(markers: [
                           Marker(point: _selectedAddress, child: FlutterLogo())
@@ -222,14 +224,14 @@ class _AddressesPageState extends State<AddressesPage>
                                       child: Text("Использовать этот адрес"),
                                     ),
                                     onTap: () {
-                                      Navigator.push(context, MaterialPageRoute(
-                                        builder: (context) {
-                                          return CreateAddressName(
-                                              street: _adressName,
-                                              lat: _selectedAddress.latitude,
-                                              lon: _selectedAddress.latitude);
-                                        },
-                                      ));
+                                      // Navigator.push(context, MaterialPageRoute(
+                                      //   builder: (context) {
+                                      //     return CreateAddressName(
+                                      //         street: _adressName,
+                                      //         lat: _selectedAddress.latitude,
+                                      //         lon: _selectedAddress.latitude);
+                                      //   },
+                                      // ));
                                     },
                                   )
                                 : Container(
@@ -272,7 +274,7 @@ class _AddressesPageState extends State<AddressesPage>
                                       margin: EdgeInsets.all(10),
                                       decoration: BoxDecoration(
                                           borderRadius: BorderRadius.all(
-                                              Radius.circular(3)),
+                                              Radius.circular(10)),
                                           border: Border.all(
                                               color: Colors.grey.shade400),
                                           color: Colors.white),
@@ -410,8 +412,11 @@ class _AddressesPageState extends State<AddressesPage>
                     ],
                   )
                 : Container(
-                    margin: EdgeInsets.all(10),
-                    color: Colors.white,
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                      color: Colors.white,
+                    ),
+                    margin: const EdgeInsets.all(10),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       mainAxisSize: MainAxisSize.min,
@@ -419,11 +424,14 @@ class _AddressesPageState extends State<AddressesPage>
                         Flexible(
                           flex: 4,
                           child: TextField(
-                              controller: _search,
-                              decoration: InputDecoration(
-                                  hintText: "Улица, дом",
-                                  border: OutlineInputBorder(
-                                      borderSide: BorderSide.none))),
+                            controller: _search,
+                            decoration: const InputDecoration(
+                              hintText: "Улица, дом",
+                              border: OutlineInputBorder(
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
                         ),
                         Row(
                           children: [
@@ -470,7 +478,8 @@ class _AddressesPageState extends State<AddressesPage>
                                   style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.white,
                                       foregroundColor: Colors.black,
-                                      surfaceTintColor: Colors.white),
+                                      surfaceTintColor: Colors.white,
+                                      shadowColor: Colors.transparent),
                                   onPressed: () {
                                     setState(() {
                                       _isExtended = true;
