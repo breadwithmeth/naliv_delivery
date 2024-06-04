@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
 import 'package:naliv_delivery/pages/pickOnMap.dart';
@@ -88,15 +89,16 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                   widget.client["user_id"])
                               .whenComplete(
                             () {
-                              Navigator.push(context, MaterialPageRoute(
+                              Navigator.pushAndRemoveUntil(context,
+                                  MaterialPageRoute(
                                 builder: (context) {
-                                  return CreateOrderPage(
-                                    business: widget.business,
-                                    client: widget.client,
-                                    customAddress: _addresses[index],
+                                  return Main(
+                                    // business: widget.business,
+                                    // client: widget.client,
+                                    // customAddress: _addresses[index],
                                   );
                                 },
-                              ));
+                              ), (Route<dynamic> route) => false);
                             },
                           );
                         },

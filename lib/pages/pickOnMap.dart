@@ -184,21 +184,23 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                           child: CircularProgressIndicator.adaptive(),
                         )
                       : Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Spacer(),
-                            Row(
-                              children: [
-                                Flexible(
-                                    child: Text(
-                                  "Выберите адрес доставки",
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 24),
-                                )),
-                              ],
+                            SizedBox(height: 20,),
+                            Flexible(
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                      child: Text(
+                                    "Выберите адрес доставки",
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 24),
+                                  )),
+                                ],
+                              ),
                             ),
                             SizedBox(
                               height: 20,
@@ -221,8 +223,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                     // border: Border(
                                     //     bottom: BorderSide(
                                     //         color: Colors.grey.shade400))
-                                            
-                                            ),
+
+                                    ),
                                 child: Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
@@ -238,6 +240,9 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                     ),
                                     IconButton(
                                         onPressed: () {
+                                          setState(() {
+                                            isMapSetteled = false;
+                                          });
                                           showDialog(
                                             barrierColor: Colors.white70,
                                             context: context,
@@ -292,6 +297,11 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                                                               .text);
                                                                       Navigator.pop(
                                                                           context);
+                                                                      setState(
+                                                                          () {
+                                                                        isMapSetteled =
+                                                                            true;
+                                                                      });
                                                                     },
                                                                     child:
                                                                         Container(
@@ -326,7 +336,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                         ))
                                   ],
                                 )),
-                                Divider(),
+                            Divider(),
                             Flexible(
                               fit: FlexFit.tight,
                               flex: 1,
