@@ -3,7 +3,9 @@ import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/homePage.dart';
 
 class OrderPage extends StatefulWidget {
-  const OrderPage({super.key});
+  const OrderPage({super.key, required this.business});
+
+  final Map<dynamic, dynamic> business;
 
   @override
   State<OrderPage> createState() => _OrderPageState();
@@ -24,12 +26,13 @@ class _OrderPageState extends State<OrderPage> {
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(),
           onPressed: () {
-            // Navigator.pushReplacement(
-            //   context,
-            //   MaterialPageRoute(builder: (context) {
-            //     return const HomePage();
-            //   }),
-            // );
+            Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+              builder: (context) {
+                return HomePage(
+                  business: widget.business,
+                );
+              },
+            ), (Route<dynamic> route) => false);
           },
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,

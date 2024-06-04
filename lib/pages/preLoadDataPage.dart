@@ -20,15 +20,21 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
   Future<void> _getAddresses() async {
     List addresses = await getAddresses();
     print(addresses);
-    setState(() {
-      _addresses = addresses;
-      _currentAddress = _addresses.firstWhere(
-        (element) => element["is_selected"] == "1",
-        orElse: () {
-          return null;
-        },
-      );
-    });
+    if (addresses == null) {
+      setState(() {
+        
+      });
+    } else {
+      setState(() {
+        _addresses = addresses;
+        _currentAddress = _addresses.firstWhere(
+          (element) => element["is_selected"] == "1",
+          orElse: () {
+            return null;
+          },
+        );
+      });
+    }
   }
 
   Future<void> _getUser() async {

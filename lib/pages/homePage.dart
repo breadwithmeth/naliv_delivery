@@ -365,18 +365,20 @@ class _HomePageState extends State<HomePage>
                               Text(
                                 widget.business["name"],
                                 maxLines: 1,
-                                style: TextStyle(fontSize: 12),
+                                style: TextStyle(
+                                    fontSize: 24 * (screenSize / 720)),
                               ),
                               Text(
                                 widget.business["address"],
                                 maxLines: 1,
-                                style: TextStyle(fontSize: 12),
+                                style: TextStyle(
+                                    fontSize: 24 * (screenSize / 720)),
                               ),
                             ],
                           ),
                         ),
                         Flexible(
-                          flex: 5,
+                          flex: 4,
                           fit: FlexFit.tight,
                           child: TextButton(
                             onPressed: () {
@@ -422,7 +424,9 @@ class _HomePageState extends State<HomePage>
                       ],
                     ),
                     isThereActiveOrder
-                        ? const ActiveOrderButton()
+                        ? ActiveOrderButton(
+                            business: widget.business,
+                          )
                         : Container(),
                   ],
                 ),
@@ -709,16 +713,23 @@ class _HomePageState extends State<HomePage>
                                         childAspectRatio: 10 / 8,
                                         crossAxisSpacing: 0,
                                         mainAxisSpacing: 0),
-                                itemCount: categories.length,
+                                itemCount: categories.length % 2 != 0
+                                    ? categories.length + 1
+                                    : categories.length,
                                 itemBuilder: (BuildContext ctx, index) {
-                                  return CategoryItem(
-                                    category_id: categories[index]
-                                        ["category_id"],
-                                    name: categories[index]["name"],
-                                    image: categories[index]["photo"],
-                                    categories: categories,
-                                    business: widget.business,
-                                  );
+                                  return categories.length % 2 != 0 &&
+                                          index == categories.length + 1
+                                      ? Container(
+                                          color: Colors.grey.shade200,
+                                        )
+                                      : CategoryItem(
+                                          category_id: categories[index]
+                                              ["category_id"],
+                                          name: categories[index]["name"],
+                                          image: categories[index]["photo"],
+                                          categories: categories,
+                                          business: widget.business,
+                                        );
                                 },
                               ),
                             ),

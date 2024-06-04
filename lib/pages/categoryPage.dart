@@ -123,18 +123,18 @@ class _CategoryPageState extends State<CategoryPage> {
                           Text(
                             widget.business["name"],
                             maxLines: 1,
-                            style: TextStyle(fontSize: 12),
+                            style: TextStyle(fontSize: 24 * (screenSize / 720)),
                           ),
                           Text(
                             widget.business["address"],
                             maxLines: 1,
-                            style: TextStyle(fontSize: 12),
+                            style: TextStyle(fontSize: 24 * (screenSize / 720)),
                           ),
                         ],
                       ),
                     ),
                     Flexible(
-                      flex: 5,
+                      flex: 4,
                       fit: FlexFit.tight,
                       child: TextButton(
                         onPressed: () {

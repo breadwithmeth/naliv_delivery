@@ -676,21 +676,22 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                             children: [
                                               Flexible(
                                                 fit: FlexFit.tight,
-                                                child: const Text(
+                                                child: Text(
                                                   "ALLCO",
                                                   textAlign: TextAlign.center,
                                                   style: TextStyle(
                                                     color: Colors.white,
-                                                    fontSize: 68,
+                                                    fontSize: 136 *
+                                                        (screenSize / 720),
                                                     fontWeight: FontWeight.w700,
                                                     fontFamily: "montserrat",
-                                                    shadows: [
-                                                      Shadow(
-                                                        color: Colors.black26,
-                                                        blurRadius: 15,
-                                                        offset: Offset(0, 0),
-                                                      ),
-                                                    ],
+                                                    // shadows: [
+                                                    //   Shadow(
+                                                    //     color: Colors.black26,
+                                                    //     blurRadius: 15,
+                                                    //     offset: Offset(0, 0),
+                                                    //   ),
+                                                    // ],
                                                     height: 1,
                                                   ),
                                                 ),
@@ -729,7 +730,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                 )),
                 SliverToBoxAdapter(
                   child: Container(
-                    height: 10000,
+                    height: MediaQuery.of(context).size.height,
                   ),
                 )
               ],
