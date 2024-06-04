@@ -65,7 +65,7 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
       _getUser().then((vv) {
         _getBusinesses().then((b) {
           _addresses.isNotEmpty
-              ? Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+              ? Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
                   builder: (context) {
                     return OrganizationSelectPage(
                       addresses: _addresses,
@@ -75,7 +75,7 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
                     );
                   },
                 ), (Route<dynamic> route) => false)
-              : Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+              : Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
                   builder: (context) {
                     return PickAddressPage(client: user, isFirstTime: true);
                   },

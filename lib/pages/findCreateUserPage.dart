@@ -31,7 +31,7 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
         child: ElevatedButton(
           onPressed: isClientReady
               ? () {
-                  // Navigator.push(context, MaterialPageRoute(
+                  // Navigator.push(context, CupertinoPageRoute(
                   //   builder: (context) {
                   //     return PickAddressPage(
                   //       client: client,
@@ -41,7 +41,7 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                   // ));
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
+                    CupertinoPageRoute(
                       builder: (context) {
                         return CreateOrderPage(
                           client: client,

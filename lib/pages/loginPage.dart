@@ -51,7 +51,7 @@ class _LoginPageState extends State<LoginPage> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const StartPage()),
+                CupertinoPageRoute(builder: (context) => const StartPage()),
               );
             },
             icon: const Icon(Icons.arrow_back)),
@@ -62,7 +62,7 @@ class _LoginPageState extends State<LoginPage> {
         //         onPressed: () {
         //           Navigator.push(
         //             context,
-        //             MaterialPageRoute(
+        //             CupertinoPageRoute(
         //                 builder: (context) => const RegistrationPage()),
         //           );
         //         },
@@ -222,7 +222,7 @@ class _LoginPageState extends State<LoginPage> {
                             // if (_loginStatus) {
                             //   Navigator.push(
                             //     context,
-                            //     MaterialPageRoute(
+                            //     CupertinoPageRoute(
                             //         builder: (context) => BottomMenu(
                             //               page: 0,
                             //             )),
@@ -252,7 +252,7 @@ class _LoginPageState extends State<LoginPage> {
                                 if (value == true)
                                   {
                                     Navigator.pushAndRemoveUntil(context,
-                                        MaterialPageRoute(
+                                        CupertinoPageRoute(
                                       builder: (context) {
                                         return const Main();
                                       },

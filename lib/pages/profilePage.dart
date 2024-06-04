@@ -114,7 +114,7 @@
 //                   onPressed: () {
 //                     // Navigator.push(
 //                     //   context,
-//                     //   MaterialPageRoute(
+//                     //   CupertinoPageRoute(
 //                     //       builder: (context) => const AddressesPage()),
 //                     // );
 //                   },
@@ -170,7 +170,7 @@
 //                   style: TextButton.styleFrom(
 //                       padding: const EdgeInsets.symmetric(horizontal: 20)),
 //                   onPressed: () {
-//                     Navigator.push(context, MaterialPageRoute(
+//                     Navigator.push(context, CupertinoPageRoute(
 //                       builder: (context) {
 //                         return const SettingsPage();
 //                       },
@@ -230,7 +230,7 @@
 //                   onPressed: () {
 //                     print(123);
 //                     logout();
-//                     Navigator.pushReplacement(context, MaterialPageRoute(
+//                     Navigator.pushReplacement(context, CupertinoPageRoute(
 //                       builder: (context) {
 //                         return const LoginPage();
 //                       },

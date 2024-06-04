@@ -61,7 +61,7 @@
 //             child: ListTile(
 //               onTap: () {
 //                 Navigator.pushAndRemoveUntil(context,
-//                     MaterialPageRoute(builder: (context) {
+//                     CupertinoPageRoute(builder: (context) {
 //                   return HomePage(setCurrentBusiness: element["business_id"], business_id: "1",);
 //                 }), (route) => false);
 //               },
@@ -181,7 +181,7 @@
 //                 child: ListTile(
 //                   onTap: () {
 //                     Navigator.pushAndRemoveUntil(context,
-//                         MaterialPageRoute(builder: (context) {
+//                         CupertinoPageRoute(builder: (context) {
 //                       return const HomePage();
 //                     }), (route) => false);
 //                   },

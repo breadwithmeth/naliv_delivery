@@ -70,7 +70,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
           if (_location == null) {
             print("LOCATION WAS NULL, SO GETGEOLOCATION IS STARTED");
             _getGeolocation().whenComplete(() {
-              Navigator.push(context, MaterialPageRoute(
+              Navigator.push(context, CupertinoPageRoute(
                 builder: (context) {
                   return PickOnMapPage(
                     currentPosition: _location!,
@@ -87,7 +87,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
               });
             });
           } else {
-            Navigator.push(context, MaterialPageRoute(
+            Navigator.push(context, CupertinoPageRoute(
               builder: (context) {
                 return PickOnMapPage(
                   currentPosition: _location!,
@@ -155,7 +155,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                               widget.isFromCreateOrder
                                   ? Navigator.pop(context)
                                   : Navigator.pushAndRemoveUntil(context,
-                                      MaterialPageRoute(
+                                      CupertinoPageRoute(
                                       builder: (context) {
                                         return Main(
                                             // business: widget.business,

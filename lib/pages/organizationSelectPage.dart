@@ -378,7 +378,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                       Radius.circular(20))),
                               child: TextButton(
                                   onPressed: () {
-                                    Navigator.push(context, MaterialPageRoute(
+                                    Navigator.push(context, CupertinoPageRoute(
                                       builder: (context) {
                                         return PickAddressPage(
                                           client: widget.user,
@@ -421,7 +421,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                       TextButton(
                                           onPressed: () {
                                             Navigator.push(context,
-                                                MaterialPageRoute(
+                                                CupertinoPageRoute(
                                               builder: (context) {
                                                 return PickAddressPage(
                                                   client: widget.user,
@@ -764,7 +764,7 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(
+        Navigator.push(context, CupertinoPageRoute(
           builder: (context) {
             return widget.route;
           },
@@ -819,7 +819,7 @@ class BusinessItemState extends State<BusinessItem> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
+          CupertinoPageRoute(
             builder: (context) {
               return HomePage(
                 business: widget.business,

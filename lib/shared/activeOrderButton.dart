@@ -115,7 +115,7 @@ class _ActiveOrderButtonState extends State<ActiveOrderButton> {
         padding: const EdgeInsets.symmetric(vertical: 15),
       ),
       onPressed: () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) {
+        Navigator.push(context, CupertinoPageRoute(builder: (context) {
           return OrderPage(
             business: widget.business,
           );

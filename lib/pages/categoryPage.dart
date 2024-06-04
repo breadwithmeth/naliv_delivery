@@ -138,7 +138,7 @@ class _CategoryPageState extends State<CategoryPage> {
                       fit: FlexFit.tight,
                       child: TextButton(
                         onPressed: () {
-                          Navigator.push(context, MaterialPageRoute(
+                          Navigator.push(context, CupertinoPageRoute(
                             builder: (context) {
                               return SearchPage(
                                 category_id: widget.categoryId,

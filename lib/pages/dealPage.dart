@@ -36,7 +36,7 @@ class _DealPageState extends State<DealPage> {
                       color: Colors.blue.shade600),
                 ),
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(
+                  Navigator.push(context, CupertinoPageRoute(
                     builder: (context) {
                       return aRoute;
                     },
@@ -145,7 +145,7 @@ class _DealPageState extends State<DealPage> {
                     ? () async {
                         bool agreed = await setAgreement();
                         if (agreed) {
-                          Navigator.pushReplacement(context, MaterialPageRoute(
+                          Navigator.pushReplacement(context, CupertinoPageRoute(
                             builder: (context) {
                               return const LoginPage();
                             },

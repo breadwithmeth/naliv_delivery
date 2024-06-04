@@ -290,7 +290,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   //         actions: [
   //           ElevatedButton(
   //             onPressed: () {
-  //               Navigator.push(context, MaterialPageRoute(builder: (context) {
+  //               Navigator.push(context, CupertinoPageRoute(builder: (context) {
   //                 return PickAddressPage(
   //                   client: user,
   //                   business: widget.business,
@@ -556,7 +556,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                   _getUser().whenComplete(() {
                                     Navigator.push(
                                       context,
-                                      MaterialPageRoute(
+                                      CupertinoPageRoute(
                                         builder: (context) {
                                           return PickAddressPage(
                                             client: user,
@@ -573,7 +573,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                 } else {
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(
+                                    CupertinoPageRoute(
                                       builder: (context) {
                                         return PickAddressPage(
                                           client: user,
@@ -593,7 +593,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                               onPressed: () {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(
+                                  CupertinoPageRoute(
                                     builder: (context) => PickAddressPage(
                                       client: user,
                                       business: widget.business,
@@ -786,7 +786,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                       : () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
+                            CupertinoPageRoute(
                               builder: (context) => OrderConfirmation(
                                 delivery: delivery,
                                 items: items,
