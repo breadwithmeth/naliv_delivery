@@ -718,10 +718,8 @@ class _HomePageState extends State<HomePage>
                                     : categories.length,
                                 itemBuilder: (BuildContext ctx, index) {
                                   return categories.length % 2 != 0 &&
-                                          index == categories.length + 1
-                                      ? Container(
-                                          color: Colors.grey.shade200,
-                                        )
+                                          index == categories.length
+                                      ? Container(color: Colors.white)
                                       : CategoryItem(
                                           category_id: categories[index]
                                               ["category_id"],

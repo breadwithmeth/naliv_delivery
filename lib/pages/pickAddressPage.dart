@@ -12,10 +12,12 @@ class PickAddressPage extends StatefulWidget {
     required this.client,
     this.isFirstTime = false,
     this.business = const {},
+    this.isFromCreateOrder = false,
   });
   final Map client;
   final bool isFirstTime;
   final Map<dynamic, dynamic> business;
+  final bool isFromCreateOrder;
   //  String businessId;
   @override
   State<PickAddressPage> createState() => _PickAddressPageState();
@@ -24,9 +26,10 @@ class PickAddressPage extends StatefulWidget {
 class _PickAddressPageState extends State<PickAddressPage> {
   List _cities = [];
 
-  late Position _location;
+  Position? _location;
   Future<List> _getAddresses() async {
-    List addresses = await getUserAddresses(widget.client["user_id"]);
+    // List addresses = await getUserAddresses(widget.client["user_id"]);
+    List addresses = await getAddresses();
 
     return addresses;
   }
@@ -64,14 +67,38 @@ class _PickAddressPageState extends State<PickAddressPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.push(context, MaterialPageRoute(
-            builder: (context) {
-              return PickOnMapPage(
-                currentPosition: _location,
-                cities: _cities,
-              );
-            },
-          ));
+          if (_location == null) {
+            print("LOCATION WAS NULL, SO GETGEOLOCATION IS STARTED");
+            _getGeolocation().whenComplete(() {
+              Navigator.push(context, MaterialPageRoute(
+                builder: (context) {
+                  return PickOnMapPage(
+                    currentPosition: _location!,
+                    cities: _cities,
+                    isFromCreateOrder: true,
+                  );
+                },
+              )).whenComplete(() {
+                _getAddresses().whenComplete(() {
+                  setState(() {});
+                });
+              });
+            });
+          } else {
+            Navigator.push(context, MaterialPageRoute(
+              builder: (context) {
+                return PickOnMapPage(
+                  currentPosition: _location!,
+                  cities: _cities,
+                  isFromCreateOrder: true,
+                );
+              },
+            )).whenComplete(() {
+              _getAddresses().whenComplete(() {
+                setState(() {});
+              });
+            });
+          }
         },
         child: Icon(
           Icons.add,
@@ -123,16 +150,18 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                   widget.client["user_id"])
                               .whenComplete(
                             () {
-                              Navigator.pushAndRemoveUntil(context,
-                                  MaterialPageRoute(
-                                builder: (context) {
-                                  return Main(
-                                      // business: widget.business,
-                                      // client: widget.client,
-                                      // customAddress: _addresses[index],
-                                      );
-                                },
-                              ), (Route<dynamic> route) => false);
+                              widget.isFromCreateOrder
+                                  ? Navigator.pop(context)
+                                  : Navigator.pushAndRemoveUntil(context,
+                                      MaterialPageRoute(
+                                      builder: (context) {
+                                        return Main(
+                                            // business: widget.business,
+                                            // client: widget.client,
+                                            // customAddress: _addresses[index],
+                                            );
+                                      },
+                                    ), (Route<dynamic> route) => false);
                             },
                           );
                         },
