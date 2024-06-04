@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/organizationSelectPage.dart';
+import 'package:naliv_delivery/pages/pickAddressPage.dart';
 import 'package:naliv_delivery/shared/loadingScreen.dart';
 
 class PreLoadDataPage extends StatefulWidget {
@@ -20,15 +21,21 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
   Future<void> _getAddresses() async {
     List addresses = await getAddresses();
     print(addresses);
-    setState(() {
-      _addresses = addresses;
-      _currentAddress = _addresses.firstWhere(
-        (element) => element["is_selected"] == "1",
-        orElse: () {
-          return null;
-        },
-      );
-    });
+    if (addresses.isEmpty) {
+      setState(() {
+        _currentAddress = {};
+      });
+    } else {
+      setState(() {
+        _addresses = addresses;
+        _currentAddress = _addresses.firstWhere(
+          (element) => element["is_selected"] == "1",
+          orElse: () {
+            return null;
+          },
+        );
+      });
+    }
   }
 
   Future<void> _getUser() async {
@@ -57,16 +64,22 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
     _getAddresses().then((v) {
       _getUser().then((vv) {
         _getBusinesses().then((b) {
-          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
-            builder: (context) {
-              return OrganizationSelectPage(
-                addresses: _addresses,
-                currentAddress: _currentAddress,
-                user: user,
-                businesses: b,
-              );
-            },
-          ), (Route<dynamic> route) => false);
+          _addresses.isNotEmpty
+              ? Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+                  builder: (context) {
+                    return OrganizationSelectPage(
+                      addresses: _addresses,
+                      currentAddress: _currentAddress,
+                      user: user,
+                      businesses: b,
+                    );
+                  },
+                ), (Route<dynamic> route) => false)
+              : Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+                  builder: (context) {
+                    return PickAddressPage(client: user, isFirstTime: true);
+                  },
+                ), (Route<dynamic> route) => false);
         });
       });
     });

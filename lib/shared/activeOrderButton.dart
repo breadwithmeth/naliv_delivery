@@ -4,9 +4,9 @@ import 'package:naliv_delivery/pages/orderPage.dart';
 import 'package:flutter/cupertino.dart';
 
 class ActiveOrderButton extends StatefulWidget {
-  const ActiveOrderButton({
-    super.key,
-  });
+  const ActiveOrderButton({super.key, required this.business});
+
+  final Map<dynamic, dynamic> business;
 
   @override
   State<ActiveOrderButton> createState() => _ActiveOrderButtonState();
@@ -116,7 +116,9 @@ class _ActiveOrderButtonState extends State<ActiveOrderButton> {
       ),
       onPressed: () {
         Navigator.push(context, MaterialPageRoute(builder: (context) {
-          return const OrderPage();
+          return OrderPage(
+            business: widget.business,
+          );
         }));
       },
       child: AnimatedSwitcher(

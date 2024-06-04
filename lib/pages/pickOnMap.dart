@@ -221,19 +221,18 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SizedBox(
-                              height: 20,
-                            ),
                             Flexible(
+                              fit: FlexFit.tight,
                               child: Row(
                                 children: [
                                   Flexible(
+                                      fit: FlexFit.tight,
                                       child: Text(
-                                    "Выберите адрес доставки",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 24),
-                                  )),
+                                        "Выберите адрес доставки",
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 24),
+                                      )),
                                 ],
                               ),
                             ),
@@ -243,6 +242,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                             Row(
                               children: [
                                 Flexible(
+                                  fit: FlexFit.tight,
                                   child: Text(
                                     "Ваш адрес",
                                     style: TextStyle(
@@ -374,7 +374,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                             Divider(),
                             Flexible(
                               fit: FlexFit.tight,
-                              flex: 1,
+                              flex: 2,
                               child: GestureDetector(
                                   onTap: () {},
                                   child: Container(

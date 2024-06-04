@@ -88,7 +88,9 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => const OrderPage(),
+                builder: (context) => OrderPage(
+                  business: widget.business,
+                ),
               ),
             );
           } else {
