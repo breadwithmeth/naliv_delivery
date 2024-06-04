@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
+import 'package:google_fonts/google_fonts.dart';
+
 class LoadingScreen extends StatelessWidget {
   const LoadingScreen({super.key});
 
@@ -116,14 +118,15 @@ class _MarqueeTextState extends State<MarqueeText>
                   position: i.isOdd ? _animationOne : _animationTwo,
                   child: Text(
                     i.isOdd
-                        ? "Вставьте  Вставьте  Вставьте  Вставьте  Вставьте  Вставьте  Вставьте  Вставьте  "
-                        : "название название название название название название название название ",
+                        ? "  ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO "
+                        : "ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ",
                     style: TextStyle(
-                      fontSize: 140 * (screenSize / 720),
+                      fontSize: 150 * (screenSize / 720),
                       fontWeight: FontWeight.w900,
                       color: Colors.black12,
                       height: 1.9 * (screenSize / 720),
-                      wordSpacing: 10,
+                      wordSpacing: 8,
+                      fontFamily: "montserrat",
                     ),
                   ),
                 ),

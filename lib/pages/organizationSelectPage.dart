@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/painting.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -554,67 +555,66 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                     .size
                                                     .height /
                                                 4,
-                                            margin: const EdgeInsets.all(15),
-                                            decoration: const BoxDecoration(
-                                                // color: Colors.pinkAccent,
+                                        margin: const EdgeInsets.all(15),
+                                        decoration: const BoxDecoration(
+                                            // color: Colors.pinkAccent,
 
-                                                ),
-                                            child: Column(
+                                            ),
+                                        child: Column(
+                                          children: [
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
                                               children: [
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    const Spacer(
-                                                      flex: 2,
-                                                    ),
-                                                    CircleAvatar(
-                                                      radius:
-                                                          MediaQuery.of(context)
-                                                                  .size
-                                                                  .height /
-                                                              16,
-                                                    ),
-                                                    const Spacer(),
-                                                    Flexible(
-                                                        flex: 3,
-                                                        child: Text(
-                                                            widget.user["name"],
-                                                            style: GoogleFonts
-                                                                .mulish(
-                                                              textStyle: TextStyle(
-                                                                  letterSpacing:
-                                                                      1,
-                                                                  fontSize: 24,
-                                                                  color: Colors
-                                                                      .white,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w900),
-                                                            ))),
-                                                    const Spacer(
-                                                      flex: 2,
-                                                    )
-                                                  ],
+                                                const Spacer(
+                                                  flex: 2,
+                                                ),
+                                                CircleAvatar(
+                                                  radius: MediaQuery.of(context)
+                                                          .size
+                                                          .height /
+                                                      16,
                                                 ),
                                                 const Spacer(),
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    TextButton(
-                                                        onPressed: () {},
-                                                        child: Row(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .center,
-                                                          mainAxisSize:
-                                                              MainAxisSize.max,
-                                                          children: [
-                                                            Text(
-                                                              widget.currentAddress[
-                                                                  "address"],
-                                                              style: const TextStyle(
+                                                Flexible(
+                                                    flex: 3,
+                                                    child: Text(
+                                                        widget.user["name"],
+                                                        style:
+                                                            GoogleFonts.mulish(
+                                                          textStyle: TextStyle(
+                                                              letterSpacing: 1,
+                                                              fontSize: 24,
+                                                              color:
+                                                                  Colors.white,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w900),
+                                                        ))),
+                                                const Spacer(
+                                                  flex: 2,
+                                                )
+                                              ],
+                                            ),
+                                            const Spacer(),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                TextButton(
+                                                    onPressed: () {},
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      mainAxisSize:
+                                                          MainAxisSize.max,
+                                                      children: [
+                                                        Text(
+                                                          widget.currentAddress[
+                                                              "address"],
+                                                          style:
+                                                              const TextStyle(
                                                                   fontSize: 16,
                                                                   fontWeight:
                                                                       FontWeight
@@ -722,12 +722,13 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
       },
       child: Container(
         decoration: BoxDecoration(
-            borderRadius: BorderRadius.only(bottomRight: Radius.circular(15)),
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                  offset: Offset(5, 3), blurRadius: 5, color: Colors.black12)
-            ]),
+          borderRadius: BorderRadius.only(bottomRight: Radius.circular(15)),
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+                offset: Offset(5, 3), blurRadius: 5, color: Colors.black12)
+          ],
+        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [

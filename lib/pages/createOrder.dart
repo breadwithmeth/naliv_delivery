@@ -32,7 +32,7 @@ class CreateOrderPage extends StatefulWidget {
 class _CreateOrderPageState extends State<CreateOrderPage> {
   bool delivery = true;
   List items = [];
-  Map<String, dynamic> cartInfo = {};
+  String cartInfo = "";
   // Widget? currentAddressWidget;
   List<Widget> addressesWidget = [];
   Map currentAddress = {};
@@ -78,12 +78,12 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
     // print(cart);
 
     Map<String, dynamic> cart = await getCart(widget.businessId);
-    Map<String, dynamic>? cartInfoFromAPI = await getCartInfo();
+    // Map<String, dynamic>? cartInfoFromAPI = await getCartInfo();
 
     setState(() {
       // items = cart;
       items = cart["cart"];
-      cartInfo = cartInfoFromAPI!;
+      cartInfo = cart["sum"];
     });
   }
 
@@ -719,7 +719,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                     Flexible(
                       child: Text(
                         cartInfo.isNotEmpty
-                            ? "Сумма к оплате: ${formatCost(cartInfo["sum"].toString())} ₸"
+                            ? "Сумма к оплате: ${formatCost(cartInfo).toString()} ₸"
                             : "Сумма к оплате: 0 ₸",
                         textAlign: TextAlign.center,
                         style: TextStyle(
