@@ -20,6 +20,8 @@ class PickAddressPage extends StatefulWidget {
 }
 
 class _PickAddressPageState extends State<PickAddressPage> {
+  List _cities = [];
+
   late Position _location;
   Future<List> _getAddresses() async {
     List addresses = await getUserAddresses(widget.client["user_id"]);
@@ -31,6 +33,14 @@ class _PickAddressPageState extends State<PickAddressPage> {
     await determinePosition(context).then((v) {
       setState(() {
         _location = v;
+      });
+    });
+  }
+
+  Future<void> _getCities() async {
+    await getCities().then((v) {
+      setState(() {
+        _cities = v;
       });
     });
   }
@@ -55,6 +65,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
             builder: (context) {
               return PickOnMapPage(
                 currentPosition: _location,
+                cities: _cities,
               );
             },
           ));
@@ -93,10 +104,10 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                   MaterialPageRoute(
                                 builder: (context) {
                                   return Main(
-                                    // business: widget.business,
-                                    // client: widget.client,
-                                    // customAddress: _addresses[index],
-                                  );
+                                      // business: widget.business,
+                                      // client: widget.client,
+                                      // customAddress: _addresses[index],
+                                      );
                                 },
                               ), (Route<dynamic> route) => false);
                             },

@@ -9,8 +9,10 @@ import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
 
 class PickOnMapPage extends StatefulWidget {
-  const PickOnMapPage({super.key, required this.currentPosition});
+  const PickOnMapPage(
+      {super.key, required this.currentPosition, required this.cities});
   final Position currentPosition;
+  final List cities;
   @override
   State<PickOnMapPage> createState() => _PickOnMapPageState();
 }
@@ -20,6 +22,13 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
   MapController _mapController = MapController();
   String? _currentAddressName;
   bool isMapSetteled = true;
+
+  void setCurrentCity() {
+    widget.cities.forEach((city) {
+      print(city);
+    });
+  }
+
   Future<void> searchGeoData(double lon, double lat) async {
     await getGeoData(lon.toString() + "," + lat.toString()).then((value) {
       print(value);
@@ -69,6 +78,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
         setState(() {
           _searchAddress.text = _currentAddressName ?? "";
         });
+        setCurrentCity();
       });
     });
   }
@@ -443,11 +453,15 @@ class _AnimatedCurrentPositionState extends State<AnimatedCurrentPosition>
 }
 
 class CreateAddressPage extends StatefulWidget {
-  const CreateAddressPage({super.key, required this.lat, required this.lon, required this.addressName});
+  const CreateAddressPage(
+      {super.key,
+      required this.lat,
+      required this.lon,
+      required this.addressName});
   final double lat;
   final double lon;
   final String addressName;
-  
+
   @override
   State<CreateAddressPage> createState() => _CreateAddressPageState();
 }

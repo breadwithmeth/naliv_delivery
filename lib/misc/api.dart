@@ -788,3 +788,26 @@ Future<bool> selectAddressClient(String addressId, String user_id) async {
     }
   }
 }
+
+
+
+Future<List<dynamic>> getCities() async {
+  String? token = await getToken();
+  if (token == null) {
+    return [];
+  }
+  var url = Uri.https(URL_API, 'api/user/getCities.php');
+  var response = await http.post(
+    url,
+    headers: {
+      "Content-Type": "application/json",
+      "AUTH": token,
+    },
+    // body: json.encode({"user_id": userID}),
+  );
+
+  List<dynamic> result = json.decode(response.body);
+  print(json.encode(response.statusCode));
+  print(response.body);
+  return result;
+}
