@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
 import 'package:naliv_delivery/pages/pickOnMap.dart';
@@ -19,6 +20,8 @@ class PickAddressPage extends StatefulWidget {
 }
 
 class _PickAddressPageState extends State<PickAddressPage> {
+  List _cities = [];
+
   late Position _location;
   Future<List> _getAddresses() async {
     List addresses = await getUserAddresses(widget.client["user_id"]);
@@ -30,6 +33,14 @@ class _PickAddressPageState extends State<PickAddressPage> {
     await determinePosition(context).then((v) {
       setState(() {
         _location = v;
+      });
+    });
+  }
+
+  Future<void> _getCities() async {
+    await getCities().then((v) {
+      setState(() {
+        _cities = v;
       });
     });
   }
@@ -54,6 +65,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
             builder: (context) {
               return PickOnMapPage(
                 currentPosition: _location,
+                cities: _cities,
               );
             },
           ));
@@ -88,15 +100,16 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                   widget.client["user_id"])
                               .whenComplete(
                             () {
-                              Navigator.push(context, MaterialPageRoute(
+                              Navigator.pushAndRemoveUntil(context,
+                                  MaterialPageRoute(
                                 builder: (context) {
-                                  return CreateOrderPage(
-                                    business: widget.business,
-                                    client: widget.client,
-                                    customAddress: _addresses[index],
-                                  );
+                                  return Main(
+                                      // business: widget.business,
+                                      // client: widget.client,
+                                      // customAddress: _addresses[index],
+                                      );
                                 },
-                              ));
+                              ), (Route<dynamic> route) => false);
                             },
                           );
                         },

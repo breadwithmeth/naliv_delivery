@@ -1,22 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:naliv_delivery/misc/api.dart';
+import 'package:naliv_delivery/pages/pickAddressPage.dart';
 
 class PickOnMapPage extends StatefulWidget {
-  const PickOnMapPage({super.key, required this.currentPosition});
+  const PickOnMapPage(
+      {super.key, required this.currentPosition, required this.cities});
   final Position currentPosition;
+  final List cities;
   @override
   State<PickOnMapPage> createState() => _PickOnMapPageState();
 }
 
 class _PickOnMapPageState extends State<PickOnMapPage> {
+  TextEditingController _searchAddress = TextEditingController();
   MapController _mapController = MapController();
   String? _currentAddressName;
   bool isMapSetteled = true;
+
+  void setCurrentCity() {
+    widget.cities.forEach((city) {
+      print(city);
+    });
+  }
+
   Future<void> searchGeoData(double lon, double lat) async {
     await getGeoData(lon.toString() + "," + lat.toString()).then((value) {
       print(value);
@@ -26,6 +38,22 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
           objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
       double lon = double.parse(
           objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
+      setState(() {
+        _currentAddressName = objects.first["GeoObject"]["name"];
+      });
+    });
+  }
+
+  Future<void> searchGeoDataByString(String search) async {
+    await getGeoData(search).then((value) {
+      print(value);
+      List objects = value?["response"]["GeoObjectCollection"]["featureMember"];
+
+      double lat = double.parse(
+          objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
+      double lon = double.parse(
+          objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
+      _mapController.move(LatLng(lat, lon), 13);
       setState(() {
         _currentAddressName = objects.first["GeoObject"]["name"];
       });
@@ -45,7 +73,13 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
               widget.currentPosition.longitude),
           15);
       searchGeoData(
-          widget.currentPosition.longitude, widget.currentPosition.latitude);
+              widget.currentPosition.longitude, widget.currentPosition.latitude)
+          .then((v) {
+        setState(() {
+          _searchAddress.text = _currentAddressName ?? "";
+        });
+        setCurrentCity();
+      });
     });
   }
 
@@ -160,20 +194,25 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                           child: CircularProgressIndicator.adaptive(),
                         )
                       : Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Spacer(),
-                            Row(
-                              children: [
-                                Flexible(
-                                    child: Text(
-                                  "Выберите адрес доставки",
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 24),
-                                )),
-                              ],
+                            SizedBox(
+                              height: 20,
+                            ),
+                            Flexible(
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                      child: Text(
+                                    "Выберите адрес доставки",
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 24),
+                                  )),
+                                ],
+                              ),
                             ),
                             SizedBox(
                               height: 20,
@@ -193,9 +232,11 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                             ),
                             Container(
                                 decoration: BoxDecoration(
-                                    border: Border(
-                                        bottom: BorderSide(
-                                            color: Colors.grey.shade400))),
+                                    // border: Border(
+                                    //     bottom: BorderSide(
+                                    //         color: Colors.grey.shade400))
+
+                                    ),
                                 child: Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
@@ -211,27 +252,93 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                     ),
                                     IconButton(
                                         onPressed: () {
+                                          setState(() {
+                                            isMapSetteled = false;
+                                          });
                                           showDialog(
+                                            barrierColor: Colors.white70,
                                             context: context,
                                             builder: (context) {
                                               return Dialog(
-                                                child: Container(
-                                                  padding: EdgeInsets.all(30),
-                                                  child: Column(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: [
-                                                      Flexible(
-                                                          child: TextField(
-                                                        decoration: InputDecoration(
-                                                            border: OutlineInputBorder(),
-                                                            labelText:
-                                                                "Введите адрес"),
-                                                      ))
-                                                    ],
-                                                  ),
-                                                ),
-                                              );
+                                                  backgroundColor:
+                                                      Colors.transparent,
+                                                  shape:
+                                                      RoundedRectangleBorder(),
+                                                  child: Container(
+                                                    color: Colors.transparent,
+                                                    padding: EdgeInsets.all(10),
+                                                    child: Column(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .end,
+                                                          mainAxisSize:
+                                                              MainAxisSize.max,
+                                                          children: [
+                                                            IconButton(
+                                                                onPressed: () {
+                                                                  Navigator.pop(
+                                                                      context);
+                                                                },
+                                                                icon: Icon(Icons
+                                                                    .close))
+                                                          ],
+                                                        ),
+                                                        Flexible(
+                                                            child: TextField(
+                                                          controller:
+                                                              _searchAddress,
+                                                          decoration: InputDecoration(
+                                                              border:
+                                                                  OutlineInputBorder(),
+                                                              labelText:
+                                                                  "Введите адрес"),
+                                                        )),
+                                                        SizedBox(
+                                                          height: 20,
+                                                        ),
+                                                        Flexible(
+                                                            child:
+                                                                GestureDetector(
+                                                                    onTap: () {
+                                                                      searchGeoDataByString(
+                                                                          _searchAddress
+                                                                              .text);
+                                                                      Navigator.pop(
+                                                                          context);
+                                                                      setState(
+                                                                          () {
+                                                                        isMapSetteled =
+                                                                            true;
+                                                                      });
+                                                                    },
+                                                                    child:
+                                                                        Container(
+                                                                      padding:
+                                                                          EdgeInsets.all(
+                                                                              15),
+                                                                      decoration: BoxDecoration(
+                                                                          color: Colors
+                                                                              .deepOrangeAccent,
+                                                                          borderRadius:
+                                                                              BorderRadius.all(Radius.circular(5))),
+                                                                      child:
+                                                                          Row(
+                                                                        children: [
+                                                                          Text(
+                                                                            "Поиск",
+                                                                            style:
+                                                                                TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+                                                                          )
+                                                                        ],
+                                                                      ),
+                                                                    ))),
+                                                      ],
+                                                    ),
+                                                  ));
                                             },
                                           );
                                         },
@@ -241,9 +348,10 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                         ))
                                   ],
                                 )),
-                            Spacer(),
+                            Divider(),
                             Flexible(
-                              flex: 2,
+                              fit: FlexFit.tight,
+                              flex: 1,
                               child: GestureDetector(
                                   onTap: () {},
                                   child: Container(
@@ -264,7 +372,6 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                     ),
                                   )),
                             ),
-                            Spacer()
                           ],
                         )))
         ],
@@ -345,18 +452,29 @@ class _AnimatedCurrentPositionState extends State<AnimatedCurrentPosition>
   }
 }
 
-class SearchAddressPage extends StatefulWidget {
-  const SearchAddressPage({super.key});
+class CreateAddressPage extends StatefulWidget {
+  const CreateAddressPage(
+      {super.key,
+      required this.lat,
+      required this.lon,
+      required this.addressName});
+  final double lat;
+  final double lon;
+  final String addressName;
 
   @override
-  State<SearchAddressPage> createState() => _SearchAddressPageState();
+  State<CreateAddressPage> createState() => _CreateAddressPageState();
 }
 
-class _SearchAddressPageState extends State<SearchAddressPage> {
+class _CreateAddressPageState extends State<CreateAddressPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Placeholder(),
+      body: Container(
+        child: Column(
+          children: [],
+        ),
+      ),
     );
   }
 }
