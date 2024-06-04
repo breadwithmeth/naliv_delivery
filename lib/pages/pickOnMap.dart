@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:naliv_delivery/misc/api.dart';
+import 'package:naliv_delivery/pages/pickAddressPage.dart';
 
 class PickOnMapPage extends StatefulWidget {
   const PickOnMapPage({super.key, required this.currentPosition});
@@ -14,6 +16,7 @@ class PickOnMapPage extends StatefulWidget {
 }
 
 class _PickOnMapPageState extends State<PickOnMapPage> {
+  TextEditingController _searchAddress = TextEditingController();
   MapController _mapController = MapController();
   String? _currentAddressName;
   bool isMapSetteled = true;
@@ -26,6 +29,22 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
           objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
       double lon = double.parse(
           objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
+      setState(() {
+        _currentAddressName = objects.first["GeoObject"]["name"];
+      });
+    });
+  }
+
+  Future<void> searchGeoDataByString(String search) async {
+    await getGeoData(search).then((value) {
+      print(value);
+      List objects = value?["response"]["GeoObjectCollection"]["featureMember"];
+
+      double lat = double.parse(
+          objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
+      double lon = double.parse(
+          objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
+      _mapController.move(LatLng(lat, lon), 13);
       setState(() {
         _currentAddressName = objects.first["GeoObject"]["name"];
       });
@@ -45,7 +64,12 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
               widget.currentPosition.longitude),
           15);
       searchGeoData(
-          widget.currentPosition.longitude, widget.currentPosition.latitude);
+              widget.currentPosition.longitude, widget.currentPosition.latitude)
+          .then((v) {
+        setState(() {
+          _searchAddress.text = _currentAddressName ?? "";
+        });
+      });
     });
   }
 
@@ -161,6 +185,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                         )
                       : Column(
                           mainAxisAlignment: MainAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Spacer(),
@@ -193,9 +218,11 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                             ),
                             Container(
                                 decoration: BoxDecoration(
-                                    border: Border(
-                                        bottom: BorderSide(
-                                            color: Colors.grey.shade400))),
+                                    // border: Border(
+                                    //     bottom: BorderSide(
+                                    //         color: Colors.grey.shade400))
+                                            
+                                            ),
                                 child: Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
@@ -245,6 +272,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                                         ),
                                                         Flexible(
                                                             child: TextField(
+                                                          controller:
+                                                              _searchAddress,
                                                           decoration: InputDecoration(
                                                               border:
                                                                   OutlineInputBorder(),
@@ -257,8 +286,13 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                                         Flexible(
                                                             child:
                                                                 GestureDetector(
-                                                                    onTap:
-                                                                        () {},
+                                                                    onTap: () {
+                                                                      searchGeoDataByString(
+                                                                          _searchAddress
+                                                                              .text);
+                                                                      Navigator.pop(
+                                                                          context);
+                                                                    },
                                                                     child:
                                                                         Container(
                                                                       padding:
@@ -292,9 +326,10 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                         ))
                                   ],
                                 )),
-                            Spacer(),
+                                Divider(),
                             Flexible(
-                              flex: 2,
+                              fit: FlexFit.tight,
+                              flex: 1,
                               child: GestureDetector(
                                   onTap: () {},
                                   child: Container(
@@ -315,7 +350,6 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                     ),
                                   )),
                             ),
-                            Spacer()
                           ],
                         )))
         ],
