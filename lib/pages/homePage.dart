@@ -357,7 +357,26 @@ class _HomePageState extends State<HomePage>
                           ),
                         ),
                         Flexible(
-                          flex: 4,
+                          flex: 2,
+                          fit: FlexFit.tight,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.business["name"],
+                                maxLines: 1,
+                                style: TextStyle(fontSize: 12),
+                              ),
+                              Text(
+                                widget.business["address"],
+                                maxLines: 1,
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Flexible(
+                          flex: 5,
                           fit: FlexFit.tight,
                           child: TextButton(
                             onPressed: () {
