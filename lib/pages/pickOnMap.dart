@@ -188,7 +188,9 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SizedBox(height: 20,),
+                            SizedBox(
+                              height: 20,
+                            ),
                             Flexible(
                               child: Row(
                                 children: [
@@ -440,18 +442,25 @@ class _AnimatedCurrentPositionState extends State<AnimatedCurrentPosition>
   }
 }
 
-class SearchAddressPage extends StatefulWidget {
-  const SearchAddressPage({super.key});
-
+class CreateAddressPage extends StatefulWidget {
+  const CreateAddressPage({super.key, required this.lat, required this.lon, required this.addressName});
+  final double lat;
+  final double lon;
+  final String addressName;
+  
   @override
-  State<SearchAddressPage> createState() => _SearchAddressPageState();
+  State<CreateAddressPage> createState() => _CreateAddressPageState();
 }
 
-class _SearchAddressPageState extends State<SearchAddressPage> {
+class _CreateAddressPageState extends State<CreateAddressPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Placeholder(),
+      body: Container(
+        child: Column(
+          children: [],
+        ),
+      ),
     );
   }
 }
