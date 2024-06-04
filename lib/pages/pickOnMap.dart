@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -67,7 +69,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
   }
 
   Future<void> searchGeoDataByString(String search) async {
-    await getGeoData(search).then((value) {
+    await getGeoData(_currentCity + " " + search).then((value) {
       print(value);
       List objects = value?["response"]["GeoObjectCollection"]["featureMember"];
 
@@ -75,7 +77,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
           objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
       double lon = double.parse(
           objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
-      _mapController.move(LatLng(lat, lon), 13);
+      _mapController.move(LatLng(lat, lon), 20);
       setState(() {
         _currentAddressName = objects.first["GeoObject"]["name"];
         _lat = lat;
@@ -121,7 +123,66 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
           icon: Icon(Icons.arrow_back),
         ),
         title: TextButton(
-            onPressed: () {},
+            onPressed: () {
+              showDialog(
+                barrierColor: Colors.white70,
+                context: context,
+                builder: (context) {
+                  return Dialog(
+                      backgroundColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                        child: Container(
+                          alignment: Alignment.center,
+                          color: Colors.transparent,
+                          padding: EdgeInsets.all(10),
+                          child: ListView.builder(
+                            primary: false,
+                            itemCount: widget.cities.length,
+                            itemBuilder: (context, index) {
+                              return TextButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _currentCity =
+                                          widget.cities[index]["name"];
+                                      _currentCityId =
+                                          widget.cities[index]["city_id"];
+                                    });
+                                    _mapController.move(
+                                        LatLng(
+                                            (double.parse(widget.cities[index]
+                                                        ["x1"]) +
+                                                    double.parse(widget
+                                                        .cities[index]["x2"])) /
+                                                2,
+                                            (double.parse(widget.cities[index]
+                                                        ["y1"]) +
+                                                    double.parse(widget
+                                                        .cities[index]["y1"])) /
+                                                2),
+                                        10);
+                                    Navigator.pop(context);
+                                  },
+                                  child: Container(
+                                      padding: EdgeInsets.all(10),
+                                      child: Row(
+                                        children: [
+                                          Text(
+                                            widget.cities[index]["name"],
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 24),
+                                          )
+                                        ],
+                                      )));
+                            },
+                          ),
+                        ),
+                      ));
+                },
+              );
+            },
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.start,
@@ -512,7 +573,8 @@ class CreateAddressPage extends StatefulWidget {
       {super.key,
       required this.lat,
       required this.lon,
-      required this.addressName, required this.city_id});
+      required this.addressName,
+      required this.city_id});
   final double lat;
   final double lon;
   final String addressName;
