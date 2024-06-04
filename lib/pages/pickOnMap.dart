@@ -23,9 +23,26 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
   String? _currentAddressName;
   bool isMapSetteled = true;
 
+  String _currentCity = "";
+  String _currentCityId = "";
+
   void setCurrentCity() {
     widget.cities.forEach((city) {
       print(city);
+      print(city["name"]);
+
+      if (double.parse(city["x1"]) < widget.currentPosition.latitude &&
+          double.parse(city["x2"]) > widget.currentPosition.latitude &&
+          double.parse(city["y1"]) < widget.currentPosition.longitude &&
+          double.parse(city["y2"]) > widget.currentPosition.longitude) {
+        setState(() {
+          _currentCity = city["name"];
+          _currentCityId = city["city_id"];
+        });
+        print("========================================================");
+      } else {
+        print("+++++++++++++++++++++++++++++++++++++++++++");
+      }
     });
   }
 
@@ -64,6 +81,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    setCurrentCity();
+
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {});
     Future.delayed(
       Durations.extralong4,
@@ -78,7 +97,6 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
         setState(() {
           _searchAddress.text = _currentAddressName ?? "";
         });
-        setCurrentCity();
       });
     });
   }
@@ -87,13 +105,18 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+          centerTitle: false,
           leading: IconButton(
             onPressed: () {
               Navigator.pop(context);
             },
             icon: Icon(Icons.arrow_back),
           ),
-          title: Text("тут будет город")),
+          title: TextButton(onPressed: (){}, child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.start,
+            mainAxisSize: MainAxisSize.max,
+            children: [Text(_currentCity, style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 24),), Icon(Icons.arrow_drop_down)],)),),
       body: Column(
         children: [
           Expanded(

@@ -51,6 +51,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
     super.initState();
     _getAddresses();
     _getGeolocation();
+    _getCities();
   }
 
   @override
