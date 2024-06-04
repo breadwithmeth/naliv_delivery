@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
@@ -79,129 +80,110 @@ class _SettingsPageState extends State<SettingsPage> {
                 ],
               ),
             ),
-            TextButton(onPressed: () {
-                
-                            
-                            showDialog(
-                              context: context,
-                              builder: (context) {
-                                return AlertDialog.adaptive(
-                                  shape: const RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(10)),
-                                  ),
-                                  title: Text(
-                                    "Вы точно хотите выйти из аккаунта?",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onBackground,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  actionsAlignment: MainAxisAlignment.center,
-                                  actions: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Flexible(
-                                          child: Padding(
-                                            padding:
-                                                const EdgeInsets.symmetric(
-                                                    horizontal: 5),
-                                            child: ElevatedButton(
-                                              onPressed: () {
-                                                logout();
-                                                Navigator.pushAndRemoveUntil(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder: (context) =>
-                                                          const LoginPage(),
-                                                    ),
-                                                    (route) => false);
-                                              },
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Flexible(
-                                                    child: Text(
-                                                      "Да",
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                      style: TextStyle(
-                                                        color:
-                                                            Theme.of(context)
-                                                                .colorScheme
-                                                                .onPrimary,
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                      ),
-                                                    ),
-                                                  )
-                                                ],
-                                              ),
-                                            ),
+            TextButton(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog.adaptive(
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                      ),
+                      title: Text(
+                        "Вы точно хотите выйти из аккаунта?",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onBackground,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      actionsAlignment: MainAxisAlignment.center,
+                      actions: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Flexible(
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 5),
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    logout();
+                                    Navigator.pushAndRemoveUntil(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const LoginPage(),
+                                        ),
+                                        (route) => false);
+                                  },
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          "Да",
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onPrimary,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
                                           ),
                                         ),
-                                        Flexible(
-                                          child: Padding(
-                                            padding:
-                                                const EdgeInsets.symmetric(
-                                                    horizontal: 5),
-                                            child: ElevatedButton(
-                                              onPressed: () {
-                                                Navigator.pop(context);
-                                              },
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Flexible(
-                                                    child: Text(
-                                                      "Нет",
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                      style: TextStyle(
-                                                        color:
-                                                            Theme.of(context)
-                                                                .colorScheme
-                                                                .onPrimary,
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                      ),
-                                                    ),
-                                                  )
-                                                ],
-                                              ),
-                                            ),
+                                      )
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Flexible(
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 5),
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                  },
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          "Нет",
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onPrimary,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-                            setState(() {
-                            });
-                            print(123);
-                            logout();
-                            Navigator.pushReplacement(context, MaterialPageRoute(
-                              builder: (context) {
-                                return const LoginPage();
-                              },
-                            ));
-                       
-
-
-
-            }, child:  Row(
+                                      )
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
+                );
+                setState(() {});
+                print(123);
+                logout();
+                Navigator.pushReplacement(context, MaterialPageRoute(
+                  builder: (context) {
+                    return const LoginPage();
+                  },
+                ));
+              },
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   Text(
@@ -209,7 +191,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     style: TextStyle(),
                   ),
                 ],
-              ),)
+              ),
+            )
           ],
         ),
       ),

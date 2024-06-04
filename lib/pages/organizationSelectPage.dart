@@ -259,13 +259,14 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             IconButton(
-                                onPressed: () {
-                                  _key.currentState!.closeEndDrawer();
-                                },
-                                icon: Container(
-                                  padding: EdgeInsets.all(20),
-                                  child: Icon(Icons.close),
-                                ))
+                              onPressed: () {
+                                _key.currentState!.closeEndDrawer();
+                              },
+                              icon: Container(
+                                padding: EdgeInsets.all(20),
+                                child: Icon(Icons.close),
+                              ),
+                            ),
                           ],
                         ),
                         Flexible(
@@ -306,17 +307,19 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                             DrawerMenuItem(
                               name: "История заказов",
                               icon: Icons.book_outlined,
-                              route: SettingsPage(),
+                              route: OrderHistoryPage(),
                             ),
                             DrawerMenuItem(
                               name: "Адреса доставки",
                               icon: Icons.map_outlined,
-                              route: SettingsPage(),
+                              route: PickAddressPage(
+                                client: widget.user,
+                              ),
                             ),
                             DrawerMenuItem(
                               name: "Поддержка",
                               icon: Icons.support_agent_rounded,
-                              route: SettingsPage(),
+                              route: SupportPage(),
                             ),
                             DrawerMenuItem(
                               name: "Настройки",
@@ -433,7 +436,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                 children: [
                                                   Text(
                                                     widget.currentAddress[
-                                                        "city_name"],
+                                                            "city_name"] ??
+                                                        "",
                                                     style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.w700,
@@ -470,147 +474,152 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                         ],
                                       )
 
-                                    // IconButton(
-                                    //     onPressed: () {},
-                                    //     icon: Icon(Icons.settings, color: Colors.black,)),
-                                  ],
-                                )
-                              ],
-                            ),
-                          )),
-              ),
-              SliverLayoutBuilder(
-                builder: (context, constraints) {
-                  if (scrollExtent == 0) {
-                    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-                      setState(() {
-                        scrollExtent = constraints.precedingScrollExtent;
+                                      // IconButton(
+                                      //     onPressed: () {},
+                                      //     icon: Icon(Icons.settings, color: Colors.black,)),
+                                    ],
+                                  )
+                                ],
+                              ),
+                            )),
+                ),
+                SliverLayoutBuilder(
+                  builder: (context, constraints) {
+                    if (scrollExtent == 0) {
+                      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+                        setState(() {
+                          scrollExtent = constraints.precedingScrollExtent;
+                        });
                       });
-                    });
-                  }
-                  return SliverToBoxAdapter(
-                    child: AnimatedContainer(
-                      duration: Durations.medium2,
-                      decoration: BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                            spreadRadius: 5,
-                            offset: Offset(0, -100),
+                    }
+                    return SliverToBoxAdapter(
+                      child: AnimatedContainer(
+                          duration: Durations.medium2,
+                          decoration: BoxDecoration(
+                            boxShadow: [
+                              BoxShadow(
+                                spreadRadius: 5,
+                                offset: Offset(0, -100),
+                                color: !isStartingToCollapse
+                                    ? const Color(0xFFef8354)
+                                    : Colors.blueGrey.shade50,
+                              )
+                            ],
                             color: !isStartingToCollapse
                                 ? const Color(0xFFef8354)
                                 : Colors.blueGrey.shade50,
-                          )
-                        ],
-                        color: !isStartingToCollapse
-                            ? const Color(0xFFef8354)
-                            : Colors.blueGrey.shade50,
-                      ),
-                      child: Stack(
-                        alignment: Alignment.bottomCenter,
-                        children: [
-                          AnimatedContainer(
-                            duration: Durations.medium1,
-                            height: 100,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                                boxShadow: [
-                                  !isStartingToCollapse
-                                      ? const BoxShadow(
-                                          offset: Offset(0, -10),
-                                          color: Colors.black26,
-                                          blurRadius: 20)
-                                      : const BoxShadow(color: Colors.white),
-                                  BoxShadow(
-                                      color: Colors.blueGrey.shade50,
-                                      offset: Offset(0, 5),
-                                      blurRadius: 5)
-                                ],
-                                color: Colors.blueGrey.shade50,
-                                borderRadius: !isCollapsed
-                                    ? const BorderRadius.only(
-                                        topLeft: Radius.elliptical(100, 50),
-                                        topRight: Radius.elliptical(100, 50))
-                                    : const BorderRadius.all(Radius.zero)),
                           ),
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
+                          child: Stack(
+                            alignment: Alignment.bottomCenter,
                             children: [
                               AnimatedContainer(
-                                foregroundDecoration: BoxDecoration(
-                                    color: !isStartingToCollapse
-                                        ? const Color(0xFFef8354).withOpacity(0)
-                                        : Colors.blueGrey.shade50),
                                 duration: Durations.medium1,
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.max,
-                                  children: [
-                                    AnimatedContainer(
-                                        duration: Durations.medium1,
-                                        // foregroundDecoration: BoxDecoration(color: isCollapsed ? Color(0xFFef8354) : Colors.transparent),
-                                        width: double.infinity,
-                                        height:
-                                            MediaQuery.of(context).size.height /
+                                height: 100,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                    boxShadow: [
+                                      !isStartingToCollapse
+                                          ? const BoxShadow(
+                                              offset: Offset(0, -10),
+                                              color: Colors.black26,
+                                              blurRadius: 20)
+                                          : const BoxShadow(
+                                              color: Colors.white),
+                                      BoxShadow(
+                                          color: Colors.blueGrey.shade50,
+                                          offset: Offset(0, 5),
+                                          blurRadius: 5)
+                                    ],
+                                    color: Colors.blueGrey.shade50,
+                                    borderRadius: !isCollapsed
+                                        ? const BorderRadius.only(
+                                            topLeft: Radius.elliptical(100, 50),
+                                            topRight:
+                                                Radius.elliptical(100, 50))
+                                        : const BorderRadius.all(Radius.zero)),
+                              ),
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  AnimatedContainer(
+                                    foregroundDecoration: BoxDecoration(
+                                        color: !isStartingToCollapse
+                                            ? const Color(0xFFef8354)
+                                                .withOpacity(0)
+                                            : Colors.blueGrey.shade50),
+                                    duration: Durations.medium1,
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.max,
+                                      children: [
+                                        AnimatedContainer(
+                                            duration: Durations.medium1,
+                                            // foregroundDecoration: BoxDecoration(color: isCollapsed ? Color(0xFFef8354) : Colors.transparent),
+                                            width: double.infinity,
+                                            height: MediaQuery.of(context)
+                                                    .size
+                                                    .height /
                                                 4,
-                                        margin: const EdgeInsets.all(15),
-                                        decoration: const BoxDecoration(
-                                            // color: Colors.pinkAccent,
+                                            margin: const EdgeInsets.all(15),
+                                            decoration: const BoxDecoration(
+                                                // color: Colors.pinkAccent,
 
-                                            ),
-                                        child: Column(
-                                          children: [
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                const Spacer(
-                                                  flex: 2,
                                                 ),
-                                                CircleAvatar(
-                                                  radius: MediaQuery.of(context)
-                                                          .size
-                                                          .height /
-                                                      16,
+                                            child: Column(
+                                              children: [
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    const Spacer(
+                                                      flex: 2,
+                                                    ),
+                                                    CircleAvatar(
+                                                      radius:
+                                                          MediaQuery.of(context)
+                                                                  .size
+                                                                  .height /
+                                                              16,
+                                                    ),
+                                                    const Spacer(),
+                                                    Flexible(
+                                                        flex: 3,
+                                                        child: Text(
+                                                            widget.user["name"],
+                                                            style: GoogleFonts
+                                                                .mulish(
+                                                              textStyle: TextStyle(
+                                                                  letterSpacing:
+                                                                      1,
+                                                                  fontSize: 24,
+                                                                  color: Colors
+                                                                      .white,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w900),
+                                                            ))),
+                                                    const Spacer(
+                                                      flex: 2,
+                                                    )
+                                                  ],
                                                 ),
                                                 const Spacer(),
-                                                Flexible(
-                                                    flex: 3,
-                                                    child: Text(
-                                                        widget.user["name"],
-                                                        style:
-                                                            GoogleFonts.mulish(
-                                                          textStyle: TextStyle(
-                                                              letterSpacing: 1,
-                                                              fontSize: 24,
-                                                              color:
-                                                                  Colors.white,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w900),
-                                                        ))),
-                                                const Spacer(
-                                                  flex: 2,
-                                                )
-                                              ],
-                                            ),
-                                            const Spacer(),
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                TextButton(
-                                                    onPressed: () {},
-                                                    child: Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .center,
-                                                      mainAxisSize:
-                                                          MainAxisSize.max,
-                                                      children: [
-                                                        Text(
-                                                          widget.currentAddress[
-                                                              "address"],
-                                                          style:
-                                                              const TextStyle(
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    TextButton(
+                                                        onPressed: () {},
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          mainAxisSize:
+                                                              MainAxisSize.max,
+                                                          children: [
+                                                            Text(
+                                                              widget.currentAddress[
+                                                                  "address"],
+                                                              style: const TextStyle(
                                                                   fontSize: 16,
                                                                   fontWeight:
                                                                       FontWeight
@@ -656,8 +665,41 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                             blurRadius: 5)
                                       ],
                                     ),
-                                    child: const Text(
-                                        "здесь будет какой то баннер, возможно надо будет марджины везде одинаковые сделать"),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Flexible(
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Flexible(
+                                                fit: FlexFit.tight,
+                                                child: const Text(
+                                                  "ALLCO",
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 68,
+                                                    fontWeight: FontWeight.w700,
+                                                    fontFamily: "montserrat",
+                                                    shadows: [
+                                                      Shadow(
+                                                        color: Colors.black26,
+                                                        blurRadius: 15,
+                                                        offset: Offset(0, 0),
+                                                      ),
+                                                    ],
+                                                    height: 1,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   )
                                 ],
                               )
@@ -791,14 +833,16 @@ class BusinessItemState extends State<BusinessItem> {
         child: Column(
           children: [
             Expanded(
-                child: Container(
-              height: double.infinity,
-              width: double.infinity,
-              child: Image.network(
-                widget.business["img"],
-                fit: BoxFit.cover,
-              ),
-            )),
+              child: Container(
+                  height: double.infinity,
+                  width: double.infinity,
+                  child: CachedNetworkImage(
+                    imageUrl: widget.business["img"],
+                    errorWidget: (context, url, error) {
+                      return const SizedBox();
+                    },
+                  )),
+            ),
             Expanded(
                 child: Container(
                     padding: EdgeInsets.all(10),

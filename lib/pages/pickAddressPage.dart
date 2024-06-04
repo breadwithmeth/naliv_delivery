@@ -3,13 +3,16 @@ import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
 import 'package:naliv_delivery/pages/pickOnMap.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter/cupertino.dart';
 
 class PickAddressPage extends StatefulWidget {
   const PickAddressPage({
     super.key,
     required this.client,
+    this.businessId = "",
   });
   final Map client;
+  final String businessId;
   //  String businessId;
   @override
   State<PickAddressPage> createState() => _PickAddressPageState();
@@ -51,7 +54,9 @@ class _PickAddressPageState extends State<PickAddressPage> {
         onPressed: () {
           Navigator.push(context, MaterialPageRoute(
             builder: (context) {
-              return PickOnMapPage(currentPosition: _location,);
+              return PickOnMapPage(
+                currentPosition: _location,
+              );
             },
           ));
         },
@@ -85,15 +90,15 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                   widget.client["user_id"])
                               .whenComplete(
                             () {
-                              // Navigator.push(context, MaterialPageRoute(
-                              //   builder: (context) {
-                              //     return CreateOrderPage(
-                              //       businessId: widget.businessId,
-                              //       client: widget.client,
-                              //       customAddress: _addresses[index],
-                              //     );
-                              //   },
-                              // ));
+                              Navigator.push(context, MaterialPageRoute(
+                                builder: (context) {
+                                  return CreateOrderPage(
+                                    businessId: widget.businessId,
+                                    client: widget.client,
+                                    customAddress: _addresses[index],
+                                  );
+                                },
+                              ));
                             },
                           );
                         },
@@ -108,7 +113,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                   fontWeight: FontWeight.w700, fontSize: 18),
                             ),
                             Text(
-                              _addresses[index]["city_name"],
+                              _addresses[index]["city_name"] ?? "",
                               style: TextStyle(
                                   fontWeight: FontWeight.w700, fontSize: 16),
                             ),

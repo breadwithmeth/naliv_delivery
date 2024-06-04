@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 
 //var URL_API = '10.8.0.3';
@@ -563,7 +564,8 @@ Future<Map<String, dynamic>?> getCity() async {
   return data;
 }
 
-Future<Map<String, dynamic>> createOrder([String user_id = ""]) async {
+Future<Map<String, dynamic>> createOrder(String businessId,
+    [String user_id = ""]) async {
   // Returns null in two situations, token is null or wrong order (406)
   String? token = await getToken();
   if (token == null) {
@@ -573,7 +575,9 @@ Future<Map<String, dynamic>> createOrder([String user_id = ""]) async {
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
-    body: user_id.isNotEmpty ? json.encode({"user_id": user_id}) : null,
+    body: user_id.isNotEmpty
+        ? json.encode({"user_id": user_id, 'business_id': businessId})
+        : json.encode({'business_id': businessId}),
   );
 
   // List<dynamic> list = json.decode(response.body);

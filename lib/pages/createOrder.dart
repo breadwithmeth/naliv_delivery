@@ -53,14 +53,27 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
     return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
   }
 
-  Future<void> _getLastSelectedBusiness() async {
-    await getLastSelectedBusiness().then((value) {
-      if (value != null) {
-        setState(() {
-          selectedBusiness = value;
-        });
-      }
-    });
+  void getBusinessData() {
+    if (widget.businessId.isNotEmpty) {
+      getBusinesses().then((value) {
+        if (value != null && value.isNotEmpty) {
+          for (Map<String, dynamic> business in value) {
+            if (business["business_id"] == widget.businessId) {
+              setState(() {
+                selectedBusiness = business;
+                isBusinessLoading = false;
+              });
+            }
+          }
+          if (selectedBusiness.isEmpty) {
+            setState(() {
+              selectedBusiness = {"name": "Не получилось получить адрес"};
+              isBusinessLoading = false;
+            });
+          }
+        }
+      });
+    }
   }
 
   Future<void> _getUser() async {
@@ -331,17 +344,13 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
     // TODO: implement initState
     super.initState();
     isBusinessLoading = true;
+    getBusinessData();
     Future.delayed(const Duration(microseconds: 0), () async {
       await _getCart();
       // SWITCH BETWEEN getAddresses and getClientAddresses depending on Client/Operator mode
       await _getAddresses();
       // await _getClientAddresses();
       await _getUser();
-      await _getLastSelectedBusiness().whenComplete(() {
-        setState(() {
-          isBusinessLoading = false;
-        });
-      });
     }).whenComplete(() => isCartLoading = false);
   }
 
@@ -644,7 +653,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                   Text(
                                     isBusinessLoading
                                         ? ""
-                                        : selectedBusiness["address"],
+                                        : selectedBusiness["name"],
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 16,
@@ -759,8 +768,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                   items: items,
                                   address: currentAddress,
                                   cartInfo: cartInfo,
+                                  businessId: widget.businessId,
                                   user: user,
-                                  selectedBusiness: selectedBusiness,
                                 ),
                               ),
                             )
@@ -772,8 +781,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                   items: items,
                                   address: widget.customAddress,
                                   cartInfo: cartInfo,
+                                  businessId: widget.businessId,
                                   user: widget.client,
-                                  selectedBusiness: selectedBusiness,
                                 ),
                               ),
                             );
