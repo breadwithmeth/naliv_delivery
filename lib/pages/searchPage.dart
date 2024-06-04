@@ -4,10 +4,9 @@ import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/pages/searchResultPage.dart';
 
 class SearchPage extends StatefulWidget {
-  const SearchPage(
-      {super.key, required this.businessId, this.category_id = ""});
+  const SearchPage({super.key, required this.business, this.category_id = ""});
 
-  final String businessId;
+  final Map<dynamic, dynamic> business;
   final String category_id;
 
   @override
@@ -27,7 +26,7 @@ class _SearchPageState extends State<SearchPage> {
           return SearchResultPage(
             search: _keyword.text,
             page: 0,
-            businessId: widget.businessId,
+            business: widget.business,
           );
         } else {
           print("SEARCH INSIDE CATEGORY");
@@ -35,7 +34,7 @@ class _SearchPageState extends State<SearchPage> {
             search: _keyword.text,
             page: 0,
             category_id: widget.category_id,
-            businessId: widget.businessId,
+            business: widget.business,
           );
         }
       },

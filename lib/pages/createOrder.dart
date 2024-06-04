@@ -17,11 +17,11 @@ import '../misc/api.dart';
 class CreateOrderPage extends StatefulWidget {
   const CreateOrderPage(
       {super.key,
-      required this.businessId,
+      required this.business,
       this.client = const {},
       this.customAddress = const {}});
 
-  final String businessId;
+  final Map<dynamic, dynamic> business;
   final Map<dynamic, dynamic> client;
   final Map<String, dynamic> customAddress;
 
@@ -40,10 +40,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
 
   bool isAddressesLoading = true;
   bool isCartLoading = true;
-  bool isBusinessLoading = true;
-
-  Map<String, dynamic> selectedBusiness = {};
-
   Map<String, dynamic> user = {};
 
   List<Map<dynamic, dynamic>> wrongAmountItems = [];
@@ -51,29 +47,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   String formatCost(String costString) {
     int cost = int.parse(costString);
     return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
-  }
-
-  void getBusinessData() {
-    if (widget.businessId.isNotEmpty) {
-      getBusinesses().then((value) {
-        if (value != null && value.isNotEmpty) {
-          for (Map<String, dynamic> business in value) {
-            if (business["business_id"] == widget.businessId) {
-              setState(() {
-                selectedBusiness = business;
-                isBusinessLoading = false;
-              });
-            }
-          }
-          if (selectedBusiness.isEmpty) {
-            setState(() {
-              selectedBusiness = {"name": "Не получилось получить адрес"};
-              isBusinessLoading = false;
-            });
-          }
-        }
-      });
-    }
   }
 
   Future<void> _getUser() async {
@@ -90,7 +63,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
     // List cart = await getCart();
     // print(cart);
 
-    Map<String, dynamic> cart = await getCart(widget.businessId);
+    Map<String, dynamic> cart = await getCart(widget.business["business_id"]);
     // Map<String, dynamic>? cartInfoFromAPI = await getCartInfo();
 
     setState(() {
@@ -343,8 +316,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    isBusinessLoading = true;
-    getBusinessData();
     Future.delayed(const Duration(microseconds: 0), () async {
       await _getCart();
       // SWITCH BETWEEN getAddresses and getClientAddresses depending on Client/Operator mode
@@ -641,7 +612,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                   child: Column(
                                 children: [
                                   Text(
-                                    "Самовывозом: ${isBusinessLoading ? "" : selectedBusiness["name"]}",
+                                    "Самовывозом: ${widget.business["name"]}",
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 16,
@@ -651,9 +622,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                     ),
                                   ),
                                   Text(
-                                    isBusinessLoading
-                                        ? ""
-                                        : selectedBusiness["name"],
+                                    widget.business["address"],
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 16,
@@ -768,7 +737,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                   items: items,
                                   address: currentAddress,
                                   cartInfo: cartInfo,
-                                  businessId: widget.businessId,
+                                  business: widget.business,
                                   user: user,
                                 ),
                               ),
@@ -781,7 +750,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                   items: items,
                                   address: widget.customAddress,
                                   cartInfo: cartInfo,
-                                  businessId: widget.businessId,
+                                  business: widget.business,
                                   user: widget.client,
                                 ),
                               ),

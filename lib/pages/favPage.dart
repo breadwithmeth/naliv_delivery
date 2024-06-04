@@ -7,9 +7,9 @@ import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:naliv_delivery/misc/api.dart';
 
 class FavPage extends StatefulWidget {
-  const FavPage({super.key, required this.businessId});
+  const FavPage({super.key, required this.business});
 
-  final String businessId;
+  final Map<dynamic, dynamic> business;
 
   @override
   State<FavPage> createState() => _FavPageState();
@@ -101,7 +101,7 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: CartButton(
-        businessId: widget.businessId,
+        business: widget.business,
       ),
       appBar: AppBar(
         title: const Row(
@@ -153,7 +153,7 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
                           item: items[index],
                           index: index,
                           returnDataAmount: updateDataAmount,
-                          businessId: widget.businessId,
+                          business: widget.business,
                         );
                       },
                     );

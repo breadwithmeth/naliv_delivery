@@ -7,9 +7,9 @@ import 'package:naliv_delivery/pages/pickAddressPage.dart';
 import 'package:flutter/cupertino.dart';
 
 class FindCreateUserPage extends StatefulWidget {
-  const FindCreateUserPage({super.key, required this.businessId});
+  const FindCreateUserPage({super.key, required this.business});
 
-  final String businessId;
+  final Map<dynamic, dynamic> business;
 
   @override
   State<FindCreateUserPage> createState() => _FindCreateUserPageState();
@@ -35,7 +35,7 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                     builder: (context) {
                       return PickAddressPage(
                         client: client,
-                        businessId: widget.businessId,
+                        business: widget.business,
                       );
                     },
                   ));

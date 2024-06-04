@@ -17,11 +17,11 @@ class CategoryPage extends StatefulWidget {
       required this.categoryId,
       required this.categoryName,
       required this.categories,
-      required this.business_id});
+      required this.business});
   final String categoryId;
   final String categoryName;
   final List<dynamic> categories;
-  final String business_id;
+  final Map<dynamic, dynamic> business;
   @override
   State<CategoryPage> createState() => _CategoryPageState();
 }
@@ -70,7 +70,7 @@ class _CategoryPageState extends State<CategoryPage> {
       child: Scaffold(
         key: _scaffoldKey,
         floatingActionButton: CartButton(
-          businessId: widget.business_id,
+          business: widget.business,
         ),
         appBar: AppBar(
           bottom: TabBar(
@@ -123,7 +123,7 @@ class _CategoryPageState extends State<CategoryPage> {
                             builder: (context) {
                               return SearchPage(
                                 category_id: widget.categoryId,
-                                businessId: widget.business_id,
+                                business: widget.business,
                               );
                             },
                           ));
@@ -406,7 +406,7 @@ class _CategoryPageState extends State<CategoryPage> {
             for (int j = 0; j < widget.categories.length; j++)
               CategoryPageList(
                 categoryId: categoriesWidgetList[j]["category_id"],
-                business_id: widget.business_id,
+                business: widget.business,
               )
           ],
         ),
@@ -423,10 +423,10 @@ class Item {
 
 class CategoryPageList extends StatefulWidget {
   const CategoryPageList(
-      {super.key, required this.categoryId, required this.business_id});
+      {super.key, required this.categoryId, required this.business});
 
   final String categoryId;
-  final String business_id;
+  final Map<dynamic, dynamic> business;
   @override
   State<CategoryPageList> createState() => _CategoryPageListState();
 }
@@ -457,7 +457,7 @@ class _CategoryPageListState extends State<CategoryPageList>
     try {
       //! TODO: SEND SEARCH PARAMETER TO API
       List? responseList = await getItemsMain(
-          _pageNumber, widget.business_id, "", widget.categoryId);
+          _pageNumber, widget.business["business_id"], "", widget.categoryId);
       if (responseList != null) {
         List<Item> itemList = responseList.map((data) => Item(data)).toList();
 
@@ -559,7 +559,7 @@ class _CategoryPageListState extends State<CategoryPageList>
                         item: item.data,
                         index: index,
                         returnDataAmount: updateDataAmount,
-                        businessId: widget.business_id,
+                        business: widget.business,
                       );
                     },
                   );

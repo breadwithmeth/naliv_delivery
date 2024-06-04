@@ -17,14 +17,14 @@ class OrderConfirmation extends StatefulWidget {
     required this.address,
     required this.items,
     required this.cartInfo,
-    required this.businessId,
+    required this.business,
     this.user = const {},
   });
   final bool delivery;
   final Map? address;
   final List items;
   final String cartInfo;
-  final String businessId;
+  final Map<dynamic, dynamic> business;
   final Map<dynamic, dynamic> user;
   @override
   State<OrderConfirmation> createState() => _OrderConfirmationState();
@@ -40,7 +40,6 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
   bool? isOrderCorrect = false;
   List<dynamic> wrongPositions = [];
   List<dynamic> wrongItems = [];
-  Map<String, dynamic> realSelectedBusiness = {};
 
   String formatCost(String costString) {
     int cost = int.parse(costString);
@@ -52,22 +51,6 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
       if (widget.items[i]["item_id"] == wrongPositions[i]["item_id"]) {
         wrongItems.add(widget.items[i]);
       }
-    }
-  }
-
-  void getBusinessData() {
-    if (widget.businessId.isNotEmpty) {
-      getBusinesses().then((value) {
-        if (value != null && value.isNotEmpty) {
-          for (Map<String, dynamic> business in value) {
-            if (business["business_id"] == widget.businessId) {
-              setState(() {
-                realSelectedBusiness = business;
-              });
-            }
-          }
-        }
-      });
     }
   }
 
@@ -83,7 +66,8 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
       Future.delayed(const Duration(milliseconds: 0)).then((value) async {
         print("Creating order...!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         String user_id = widget.user.isNotEmpty ? widget.user["user_id"] : "";
-        await createOrder(widget.businessId, user_id).then((value) {
+        await createOrder(widget.business["business_id"], user_id)
+            .then((value) {
           if (value["status"] == true) {
             isOrderCorrect = true;
             print("Order was created successfully");
@@ -460,7 +444,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                             child: Text(
                                   widget.delivery
                                       ? widget.address!["address"] ?? ""
-                                      : realSelectedBusiness["address"] ?? "",
+                                      : widget.business["address"],
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,

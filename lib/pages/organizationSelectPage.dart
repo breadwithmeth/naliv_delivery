@@ -810,7 +810,7 @@ class BusinessItemState extends State<BusinessItem> {
           MaterialPageRoute(
             builder: (context) {
               return HomePage(
-                business_id: widget.business["business_id"],
+                business: widget.business,
               ); //! TOOD: Change to redirect page to a different organizations or do this right here.
             },
           ),
@@ -859,6 +859,15 @@ class BusinessItemState extends State<BusinessItem> {
                                     fontWeight: FontWeight.w900, fontSize: 16),
                               ),
                             ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Text(
+                              widget.business["address"],
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w500, fontSize: 14),
+                            )
                           ],
                         ),
                         Row(

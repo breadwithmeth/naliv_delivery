@@ -9,10 +9,10 @@ class PickAddressPage extends StatefulWidget {
   const PickAddressPage({
     super.key,
     required this.client,
-    this.businessId = "",
+    this.business = const {},
   });
   final Map client;
-  final String businessId;
+  final Map<dynamic, dynamic> business;
   //  String businessId;
   @override
   State<PickAddressPage> createState() => _PickAddressPageState();
@@ -22,8 +22,6 @@ class _PickAddressPageState extends State<PickAddressPage> {
   late Position _location;
   Future<List> _getAddresses() async {
     List addresses = await getUserAddresses(widget.client["user_id"]);
-
-    print("HEHEHHE");
 
     return addresses;
   }
@@ -93,7 +91,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                               Navigator.push(context, MaterialPageRoute(
                                 builder: (context) {
                                   return CreateOrderPage(
-                                    businessId: widget.businessId,
+                                    business: widget.business,
                                     client: widget.client,
                                     customAddress: _addresses[index],
                                   );

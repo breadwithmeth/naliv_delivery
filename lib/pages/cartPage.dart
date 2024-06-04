@@ -11,9 +11,9 @@ import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:intl/intl.dart';
 
 class CartPage extends StatefulWidget {
-  const CartPage({super.key, required this.businessId});
+  const CartPage({super.key, required this.business});
 
-  final String businessId;
+  final Map<dynamic, dynamic> business;
 
   @override
   State<CartPage> createState() => _CartPageState();
@@ -37,7 +37,7 @@ class _CartPageState extends State<CartPage>
   }
 
   Future<Map<String, dynamic>> _getCart() async {
-    Map<String, dynamic> cart = await getCart(widget.businessId);
+    Map<String, dynamic> cart = await getCart(widget.business["business_id"]);
     print(cart);
 
     // Map<String, dynamic>? cartInfo = await getCartInfo();
@@ -261,7 +261,7 @@ class _CartPageState extends State<CartPage>
                                           item: items[index],
                                           index: index,
                                           returnDataAmount: updateDataAmount,
-                                          businessId: widget.businessId,
+                                          business: widget.business,
                                           openedFromCart: true,
                                         );
                                       },
@@ -436,7 +436,7 @@ class _CartPageState extends State<CartPage>
                           MaterialPageRoute(
                             builder: (context) {
                               return FindCreateUserPage(
-                                businessId: widget.businessId,
+                                business: widget.business,
                               );
                             },
                           ),
