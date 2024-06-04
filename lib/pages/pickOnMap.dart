@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
 
@@ -21,11 +23,12 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
   TextEditingController _searchAddress = TextEditingController();
   MapController _mapController = MapController();
   String? _currentAddressName;
-  bool isMapSetteled = true;
+  bool isMapSetteled = false;
 
   String _currentCity = "";
   String _currentCityId = "";
-
+  double _lat = 0;
+  double _lon = 0;
   void setCurrentCity() {
     widget.cities.forEach((city) {
       print(city);
@@ -57,6 +60,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
           objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
       setState(() {
         _currentAddressName = objects.first["GeoObject"]["name"];
+        _lat = lat;
+        _lon = lon;
       });
     });
   }
@@ -73,6 +78,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
       _mapController.move(LatLng(lat, lon), 13);
       setState(() {
         _currentAddressName = objects.first["GeoObject"]["name"];
+        _lat = lat;
+        _lon = lon;
       });
     });
   }
@@ -96,6 +103,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
           .then((v) {
         setState(() {
           _searchAddress.text = _currentAddressName ?? "";
+          isMapSetteled = true;
         });
       });
     });
@@ -105,18 +113,31 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          centerTitle: false,
-          leading: IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: Icon(Icons.arrow_back),
-          ),
-          title: TextButton(onPressed: (){}, child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: MainAxisAlignment.start,
-            mainAxisSize: MainAxisSize.max,
-            children: [Text(_currentCity, style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 24),), Icon(Icons.arrow_drop_down)],)),),
+        centerTitle: false,
+        leading: IconButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          icon: Icon(Icons.arrow_back),
+        ),
+        title: TextButton(
+            onPressed: () {},
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.start,
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                Text(
+                  _currentCity,
+                  style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 24),
+                ),
+                Icon(Icons.arrow_drop_down)
+              ],
+            )),
+      ),
       body: Column(
         children: [
           Expanded(
@@ -374,9 +395,20 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                             Divider(),
                             Flexible(
                               fit: FlexFit.tight,
-                              flex: 2,
+                              flex: 1,
                               child: GestureDetector(
-                                  onTap: () {},
+                                  onTap: () {
+                                    Navigator.push(context, MaterialPageRoute(
+                                      builder: (context) {
+                                        return CreateAddressPage(
+                                          lat: _lat,
+                                          lon: _lon,
+                                          addressName: _currentAddressName!,
+                                          city_id: _currentCityId,
+                                        );
+                                      },
+                                    ));
+                                  },
                                   child: Container(
                                     padding: EdgeInsets.all(15),
                                     decoration: BoxDecoration(
@@ -480,24 +512,238 @@ class CreateAddressPage extends StatefulWidget {
       {super.key,
       required this.lat,
       required this.lon,
-      required this.addressName});
+      required this.addressName, required this.city_id});
   final double lat;
   final double lon;
   final String addressName;
-
+  final String city_id;
   @override
   State<CreateAddressPage> createState() => _CreateAddressPageState();
 }
 
 class _CreateAddressPageState extends State<CreateAddressPage> {
+  TextEditingController floor = TextEditingController();
+  TextEditingController house = TextEditingController();
+  TextEditingController entrance = TextEditingController();
+  TextEditingController other = TextEditingController();
+  TextEditingController name = TextEditingController();
+  Future<void> _createAddress() async {
+    await createAddress({
+      "lat": widget.lat,
+      "lon": widget.lon,
+      "address": "${widget.addressName}",
+      "name": name.text,
+      "apartment": house.text,
+      "entrance": entrance.text,
+      "floor": floor.text,
+      "other": other.text,
+      "city_id": widget.city_id
+    }).then((value) {
+      if (value == true) {
+        // Navigator.pushReplacement(
+        //     context, MaterialPageRoute(builder: (context) => HomePage()));
+        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+          builder: (context) {
+            return Main();
+          },
+        ), (route) => false);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        child: Column(
-          children: [],
-        ),
-      ),
+          padding: const EdgeInsets.all(20),
+          width: MediaQuery.of(context).size.width,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                children: [
+                  Flexible(
+                    flex: 7,
+                    child: TextField(
+                      maxLength: 250,
+                      buildCounter: (context,
+                          {required currentLength,
+                          required isFocused,
+                          required maxLength}) {
+                        return null;
+                      },
+                      decoration: InputDecoration(
+                          labelText: "Название",
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          border: const OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Colors.black, width: 10),
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(10)))),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 20),
+                      controller: name,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(
+                height: 10,
+              ),
+              Row(
+                children: [
+                  Flexible(
+                    flex: 7,
+                    child: TextField(
+                      decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.grey.shade200,
+                          border: const OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Colors.black, width: 10),
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(10)))),
+                      readOnly: true,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 20),
+                      controller:
+                          TextEditingController(text: widget.addressName),
+                    ),
+                  ),
+                  const Spacer(
+                    flex: 1,
+                  ),
+                ],
+              ),
+              const SizedBox(
+                height: 10,
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Flexible(
+                    flex: 5,
+                    child: TextField(
+                      controller: house,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: const InputDecoration(
+                        labelText: "Квартира/Офис",
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderSide:
+                              BorderSide(color: Colors.black, width: 10),
+                          borderRadius: BorderRadius.all(Radius.circular(10)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  Flexible(
+                    flex: 5,
+                    child: TextField(
+                      controller: entrance,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: const InputDecoration(
+                        labelText: "Подъезд/Вход",
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderSide:
+                              BorderSide(color: Colors.black, width: 10),
+                          borderRadius: BorderRadius.all(Radius.circular(10)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  Flexible(
+                    flex: 3,
+                    child: TextField(
+                      controller: floor,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: const InputDecoration(
+                        labelText: "Этаж",
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderSide:
+                              BorderSide(color: Colors.black, width: 10),
+                          borderRadius: BorderRadius.all(Radius.circular(10)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(
+                height: 10,
+              ),
+              Row(
+                children: [
+                  Flexible(
+                      child: TextField(
+                    maxLength: 500,
+                    buildCounter: (context,
+                        {required currentLength,
+                        required isFocused,
+                        required maxLength}) {
+                      if (isFocused) {
+                        return Text(
+                          '$currentLength/$maxLength',
+                          semanticsLabel: 'character count',
+                        );
+                      } else {
+                        return null;
+                      }
+                    },
+                    decoration: const InputDecoration(
+                      labelText: "Комментарий",
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black, width: 10),
+                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                      ),
+                    ),
+                    controller: other,
+                  ))
+                ],
+              ),
+              Row(
+                children: [
+                  Text(widget.lat.toString()),
+                  const SizedBox(
+                    width: 10,
+                  ),
+                  Text(widget.lon.toString())
+                ],
+              ),
+              const SizedBox(
+                height: 20,
+              ),
+              GestureDetector(
+                  onTap: () {
+                    _createAddress();
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                        color: Colors.deepOrangeAccent,
+                        borderRadius: BorderRadius.all(Radius.circular(5))),
+                    child: Row(
+                      children: [
+                        Text(
+                          "Продолжить",
+                          style: TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.w900),
+                        )
+                      ],
+                    ),
+                  ))
+            ],
+          )),
     );
   }
 }
