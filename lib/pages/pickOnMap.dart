@@ -16,11 +16,10 @@ class PickOnMapPage extends StatefulWidget {
 class _PickOnMapPageState extends State<PickOnMapPage> {
   MapController _mapController = MapController();
   String? _currentAddressName;
-  Future<void> searchGeoData() async {
-    await getGeoData(widget.currentPosition.longitude.toString() +
-            "," +
-            widget.currentPosition.latitude.toString())
-        .then((value) {
+  bool isMapSetteled = true;
+  Future<void> searchGeoData(double lon, double lat) async {
+    await getGeoData(lon.toString() + "," + lat.toString()).then((value) {
+      print(value);
       List objects = value?["response"]["GeoObjectCollection"]["featureMember"];
 
       double lat = double.parse(
@@ -45,14 +44,22 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
           LatLng(widget.currentPosition.latitude,
               widget.currentPosition.longitude),
           15);
-      searchGeoData();
+      searchGeoData(
+          widget.currentPosition.longitude, widget.currentPosition.latitude);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("тут будет город")),
+      appBar: AppBar(
+          leading: IconButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            icon: Icon(Icons.arrow_back),
+          ),
+          title: Text("тут будет город")),
       body: Column(
         children: [
           Expanded(
@@ -62,29 +69,37 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                   FlutterMap(
                     mapController: _mapController,
                     options: MapOptions(
+                      onPointerUp: (event, point) {
+                        if (event.down == false) {
+                          searchGeoData(_mapController.camera.center.longitude,
+                                  _mapController.camera.center.latitude)
+                              .then(
+                            (value) {
+                              setState(() {
+                                isMapSetteled = true;
+                              });
+                            },
+                          );
+                        }
+                      },
+                      onPointerDown: (event, point) {
+                        setState(() {
+                          isMapSetteled = false;
+                        });
+                      },
                       interactionOptions: InteractionOptions(
                           enableMultiFingerGestureRace: true),
                       initialCenter: LatLng(0, 0),
                       initialZoom: 9.2,
-                      onPointerDown: (event, point) {
-                        //   setState(() {
-                        //     _isAddressPicked = null;
-                        //   });
-                        // },
-                        // onPointerUp: (position, hasGesture) {
-                        //   setState(() {
-                        //     _isAddressPicked = false;
-                        //   });
-                      },
                     ),
                     children: [
                       TileLayer(
                         // tileBuilder: _darkModeTileBuilder,
-                        // urlTemplate:
-                        //     'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                         urlTemplate:
-                            'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-                        tileProvider: NetworkTileProvider(),
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        // urlTemplate:
+                        //     'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                        tileProvider: CancellableNetworkTileProvider(),
                       ),
                       // MarkerLayer(markers: [
                       //   Marker(point: _selectedAddress, child: FlutterLogo())
@@ -140,85 +155,118 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
               flex: 2,
               child: Container(
                   padding: EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                              child: Text(
-                            "Выберите адрес доставки",
-                            style: TextStyle(
-                                fontWeight: FontWeight.w900, fontSize: 24),
-                          )),
-                        ],
-                      ),
-                      SizedBox(
-                        height: 20,
-                      ),
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              "Ваш адрес",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
-                                  color: Colors.grey),
-                            ),
-                          ),
-                        ],
-                      ),
-                      Container(
-                          decoration: BoxDecoration(
-                              border: Border(
-                                  bottom:
-                                      BorderSide(color: Colors.grey.shade400))),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  _currentAddressName ?? "",
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 16,
-                                      color: Colors.black),
-                                ),
-                              ),
-                              IconButton(
-                                  onPressed: () {},
-                                  icon: Icon(Icons.edit_location_alt_rounded, color: Colors.deepOrangeAccent,))
-                            ],
-                          )),
-                      SizedBox(
-                        height: 20,
-                      ),
-                      GestureDetector(
-                          onTap: () {},
-                          child: Container(
-                            padding: EdgeInsets.all(15),
-                            decoration: BoxDecoration(
-                                color: Colors.deepOrangeAccent,
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(5))),
-                            child: Row(
+                  child: !isMapSetteled
+                      ? Center(
+                          child: CircularProgressIndicator.adaptive(),
+                        )
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Spacer(),
+                            Row(
                               children: [
-                                Text(
-                                  "Продолжить",
+                                Flexible(
+                                    child: Text(
+                                  "Выберите адрес доставки",
                                   style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w900),
-                                )
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 24),
+                                )),
                               ],
                             ),
-                          )),
-                      SizedBox(
-                        height: 20,
-                      ),
-                    ],
-                  )))
+                            SizedBox(
+                              height: 20,
+                            ),
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    "Ваш адрес",
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 12,
+                                        color: Colors.grey),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Container(
+                                decoration: BoxDecoration(
+                                    border: Border(
+                                        bottom: BorderSide(
+                                            color: Colors.grey.shade400))),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        _currentAddressName ?? "",
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 16,
+                                            color: Colors.black),
+                                      ),
+                                    ),
+                                    IconButton(
+                                        onPressed: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (context) {
+                                              return Dialog(
+                                                child: Container(
+                                                  padding: EdgeInsets.all(30),
+                                                  child: Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Flexible(
+                                                          child: TextField(
+                                                        decoration: InputDecoration(
+                                                            border: OutlineInputBorder(),
+                                                            labelText:
+                                                                "Введите адрес"),
+                                                      ))
+                                                    ],
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          );
+                                        },
+                                        icon: Icon(
+                                          Icons.search,
+                                          color: Colors.deepOrangeAccent,
+                                        ))
+                                  ],
+                                )),
+                            Spacer(),
+                            Flexible(
+                              flex: 2,
+                              child: GestureDetector(
+                                  onTap: () {},
+                                  child: Container(
+                                    padding: EdgeInsets.all(15),
+                                    decoration: BoxDecoration(
+                                        color: Colors.deepOrangeAccent,
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(5))),
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          "Продолжить",
+                                          style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w900),
+                                        )
+                                      ],
+                                    ),
+                                  )),
+                            ),
+                            Spacer()
+                          ],
+                        )))
         ],
       ),
     );
@@ -293,6 +341,22 @@ class _AnimatedCurrentPositionState extends State<AnimatedCurrentPosition>
           size: 48,
         ),
       ),
+    );
+  }
+}
+
+class SearchAddressPage extends StatefulWidget {
+  const SearchAddressPage({super.key});
+
+  @override
+  State<SearchAddressPage> createState() => _SearchAddressPageState();
+}
+
+class _SearchAddressPageState extends State<SearchAddressPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Placeholder(),
     );
   }
 }
