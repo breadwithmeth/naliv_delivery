@@ -552,21 +552,41 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                 ],
                               ),
                               onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) {
-                                      return PickAddressPage(
-                                        client: user,
-                                        business: widget.business,
-                                        isFromCreateOrder: true,
-                                      );
-                                    },
-                                  ),
-                                ).then((value) {
-                                  _getClientAddresses();
-                                  print(_getAddresses());
-                                });
+                                if (user.isEmpty) {
+                                  _getUser().whenComplete(() {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) {
+                                          return PickAddressPage(
+                                            client: user,
+                                            business: widget.business,
+                                            isFromCreateOrder: true,
+                                          );
+                                        },
+                                      ),
+                                    ).then((value) {
+                                      _getClientAddresses();
+                                      print(_getAddresses());
+                                    });
+                                  });
+                                } else {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) {
+                                        return PickAddressPage(
+                                          client: user,
+                                          business: widget.business,
+                                          isFromCreateOrder: true,
+                                        );
+                                      },
+                                    ),
+                                  ).then((value) {
+                                    _getClientAddresses();
+                                    print(_getAddresses());
+                                  });
+                                }
                               },
                             )
                           : TextButton(

@@ -609,40 +609,46 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                   mainAxisAlignment:
                                                       MainAxisAlignment.center,
                                                   children: [
-                                                    TextButton(
-                                                        onPressed: () {},
-                                                        child: Row(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .center,
-                                                          mainAxisSize:
-                                                              MainAxisSize.max,
-                                                          children: [
-                                                            Text(
-                                                              widget.currentAddress
-                                                                      .isNotEmpty
-                                                                  ? widget.currentAddress[
-                                                                      "address"]
-                                                                  : "Нет адреса",
-                                                              style: const TextStyle(
-                                                                  fontSize: 16,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
-                                                                  color: Colors
-                                                                      .white),
-                                                            ),
-                                                            const SizedBox(
-                                                              width: 10,
-                                                            ),
-                                                            const Icon(
-                                                              Icons
-                                                                  .edit_outlined,
-                                                              color:
-                                                                  Colors.white,
-                                                            ),
-                                                          ],
-                                                        ))
+                                                    Flexible(
+                                                      child: TextButton(
+                                                          onPressed: () {},
+                                                          child: Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .center,
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .max,
+                                                            children: [
+                                                              Flexible(
+                                                                child: Text(
+                                                                  widget.currentAddress
+                                                                          .isNotEmpty
+                                                                      ? widget.currentAddress[
+                                                                          "address"]
+                                                                      : "Нет адреса",
+                                                                  style: const TextStyle(
+                                                                      fontSize:
+                                                                          16,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w500,
+                                                                      color: Colors
+                                                                          .white),
+                                                                ),
+                                                              ),
+                                                              const SizedBox(
+                                                                width: 10,
+                                                              ),
+                                                              const Icon(
+                                                                Icons
+                                                                    .edit_outlined,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                            ],
+                                                          )),
+                                                    )
                                                   ],
                                                 ),
                                                 const Spacer(
