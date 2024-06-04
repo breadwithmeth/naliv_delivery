@@ -392,7 +392,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                     children: [
                                       Flexible(
                                         child: Text(
-                                          widget.currentAddress["address"],
+                                          widget.currentAddress.isNotEmpty
+                                              ? widget.currentAddress["address"]
+                                              : "Нет адреса",
                                           style: const TextStyle(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w700),
@@ -617,8 +619,11 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                               MainAxisSize.max,
                                                           children: [
                                                             Text(
-                                                              widget.currentAddress[
-                                                                  "address"],
+                                                              widget.currentAddress
+                                                                      .isNotEmpty
+                                                                  ? widget.currentAddress[
+                                                                      "address"]
+                                                                  : "Нет адреса",
                                                               style: const TextStyle(
                                                                   fontSize: 16,
                                                                   fontWeight:

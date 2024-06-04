@@ -10,9 +10,11 @@ class PickAddressPage extends StatefulWidget {
   const PickAddressPage({
     super.key,
     required this.client,
+    this.isFirstTime = false,
     this.business = const {},
   });
   final Map client;
+  final bool isFirstTime;
   final Map<dynamic, dynamic> business;
   //  String businessId;
   @override
@@ -84,9 +86,49 @@ class _PickAddressPageState extends State<PickAddressPage> {
               builder: (context, snapshot) {
                 if (snapshot.hasData) {
                   if (snapshot.data!.isEmpty) {
-                    return Center(
-                      child: Text("Здесь пусто"),
-                    );
+                    return widget.isFirstTime
+                        ? Container(
+                            height: MediaQuery.of(context).size.height * 0.8,
+                            alignment: Alignment.center,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    "Здесь пусто",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.grey,
+                                      fontFamily: "montserrat",
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : Container(
+                            height: MediaQuery.of(context).size.height * 0.8,
+                            alignment: Alignment.center,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    "Добавьте ваш адрес для начала",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.grey,
+                                      fontFamily: "montserrat",
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
                   }
                   List _addresses = snapshot.data!;
                   return ListView.builder(
