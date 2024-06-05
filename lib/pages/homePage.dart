@@ -126,7 +126,7 @@ class _HomePageState extends State<HomePage>
     //       _business = value;
     //     });
     //   } else {
-    //     Navigator.pushReplacement(context, MaterialPageRoute(
+    //     Navigator.pushReplacement(context, CupertinoPageRoute(
     //       builder: (context) {
     //         return const BusinessSelectStartPage();
     //       },
@@ -255,7 +255,7 @@ class _HomePageState extends State<HomePage>
           actions: [
             ElevatedButton(
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) {
+                Navigator.push(context, CupertinoPageRoute(builder: (context) {
                   return AddressesPage(
                     addresses: _addresses,
                     isExtended: false,
@@ -382,7 +382,7 @@ class _HomePageState extends State<HomePage>
                           fit: FlexFit.tight,
                           child: TextButton(
                             onPressed: () {
-                              Navigator.push(context, MaterialPageRoute(
+                              Navigator.push(context, CupertinoPageRoute(
                                 builder: (context) {
                                   return SearchPage(
                                     business: widget.business,
@@ -573,7 +573,7 @@ class _HomePageState extends State<HomePage>
                 //             behavior: HitTestBehavior.opaque,
                 //             onTap: () {
                 //               Navigator.pushReplacement(context,
-                //                   MaterialPageRoute(
+                //                   CupertinoPageRoute(
                 //                 builder: (context) {
                 //                   return BusinessSelectStartPage(
                 //                     businesses: businesses,
@@ -718,10 +718,8 @@ class _HomePageState extends State<HomePage>
                                     : categories.length,
                                 itemBuilder: (BuildContext ctx, index) {
                                   return categories.length % 2 != 0 &&
-                                          index == categories.length + 1
-                                      ? Container(
-                                          color: Colors.grey.shade200,
-                                        )
+                                          index == categories.length
+                                      ? Container(color: Colors.white)
                                       : CategoryItem(
                                           category_id: categories[index]
                                               ["category_id"],
@@ -912,7 +910,7 @@ class _CategoryItemState extends State<CategoryItem> {
         print("CATEGORY_ID IS ${widget.category_id}");
         Navigator.push(
           context,
-          MaterialPageRoute(
+          CupertinoPageRoute(
             builder: (context) => CategoryPage(
               categoryId: widget.category_id,
               categoryName: widget.name,

@@ -72,7 +72,7 @@ class _ProductPageState extends State<ProductPage> {
     //         onTap: () {
     //           Navigator.pushReplacement(
     //             context,
-    //             MaterialPageRoute(
+    //             CupertinoPageRoute(
     //               builder: (context) {
     //                 return ProductPage(item: element,);
     //               },

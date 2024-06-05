@@ -8,6 +8,7 @@ import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/pages/addressesPage.dart';
 import 'package:naliv_delivery/pages/createAddressPage.dart';
 import 'package:naliv_delivery/pages/orderConfirmation.dart';
+import 'package:naliv_delivery/pages/pickAddressPage.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:intl/intl.dart';
@@ -16,14 +17,10 @@ import '../misc/api.dart';
 
 class CreateOrderPage extends StatefulWidget {
   const CreateOrderPage(
-      {super.key,
-      required this.business,
-      this.client = const {},
-      this.customAddress = const {}});
+      {super.key, required this.business, this.client = const {}});
 
   final Map<dynamic, dynamic> business;
   final Map<dynamic, dynamic> client;
-  final Map<String, dynamic> customAddress;
 
   @override
   State<CreateOrderPage> createState() => _CreateOrderPageState();
@@ -78,7 +75,11 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
       isAddressesLoading = true;
     });
     List<Widget> addressesWidget = [];
-    addresses = await getUserAddresses(widget.client["user_id"]);
+    await getAddresses().then((value) {
+      setState(() {
+        addresses = value;
+      });
+    });
     if (addresses.isEmpty) {
       setState(() {
         isAddressesLoading = false;
@@ -147,13 +148,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   }
 
   Future<void> _getAddresses() async {
-    if (widget.customAddress.isNotEmpty) {
-      setState(() {
-        currentAddress = widget.customAddress;
-        isAddressesLoading = false;
-      });
-      return;
-    }
     setState(() {
       isAddressesLoading = true;
     });
@@ -226,91 +220,94 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
     });
   }
 
-  void _getAddressPickDialog() {
-    showDialog(
-      useSafeArea: false,
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(
-            "Ваши адреса",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 24,
-              color: Theme.of(context).colorScheme.onBackground,
-            ),
-          ),
-          shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(10))),
-          insetPadding: const EdgeInsets.all(0),
-          content: SizedBox(
-            width: MediaQuery.of(context).size.width * 0.7,
-            height: MediaQuery.of(context).size.height * 0.4,
-            child: addresses.isNotEmpty
-                ? ListView.builder(
-                    itemCount: addresses.length,
-                    itemBuilder: (context, index) {
-                      print(addresses);
-                      return Column(
-                        mainAxisSize: MainAxisSize.max,
-                        children: [
-                          ElevatedButton(
-                            onPressed: () {
-                              Future.delayed(const Duration(milliseconds: 0),
-                                  () async {
-                                await selectAddress(
-                                    addresses[index]["address_id"]);
-                              });
-                              setState(() {
-                                currentAddress = addresses[index];
-                              });
-                              Navigator.pop(context);
-                            },
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.max,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    "${addresses[index]["name"] != null ? '${addresses[index]["name"]} -' : ""} ${addresses[index]["address"]}",
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(
-                            height: 15,
-                          ),
-                        ],
-                      );
-                    },
-                  )
-                : const Text("У вас нет сохраненных адресов"),
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) {
-                  return AddressesPage(addresses: addresses, isExtended: false);
-                }));
-              },
-              child: const Text(
-                "Добавить новый адрес",
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-              ),
-            )
-          ],
-          actionsAlignment: MainAxisAlignment.center,
-        );
-      },
-    );
-  }
+  // void _getAddressPickDialog() {
+  //   showDialog(
+  //     useSafeArea: false,
+  //     context: context,
+  //     builder: (context) {
+  //       return AlertDialog(
+  //         title: Text(
+  //           "Ваши адреса",
+  //           textAlign: TextAlign.center,
+  //           style: TextStyle(
+  //             fontWeight: FontWeight.w900,
+  //             fontSize: 24,
+  //             color: Theme.of(context).colorScheme.onBackground,
+  //           ),
+  //         ),
+  //         shape: const RoundedRectangleBorder(
+  //             borderRadius: BorderRadius.all(Radius.circular(10))),
+  //         insetPadding: const EdgeInsets.all(0),
+  //         content: SizedBox(
+  //           width: MediaQuery.of(context).size.width * 0.7,
+  //           height: MediaQuery.of(context).size.height * 0.4,
+  //           child: addresses.isNotEmpty
+  //               ? ListView.builder(
+  //                   itemCount: addresses.length,
+  //                   itemBuilder: (context, index) {
+  //                     print(addresses);
+  //                     return Column(
+  //                       mainAxisSize: MainAxisSize.max,
+  //                       children: [
+  //                         ElevatedButton(
+  //                           onPressed: () {
+  //                             Future.delayed(const Duration(milliseconds: 0),
+  //                                 () async {
+  //                               await selectAddress(
+  //                                   addresses[index]["address_id"]);
+  //                             });
+  //                             setState(() {
+  //                               currentAddress = addresses[index];
+  //                             });
+  //                             Navigator.pop(context);
+  //                           },
+  //                           child: Row(
+  //                             mainAxisAlignment: MainAxisAlignment.center,
+  //                             mainAxisSize: MainAxisSize.max,
+  //                             children: [
+  //                               Flexible(
+  //                                 child: Text(
+  //                                   "${addresses[index]["name"] != null ? '${addresses[index]["name"]} -' : ""} ${addresses[index]["address"]}",
+  //                                   textAlign: TextAlign.center,
+  //                                   style: const TextStyle(
+  //                                     fontSize: 14,
+  //                                     fontWeight: FontWeight.w700,
+  //                                   ),
+  //                                 ),
+  //                               ),
+  //                             ],
+  //                           ),
+  //                         ),
+  //                         const SizedBox(
+  //                           height: 15,
+  //                         ),
+  //                       ],
+  //                     );
+  //                   },
+  //                 )
+  //               : const Text("У вас нет сохраненных адресов"),
+  //         ),
+  //         actions: [
+  //           ElevatedButton(
+  //             onPressed: () {
+  //               Navigator.push(context, CupertinoPageRoute(builder: (context) {
+  //                 return PickAddressPage(
+  //                   client: user,
+  //                   business: widget.business,
+  //                 );
+  //               }));
+  //             },
+  //             child: const Text(
+  //               "Добавить новый адрес",
+  //               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+  //             ),
+  //           )
+  //         ],
+  //         actionsAlignment: MainAxisAlignment.center,
+  //       );
+  //     },
+  //   );
+  // }
 
   @override
   void initState() {
@@ -510,17 +507,14 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                 mainAxisSize: MainAxisSize.max,
                                 children: [
                                   Flexible(
-                                    flex: 3,
+                                    flex: 4,
                                     fit: FlexFit.tight,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceEvenly,
+                                    child: Column(
                                       children: [
-                                        Flexible(
-                                          flex: 5,
-                                          child: Column(
-                                            children: [
-                                              Text(
+                                        Row(
+                                          children: [
+                                            Flexible(
+                                              child: Text(
                                                 "Доставка: ${currentAddress["name"]}",
                                                 style: TextStyle(
                                                   fontSize: 16,
@@ -530,7 +524,13 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                                       .primary,
                                                 ),
                                               ),
-                                              Text(
+                                            ),
+                                          ],
+                                        ),
+                                        Row(
+                                          children: [
+                                            Flexible(
+                                              child: Text(
                                                 currentAddress["address"],
                                                 style: TextStyle(
                                                   fontSize: 16,
@@ -540,32 +540,70 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                                       .primary,
                                                 ),
                                               ),
-                                            ],
-                                          ),
-                                        ),
-                                        const Flexible(
-                                          flex: 1,
-                                          child: Icon(Icons.add_box_rounded),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
                                   ),
+                                  const Flexible(
+                                    child: Icon(Icons.add_box_rounded),
+                                  ),
                                 ],
                               ),
                               onTap: () {
-                                _getAddressPickDialog();
+                                if (user.isEmpty) {
+                                  _getUser().whenComplete(() {
+                                    Navigator.push(
+                                      context,
+                                      CupertinoPageRoute(
+                                        builder: (context) {
+                                          return PickAddressPage(
+                                            client: user,
+                                            business: widget.business,
+                                            isFromCreateOrder: true,
+                                          );
+                                        },
+                                      ),
+                                    ).then((value) {
+                                      _getClientAddresses();
+                                      print(_getAddresses());
+                                    });
+                                  });
+                                } else {
+                                  Navigator.push(
+                                    context,
+                                    CupertinoPageRoute(
+                                      builder: (context) {
+                                        return PickAddressPage(
+                                          client: user,
+                                          business: widget.business,
+                                          isFromCreateOrder: true,
+                                        );
+                                      },
+                                    ),
+                                  ).then((value) {
+                                    _getClientAddresses();
+                                    print(_getAddresses());
+                                  });
+                                }
                               },
                             )
                           : TextButton(
                               onPressed: () {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(
-                                      builder: (context) => AddressesPage(
-                                            addresses: addresses,
-                                            isExtended: true,
-                                          )),
-                                ).then((value) => print(_getAddresses()));
+                                  CupertinoPageRoute(
+                                    builder: (context) => PickAddressPage(
+                                      client: user,
+                                      business: widget.business,
+                                      isFromCreateOrder: true,
+                                    ),
+                                  ),
+                                ).then((value) {
+                                  _getClientAddresses();
+                                  print(_getAddresses());
+                                });
                               },
                               child: Row(
                                 mainAxisAlignment:
@@ -607,32 +645,51 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                         children: [
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.max,
                             children: [
                               Flexible(
-                                  child: Column(
-                                children: [
-                                  Text(
-                                    "Самовывозом: ${widget.business["name"]}",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
+                                flex: 4,
+                                fit: FlexFit.tight,
+                                child: Column(
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            "Самовывозом: ${widget.business["name"]}",
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                  Text(
-                                    widget.business["address"],
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            widget.business["address"],
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  )
-                                ],
-                              )),
+                                  ],
+                                ),
+                              ),
+                              const Flexible(
+                                child: Icon(Icons.add_box_rounded),
+                              ),
                             ],
                           ),
                         ],
@@ -723,39 +780,24 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
             margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
             padding: const EdgeInsets.all(15),
             child: ElevatedButton(
-              onPressed: isCartLoading ||
-                      isAddressesLoading ||
-                      (addresses.isEmpty && widget.customAddress.isEmpty)
-                  ? null
-                  : () {
-                      widget.client.isEmpty
-                          ? Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => OrderConfirmation(
-                                  delivery: delivery,
-                                  items: items,
-                                  address: currentAddress,
-                                  cartInfo: cartInfo,
-                                  business: widget.business,
-                                  user: user,
-                                ),
+              onPressed:
+                  isCartLoading || isAddressesLoading || currentAddress.isEmpty
+                      ? null
+                      : () {
+                          Navigator.push(
+                            context,
+                            CupertinoPageRoute(
+                              builder: (context) => OrderConfirmation(
+                                delivery: delivery,
+                                items: items,
+                                address: currentAddress,
+                                cartInfo: cartInfo,
+                                business: widget.business,
+                                user: widget.client,
                               ),
-                            )
-                          : Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => OrderConfirmation(
-                                  delivery: delivery,
-                                  items: items,
-                                  address: widget.customAddress,
-                                  cartInfo: cartInfo,
-                                  business: widget.business,
-                                  user: widget.client,
-                                ),
-                              ),
-                            );
-                    },
+                            ),
+                          );
+                        },
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.max,

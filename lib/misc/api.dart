@@ -19,7 +19,7 @@ Future<Position> determinePosition(BuildContext ctx) async {
       // Location services are not enabled don't continue
       // accessing the position and request users of the
       // App to enable the location services.
-      Navigator.push(ctx, MaterialPageRoute(
+      Navigator.push(ctx, CupertinoPageRoute(
         builder: (context) {
           return Container();
         },

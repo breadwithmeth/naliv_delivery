@@ -41,7 +41,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                 Timer timer =
                                     Timer(const Duration(seconds: 5), () {
                                   Navigator.pushReplacement(context,
-                                      MaterialPageRoute(
+                                      CupertinoPageRoute(
                                     builder: (context) {
                                       return const Main();
                                     },
@@ -49,12 +49,12 @@ class _SettingsPageState extends State<SettingsPage> {
                                 });
                                 deleteAccount().then((value) {
                                   Navigator.pushReplacement(context,
-                                      MaterialPageRoute(builder: ((context) {
+                                      CupertinoPageRoute(builder: ((context) {
                                     return const Main();
                                   })));
                                 });
                                 Navigator.pushReplacement(context,
-                                    MaterialPageRoute(
+                                    CupertinoPageRoute(
                                   builder: (context) {
                                     return const Main();
                                   },
@@ -112,7 +112,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                     logout();
                                     Navigator.pushAndRemoveUntil(
                                         context,
-                                        MaterialPageRoute(
+                                        CupertinoPageRoute(
                                           builder: (context) =>
                                               const LoginPage(),
                                         ),
@@ -177,7 +177,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 setState(() {});
                 print(123);
                 logout();
-                Navigator.pushReplacement(context, MaterialPageRoute(
+                Navigator.pushReplacement(context, CupertinoPageRoute(
                   builder: (context) {
                     return const LoginPage();
                   },

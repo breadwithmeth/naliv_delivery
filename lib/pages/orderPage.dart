@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/homePage.dart';
@@ -26,7 +27,7 @@ class _OrderPageState extends State<OrderPage> {
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(),
           onPressed: () {
-            Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+            Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
               builder: (context) {
                 return HomePage(
                   business: widget.business,

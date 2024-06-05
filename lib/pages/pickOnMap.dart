@@ -11,12 +11,17 @@ import 'package:latlong2/latlong.dart';
 import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
+import 'package:flutter/cupertino.dart';
 
 class PickOnMapPage extends StatefulWidget {
   const PickOnMapPage(
-      {super.key, required this.currentPosition, required this.cities});
+      {super.key,
+      required this.currentPosition,
+      required this.cities,
+      this.isFromCreateOrder = false});
   final Position currentPosition;
   final List cities;
+  final bool isFromCreateOrder;
   @override
   State<PickOnMapPage> createState() => _PickOnMapPageState();
 }
@@ -459,13 +464,14 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                               flex: 1,
                               child: GestureDetector(
                                   onTap: () {
-                                    Navigator.push(context, MaterialPageRoute(
+                                    Navigator.push(context, CupertinoPageRoute(
                                       builder: (context) {
                                         return CreateAddressPage(
                                           lat: _lat,
                                           lon: _lon,
                                           addressName: _currentAddressName!,
                                           city_id: _currentCityId,
+                                          isFromCreateOrder: true,
                                         );
                                       },
                                     ));
@@ -497,7 +503,9 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
 }
 
 class AnimatedCurrentPosition extends StatefulWidget {
-  const AnimatedCurrentPosition({super.key});
+  const AnimatedCurrentPosition({super.key, required this.isFromCreateOrder});
+
+  final bool isFromCreateOrder;
 
   @override
   State<AnimatedCurrentPosition> createState() =>
@@ -574,11 +582,13 @@ class CreateAddressPage extends StatefulWidget {
       required this.lat,
       required this.lon,
       required this.addressName,
-      required this.city_id});
+      required this.city_id,
+      required this.isFromCreateOrder});
   final double lat;
   final double lon;
   final String addressName;
   final String city_id;
+  final bool isFromCreateOrder;
   @override
   State<CreateAddressPage> createState() => _CreateAddressPageState();
 }
@@ -603,12 +613,17 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
     }).then((value) {
       if (value == true) {
         // Navigator.pushReplacement(
-        //     context, MaterialPageRoute(builder: (context) => HomePage()));
-        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
-          builder: (context) {
-            return Main();
-          },
-        ), (route) => false);
+        //     context, CupertinoPageRoute(builder: (context) => HomePage()));
+        if (widget.isFromCreateOrder) {
+          Navigator.pop(context);
+          Navigator.pop(context);
+        } else {
+          Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+            builder: (context) {
+              return Main();
+            },
+          ), (route) => false);
+        }
       }
     });
   }
@@ -787,7 +802,9 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
               ),
               GestureDetector(
                   onTap: () {
-                    _createAddress();
+                    _createAddress().whenComplete(() {
+                      // widget.isFromCreateOrder
+                    });
                   },
                   child: Container(
                     padding: EdgeInsets.all(15),

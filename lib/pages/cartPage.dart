@@ -431,9 +431,19 @@ class _CartPageState extends State<CartPage>
                     padding: const EdgeInsets.symmetric(horizontal: 15),
                     child: ElevatedButton(
                       onPressed: () {
+                        // Navigator.push(
+                        //   context,
+                        //   CupertinoPageRoute(
+                        //     builder: (context) {
+                        //       return FindCreateUserPage(
+                        //         business: widget.business,
+                        //       );
+                        //     },
+                        //   ),
+                        // );
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
+                          CupertinoPageRoute(
                             builder: (context) {
                               return FindCreateUserPage(
                                 business: widget.business,

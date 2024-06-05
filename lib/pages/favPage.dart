@@ -44,7 +44,7 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
     //     onTap: () {
     //       Navigator.push(
     //         context,
-    //         MaterialPageRoute(
+    //         CupertinoPageRoute(
     //           builder: (context) => ProductPage(
     //             item: element,
     //             index: items.indexOf(element),
@@ -134,6 +134,8 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
                         category_id: "",
                         category_name: "",
                         scroll: 0,
+                        business: widget.business,
+                        index: index,
                       ),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 16),

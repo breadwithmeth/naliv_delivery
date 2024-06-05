@@ -47,9 +47,11 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
   }
 
   void composeWrongItemsList() {
-    for (int i = 0; i < widget.items.length; i++) {
-      if (widget.items[i]["item_id"] == wrongPositions[i]["item_id"]) {
-        wrongItems.add(widget.items[i]);
+    if (!wrongPositions.isEmpty) {
+      for (int i = 0; i < widget.items.length; i++) {
+        if (widget.items[i]["item_id"] == wrongPositions[i]["item_id"]) {
+          wrongItems.add(widget.items[i]);
+        }
       }
     }
   }
@@ -87,7 +89,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
           if (isOrderCorrect == true) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(
+              CupertinoPageRoute(
                 builder: (context) => OrderPage(
                   business: widget.business,
                 ),
@@ -486,7 +488,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                               child: Text(
                                 widget.user == null
                                     ? "Счёт на каспи:"
-                                    : "Счёт на каспи: ${widget.user!["login"].toString()}",
+                                    : "Счёт на каспи: ${widget.user["login"].toString()}",
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 16,
@@ -504,7 +506,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                           Flexible(
                             child: Text(
                               widget.cartInfo.isNotEmpty
-                                  ? "Сумма к оплате: ${widget.cartInfo.toString()} ₸"
+                                  ? "Сумма к оплате: ${formatCost(widget.cartInfo).toString()} ₸"
                                   : "Сумма к оплате: 0 ₸",
                               textAlign: TextAlign.center,
                               style: TextStyle(

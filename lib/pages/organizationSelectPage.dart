@@ -378,7 +378,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                       Radius.circular(20))),
                               child: TextButton(
                                   onPressed: () {
-                                    Navigator.push(context, MaterialPageRoute(
+                                    Navigator.push(context, CupertinoPageRoute(
                                       builder: (context) {
                                         return PickAddressPage(
                                           client: widget.user,
@@ -421,7 +421,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                       TextButton(
                                           onPressed: () {
                                             Navigator.push(context,
-                                                MaterialPageRoute(
+                                                CupertinoPageRoute(
                                               builder: (context) {
                                                 return PickAddressPage(
                                                   client: widget.user,
@@ -609,40 +609,58 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                   mainAxisAlignment:
                                                       MainAxisAlignment.center,
                                                   children: [
-                                                    TextButton(
-                                                        onPressed: () {},
-                                                        child: Row(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .center,
-                                                          mainAxisSize:
-                                                              MainAxisSize.max,
-                                                          children: [
-                                                            Text(
-                                                              widget.currentAddress
-                                                                      .isNotEmpty
-                                                                  ? widget.currentAddress[
-                                                                      "address"]
-                                                                  : "Нет адреса",
-                                                              style: const TextStyle(
-                                                                  fontSize: 16,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
-                                                                  color: Colors
-                                                                      .white),
-                                                            ),
-                                                            const SizedBox(
-                                                              width: 10,
-                                                            ),
-                                                            const Icon(
-                                                              Icons
-                                                                  .edit_outlined,
-                                                              color:
-                                                                  Colors.white,
-                                                            ),
-                                                          ],
-                                                        ))
+                                                    Flexible(
+                                                      child: TextButton(
+                                                          onPressed: () {
+                                                            Navigator.push(
+                                                              context,
+                                                              MaterialPageRoute(
+                                                                builder:
+                                                                    (context) {
+                                                                  return PickAddressPage(
+                                                                      client: widget
+                                                                          .user);
+                                                                },
+                                                              ),
+                                                            );
+                                                          },
+                                                          child: Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .center,
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .max,
+                                                            children: [
+                                                              Flexible(
+                                                                child: Text(
+                                                                  widget.currentAddress
+                                                                          .isNotEmpty
+                                                                      ? widget.currentAddress[
+                                                                          "address"]
+                                                                      : "Нет адреса",
+                                                                  style: const TextStyle(
+                                                                      fontSize:
+                                                                          16,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w500,
+                                                                      color: Colors
+                                                                          .white),
+                                                                ),
+                                                              ),
+                                                              const SizedBox(
+                                                                width: 10,
+                                                              ),
+                                                              const Icon(
+                                                                Icons
+                                                                    .edit_outlined,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                            ],
+                                                          )),
+                                                    )
                                                   ],
                                                 ),
                                                 const Spacer(
@@ -758,7 +776,7 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(
+        Navigator.push(context, CupertinoPageRoute(
           builder: (context) {
             return widget.route;
           },
@@ -813,7 +831,7 @@ class BusinessItemState extends State<BusinessItem> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
+          CupertinoPageRoute(
             builder: (context) {
               return HomePage(
                 business: widget.business,
