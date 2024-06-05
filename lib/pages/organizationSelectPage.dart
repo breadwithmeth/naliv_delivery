@@ -611,7 +611,19 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                   children: [
                                                     Flexible(
                                                       child: TextButton(
-                                                          onPressed: () {},
+                                                          onPressed: () {
+                                                            Navigator.push(
+                                                              context,
+                                                              MaterialPageRoute(
+                                                                builder:
+                                                                    (context) {
+                                                                  return PickAddressPage(
+                                                                      client: widget
+                                                                          .user);
+                                                                },
+                                                              ),
+                                                            );
+                                                          },
                                                           child: Row(
                                                             mainAxisAlignment:
                                                                 MainAxisAlignment

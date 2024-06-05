@@ -297,7 +297,10 @@ class ItemCardMedium extends StatefulWidget {
       required this.element,
       required this.category_name,
       required this.category_id,
-      required this.scroll});
+      required this.scroll,
+      required this.business,
+      required this.index,
+      this.updateCategoryPageInfo});
   final Map<String, dynamic> element;
   final String category_name;
 
@@ -305,6 +308,9 @@ class ItemCardMedium extends StatefulWidget {
 
   final String category_id;
   final double scroll;
+  final Map<dynamic, dynamic> business;
+  final int index;
+  final Function(String, int)? updateCategoryPageInfo;
   int chack = 1;
   @override
   State<ItemCardMedium> createState() => _ItemCardMediumState();
@@ -313,7 +319,65 @@ class ItemCardMedium extends StatefulWidget {
 class _ItemCardMediumState extends State<ItemCardMedium> {
   Map<String, dynamic> element = {};
   List<InlineSpan> propertiesWidget = [];
+  int amountInCart = 0;
+  bool isItemAmountChanging = false;
   late int chack;
+
+  void _decrementAmountInCart() {
+    if (amountInCart > 0) {
+      setState(() {
+        isItemAmountChanging = true;
+      });
+      changeCartItem(element["item_id"], amountInCart - 1,
+              widget.business["business_id"])
+          .then((value) {
+        if (value != null) {
+          setState(() {
+            amountInCart = int.parse(value);
+          });
+          if (widget.updateCategoryPageInfo != null) {
+            widget.updateCategoryPageInfo!(
+                amountInCart.toString(), widget.index);
+          }
+          print(value);
+        } else {
+          print(
+              "Something gone wrong, can't add item to cart in ItemCardMedium _decrementAmountInCart");
+        }
+        setState(() {
+          isItemAmountChanging = false;
+        });
+      });
+    }
+  }
+
+  void _incrementAmountInCart() {
+    if (amountInCart + 1 <= double.parse(element["in_stock"]).truncate()) {
+      setState(() {
+        isItemAmountChanging = true;
+      });
+      changeCartItem(element["item_id"], amountInCart + 1,
+              widget.business["business_id"])
+          .then((value) {
+        if (value != null) {
+          setState(() {
+            amountInCart = int.parse(value);
+          });
+          if (widget.updateCategoryPageInfo != null) {
+            widget.updateCategoryPageInfo!(
+                amountInCart.toString(), widget.index);
+          }
+          print(value);
+        } else {
+          print(
+              "Something gone wrong, can't add item to cart in ItemCardMedium _incrementAmountInCart");
+        }
+        setState(() {
+          isItemAmountChanging = false;
+        });
+      });
+    }
+  }
 
   String formatCost(String costString) {
     int cost = double.parse(costString).truncate().toInt();
@@ -326,6 +390,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
     super.initState();
     setState(() {
       element = widget.element;
+      amountInCart = int.parse(element["amount"] ?? "0");
     });
     getProperties();
   }
@@ -448,6 +513,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Flexible(
+                        fit: FlexFit.tight,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -517,6 +583,8 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                         ),
                       ),
                       Flexible(
+                        flex: 2,
+                        fit: FlexFit.tight,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.end,
@@ -524,59 +592,163 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                             Flexible(
                               flex: 5,
                               child: Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  element["amount"] != null &&
-                                          element["amount"] != "0"
-                                      ? Row(
-                                          children: [
-                                            Flexible(
-                                              child: Text(
-                                                "В корзине ${element["amount"]} шт.",
-                                                style: TextStyle(
-                                                    color: Theme.of(context)
-                                                        .colorScheme
-                                                        .secondary,
-                                                    fontSize:
-                                                        28 * (screenSize / 720),
-                                                    fontWeight:
-                                                        FontWeight.w500),
+                                  // Flexible(
+                                  //   child: Row(
+                                  //     children: [
+                                  //       Flexible(
+                                  //         child: Text(
+                                  //           amountInCart != 0
+                                  //               ? "В корзине ${amountInCart.toString()} шт."
+                                  //               : "",
+                                  //           style: TextStyle(
+                                  //               color: Theme.of(context)
+                                  //                   .colorScheme
+                                  //                   .secondary,
+                                  //               fontSize:
+                                  //                   28 * (screenSize / 720),
+                                  //               fontWeight: FontWeight.w500),
+                                  //         ),
+                                  //       ),
+                                  //     ],
+                                  //   ),
+                                  // ),
+                                  Flexible(
+                                    child: Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            formatCost(element['price'] ?? ""),
+                                            style: TextStyle(
+                                                color: Colors.black,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize:
+                                                    36 * (screenSize / 720)),
+                                          ),
+                                        ),
+                                        Flexible(
+                                          child: Text(
+                                            "₸",
+                                            style: TextStyle(
+                                                color: Colors.grey.shade600,
+                                                fontWeight: FontWeight.w700,
+                                                fontSize:
+                                                    36 * (screenSize / 720)),
+                                          ),
+                                        )
+                                      ],
+                                    ),
+                                  ),
+                                  Flexible(
+                                    // flex: 2,
+                                    fit: FlexFit.tight,
+                                    child: Row(
+                                      children: [
+                                        Flexible(
+                                          fit: FlexFit.tight,
+                                          child: IconButton(
+                                            padding: const EdgeInsets.all(0),
+                                            onPressed: () {
+                                              if (!isItemAmountChanging) {
+                                                _decrementAmountInCart();
+                                              }
+                                            },
+                                            icon: Container(
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onBackground,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+                                              child: Icon(
+                                                Icons.remove_rounded,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onBackground,
                                               ),
                                             ),
-                                          ],
-                                        )
-                                      : Container(),
-                                  Row(
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          formatCost(element['price'] ?? ""),
-                                          style: TextStyle(
-                                              color: Colors.black,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize:
-                                                  36 * (screenSize / 720)),
+                                          ),
                                         ),
-                                      ),
-                                      Flexible(
-                                        child: Text(
-                                          "₸",
-                                          style: TextStyle(
-                                              color: Colors.grey.shade600,
-                                              fontWeight: FontWeight.w700,
-                                              fontSize:
-                                                  36 * (screenSize / 720)),
+                                        Flexible(
+                                          flex: 2,
+                                          fit: FlexFit.tight,
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Flexible(
+                                                child: Text(
+                                                  "${amountInCart.toString()} шт.", //"${formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
+                                                  textHeightBehavior:
+                                                      const TextHeightBehavior(
+                                                    applyHeightToFirstAscent:
+                                                        false,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize:
+                                                        36 * (screenSize / 720),
+                                                    color: amountInCart != 0
+                                                        ? Theme.of(context)
+                                                            .colorScheme
+                                                            .onBackground
+                                                        : Colors.grey.shade600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      )
-                                    ],
+                                        Flexible(
+                                          fit: FlexFit.tight,
+                                          child: IconButton(
+                                            padding: const EdgeInsets.all(0),
+                                            onPressed: () {
+                                              if (!isItemAmountChanging) {
+                                                _incrementAmountInCart();
+                                              }
+                                            },
+                                            icon: Container(
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onBackground,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+                                              child: Icon(
+                                                Icons.add_rounded,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onBackground,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
                             Flexible(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
+                              fit: FlexFit.tight,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Flexible(
+                                    fit: FlexFit.tight,
+                                    child: SizedBox(),
+                                  ),
+                                  Flexible(
+                                    fit: FlexFit.tight,
                                     child: LikeButton(
                                       is_liked: element["is_liked"],
                                       item_id: element["item_id"],

@@ -434,11 +434,11 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 }
 
-class Item {
-  final Map<String, dynamic> data;
+// class Item {
+//   final Map<String, dynamic> data;
 
-  Item(this.data);
-}
+//   Item(this);
+// }
 
 class CategoryPageList extends StatefulWidget {
   const CategoryPageList(
@@ -462,13 +462,13 @@ class _CategoryPageListState extends State<CategoryPageList>
   late bool _error;
   late bool _loading;
   final int _numberOfPostsPerRequest = 30;
-  late List<Item> _items;
+  late List<Map<String, dynamic>> _items;
   final int _nextPageTrigger = 3;
   late final TabController _controller;
 
   void updateDataAmount(String newDataAmount, int index) {
     setState(() {
-      _items[index].data["amount"] = newDataAmount;
+      _items[index]["amount"] = newDataAmount;
     });
   }
 
@@ -478,13 +478,14 @@ class _CategoryPageListState extends State<CategoryPageList>
       List? responseList = await getItemsMain(
           _pageNumber, widget.business["business_id"], "", widget.categoryId);
       if (responseList != null) {
-        List<Item> itemList = responseList.map((data) => Item(data)).toList();
+        List<dynamic> itemList = responseList;
+        // List<dynamic> itemList = responseList.map((data) => Item(data)).toList();
 
         setState(() {
           _isLastPage = itemList.length < _numberOfPostsPerRequest;
           _loading = false;
           _pageNumber = _pageNumber + 1;
-          _items.addAll(itemList);
+          _items.addAll(itemList.map((e) => e));
         });
         if (itemList.isEmpty) {
           setState(() {
@@ -501,7 +502,58 @@ class _CategoryPageListState extends State<CategoryPageList>
     }
   }
 
-  Widget buildPostsView() {
+  Widget errorDialog({required double size}) {
+    return SizedBox(
+      height: 180,
+      width: 200,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Произошла ошибка при загрузке позиций.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: size,
+              fontWeight: FontWeight.w500,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _loading = true;
+                _error = false;
+                _getItems();
+              });
+            },
+            child: const Text(
+              "Перезагрузить",
+              style: TextStyle(fontSize: 20, color: Colors.purpleAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TabController(length: 2, vsync: this);
+    _pageNumber = 0;
+    _items = [];
+    _isLastPage = false;
+    _loading = true;
+    _error = false;
+    _getItems();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
     if (_items.isEmpty) {
       if (_loading) {
         return const Center(
@@ -563,10 +615,10 @@ class _CategoryPageListState extends State<CategoryPageList>
                   ));
                 }
               }
-              final Item item = _items[index];
+              final Map<String, dynamic> item = _items[index];
               return GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                key: Key(item.data["item_id"]),
+                key: Key(item["item_id"]),
                 onTap: () {
                   showModalBottomSheet(
                     context: context,
@@ -575,7 +627,7 @@ class _CategoryPageListState extends State<CategoryPageList>
                     isScrollControlled: true,
                     builder: (context) {
                       return ProductPage(
-                        item: item.data,
+                        item: item,
                         index: index,
                         returnDataAmount: updateDataAmount,
                         business: widget.business,
@@ -586,11 +638,14 @@ class _CategoryPageListState extends State<CategoryPageList>
                 child: Column(
                   children: [
                     ItemCardMedium(
-                      item_id: item.data["item_id"],
-                      element: item.data,
+                      item_id: item["item_id"],
+                      element: item,
                       category_id: "",
                       category_name: "",
                       scroll: 0,
+                      business: widget.business,
+                      index: index,
+                      updateCategoryPageInfo: updateDataAmount,
                     ),
                     _items.length != index
                         ? const Padding(
@@ -617,60 +672,5 @@ class _CategoryPageListState extends State<CategoryPageList>
         ),
       ],
     );
-  }
-
-  Widget errorDialog({required double size}) {
-    return SizedBox(
-      height: 180,
-      width: 200,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'Произошла ошибка при загрузке позиций.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: size,
-              fontWeight: FontWeight.w500,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(
-            height: 10,
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _loading = true;
-                _error = false;
-                _getItems();
-              });
-            },
-            child: const Text(
-              "Перезагрузить",
-              style: TextStyle(fontSize: 20, color: Colors.purpleAccent),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TabController(length: 2, vsync: this);
-    _pageNumber = 0;
-    _items = [];
-    _isLastPage = false;
-    _loading = true;
-    _error = false;
-    _getItems();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    return buildPostsView();
   }
 }

@@ -793,7 +793,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                 address: currentAddress,
                                 cartInfo: cartInfo,
                                 business: widget.business,
-                                user: user,
+                                user: widget.client,
                               ),
                             ),
                           );
