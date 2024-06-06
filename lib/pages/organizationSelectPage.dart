@@ -746,7 +746,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                       scrollDirection: Axis.horizontal,
                       itemCount: widget.businesses.length,
                       itemBuilder: (context, index) {
-                        return BusinessItem(business: widget.businesses[index]);
+                        return BusinessItem(business: widget.businesses[index], user: widget.user,);
                       },
                     ),
                   ),
@@ -818,8 +818,9 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
 }
 
 class BusinessItem extends StatefulWidget {
-  const BusinessItem({super.key, required this.business});
+  const BusinessItem({super.key, required this.business, required this.user});
   final Map business;
+  final Map user;
   @override
   State<BusinessItem> createState() => BusinessItemState();
 }
@@ -835,6 +836,7 @@ class BusinessItemState extends State<BusinessItem> {
             builder: (context) {
               return HomePage(
                 business: widget.business,
+                user: widget.user,
               ); //! TOOD: Change to redirect page to a different organizations or do this right here.
             },
           ),
