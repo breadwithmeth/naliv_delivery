@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/homePage.dart';
+import 'package:naliv_delivery/pages/preLoadDataPage.dart';
 
 class OrderPage extends StatefulWidget {
   const OrderPage({super.key, required this.business});
@@ -29,9 +30,10 @@ class _OrderPageState extends State<OrderPage> {
           onPressed: () {
             Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
               builder: (context) {
-                return HomePage(
-                  business: widget.business,
-                );
+                // return HomePage(
+                //   business: widget.business,
+                // );
+                return PreLoadDataPage();
               },
             ), (Route<dynamic> route) => false);
           },

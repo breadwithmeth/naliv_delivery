@@ -29,11 +29,10 @@ import 'package:naliv_delivery/pages/searchPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage(
-      {super.key, this.setCurrentBusiness = "", required this.business});
+  const HomePage({super.key, required this.business, required this.user});
 
-  final String setCurrentBusiness;
   final Map<dynamic, dynamic> business;
+  final Map user;
   @override
   State<HomePage> createState() => _HomePageState();
 }
@@ -86,8 +85,6 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  List categories = [];
-
   int activePage = 0;
 
   List _addresses = [];
@@ -106,48 +103,12 @@ class _HomePageState extends State<HomePage>
   Map<String, dynamic>? user;
   late Position _location;
 
-  Future<void> _getCategories() async {
-    setState(() {
-      categoryIsLoading = true;
-    });
-    await getCategories(widget.business["business_id"]).then((value) {
-      setState(() {
-        categories = value;
-        categoryIsLoading = false;
-      });
-    });
+  Future<List> _getCategories() async {
+    List cats = await getCategories(widget.business["business_id"]);
+    return cats;
   }
 
   Map<String, dynamic>? _business = {};
-  Future<void> _getCurrentBusiness() async {
-    // await getLastSelectedBusiness().then((value) {
-    //   if (value != null) {
-    //     setState(() {
-    //       _business = value;
-    //     });
-    //   } else {
-    //     Navigator.pushReplacement(context, CupertinoPageRoute(
-    //       builder: (context) {
-    //         return const BusinessSelectStartPage();
-    //       },
-    //     ));
-    //   }
-    // });
-  }
-
-  Future<void> _getAddresses() async {
-    List addresses = await getAddresses();
-    print(addresses);
-    setState(() {
-      _addresses = addresses;
-      _currentAddress = _addresses.firstWhere(
-        (element) => element["is_selected"] == "1",
-        orElse: () {
-          return null;
-        },
-      );
-    });
-  }
 
   void toggleDrawer() async {
     if (_scaffoldKey.currentState!.isDrawerOpen) {
@@ -157,167 +118,52 @@ class _HomePageState extends State<HomePage>
     }
   }
 
-  void _getUser() async {
-    await getUser().then((value) {
-      setState(() {
-        user = value;
-      });
-    });
-  }
+  // _getCurrentAddress() {}
 
-  _getCurrentAddress() {}
+  // Future<void> preloadData() async {
 
-  Future<void> getPosition() async {
-    Position location = await determinePosition(context);
-    print(location.latitude);
-    print(location.longitude);
-    setCityAuto(location.latitude, location.longitude);
-    setState(() {
-      _location = location;
-    });
-  }
-
-  void _getBusinesses() {
-    getBusinesses().then((value) {
-      if (value != null) {
-        businesses = value;
-      }
-    });
-  }
-
-  void _getAddressPickDialog(double screenSize) {
-    showDialog(
-      useSafeArea: false,
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(
-            "Ваши адреса",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 24,
-              color: Theme.of(context).colorScheme.onBackground,
-            ),
-          ),
-          shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(10))),
-          insetPadding: const EdgeInsets.all(0),
-          content: SizedBox(
-            width: MediaQuery.of(context).size.width * 0.7,
-            height: MediaQuery.of(context).size.height * 0.4,
-            child: _addresses.isNotEmpty
-                ? ListView.builder(
-                    itemCount: _addresses.length,
-                    itemBuilder: (context, index) {
-                      print(_addresses);
-                      return Column(
-                        mainAxisSize: MainAxisSize.max,
-                        children: [
-                          ElevatedButton(
-                            onPressed: () {
-                              Future.delayed(const Duration(milliseconds: 0),
-                                  () async {
-                                await selectAddress(
-                                    _addresses[index]["address_id"]);
-                              });
-                              setState(() {
-                                _currentAddress = _addresses[index];
-                              });
-                              Navigator.pop(context);
-                            },
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.max,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    "${_addresses[index]["name"] != null ? '${_addresses[index]["name"]} -' : ""} ${_addresses[index]["address"]}",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 28 * (screenSize / 720),
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(
-                            height: 15,
-                          ),
-                        ],
-                      );
-                    },
-                  )
-                : const Text("У вас нет сохраненных адресов"),
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(context, CupertinoPageRoute(builder: (context) {
-                  return AddressesPage(
-                    addresses: _addresses,
-                    isExtended: false,
-                  );
-                }));
-              },
-              child: Text(
-                "Добавить новый адрес",
-                style: TextStyle(
-                    fontSize: 28 * (screenSize / 720),
-                    fontWeight: FontWeight.w700),
-              ),
-            )
-          ],
-          actionsAlignment: MainAxisAlignment.center,
-        );
-      },
-    );
-  }
+  //   WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+  //     _getAddresses().then((v) {
+  //       getPosition().then((vv) {
+  //         _getCategories().then((vvv) {
+  //           return true;
+  //         });
+  //       });
+  //     });
+  //   });
+  // }
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    setState(() {
-      isPageLoading = true;
-    });
-    if (widget.setCurrentBusiness.isNotEmpty) {
-      setCurrentStore(widget.setCurrentBusiness).then((value) {
-        if (value) {
-          Future.delayed(Duration.zero).then((value) async {
-            await _getCurrentBusiness();
-            _getBusinesses();
-            _getUser();
-          });
-          WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-            _getAddresses();
-            getPosition();
-            _getCategories().whenComplete(() {
-              setState(() {
-                isPageLoading = false;
-              });
-            });
-          });
-        }
-      });
-    } else {
-      Future.delayed(Duration.zero).then((value) async {
-        await _getCurrentBusiness();
-        _getBusinesses();
-        _getUser();
-      });
-      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-        _getAddresses();
-        getPosition();
-        _getCategories().whenComplete(() {
-          setState(() {
-            isPageLoading = false;
-          });
-        });
-      });
-    }
+    // if (widget.setCurrentBusiness.isNotEmpty) {
+    // setCurrentStore(widget.setCurrentBusiness).then((value) {
+    //   if (value) {
+    //     Future.delayed(Duration.zero).then((value) async {
+    //       await _getCurrentBusiness();
+    //       _getBusinesses();
+    //       _getUser();
+    //     });
+    //     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+    //       _getAddresses();
+    //       getPosition();
+    //       _getCategories().whenComplete(() {
+    //         setState(() {
+    //           isPageLoading = false;
+    //         });
+    //       });
+    //     });
+    //   }
+    // });
+    // } else {
+    //   // Future.delayed(Duration.zero).then((value) async {
+    //   //   await _getCurrentBusiness();
+    //   //   _getBusinesses();
+    //   //   _getUser();
+    //   // });
+
+    // }
     // _checkForActiveOrder(); Someting like this idk
   }
 
@@ -326,9 +172,11 @@ class _HomePageState extends State<HomePage>
     double screenSize = MediaQuery.of(context).size.width;
 
     super.build(context);
-    return isPageLoading
-        ? const LoadingScreen()
-        : Scaffold(
+    return FutureBuilder(
+      future: _getCategories(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return Scaffold(
             key: _scaffoldKey,
             floatingActionButton: CartButton(
               business: widget.business,
@@ -434,309 +282,56 @@ class _HomePageState extends State<HomePage>
             ),
             body: Column(
               children: [
-                // Flexible(
-                //   flex: 6,
-                //   fit: FlexFit.tight,
-                //   child: Column(
-                //     children: [
-                //       Flexible(
-                //         fit: FlexFit.tight,
-                //         child: Padding(
-                //           padding: const EdgeInsets.symmetric(vertical: 5),
-                //           child: GestureDetector(
-                //             behavior: HitTestBehavior.opaque,
-                //             onTap: () {
-                //               _getAddressPickDialog(screenSize);
-                //             },
-                //             child: Container(
-                //               margin: const EdgeInsets.symmetric(
-                //                 horizontal: 10,
-                //               ),
-                //               padding: const EdgeInsets.all(10),
-                //               decoration: const BoxDecoration(
-                //                   color: Colors.black12,
-                //                   borderRadius:
-                //                       BorderRadius.all(Radius.circular(10))),
-                //               child: Row(
-                //                 mainAxisAlignment:
-                //                     MainAxisAlignment.spaceBetween,
-                //                 children: [
-                //                   _addresses.firstWhere(
-                //                             (element) =>
-                //                                 element["is_selected"] == "1",
-                //                             orElse: () {
-                //                               return null;
-                //                             },
-                //                           ) !=
-                //                           null
-                //                       ? Flexible(
-                //                           flex: 12,
-                //                           fit: FlexFit.tight,
-                //                           child: Column(
-                //                             mainAxisSize: MainAxisSize.max,
-                //                             mainAxisAlignment:
-                //                                 MainAxisAlignment.start,
-                //                             crossAxisAlignment:
-                //                                 CrossAxisAlignment.start,
-                //                             children: [
-                //                               Flexible(
-                //                                 child: Row(
-                //                                   children: [
-                //                                     Flexible(
-                //                                       child: Text(
-                //                                         _currentAddress[
-                //                                                 "name"] ??
-                //                                             "",
-                //                                         overflow: TextOverflow
-                //                                             .ellipsis,
-                //                                         style: const TextStyle(
-                //                                           color: Colors.black,
-                //                                           fontWeight:
-                //                                               FontWeight.w700,
-                //                                         ),
-                //                                       ),
-                //                                     )
-                //                                   ],
-                //                                 ),
-                //                               ),
-                //                               Flexible(
-                //                                 fit: FlexFit.tight,
-                //                                 child: Row(
-                //                                   children: [
-                //                                     Flexible(
-                //                                       fit: FlexFit.tight,
-                //                                       child: Text(
-                //                                         _currentAddress[
-                //                                                 "address"] ??
-                //                                             "",
-                //                                         overflow: TextOverflow
-                //                                             .ellipsis,
-                //                                         style: const TextStyle(
-                //                                           color: Colors.black,
-                //                                           fontWeight:
-                //                                               FontWeight.w700,
-                //                                         ),
-                //                                       ),
-                //                                     )
-                //                                   ],
-                //                                 ),
-                //                               )
-                //                             ],
-                //                           ),
-                //                         )
-                //                       : const Flexible(
-                //                           flex: 12,
-                //                           fit: FlexFit.tight,
-                //                           child: Column(
-                //                             mainAxisSize: MainAxisSize.max,
-                //                             mainAxisAlignment:
-                //                                 MainAxisAlignment.start,
-                //                             crossAxisAlignment:
-                //                                 CrossAxisAlignment.start,
-                //                             children: [
-                //                               Flexible(
-                //                                 fit: FlexFit.tight,
-                //                                 child: Row(
-                //                                   children: [
-                //                                     Flexible(
-                //                                       fit: FlexFit.tight,
-                //                                       child: Text(
-                //                                         "Выберите ваш адрес",
-                //                                         style: TextStyle(
-                //                                           color: Colors.black,
-                //                                           fontWeight:
-                //                                               FontWeight.w700,
-                //                                         ),
-                //                                       ),
-                //                                     )
-                //                                   ],
-                //                                 ),
-                //                               ),
-                //                             ],
-                //                           ),
-                //                         ),
-                //                   const Flexible(
-                //                     fit: FlexFit.tight,
-                //                     child: Icon(Icons.arrow_forward_ios),
-                //                   )
-                //                 ],
-                //               ),
-                //             ),
-                //           ),
-                //         ),
-                //       ),
-                //       Flexible(
-                //         fit: FlexFit.tight,
-                //         child: Padding(
-                //           padding: const EdgeInsets.symmetric(vertical: 5),
-                //           child: GestureDetector(
-                //             behavior: HitTestBehavior.opaque,
-                //             onTap: () {
-                //               Navigator.pushReplacement(context,
-                //                   CupertinoPageRoute(
-                //                 builder: (context) {
-                //                   return BusinessSelectStartPage(
-                //                     businesses: businesses,
-                //                   );
-                //                 },
-                //               ));
-                //             },
-                //             child: Container(
-                //               margin:
-                //                   const EdgeInsets.symmetric(horizontal: 10),
-                //               padding: const EdgeInsets.all(10),
-                //               decoration: const BoxDecoration(
-                //                 color: Colors.black12,
-                //                 borderRadius:
-                //                     BorderRadius.all(Radius.circular(10)),
-                //               ),
-                //               child: Row(
-                //                 mainAxisAlignment:
-                //                     MainAxisAlignment.spaceBetween,
-                //                 children: [
-                //                   Flexible(
-                //                     flex: 12,
-                //                     fit: FlexFit.tight,
-                //                     child: Column(
-                //                       mainAxisSize: MainAxisSize.max,
-                //                       mainAxisAlignment:
-                //                           MainAxisAlignment.start,
-                //                       crossAxisAlignment:
-                //                           CrossAxisAlignment.start,
-                //                       children: [
-                //                         Flexible(
-                //                           fit: FlexFit.tight,
-                //                           child: Row(
-                //                             children: [
-                //                               Flexible(
-                //                                 fit: FlexFit.tight,
-                //                                 child: Text(
-                //                                   _business?["name"] ??
-                //                                       "Текущий магазин",
-                //                                   style: const TextStyle(
-                //                                       color: Colors.black,
-                //                                       fontWeight:
-                //                                           FontWeight.w700),
-                //                                 ),
-                //                               )
-                //                             ],
-                //                           ),
-                //                         ),
-                //                         Flexible(
-                //                           fit: FlexFit.tight,
-                //                           child: Row(
-                //                             children: [
-                //                               Flexible(
-                //                                 fit: FlexFit.tight,
-                //                                 child: Text(
-                //                                   _business?["address"] ?? "",
-                //                                   style: const TextStyle(
-                //                                     color: Colors.black,
-                //                                     fontWeight: FontWeight.w700,
-                //                                   ),
-                //                                 ),
-                //                               )
-                //                             ],
-                //                           ),
-                //                         )
-                //                       ],
-                //                     ),
-                //                   ),
-                //                   const Flexible(
-                //                     fit: FlexFit.tight,
-                //                     child: Icon(Icons.arrow_forward_ios),
-                //                   )
-                //                 ],
-                //               ),
-                //             ),
-                //           ),
-                //         ),
-                //       ),
-                //     ],
-                //   ),
-                // ),
                 Flexible(
                   flex: 20,
                   fit: FlexFit.tight,
-                  child: categoryIsLoading
-                      ? Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: GridView.builder(
-                            padding: const EdgeInsets.all(0),
-                            physics: const NeverScrollableScrollPhysics(),
-                            shrinkWrap: true,
-                            gridDelegate:
-                                const SliverGridDelegateWithMaxCrossAxisExtent(
-                                    maxCrossAxisExtent: 150,
-                                    childAspectRatio: 1,
-                                    crossAxisSpacing: 0,
-                                    mainAxisSpacing: 0),
-                            itemCount: 9,
-                            itemBuilder: (BuildContext ctx, index) {
-                              return Shimmer.fromColors(
-                                baseColor: Theme.of(context)
-                                    .colorScheme
-                                    .secondary
-                                    .withOpacity(0.05),
-                                highlightColor:
-                                    Theme.of(context).colorScheme.secondary,
-                                child: Container(
-                                  width: MediaQuery.of(context).size.width,
-                                  height: 50,
-                                  decoration: const BoxDecoration(
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(10)),
-                                    color: Colors.white,
-                                  ),
-                                  child: null,
-                                ),
-                              );
-                            },
-                          ),
-                        )
-                      : Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(10)),
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: SingleChildScrollView(
-                              child: GridView.builder(
-                                padding: const EdgeInsets.all(0),
-                                physics: const NeverScrollableScrollPhysics(),
-                                shrinkWrap: true,
-                                gridDelegate:
-                                    const SliverGridDelegateWithMaxCrossAxisExtent(
-                                        maxCrossAxisExtent: 200,
-                                        childAspectRatio: 10 / 8,
-                                        crossAxisSpacing: 0,
-                                        mainAxisSpacing: 0),
-                                itemCount: categories.length % 2 != 0
-                                    ? categories.length + 1
-                                    : categories.length,
-                                itemBuilder: (BuildContext ctx, index) {
-                                  return categories.length % 2 != 0 &&
-                                          index == categories.length
-                                      ? Container(color: Colors.white)
-                                      : CategoryItem(
-                                          category_id: categories[index]
-                                              ["category_id"],
-                                          name: categories[index]["name"],
-                                          image: categories[index]["photo"],
-                                          categories: categories,
-                                          business: widget.business,
-                                        );
-                                },
-                              ),
-                            ),
-                          ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: SingleChildScrollView(
+                        child: GridView.builder(
+                          padding: const EdgeInsets.all(0),
+                          physics: const NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          gridDelegate:
+                              const SliverGridDelegateWithMaxCrossAxisExtent(
+                                  maxCrossAxisExtent: 200,
+                                  childAspectRatio: 10 / 8,
+                                  crossAxisSpacing: 0,
+                                  mainAxisSpacing: 0),
+                          itemCount: snapshot.data!.length % 2 != 0
+                              ? snapshot.data!.length + 1
+                              : snapshot.data!.length,
+                          itemBuilder: (BuildContext ctx, index) {
+                            return snapshot.data!.length % 2 != 0 &&
+                                    index == snapshot.data!.length
+                                ? Container(color: Colors.white)
+                                : CategoryItem(
+                                    category_id: snapshot.data![index]
+                                        ["category_id"],
+                                    name: snapshot.data![index]["name"],
+                                    image: snapshot.data![index]["photo"],
+                                    categories: snapshot.data!,
+                                    business: widget.business,
+                                  );
+                          },
                         ),
+                      ),
+                    ),
+                  ),
                 )
               ],
             ),
           );
+        } else {
+          return LoadingScreen();
+        }
+      },
+    );
   }
 }
 

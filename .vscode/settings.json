@@ -3,5 +3,6 @@
     "editor.minimap.maxColumn": 300,
     "prettier.printWidth": 160,
     "html.format.wrapLineLength": 160,
-    "git.mergeEditor": true
+    "git.mergeEditor": true,
+    "java.configuration.updateBuildConfiguration": "interactive"
 }
