@@ -68,12 +68,6 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // List widget.addresses = [];
-
-  // Map currentAddress = {};
-
-  // Map<String, dynamic> user = {};
-
   void toggleDrawer() async {
     if (_scaffoldKey.currentState!.isDrawerOpen) {
       _scaffoldKey.currentState!.openEndDrawer();
@@ -82,29 +76,23 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     }
   }
 
-  // Future<void> _getAddresses() async {
-  //   List addresses = await getAddresses();
-  //   print(addresses);
-  //   setState(() {
-  //     widget.addresses = addresses;
-  //     widget.currentAddress = widget.addresses.firstWhere(
-  //       (element) => element["is_selected"] == "1",
-  //       orElse: () {
-  //         return null;
-  //       },
-  //     );
-  //   });
-  // }
-
-  // void _getUser() async {
-  //   await getUser().then((value) {
-  //     setState(() {
-  //       if (value != null) {
-  //         user = value;
-  //       }
-  //     });
-  //   });
-  // }
+  List<Map> _carouselItems = [
+    {
+      "name": "название",
+      "image":
+          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
+    },
+    {
+      "name": "1",
+      "image":
+          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
+    },
+    {
+      "name": "1",
+      "image":
+          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
+    },
+  ];
 
   void _initData() {
     setState(() {
@@ -196,571 +184,567 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     // final scrollController = useScrollController();
     // final isCollapsed = useState(false);
 
-    return NotificationListener<ScrollNotification>(
-        onNotification: (notification) {
-          // if (expandedBarHeight - collapsedBarHeight <
-          //     notification.metrics.atEdge) {
-          //   print(true);
-          // } else {
-          //   print(false);
-          // }
-          // if (notification.metrics.minScrollExtent + 200 <
-          //     notification.metrics.pixels) {
-          //   if (!isCollapsed) {
-          //     setState(() {
-          //       isCollapsed = true;
-          //     });
-          //   }
-          // } else {
-          //   if (isCollapsed) {
-          //     _sc.animateTo(0,
-          //         duration: Durations.medium1, curve: Curves.easeIn);
-          //     setState(() {
-          //       isCollapsed = false;
-          //     });
-          //   }
-          // }
-          // if (notification.metrics.minScrollExtent + 10 <
-          //     notification.metrics.pixels) {
-          //   if (!isStartingToCollapse) {
-          //     _sc.animateTo(scrollExtent + collapsedBarHeight * 2,
-          //         duration: Durations.medium1, curve: Curves.easeIn);
-          //     setState(() {
-          //       isMenuOpen = false;
-          //       isStartingToCollapse = true;
-          //     });
-          //   }
-          // } else {
-          //   if (isStartingToCollapse) {
-          //     setState(() {
-          //       isStartingToCollapse = false;
-          //     });
-          //   }
-          // }
-
-          // /// 2
-          // // isCollapsed.value = scrollController.hasClients &&
-          // //     scrollController.offset >
-          // //         (expandedBarHeight - collapsedBarHeight);
-          return false;
-        },
-        child: Scaffold(
-            key: _key,
-            drawerEnableOpenDragGesture: false,
-            drawerScrimColor: Colors.white,
-            endDrawer: SafeArea(
-                child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.max,
+    return Scaffold(
+        key: _key,
+        drawerEnableOpenDragGesture: false,
+        drawerScrimColor: Colors.white,
+        endDrawer: SafeArea(
+            child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            IconButton(
-                              onPressed: () {
-                                _key.currentState!.closeEndDrawer();
-                              },
-                              icon: Container(
-                                padding: EdgeInsets.all(20),
-                                child: Icon(Icons.close),
-                              ),
-                            ),
-                          ],
+                        IconButton(
+                          onPressed: () {
+                            _key.currentState!.closeEndDrawer();
+                          },
+                          icon: Container(
+                            padding: EdgeInsets.all(20),
+                            child: Icon(Icons.close),
+                          ),
                         ),
-                        Flexible(
-                            child: Container(
+                      ],
+                    ),
+                    Flexible(
+                        child: Container(
+                      alignment: Alignment.center,
+                      height: MediaQuery.of(context).size.height / 5,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.max,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text("НАЗВАНИЕ",
+                              style: GoogleFonts.montserratAlternates(
+                                textStyle: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 48 *
+                                        (MediaQuery.of(context).size.width /
+                                            720)),
+                              )),
+                          Icon(
+                            Icons.local_dining_outlined,
+                            color: Colors.black,
+                            size:
+                                48 * (MediaQuery.of(context).size.width / 720),
+                          )
+                        ],
+                      ),
+                    )),
+                    Flexible(
+                        child: Container(
+                            child: GridView.count(
+                      padding: EdgeInsets.all(10),
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: 2 / 1,
+                      crossAxisCount: 2,
+                      children: [
+                        DrawerMenuItem(
+                          name: "История заказов",
+                          icon: Icons.book_outlined,
+                          route: OrderHistoryPage(),
+                        ),
+                        DrawerMenuItem(
+                          name: "Адреса доставки",
+                          icon: Icons.map_outlined,
+                          route: PickAddressPage(
+                            client: widget.user,
+                          ),
+                        ),
+                        DrawerMenuItem(
+                          name: "Поддержка",
+                          icon: Icons.support_agent_rounded,
+                          route: SupportPage(),
+                        ),
+                        DrawerMenuItem(
+                          name: "Настройки",
+                          icon: Icons.settings_outlined,
+                          route: SettingsPage(),
+                        )
+                      ],
+                    )))
+                  ],
+                ))),
+        backgroundColor: Colors.grey.shade50,
+        // !isCollapsed ? const Colors.deepOrangeAccent : Colors.white,
+        body: SafeArea(
+            child: CustomScrollView(
+          controller: _sc,
+          slivers: <Widget>[
+            SliverAppBar(
+              actions: [Container()],
+              automaticallyImplyLeading: false,
+              elevation: 0,
+              forceElevated: true,
+              shape: LinearBorder(bottom: LinearBorderEdge(size: 1)),
+              shadowColor: Colors.transparent,
+              backgroundColor:
+                  !isCollapsed ? Colors.deepOrangeAccent : Colors.transparent,
+              surfaceTintColor: Colors.transparent,
+              foregroundColor: Colors.transparent,
+              // scrolledUnderElevation: collapsedBarHeight,
+              toolbarHeight: collapsedBarHeight,
+              snap: true,
+              centerTitle: false,
+              // stretch: true,
+              // Provide a standard title.
+              // title: ,
+              pinned: true,
+              // Allows the user to reveal the app bar if they begin scrolling
+              // back up the list of items.
+              floating: true,
+              expandedHeight: 0,
+              flexibleSpace: Container(),
+              title: AnimatedSwitcher(
+                  duration: Durations.medium1,
+                  child: isCollapsed
+                      ? Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                              boxShadow: [
+                                BoxShadow(
+                                    color: Colors.blueGrey.shade200,
+                                    offset: const Offset(5, 5),
+                                    blurRadius: 5)
+                              ],
+                              color: Colors.white,
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(20))),
+                          child: TextButton(
+                              onPressed: () {
+                                Navigator.push(context, CupertinoPageRoute(
+                                  builder: (context) {
+                                    return PickAddressPage(
+                                      client: widget.user,
+                                    );
+                                  },
+                                ));
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      widget.currentAddress.isNotEmpty
+                                          ? widget.currentAddress["address"]
+                                          : "Нет адреса",
+                                      style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    width: 10,
+                                  ),
+                                  const Icon(Icons.edit_outlined),
+                                ],
+                              )))
+                      : Container(
                           alignment: Alignment.center,
-                          height: MediaQuery.of(context).size.height / 5,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.max,
+                          color: Colors.deepOrangeAccent,
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Text("НАЗВАНИЕ",
-                                  style: GoogleFonts.montserratAlternates(
-                                    textStyle: TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 48 *
-                                            (MediaQuery.of(context).size.width /
-                                                720)),
-                                  )),
-                              Icon(
-                                Icons.local_dining_outlined,
-                                color: Colors.black,
-                                size: 48 *
-                                    (MediaQuery.of(context).size.width / 720),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                mainAxisSize: MainAxisSize.max,
+                                children: [
+                                  TextButton(
+                                      onPressed: () {
+                                        Navigator.push(context,
+                                            CupertinoPageRoute(
+                                          builder: (context) {
+                                            return PickAddressPage(
+                                              client: widget.user,
+                                            );
+                                          },
+                                        ));
+                                      },
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.max,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Text(
+                                                widget.currentAddress[
+                                                        "city_name"] ??
+                                                    "",
+                                                style: const TextStyle(
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 24,
+                                                    color: Colors.white),
+                                              ),
+                                              const Icon(
+                                                Icons.arrow_drop_down,
+                                                color: Colors.white,
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      )),
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                          onPressed: () {},
+                                          icon: Icon(
+                                            Icons.favorite,
+                                            color: Colors.white,
+                                            size: 24,
+                                          )),
+                                      IconButton(
+                                          onPressed: () {
+                                            _key.currentState!.openEndDrawer();
+                                          },
+                                          icon: Icon(
+                                            Icons.menu,
+                                            color: Colors.white,
+                                            size: 24,
+                                          )),
+                                    ],
+                                  )
+
+                                  // IconButton(
+                                  //     onPressed: () {},
+                                  //     icon: Icon(Icons.settings, color: Colors.black,)),
+                                ],
                               )
                             ],
                           ),
                         )),
-                        Flexible(
-                            child: Container(
-                                child: GridView.count(
-                          padding: EdgeInsets.all(10),
-                          mainAxisSpacing: 10,
-                          crossAxisSpacing: 10,
-                          childAspectRatio: 2 / 1,
-                          crossAxisCount: 2,
-                          children: [
-                            DrawerMenuItem(
-                              name: "История заказов",
-                              icon: Icons.book_outlined,
-                              route: OrderHistoryPage(),
-                            ),
-                            DrawerMenuItem(
-                              name: "Адреса доставки",
-                              icon: Icons.map_outlined,
-                              route: PickAddressPage(
-                                client: widget.user,
-                              ),
-                            ),
-                            DrawerMenuItem(
-                              name: "Поддержка",
-                              icon: Icons.support_agent_rounded,
-                              route: SupportPage(),
-                            ),
-                            DrawerMenuItem(
-                              name: "Настройки",
-                              icon: Icons.settings_outlined,
-                              route: SettingsPage(),
-                            )
-                          ],
-                        )))
-                      ],
-                    ))),
-            backgroundColor: Colors.blueGrey.shade50,
-            // !isCollapsed ? const Colors.deepOrangeAccent : Colors.white,
-            body: SafeArea(
-                child: CustomScrollView(
-              controller: _sc,
-              slivers: <Widget>[
-                SliverAppBar(
-                  actions: [Container()],
-                  automaticallyImplyLeading: false,
-                  elevation: 0,
-                  forceElevated: true,
-                  shape: LinearBorder(bottom: LinearBorderEdge(size: 1)),
-                  shadowColor: Colors.transparent,
-                  backgroundColor: !isCollapsed
-                      ? Colors.deepOrangeAccent
-                      : Colors.transparent,
-                  surfaceTintColor: Colors.transparent,
-                  foregroundColor: Colors.transparent,
-                  // scrolledUnderElevation: collapsedBarHeight,
-                  toolbarHeight: collapsedBarHeight,
-                  snap: true,
-                  centerTitle: false,
-                  // stretch: true,
-                  // Provide a standard title.
-                  // title: ,
-                  pinned: true,
-                  // Allows the user to reveal the app bar if they begin scrolling
-                  // back up the list of items.
-                  floating: true,
-                  expandedHeight: 0,
-                  flexibleSpace: Container(),
-                  title: AnimatedSwitcher(
-                      duration: Durations.medium1,
-                      child: isCollapsed
-                          ? Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                  boxShadow: [
-                                    BoxShadow(
-                                        color: Colors.blueGrey.shade200,
-                                        offset: const Offset(5, 5),
-                                        blurRadius: 5)
-                                  ],
-                                  color: Colors.white,
-                                  borderRadius: const BorderRadius.all(
-                                      Radius.circular(20))),
-                              child: TextButton(
-                                  onPressed: () {
-                                    Navigator.push(context, CupertinoPageRoute(
-                                      builder: (context) {
-                                        return PickAddressPage(
-                                          client: widget.user,
-                                        );
-                                      },
-                                    ));
-                                  },
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          widget.currentAddress.isNotEmpty
-                                              ? widget.currentAddress["address"]
-                                              : "Нет адреса",
-                                          style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w700),
-                                        ),
-                                      ),
-                                      const SizedBox(
-                                        width: 10,
-                                      ),
-                                      const Icon(Icons.edit_outlined),
-                                    ],
-                                  )))
-                          : Container(
-                              alignment: Alignment.center,
-                              color: Colors.deepOrangeAccent,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    mainAxisSize: MainAxisSize.max,
-                                    children: [
-                                      TextButton(
-                                          onPressed: () {
-                                            Navigator.push(context,
-                                                CupertinoPageRoute(
-                                              builder: (context) {
-                                                return PickAddressPage(
-                                                  client: widget.user,
-                                                );
-                                              },
-                                            ));
-                                          },
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.max,
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  Text(
-                                                    widget.currentAddress[
-                                                            "city_name"] ??
-                                                        "",
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                        fontSize: 24,
-                                                        color: Colors.white),
-                                                  ),
-                                                  const Icon(
-                                                    Icons.arrow_drop_down,
-                                                    color: Colors.white,
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          )),
-                                      Row(
-                                        children: [
-                                          IconButton(
-                                              onPressed: () {},
-                                              icon: Icon(
-                                                Icons.favorite,
-                                                color: Colors.white,
-                                                size: 24,
-                                              )),
-                                          IconButton(
-                                              onPressed: () {
-                                                _key.currentState!
-                                                    .openEndDrawer();
-                                              },
-                                              icon: Icon(
-                                                Icons.menu,
-                                                color: Colors.white,
-                                                size: 24,
-                                              )),
-                                        ],
-                                      )
-
-                                      // IconButton(
-                                      //     onPressed: () {},
-                                      //     icon: Icon(Icons.settings, color: Colors.black,)),
-                                    ],
-                                  )
-                                ],
-                              ),
-                            )),
-                ),
-                SliverLayoutBuilder(
-                  builder: (context, constraints) {
-                    if (scrollExtent == 0) {
-                      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-                        setState(() {
-                          scrollExtent = constraints.precedingScrollExtent;
-                        });
-                      });
-                    }
-                    return SliverToBoxAdapter(
-                      child: AnimatedContainer(
-                          duration: Durations.medium2,
-                          decoration: BoxDecoration(
-                            boxShadow: [
-                              BoxShadow(
-                                spreadRadius: 5,
-                                offset: Offset(0, -100),
-                                color: !isStartingToCollapse
-                                    ? Colors.deepOrangeAccent
-                                    : Colors.blueGrey.shade50,
-                              )
-                            ],
+            ),
+            SliverLayoutBuilder(
+              builder: (context, constraints) {
+                if (scrollExtent == 0) {
+                  WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+                    setState(() {
+                      scrollExtent = constraints.precedingScrollExtent;
+                    });
+                  });
+                }
+                return SliverToBoxAdapter(
+                  child: AnimatedContainer(
+                      duration: Durations.medium2,
+                      decoration: BoxDecoration(
+                        boxShadow: [
+                          BoxShadow(
+                            spreadRadius: 5,
+                            offset: Offset(0, -100),
                             color: !isStartingToCollapse
                                 ? Colors.deepOrangeAccent
-                                : Colors.blueGrey.shade50,
+                                : Colors.grey.shade50,
+                          )
+                        ],
+                        color: !isStartingToCollapse
+                            ? Colors.deepOrangeAccent
+                            : Colors.grey.shade50,
+                      ),
+                      child: Stack(
+                        alignment: Alignment.bottomCenter,
+                        children: [
+                          AnimatedContainer(
+                            duration: Durations.medium1,
+                            height: 100,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                                boxShadow: [
+                                  !isStartingToCollapse
+                                      ? const BoxShadow(
+                                          offset: Offset(0, -10),
+                                          color: Colors.black26,
+                                          blurRadius: 20)
+                                      : const BoxShadow(color: Colors.white),
+                                  BoxShadow(
+                                      color: Colors.grey.shade50,
+                                      offset: Offset(0, 5),
+                                      blurRadius: 5)
+                                ],
+                                color: Colors.grey.shade50,
+                                borderRadius: !isCollapsed
+                                    ? const BorderRadius.only(
+                                        topLeft: Radius.elliptical(100, 50),
+                                        topRight: Radius.elliptical(100, 50))
+                                    : const BorderRadius.all(Radius.zero)),
                           ),
-                          child: Stack(
-                            alignment: Alignment.bottomCenter,
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               AnimatedContainer(
+                                foregroundDecoration: BoxDecoration(
+                                    color: !isStartingToCollapse
+                                        ? Colors.deepOrangeAccent.withOpacity(0)
+                                        : Colors.grey.shade50),
                                 duration: Durations.medium1,
-                                height: 100,
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                    boxShadow: [
-                                      !isStartingToCollapse
-                                          ? const BoxShadow(
-                                              offset: Offset(0, -10),
-                                              color: Colors.black26,
-                                              blurRadius: 20)
-                                          : const BoxShadow(
-                                              color: Colors.white),
-                                      BoxShadow(
-                                          color: Colors.blueGrey.shade50,
-                                          offset: Offset(0, 5),
-                                          blurRadius: 5)
-                                    ],
-                                    color: Colors.blueGrey.shade50,
-                                    borderRadius: !isCollapsed
-                                        ? const BorderRadius.only(
-                                            topLeft: Radius.elliptical(100, 50),
-                                            topRight:
-                                                Radius.elliptical(100, 50))
-                                        : const BorderRadius.all(Radius.zero)),
-                              ),
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  AnimatedContainer(
-                                    foregroundDecoration: BoxDecoration(
-                                        color: !isStartingToCollapse
-                                            ? Colors.deepOrangeAccent
-                                                .withOpacity(0)
-                                            : Colors.blueGrey.shade50),
-                                    duration: Durations.medium1,
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.max,
-                                      children: [
-                                        AnimatedContainer(
-                                            duration: Durations.medium1,
-                                            // foregroundDecoration: BoxDecoration(color: isCollapsed ? Colors.deepOrangeAccent : Colors.transparent),
-                                            width: double.infinity,
-                                            height: MediaQuery.of(context)
-                                                    .size
-                                                    .height /
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    AnimatedContainer(
+                                        duration: Durations.medium1,
+                                        // foregroundDecoration: BoxDecoration(color: isCollapsed ? Colors.deepOrangeAccent : Colors.transparent),
+                                        width: double.infinity,
+                                        height:
+                                            MediaQuery.of(context).size.height /
                                                 4,
-                                            margin: const EdgeInsets.all(15),
-                                            decoration: const BoxDecoration(
-                                                // color: Colors.pinkAccent,
+                                        margin: const EdgeInsets.all(15),
+                                        decoration: const BoxDecoration(
+                                            // color: Colors.pinkAccent,
 
-                                                ),
-                                            child: Column(
+                                            ),
+                                        child: Column(
+                                          children: [
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
                                               children: [
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    const Spacer(
-                                                      flex: 2,
-                                                    ),
-                                                    CircleAvatar(
-                                                      radius:
-                                                          MediaQuery.of(context)
-                                                                  .size
-                                                                  .height /
-                                                              16,
-                                                    ),
-                                                    const Spacer(),
-                                                    Flexible(
-                                                        flex: 3,
-                                                        child: Text(
-                                                            widget.user["name"],
-                                                            style: GoogleFonts
-                                                                .mulish(
-                                                              textStyle: TextStyle(
-                                                                  letterSpacing:
-                                                                      1,
-                                                                  fontSize: 24,
-                                                                  color: Colors
-                                                                      .white,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w900),
-                                                            ))),
-                                                    const Spacer(
-                                                      flex: 2,
-                                                    )
-                                                  ],
+                                                const Spacer(
+                                                  flex: 2,
+                                                ),
+                                                CircleAvatar(
+                                                  radius: MediaQuery.of(context)
+                                                          .size
+                                                          .height /
+                                                      16,
                                                 ),
                                                 const Spacer(),
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    Flexible(
-                                                      child: TextButton(
-                                                          onPressed: () {
-                                                            Navigator.push(
-                                                              context,
-                                                              MaterialPageRoute(
-                                                                builder:
-                                                                    (context) {
-                                                                  return PickAddressPage(
-                                                                      client: widget
-                                                                          .user);
-                                                                },
-                                                              ),
-                                                            );
-                                                          },
-                                                          child: Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .center,
-                                                            mainAxisSize:
-                                                                MainAxisSize
-                                                                    .max,
-                                                            children: [
-                                                              Flexible(
-                                                                child: Text(
-                                                                  widget.currentAddress
-                                                                          .isNotEmpty
-                                                                      ? widget.currentAddress[
-                                                                          "address"]
-                                                                      : "Нет адреса",
-                                                                  style: const TextStyle(
-                                                                      fontSize:
-                                                                          16,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w500,
-                                                                      color: Colors
-                                                                          .white),
-                                                                ),
-                                                              ),
-                                                              const SizedBox(
-                                                                width: 10,
-                                                              ),
-                                                              const Icon(
-                                                                Icons
-                                                                    .edit_outlined,
-                                                                color: Colors
-                                                                    .white,
-                                                              ),
-                                                            ],
-                                                          )),
-                                                    )
-                                                  ],
-                                                ),
+                                                Flexible(
+                                                    flex: 3,
+                                                    child: Text(
+                                                        widget.user["name"],
+                                                        style:
+                                                            GoogleFonts.mulish(
+                                                          textStyle: TextStyle(
+                                                              letterSpacing: 1,
+                                                              fontSize: 24,
+                                                              color:
+                                                                  Colors.white,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w900),
+                                                        ))),
                                                 const Spacer(
                                                   flex: 2,
                                                 )
                                               ],
-                                            ))
-                                      ],
-                                    ),
-                                  ),
-                                  Container(
-                                    width: double.infinity,
-                                    height:
-                                        MediaQuery.of(context).size.height / 5,
-                                    margin: const EdgeInsets.all(15),
-                                    padding: const EdgeInsets.all(30),
-                                    decoration: const BoxDecoration(
-                                      color: Colors.blueGrey,
-                                      borderRadius:
-                                          BorderRadius.all(Radius.circular(30)),
-                                      boxShadow: [
-                                        BoxShadow(
-                                            offset: Offset(0, -1),
-                                            color: Colors.black26,
-                                            blurRadius: 5)
-                                      ],
-                                    ),
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Flexible(
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Flexible(
-                                                fit: FlexFit.tight,
-                                                child: Text(
-                                                  "ALLCO",
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 136 *
-                                                        (screenSize / 720),
-                                                    fontWeight: FontWeight.w700,
-                                                    fontFamily: "montserrat",
-                                                    // shadows: [
-                                                    //   Shadow(
-                                                    //     color: Colors.black26,
-                                                    //     blurRadius: 15,
-                                                    //     offset: Offset(0, 0),
-                                                    //   ),
-                                                    // ],
-                                                    height: 1,
-                                                  ),
-                                                ),
+                                            ),
+                                            const Spacer(),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Flexible(
+                                                  child: TextButton(
+                                                      onPressed: () {
+                                                        Navigator.push(
+                                                          context,
+                                                          MaterialPageRoute(
+                                                            builder: (context) {
+                                                              return PickAddressPage(
+                                                                  client: widget
+                                                                      .user);
+                                                            },
+                                                          ),
+                                                        );
+                                                      },
+                                                      child: Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        mainAxisSize:
+                                                            MainAxisSize.max,
+                                                        children: [
+                                                          Flexible(
+                                                            child: Text(
+                                                              widget.currentAddress
+                                                                      .isNotEmpty
+                                                                  ? widget.currentAddress[
+                                                                      "address"]
+                                                                  : "Нет адреса",
+                                                              style: const TextStyle(
+                                                                  fontSize: 16,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500,
+                                                                  color: Colors
+                                                                      .white),
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                            width: 10,
+                                                          ),
+                                                          const Icon(
+                                                            Icons.edit_outlined,
+                                                            color: Colors.white,
+                                                          ),
+                                                        ],
+                                                      )),
+                                                )
+                                              ],
+                                            ),
+                                            const Spacer(
+                                              flex: 2,
+                                            )
+                                          ],
+                                        ))
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                width: double.infinity,
+                                height: MediaQuery.of(context).size.height / 5,
+                                margin: const EdgeInsets.all(15),
+                                padding: const EdgeInsets.all(30),
+                                decoration: const BoxDecoration(
+                                  color: Colors.blueGrey,
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(30)),
+                                  boxShadow: [
+                                    BoxShadow(
+                                        offset: Offset(0, -1),
+                                        color: Colors.black26,
+                                        blurRadius: 5)
+                                  ],
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Flexible(
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Flexible(
+                                            fit: FlexFit.tight,
+                                            child: Text(
+                                              "ALLCO",
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize:
+                                                    136 * (screenSize / 720),
+                                                fontWeight: FontWeight.w700,
+                                                fontFamily: "montserrat",
+                                                // shadows: [
+                                                //   Shadow(
+                                                //     color: Colors.black26,
+                                                //     blurRadius: 15,
+                                                //     offset: Offset(0, 0),
+                                                //   ),
+                                                // ],
+                                                height: 1,
                                               ),
-                                            ],
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
-                                  )
-                                ],
+                                  ],
+                                ),
                               )
                             ],
-                          )),
+                          )
+                        ],
+                      )),
+                );
+              },
+            ),
+            SliverToBoxAdapter(
+                child: Container(
+              height: MediaQuery.of(context).size.height / 4,
+              child: PageView.builder(
+                controller: PageController(viewportFraction: 0.8),
+                itemCount: _carouselItems.length,
+                itemBuilder: (context, index) {
+                  return Container(
+                    clipBehavior: Clip.antiAlias,
+                    margin: EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                        boxShadow: [
+                          BoxShadow(
+                              spreadRadius: 5,
+                              blurRadius: 5,
+                              color: Colors.grey.shade200)
+                        ],
+                        color: Colors.white,
+                        borderRadius: BorderRadius.all(Radius.circular(10))),
+                    child: Stack(
+                      children: [
+                        Image.network(
+                          _carouselItems[index]["image"],
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                        ),
+                        Container(
+                          width: double.infinity,
+                          height: double.infinity,
+                          decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                  transform: GradientRotation(pi / -2),
+                                  colors: [
+                                Colors.black45,
+                                Colors.transparent
+                              ])),
+                        ),
+                        Container(
+                          padding: EdgeInsets.all(20),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Flexible(
+                                  child: Text(
+                                "kkfuwhefkuhwfukhfkwehfuwhfiuwfhwiuefhew",
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 24),
+                              ))
+                            ],
+                          ),
+                        )
+                      ],
+                    ),
+                  );
+                },
+              ),
+            )),
+            SliverToBoxAdapter(
+                child: Container(
+              width: MediaQuery.of(context).size.width,
+              height: 200,
+              child: SingleChildScrollView(
+                controller: ScrollController(),
+                scrollDirection: Axis.horizontal,
+                child: ListView.builder(
+                  padding: EdgeInsets.all(5),
+                  primary: false,
+                  shrinkWrap: true,
+                  scrollDirection: Axis.horizontal,
+                  itemCount: widget.businesses.length,
+                  itemBuilder: (context, index) {
+                    return BusinessItem(
+                      business: widget.businesses[index],
+                      user: widget.user,
                     );
                   },
                 ),
-                SliverToBoxAdapter(
-                    child: Container(
-                  width: MediaQuery.of(context).size.width,
-                  height: 200,
-                  child: SingleChildScrollView(
-                    controller: ScrollController(),
-                    scrollDirection: Axis.horizontal,
-                    child: ListView.builder(
-                      padding: EdgeInsets.all(5),
-                      primary: false,
-                      shrinkWrap: true,
-                      scrollDirection: Axis.horizontal,
-                      itemCount: widget.businesses.length,
-                      itemBuilder: (context, index) {
-                        return BusinessItem(
-                          business: widget.businesses[index],
-                          user: widget.user,
-                        );
-                      },
-                    ),
-                  ),
-                )),
-                SliverToBoxAdapter(
-                  child: Container(
-                    height: MediaQuery.of(context).size.height,
-                  ),
-                )
-              ],
-            ))));
+              ),
+            )),
+            SliverToBoxAdapter(
+              child: Container(
+                height: MediaQuery.of(context).size.height,
+              ),
+            )
+          ],
+        )));
   }
 }
 
