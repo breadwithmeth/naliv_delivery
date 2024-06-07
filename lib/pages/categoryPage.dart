@@ -75,7 +75,7 @@ class _CategoryPageState extends State<CategoryPage> {
           business: widget.business,
         ),
         appBar: AppBar(
-          toolbarHeight: 100 * scaleParam,
+          toolbarHeight: 90 * scaleParam,
           bottom: TabBar(
             tabAlignment: TabAlignment.start,
             physics: const BouncingScrollPhysics(),
@@ -96,7 +96,7 @@ class _CategoryPageState extends State<CategoryPage> {
             Builder(builder: (context) => const SizedBox()),
           ], // Important: removes endDrawer button form appbar
           automaticallyImplyLeading: false,
-          // toolbarHeight: 90,
+          // toolbarHeight: 120,
           titleSpacing: 0,
           title: Padding(
             padding: EdgeInsets.symmetric(horizontal: 10 * scaleParam),

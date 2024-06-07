@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -325,60 +327,59 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
   int amountInCart = 0;
   bool isItemAmountChanging = false;
   late int chack;
+  Timer? _debounce;
+
+  void _updateItemCountServerCall() {
+    setState(() {
+      isItemAmountChanging = true;
+    });
+    changeCartItem(
+            element["item_id"], amountInCart, widget.business["business_id"])
+        .then((value) {
+      if (value != null) {
+        setState(() {
+          amountInCart = int.parse(value);
+        });
+        if (widget.updateCategoryPageInfo != null) {
+          widget.updateCategoryPageInfo!(amountInCart.toString(), widget.index);
+        }
+        print(value);
+      } else {
+        print(
+            "Something gone wrong, can't add item to cart in ItemCardMedium _updateItemCountServerCall");
+      }
+      setState(() {
+        isItemAmountChanging = false;
+      });
+    });
+  }
+
+  void _updateItemCount() {
+    // Cancel the previous timer if it exists
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    // Start a new timer
+    _debounce = Timer(Duration(seconds: 3), () {
+      // Call your server update function here
+      _updateItemCountServerCall();
+    });
+  }
 
   void _decrementAmountInCart() {
     if (amountInCart > 0) {
       setState(() {
-        isItemAmountChanging = true;
+        amountInCart--;
       });
-      changeCartItem(element["item_id"], amountInCart - 1,
-              widget.business["business_id"])
-          .then((value) {
-        if (value != null) {
-          setState(() {
-            amountInCart = int.parse(value);
-          });
-          if (widget.updateCategoryPageInfo != null) {
-            widget.updateCategoryPageInfo!(
-                amountInCart.toString(), widget.index);
-          }
-          print(value);
-        } else {
-          print(
-              "Something gone wrong, can't add item to cart in ItemCardMedium _decrementAmountInCart");
-        }
-        setState(() {
-          isItemAmountChanging = false;
-        });
-      });
+      _updateItemCount();
     }
   }
 
   void _incrementAmountInCart() {
     if (amountInCart + 1 <= double.parse(element["in_stock"]).truncate()) {
       setState(() {
-        isItemAmountChanging = true;
+        amountInCart++;
       });
-      changeCartItem(element["item_id"], amountInCart + 1,
-              widget.business["business_id"])
-          .then((value) {
-        if (value != null) {
-          setState(() {
-            amountInCart = int.parse(value);
-          });
-          if (widget.updateCategoryPageInfo != null) {
-            widget.updateCategoryPageInfo!(
-                amountInCart.toString(), widget.index);
-          }
-          print(value);
-        } else {
-          print(
-              "Something gone wrong, can't add item to cart in ItemCardMedium _incrementAmountInCart");
-        }
-        setState(() {
-          isItemAmountChanging = false;
-        });
-      });
+      _updateItemCount();
     }
   }
 
@@ -398,6 +399,16 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
     getProperties();
   }
 
+  @override
+  void dispose() {
+    // Trigger the debounce action immediately if the timer is active
+    if (_debounce?.isActive ?? false) {
+      _debounce?.cancel();
+      _updateItemCountServerCall();
+    }
+    super.dispose();
+  }
+
   void getProperties() {
     if (widget.element["properties"] != null) {
       List<InlineSpan> propertiesT = [];
@@ -405,27 +416,30 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
       print(properties);
       for (var element in properties) {
         List temp = element.split(":");
-        propertiesT.add(WidgetSpan(
+        propertiesT.add(
+          WidgetSpan(
             child: Row(
-          children: [
-            Text(
-              temp[1],
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: Colors.black,
-              ),
+              children: [
+                Text(
+                  temp[1],
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                ),
+                Image.asset(
+                  "assets/property_icons/${temp[0]}.png",
+                  width: 14,
+                  height: 14,
+                ),
+                SizedBox(
+                  width: 10,
+                )
+              ],
             ),
-            Image.asset(
-              "assets/property_icons/${temp[0]}.png",
-              width: 14,
-              height: 14,
-            ),
-            SizedBox(
-              width: 10,
-            )
-          ],
-        )));
+          ),
+        );
       }
       setState(() {
         propertiesWidget = propertiesT;
