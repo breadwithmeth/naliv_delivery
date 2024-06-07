@@ -123,96 +123,124 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
         (screenSize.height / 1080) * (screenSize.width / 720) * 2;
 
     return Scaffold(
-      floatingActionButtonLocation: FloatingActionButtonLocation.startTop,
-      floatingActionButton: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(15)),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerTop,
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(15)),
+              ),
+              padding: EdgeInsets.symmetric(
+                  horizontal: 25 * scaleParam, vertical: 25 * scaleParam),
+              minimumSize: Size(0, 0),
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: Icon(
+              Icons.arrow_back_rounded,
+              size: 48 * scaleParam,
+            ),
           ),
-          padding: EdgeInsets.symmetric(
-              horizontal: 15 * scaleParam, vertical: 15 * scaleParam),
-        ),
-        onPressed: () {
-          showDialog(
-            barrierColor: Colors.white70,
-            context: context,
-            builder: (context) {
-              return Dialog(
-                backgroundColor: Colors.transparent,
-                shape: RoundedRectangleBorder(),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                  child: Container(
-                    alignment: Alignment.center,
-                    color: Colors.transparent,
-                    padding: EdgeInsets.all(20 * scaleParam),
-                    child: ListView.builder(
-                      primary: false,
-                      itemCount: widget.cities.length,
-                      itemBuilder: (context, index) {
-                        return TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _currentCity = widget.cities[index]["name"];
-                              _currentCityId = widget.cities[index]["city_id"];
-                            });
-                            _mapController.move(
-                                LatLng(
-                                    (double.parse(widget.cities[index]["x1"]) +
-                                            double.parse(
-                                                widget.cities[index]["x2"])) /
-                                        2,
-                                    (double.parse(widget.cities[index]["y1"]) +
-                                            double.parse(
-                                                widget.cities[index]["y1"])) /
-                                        2),
-                                10);
-                            Navigator.pop(context);
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(15)),
+              ),
+              padding: EdgeInsets.symmetric(
+                  horizontal: 15 * scaleParam, vertical: 15 * scaleParam),
+            ),
+            onPressed: () {
+              showDialog(
+                barrierColor: Colors.white70,
+                context: context,
+                builder: (context) {
+                  return Dialog(
+                    backgroundColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                      child: Container(
+                        alignment: Alignment.center,
+                        color: Colors.transparent,
+                        padding: EdgeInsets.all(20 * scaleParam),
+                        child: ListView.builder(
+                          primary: false,
+                          itemCount: widget.cities.length,
+                          itemBuilder: (context, index) {
+                            return TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  _currentCity = widget.cities[index]["name"];
+                                  _currentCityId =
+                                      widget.cities[index]["city_id"];
+                                });
+                                _mapController.move(
+                                    LatLng(
+                                        (double.parse(widget.cities[index]
+                                                    ["x1"]) +
+                                                double.parse(widget
+                                                    .cities[index]["x2"])) /
+                                            2,
+                                        (double.parse(widget.cities[index]
+                                                    ["y1"]) +
+                                                double.parse(widget
+                                                    .cities[index]["y1"])) /
+                                            2),
+                                    10);
+                                Navigator.pop(context);
+                              },
+                              child: Container(
+                                padding: EdgeInsets.all(10 * scaleParam),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      widget.cities[index]["name"],
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 48 * scaleParam,
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              ),
+                            );
                           },
-                          child: Container(
-                            padding: EdgeInsets.all(10 * scaleParam),
-                            child: Row(
-                              children: [
-                                Text(
-                                  widget.cities[index]["name"],
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 48 * scaleParam,
-                                  ),
-                                )
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+                        ),
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               );
             },
-          );
-        },
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisAlignment: MainAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              _currentCity.isEmpty ? "Выберите город" : _currentCity,
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.w700,
-                fontSize: 38 * scaleParam,
-              ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _currentCity.isEmpty ? "Выберите город" : _currentCity,
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 38 * scaleParam,
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_drop_down,
+                  size: 48 * scaleParam,
+                )
+              ],
             ),
-            Icon(
-              Icons.arrow_drop_down,
-              size: 48 * scaleParam,
-            )
-          ],
-        ),
+          ),
+        ],
       ),
       body: Column(
         children: [
