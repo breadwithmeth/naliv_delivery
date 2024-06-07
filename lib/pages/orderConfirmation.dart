@@ -56,16 +56,14 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    Timer(const Duration(seconds: 1), () {
+  void startTimer(double scaleParam) {
+    Timer(Duration(seconds: 1), () {
       setState(() {
-        _w = 300;
+        _w = 595 * scaleParam;
       });
     });
-    timer = Timer(const Duration(seconds: 6), () {
-      Future.delayed(const Duration(milliseconds: 0)).then((value) async {
+    timer = Timer(Duration(seconds: 6), () {
+      Future.delayed(Duration(milliseconds: 0)).then((value) async {
         print("Creating order...!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         String user_id = widget.user.isNotEmpty ? widget.user["user_id"] : "";
         await createOrder(widget.business["business_id"], user_id)
@@ -102,10 +100,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
               builder: (context) {
                 if (isOrderCorrect == false) {
                   return AlertDialog(
-                    shape: const RoundedRectangleBorder(
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.all(Radius.circular(10)),
                     ),
-                    title: const Row(
+                    title: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text("Остатки изменились"),
@@ -117,10 +115,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                       color: Theme.of(context).colorScheme.onSecondary,
                     ),
                     content: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      padding: EdgeInsets.symmetric(vertical: 20 * scaleParam),
                       child: SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.7,
-                        height: MediaQuery.of(context).size.height * 0.4,
+                        width: 600 * scaleParam,
+                        height: 400 * scaleParam,
                         child: ListView.builder(
                           itemCount: wrongItems.length,
                           itemBuilder: (context, index) {
@@ -135,7 +133,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                           wrongItems[index]["name"].toString(),
                                           style: TextStyle(
                                             fontWeight: FontWeight.w700,
-                                            fontSize: 14,
+                                            fontSize: 28 * scaleParam,
                                             color: Theme.of(context)
                                                 .colorScheme
                                                 .onSecondary,
@@ -153,7 +151,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                           "В корзине: ${wrongItems[index]['amount'].toString()}",
                                           style: TextStyle(
                                             fontWeight: FontWeight.w500,
-                                            fontSize: 14,
+                                            fontSize: 28 * scaleParam,
                                             color: Theme.of(context)
                                                 .colorScheme
                                                 .secondary,
@@ -165,7 +163,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                           "В наличии: ${double.parse(wrongItems[index]['in_stock'].toString()).toStringAsFixed(0)}",
                                           style: TextStyle(
                                             fontWeight: FontWeight.w500,
-                                            fontSize: 14,
+                                            fontSize: 28 * scaleParam,
                                             color: Theme.of(context)
                                                 .colorScheme
                                                 .secondary,
@@ -174,7 +172,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                       ),
                                     ],
                                   ),
-                                  const Divider(),
+                                  Divider(),
                                 ],
                               ),
                             );
@@ -185,19 +183,20 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     actions: [
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          padding:
+                              EdgeInsets.symmetric(vertical: 10 * scaleParam),
                         ),
                         onPressed: () {
                           //! TODO: CHANGE AMOUNT IN CART ACCORDINGLY TO REAL AMOUNT LEFT
                           Navigator.pop(context);
                         },
-                        child: const Row(
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
                               "Применить изменения",
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 28 * scaleParam,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -206,23 +205,21 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                       ),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          padding:
+                              EdgeInsets.symmetric(vertical: 10 * scaleParam),
                           backgroundColor:
                               Theme.of(context).colorScheme.secondary,
                         ),
                         onPressed: () {
-                          //! TODO: CHANGE AMOUNT IN CART ACCORDINGLY TO REAL AMOUNT LEFT
-                          Navigator.pop(context);
-                          Navigator.pop(context);
                           Navigator.pop(context);
                         },
-                        child: const Row(
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
                               "Изменить самостоятельно",
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 28 * scaleParam,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -233,26 +230,26 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                   );
                 } else {
                   return AlertDialog(
-                    shape: const RoundedRectangleBorder(
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.all(Radius.circular(10)),
                     ),
-                    title: const Row(
+                    title: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text("Произошла ошибка"),
                       ],
                     ),
                     titleTextStyle: TextStyle(
-                      fontSize: 16,
+                      fontSize: 32 * scaleParam,
                       fontWeight: FontWeight.w700,
                       color: Theme.of(context).colorScheme.onSecondary,
                     ),
                     content: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      padding: EdgeInsets.symmetric(vertical: 20 * scaleParam),
                       child: SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.7,
-                        height: MediaQuery.of(context).size.height * 0.4,
-                        child: const Row(
+                        width: 600 * scaleParam,
+                        height: 400 * scaleParam,
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Flexible(
@@ -260,7 +257,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                 "Повторите попытку позже, пожалуйста",
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 28 * scaleParam,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.black,
                                 ),
@@ -273,20 +270,21 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     actions: [
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          padding:
+                              EdgeInsets.symmetric(vertical: 10 * scaleParam),
                         ),
                         onPressed: () {
                           //! TODO: CHANGE AMOUNT IN CART ACCORDINGLY TO REAL AMOUNT LEFT
                           Navigator.pop(context);
                           Navigator.pop(context);
                         },
-                        child: const Row(
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
                               "Принять",
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 28 * scaleParam,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -305,6 +303,11 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
   }
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   void dispose() {
     super.dispose();
     timer.cancel();
@@ -312,6 +315,12 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
 
   @override
   Widget build(BuildContext context) {
+    Size screenSize = MediaQuery.of(context).size;
+    double scaleParam =
+        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
+
+    startTimer(scaleParam);
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -330,7 +339,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         child: Text(
                           "Убедитесь в правильности заказа",
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 32 * scaleParam,
                             fontWeight: FontWeight.w700,
                             color: Theme.of(context).colorScheme.onBackground,
                           ),
@@ -339,17 +348,18 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                       Stack(
                         children: [
                           Container(
-                            width: 300,
-                            height: 10,
+                            width: 595 * scaleParam,
+                            height: 20 * scaleParam,
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              border: Border.all(color: Colors.black, width: 1),
+                              border: Border.all(
+                                  color: Colors.black, width: 2 * scaleParam),
                             ),
                           ),
                           AnimatedContainer(
-                            duration: const Duration(seconds: 5),
+                            duration: Duration(seconds: 5),
                             width: _w,
-                            height: 10,
+                            height: 20 * scaleParam,
                             color: Colors.black,
                           ),
                         ],
@@ -368,11 +378,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         color: Colors.grey.shade100,
                       ),
                       color: Colors.white,
-                      borderRadius:
-                          const BorderRadius.all(Radius.circular(10))),
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
-                  padding: const EdgeInsets.all(5),
+                      borderRadius: BorderRadius.all(Radius.circular(10))),
+                  margin: EdgeInsets.symmetric(
+                      horizontal: 20 * scaleParam, vertical: 10 * scaleParam),
+                  padding: EdgeInsets.all(10 * scaleParam),
                   child: ListView.builder(
                     primary: false,
                     shrinkWrap: true,
@@ -390,10 +399,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                             scroll: 0,
                           ),
                           widget.items.length - 1 != index
-                              ? const Padding(
+                              ? Padding(
                                   padding: EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 5,
+                                    horizontal: 32 * scaleParam,
+                                    vertical: 10 * scaleParam,
                                   ),
                                   child: Divider(
                                     height: 0,
@@ -416,10 +425,11 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                       color: Colors.grey.shade100,
                     ),
                     color: Colors.white,
-                    borderRadius: const BorderRadius.all(Radius.circular(10)),
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
                   ),
-                  margin: const EdgeInsets.symmetric(horizontal: 30),
-                  padding: const EdgeInsets.all(15),
+                  margin: EdgeInsets.symmetric(
+                      horizontal: 20 * scaleParam, vertical: 5 * scaleParam),
+                  padding: EdgeInsets.all(20 * scaleParam),
                   child: Column(
                     children: [
                       Flexible(
@@ -431,7 +441,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                     ? "Доставка по адресу: "
                                     : "Самовывоз из магазина: ",
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: 32 * scaleParam,
                                   fontWeight: FontWeight.w700,
                                   color: Theme.of(context)
                                       .colorScheme
@@ -450,7 +460,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                       ? widget.address!["address"] ?? ""
                                       : widget.business["address"],
                                   style: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 32 * scaleParam,
                                     fontWeight: FontWeight.w700,
                                     color: Theme.of(context)
                                         .colorScheme
@@ -475,10 +485,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         color: Colors.grey.shade100,
                       ),
                       color: Colors.white,
-                      borderRadius:
-                          const BorderRadius.all(Radius.circular(10))),
-                  margin: const EdgeInsets.symmetric(horizontal: 30),
-                  padding: const EdgeInsets.all(15),
+                      borderRadius: BorderRadius.all(Radius.circular(10))),
+                  margin: EdgeInsets.symmetric(
+                      horizontal: 20 * scaleParam, vertical: 5 * scaleParam),
+                  padding: EdgeInsets.all(20 * scaleParam),
                   child: Column(
                     children: [
                       Flexible(
@@ -491,7 +501,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                     : "Счёт на каспи: ${widget.user["login"].toString()}",
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
-                                  fontSize: 16,
+                                  fontSize: 32 * scaleParam,
                                   color: Theme.of(context)
                                       .colorScheme
                                       .onBackground,
@@ -511,7 +521,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
-                                fontSize: 16,
+                                fontSize: 32 * scaleParam,
                                 color:
                                     Theme.of(context).colorScheme.onBackground,
                               ),
@@ -533,10 +543,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         color: Colors.grey.shade100,
                       ),
                       color: Colors.white,
-                      borderRadius:
-                          const BorderRadius.all(Radius.circular(10))),
-                  margin: const EdgeInsets.symmetric(horizontal: 30),
-                  padding: const EdgeInsets.all(15),
+                      borderRadius: BorderRadius.all(Radius.circular(10))),
+                  margin: EdgeInsets.symmetric(
+                      horizontal: 20 * scaleParam, vertical: 5 * scaleParam),
+                  padding: EdgeInsets.all(15 * scaleParam),
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.pop(context);
@@ -547,7 +557,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         Text(
                           "Отменить",
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 35 * scaleParam,
                             fontWeight: FontWeight.w700,
                             color: Theme.of(context).colorScheme.onPrimary,
                           ),

@@ -70,7 +70,7 @@ class _ItemCardState extends State<ItemCard> {
               width: 14,
               height: 14,
             ),
-            const SizedBox(
+            SizedBox(
               width: 10,
             )
           ],
@@ -97,11 +97,11 @@ class _ItemCardState extends State<ItemCard> {
 
     chack = widget.chack;
     return Container(
-      // margin: const EdgeInsets.all(10),
+      // margin:  EdgeInsets.all(10),
       width: (MediaQuery.of(context).size.width * 2) * (screenSize.width / 720),
       height: (MediaQuery.of(context).size.height * 0.56) *
           (screenSize.width / 720),
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      padding: EdgeInsets.symmetric(horizontal: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         mainAxisSize: MainAxisSize.max,
@@ -109,7 +109,7 @@ class _ItemCardState extends State<ItemCard> {
           Flexible(
             flex: 3,
             child: Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.circular(2)),
               ),
               clipBehavior: Clip.antiAlias,
@@ -121,7 +121,7 @@ class _ItemCardState extends State<ItemCard> {
                 fit: BoxFit.fitHeight,
                 cacheManager: CacheManager(Config(
                   "itemImage ${element["item_id"].toString()}",
-                  stalePeriod: const Duration(days: 7),
+                  stalePeriod: Duration(days: 7),
                   //one week cache period
                 )),
                 placeholder: (context, url) {
@@ -129,14 +129,14 @@ class _ItemCardState extends State<ItemCard> {
                     alignment: Alignment.center,
                     color: Colors.white,
                     // width: MediaQuery.of(context).size.width * 0.2,
-                    child: const CircularProgressIndicator(),
+                    child: CircularProgressIndicator(),
                   );
                 },
                 errorWidget: (context, url, error) {
                   return Container(
                     alignment: Alignment.center,
                     // width: MediaQuery.of(context).size.width * 0.2,
-                    child: const Text(
+                    child: Text(
                       "Нет изображения",
                       textAlign: TextAlign.center,
                     ),
@@ -149,7 +149,7 @@ class _ItemCardState extends State<ItemCard> {
             flex: 5,
             fit: FlexFit.tight,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15),
+              padding: EdgeInsets.symmetric(horizontal: 15),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 mainAxisSize: MainAxisSize.max,
@@ -170,11 +170,11 @@ class _ItemCardState extends State<ItemCard> {
                           element["country"] != null
                               ? WidgetSpan(
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(
+                                    padding: EdgeInsets.symmetric(
                                         horizontal: 2, vertical: 1),
                                     decoration: BoxDecoration(
                                       color: Colors.grey.shade200,
-                                      borderRadius: const BorderRadius.all(
+                                      borderRadius: BorderRadius.all(
                                         Radius.circular(3),
                                       ),
                                     ),
@@ -187,7 +187,7 @@ class _ItemCardState extends State<ItemCard> {
                                     ),
                                   ),
                                 )
-                              : const TextSpan()
+                              : TextSpan()
                         ],
                       ),
                     ),
@@ -216,7 +216,7 @@ class _ItemCardState extends State<ItemCard> {
                         ),
                         element["prev_price"] != null
                             ? Padding(
-                                padding: const EdgeInsets.only(left: 5),
+                                padding: EdgeInsets.only(left: 5),
                                 child: Row(
                                   children: [
                                     Text(
@@ -268,7 +268,7 @@ class _ItemCardState extends State<ItemCard> {
                         //       children: [
                         //         _buyButton,
                         //         isNumPickerActive
-                        //             ? const NumberPicker(amount: 50)
+                        //             ?  NumberPicker(amount: 50)
                         //             : Container(),
                         //       ],
                         //     ),
@@ -421,7 +421,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
               width: 14,
               height: 14,
             ),
-            const SizedBox(
+            SizedBox(
               width: 10,
             )
           ],
@@ -450,7 +450,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
 
     chack = widget.chack;
     return Container(
-      // margin: const EdgeInsets.all(10),
+      // margin:  EdgeInsets.all(10),
       padding: EdgeInsets.symmetric(horizontal: 5 * scaleParam),
       // width: (MediaQuery.of(context).size.width * 0.8) * (screenSize.width / 720),
       width: double.infinity,
@@ -469,7 +469,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                 flex: 2,
                 fit: FlexFit.tight,
                 child: Container(
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     borderRadius: BorderRadius.all(Radius.circular(2)),
                   ),
                   clipBehavior: Clip.antiAlias,
@@ -482,7 +482,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                     cacheManager: CacheManager(
                       Config(
                         "itemImage ${element["item_id"].toString()}",
-                        stalePeriod: const Duration(days: 700),
+                        stalePeriod: Duration(days: 700),
                         //one week cache period
                       ),
                     ),
@@ -491,14 +491,14 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                         alignment: Alignment.center,
                         color: Colors.white,
                         // width: MediaQuery.of(context).size.width * 0.2,
-                        child: const CircularProgressIndicator(),
+                        child: CircularProgressIndicator(),
                       );
                     },
                     errorWidget: (context, url, error) {
                       return Container(
                         alignment: Alignment.center,
                         // width: MediaQuery.of(context).size.width * 0.2,
-                        child: const Text(
+                        child: Text(
                           "Нет изображения",
                           textAlign: TextAlign.center,
                         ),
@@ -574,8 +574,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                                       color:
                                                           Colors.grey.shade200,
                                                       borderRadius:
-                                                          const BorderRadius
-                                                              .all(
+                                                          BorderRadius.all(
                                                         Radius.circular(10),
                                                       ),
                                                     ),
@@ -589,7 +588,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                                     ),
                                                   ),
                                                 )
-                                              : const TextSpan()
+                                              : TextSpan()
                                         ],
                                       ),
                                     ),
@@ -684,7 +683,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                         Flexible(
                                           fit: FlexFit.tight,
                                           child: IconButton(
-                                            padding: const EdgeInsets.all(0),
+                                            padding: EdgeInsets.all(0),
                                             onPressed: () {
                                               if (!isItemAmountChanging) {
                                                 _decrementAmountInCart();
@@ -720,7 +719,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                                 child: Text(
                                                   "${amountInCart.toString()} шт.", //"${formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
                                                   textHeightBehavior:
-                                                      const TextHeightBehavior(
+                                                      TextHeightBehavior(
                                                     applyHeightToFirstAscent:
                                                         false,
                                                   ),
@@ -747,7 +746,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                         Flexible(
                                           fit: FlexFit.tight,
                                           child: IconButton(
-                                            padding: const EdgeInsets.all(0),
+                                            padding: EdgeInsets.all(0),
                                             onPressed: () {
                                               if (!isItemAmountChanging) {
                                                 _incrementAmountInCart();
@@ -878,7 +877,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
               width: 14,
               height: 14,
             ),
-            const SizedBox(
+            SizedBox(
               width: 10,
             )
           ],
@@ -902,12 +901,14 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
   @override
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
+    double scaleParam =
+        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
 
     chack = widget.chack;
     return Container(
-      // margin: const EdgeInsets.all(10),
-      width: MediaQuery.of(context).size.width,
-      height: MediaQuery.of(context).size.height * 0.1,
+      // margin:  EdgeInsets.all(10),
+      width: double.infinity,
+      height: 125 * scaleParam,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         mainAxisSize: MainAxisSize.max,
@@ -915,8 +916,8 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
           Flexible(
             flex: 2,
             child: Container(
-              decoration: const BoxDecoration(
-                borderRadius: BorderRadius.all(Radius.circular(2)),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(10)),
               ),
               clipBehavior: Clip.antiAlias,
               child: CachedNetworkImage(
@@ -928,7 +929,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                 cacheManager: CacheManager(
                   Config(
                     "itemImage ${element["item_id"].toString()}",
-                    stalePeriod: const Duration(days: 7),
+                    stalePeriod: Duration(days: 7),
                     //one week cache period
                   ),
                 ),
@@ -937,14 +938,14 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                     alignment: Alignment.center,
                     color: Colors.white,
                     // width: MediaQuery.of(context).size.width * 0.2,
-                    child: const CircularProgressIndicator(),
+                    child: CircularProgressIndicator(),
                   );
                 },
                 errorWidget: (context, url, error) {
                   return Container(
                     alignment: Alignment.center,
                     // width: MediaQuery.of(context).size.width * 0.2,
-                    child: const Text(
+                    child: Text(
                       "Нет изображения",
                       textAlign: TextAlign.center,
                     ),
@@ -957,14 +958,13 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
             flex: 5,
             fit: FlexFit.tight,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15),
+              padding: EdgeInsets.symmetric(horizontal: 30 * scaleParam),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 mainAxisSize: MainAxisSize.max,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Flexible(
-                    flex: 2,
                     fit: FlexFit.tight,
                     child: RichText(
                       maxLines: 2,
@@ -972,23 +972,26 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                       text: TextSpan(
                         style: TextStyle(
                           textBaseline: TextBaseline.alphabetic,
-                          fontSize: 28 * (screenSize.width / 720),
                           color: Colors.black,
                         ),
                         children: [
                           TextSpan(
                             text: element["name"],
-                            style: TextStyle(fontWeight: FontWeight.w500),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 38 * scaleParam,
+                            ),
                           ),
                           element["country"] != null
                               ? WidgetSpan(
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 2, vertical: 1),
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 4 * scaleParam,
+                                        vertical: 2 * scaleParam),
                                     decoration: BoxDecoration(
                                       color: Colors.grey.shade200,
-                                      borderRadius: const BorderRadius.all(
-                                        Radius.circular(3),
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(10),
                                       ),
                                     ),
                                     child: Text(
@@ -996,16 +999,18 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                       style: TextStyle(
                                         color: Colors.black,
                                         fontWeight: FontWeight.w600,
+                                        fontSize: 32 * scaleParam,
                                       ),
                                     ),
                                   ),
                                 )
-                              : const TextSpan()
+                              : TextSpan()
                         ],
                       ),
                     ),
                   ),
                   Flexible(
+                    fit: FlexFit.tight,
                     child: Row(
                       children: [
                         Flexible(
@@ -1017,7 +1022,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                   .secondary
                                   .withOpacity(0.2),
                               fontWeight: FontWeight.w600,
-                              fontSize: 28 * (screenSize.width / 720),
+                              fontSize: 28 * scaleParam,
                             ),
                           ),
                         ),
@@ -1025,25 +1030,33 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                     ),
                   ),
                   Flexible(
+                    fit: FlexFit.tight,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          "${formatCost((int.parse(element['price']) * int.parse(element["amount"])).toString())} ₸",
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 32 * (screenSize.width / 720),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                        Flexible(
+                          fit: FlexFit.tight,
                           child: Text(
-                            "${element["amount"]} шт.",
+                            "${formatCost((int.parse(element['price']) * int.parse(element["amount"])).toString())} ₸",
                             style: TextStyle(
                               color: Colors.black,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 32 * (screenSize.width / 720),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 36 * scaleParam,
+                            ),
+                          ),
+                        ),
+                        Flexible(
+                          fit: FlexFit.tight,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 8 * scaleParam),
+                            child: Text(
+                              "${element["amount"]} шт.",
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 32 * scaleParam,
+                              ),
                             ),
                           ),
                         ),
@@ -1051,7 +1064,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                         //   children: [
                         //     // element["prev_price"] != null
                         //     //     ? Padding(
-                        //     //         padding: const EdgeInsets.only(left: 5),
+                        //     //         padding:  EdgeInsets.only(left: 5),
                         //     //         child: Row(
                         //     //           children: [
                         //     //             Text(
@@ -1080,7 +1093,6 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                         //   ],
                         // ),
                         Flexible(
-                          flex: 1,
                           child: LikeButton(
                             is_liked: element["is_liked"],
                             item_id: element["item_id"],
@@ -1178,7 +1190,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
               width: 14,
               height: 14,
             ),
-            const SizedBox(
+            SizedBox(
               width: 10,
             )
           ],
@@ -1202,30 +1214,34 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
   @override
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
+    double scaleParam =
+        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
 
     chack = widget.chack;
     return Container(
-      // margin: const EdgeInsets.all(10),
-      width: MediaQuery.of(context).size.width,
-      height: MediaQuery.of(context).size.height * 0.08,
+      // margin:  EdgeInsets.all(10),
+      width: double.infinity,
+      height: 100 * scaleParam,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         mainAxisSize: MainAxisSize.max,
         children: [
           Flexible(
-            flex: 2,
             fit: FlexFit.tight,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                RichText(
-                  maxLines: 1,
-                  text: TextSpan(
-                    text: "x ${element["amount"]}",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 32 * (screenSize.width / 720),
+                Flexible(
+                  fit: FlexFit.tight,
+                  child: RichText(
+                    maxLines: 1,
+                    text: TextSpan(
+                      text: "x ${element["amount"]}",
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 36 * scaleParam,
+                      ),
                     ),
                   ),
                 ),
@@ -1233,7 +1249,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
             ),
           ),
           Flexible(
-            flex: 12,
+            flex: 5,
             fit: FlexFit.tight,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1241,7 +1257,6 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Flexible(
-                  flex: 2,
                   fit: FlexFit.tight,
                   child: RichText(
                     maxLines: 2,
@@ -1249,23 +1264,25 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                     text: TextSpan(
                       style: TextStyle(
                         textBaseline: TextBaseline.alphabetic,
-                        fontSize: 28 * (screenSize.width / 720),
                         color: Colors.black,
                       ),
                       children: [
                         TextSpan(
                           text: element["name"],
-                          style: TextStyle(fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 36 * scaleParam),
                         ),
                         element["country"] != null
                             ? WidgetSpan(
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 2, vertical: 1),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 4 * scaleParam,
+                                      vertical: 2 * scaleParam),
                                   decoration: BoxDecoration(
                                     color: Colors.grey.shade200,
-                                    borderRadius: const BorderRadius.all(
-                                      Radius.circular(3),
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(10),
                                     ),
                                   ),
                                   child: Text(
@@ -1273,19 +1290,22 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                                     style: TextStyle(
                                       color: Colors.black,
                                       fontWeight: FontWeight.w600,
+                                      fontSize: 36 * scaleParam,
                                     ),
                                   ),
                                 ),
                               )
-                            : const TextSpan()
+                            : TextSpan()
                       ],
                     ),
                   ),
                 ),
                 Flexible(
+                  fit: FlexFit.tight,
                   child: Row(
                     children: [
                       Flexible(
+                        fit: FlexFit.tight,
                         child: Text(
                           "${formatCost(element["price"])} ₸ за шт.",
                           style: TextStyle(
@@ -1294,7 +1314,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                                 .secondary
                                 .withOpacity(0.2),
                             fontWeight: FontWeight.w600,
-                            fontSize: 28 * (screenSize.width / 720),
+                            fontSize: 30 * scaleParam,
                           ),
                         ),
                       ),
@@ -1322,20 +1342,24 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
             ),
           ),
           Flexible(
-            flex: 5,
+            flex: 2,
             fit: FlexFit.tight,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                RichText(
-                  maxLines: 1,
-                  text: TextSpan(
-                    text:
-                        "${formatCost((int.parse(element['price']) * int.parse(element['amount'])).toString())} ₸",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 32 * (screenSize.width / 720),
+                Flexible(
+                  fit: FlexFit.tight,
+                  child: RichText(
+                    maxLines: 1,
+                    textAlign: TextAlign.end,
+                    text: TextSpan(
+                      text:
+                          "${formatCost((int.parse(element['price']) * int.parse(element['amount'])).toString())} ₸",
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 36 * scaleParam,
+                      ),
                     ),
                   ),
                 ),
@@ -1363,7 +1387,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
           //         // // ),
           //         // element["prev_price"] != null
           //         //     ? Padding(
-          //         //         padding: const EdgeInsets.only(left: 5),
+          //         //         padding:  EdgeInsets.only(left: 5),
           //         //         child: Row(
           //         //           children: [
           //         //             Text(

@@ -16,9 +16,13 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    Size screenSize = MediaQuery.of(context).size;
+    double scaleParam =
+        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           "История заказов",
         ),
       ),
@@ -33,7 +37,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     SizedBox(
-                      width: MediaQuery.of(context).size.width * 0.8,
+                      width: 500 * scaleParam,
                       child: Column(
                         children: [
                           Text(
@@ -41,7 +45,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.secondary,
-                              fontSize: 16,
+                              fontSize: 32 * scaleParam,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -50,7 +54,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.secondary,
-                              fontSize: 16,
+                              fontSize: 32 * scaleParam,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -62,20 +66,21 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
               );
             } else {
               children = Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                padding: EdgeInsets.symmetric(
+                    horizontal: 20 * scaleParam, vertical: 20 * scaleParam),
                 child: ListView.builder(
                   itemCount: snapshot.data!.length,
                   itemBuilder: (context, index) {
                     return Column(
                       children: [
                         Container(
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             borderRadius: BorderRadius.all(Radius.circular(10)),
                             color: Colors.black12,
                           ),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 20 * scaleParam,
+                              vertical: 10 * scaleParam),
                           child: Row(
                             children: [
                               Flexible(
@@ -86,7 +91,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                     color: Theme.of(context)
                                         .colorScheme
                                         .onBackground,
-                                    fontSize: 16,
+                                    fontSize: 32 * scaleParam,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -102,7 +107,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onBackground,
-                                        fontSize: 14,
+                                        fontSize: 32 * scaleParam,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -113,7 +118,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onBackground,
-                                        fontSize: 14,
+                                        fontSize: 32 * scaleParam,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -132,7 +137,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onBackground,
-                                        fontSize: 14,
+                                        fontSize: 32 * scaleParam,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -143,7 +148,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onBackground,
-                                        fontSize: 14,
+                                        fontSize: 32 * scaleParam,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -153,7 +158,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                             ],
                           ),
                         ),
-                        if (index != snapshot.data!.length - 1) const Divider(),
+                        if (index != snapshot.data!.length - 1) Divider(),
                       ],
                     );
                   },
@@ -161,7 +166,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
               );
             }
           } else {
-            children = const LinearProgressIndicator();
+            children = LinearProgressIndicator();
           }
           return children;
         },

@@ -43,140 +43,149 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    Size screenSize = MediaQuery.of(context).size;
+    double scaleParam =
+        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           "Поиск",
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
-      body: Column(
-        children: [
-          Container(
-            margin: const EdgeInsets.all(10),
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    offset: const Offset(5, 5),
-                    blurRadius: 10,
-                  )
-                ],
-                color: Colors.grey.shade100,
-                borderRadius: const BorderRadius.all(Radius.circular(10))),
-            child: Column(
-              children: [
-                TextField(
-                  onChanged: ((value) {
-                    // This is so complex because otherway the button will flicker non-stop on any change in TextField
-                    // because setState method will update isTextInField and that will trigger AnimatedSwitcher for search button to rebuild and that is causing flickering
-                    if (value.isNotEmpty) {
-                      if (isTextInField == true) {
-                        return;
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Container(
+              margin: EdgeInsets.all(20 * scaleParam),
+              padding: EdgeInsets.all(40 * scaleParam),
+              decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      offset: Offset(10 * scaleParam, 10 * scaleParam),
+                      blurRadius: 10,
+                    )
+                  ],
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.all(Radius.circular(10))),
+              child: Column(
+                children: [
+                  TextField(
+                    onChanged: ((value) {
+                      // This is so complex because otherway the button will flicker non-stop on any change in TextField
+                      // because setState method will update isTextInField and that will trigger AnimatedSwitcher for search button to rebuild and that is causing flickering
+                      if (value.isNotEmpty) {
+                        if (isTextInField == true) {
+                          return;
+                        } else {
+                          setState(() {
+                            isTextInField = true;
+                          });
+                        }
                       } else {
-                        setState(() {
-                          isTextInField = true;
-                        });
+                        if (isTextInField == false) {
+                          return;
+                        } else {
+                          setState(() {
+                            isTextInField = false;
+                          });
+                        }
                       }
-                    } else {
-                      if (isTextInField == false) {
-                        return;
-                      } else {
-                        setState(() {
-                          isTextInField = false;
-                        });
-                      }
-                    }
-                  }),
-                  controller: _keyword,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                      labelText: "Поиск",
-                      filled: true,
-                      fillColor: Colors.white,
-                      focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                              width: 2,
-                              color: Theme.of(context).colorScheme.primary),
-                          borderRadius:
-                              const BorderRadius.all(Radius.circular(10))),
-                      enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                              width: 2,
-                              color: Theme.of(context).colorScheme.primary),
-                          borderRadius:
-                              const BorderRadius.all(Radius.circular(10))),
-                      border: OutlineInputBorder(
-                          borderSide: BorderSide(
-                              width: 5,
-                              color: Theme.of(context).colorScheme.primary),
-                          borderRadius:
-                              const BorderRadius.all(Radius.circular(10)))),
-                ),
-                const SizedBox(
-                  height: 5,
-                ),
-                widget.category_id != ""
-                    ? Row(
-                        children: [
-                          Checkbox(
-                            value: isSearchEverywhere,
-                            onChanged: (value) {
-                              setState(() {
-                                print("VALUE IS " +
-                                    isSearchEverywhere.toString());
-                                isSearchEverywhere = value!;
-                              });
-                            },
-                          ),
-                          const Text(
-                            "Искать везде",
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black,
+                    }),
+                    controller: _keyword,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                        labelText: "Поиск",
+                        filled: true,
+                        fillColor: Colors.white,
+                        focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                                width: 2,
+                                color: Theme.of(context).colorScheme.primary),
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(10))),
+                        enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                                width: 2,
+                                color: Theme.of(context).colorScheme.primary),
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(10))),
+                        border: OutlineInputBorder(
+                            borderSide: BorderSide(
+                                width: 5,
+                                color: Theme.of(context).colorScheme.primary),
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(10)))),
+                  ),
+                  SizedBox(
+                    height: 10 * scaleParam,
+                  ),
+                  widget.category_id != ""
+                      ? Row(
+                          children: [
+                            Checkbox(
+                              value: isSearchEverywhere,
+                              onChanged: (value) {
+                                setState(() {
+                                  print("VALUE IS " +
+                                      isSearchEverywhere.toString());
+                                  isSearchEverywhere = value!;
+                                });
+                              },
                             ),
-                          ),
+                            Text(
+                              "Искать везде",
+                              style: TextStyle(
+                                fontSize: 28 * scaleParam,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Container(),
+                  SizedBox(
+                    height: 10 * scaleParam,
+                  ),
+                  AnimatedSwitcher(
+                    duration: Duration(milliseconds: 125),
+                    switchInCurve: Curves.easeIn,
+                    switchOutCurve: Curves.easeOut,
+                    child: ElevatedButton(
+                      key: UniqueKey(),
+                      style: ElevatedButton.styleFrom(
+                        textStyle: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          fontSize: 32 * scaleParam,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      onPressed: isTextInField
+                          ? () {
+                              _search();
+                            }
+                          : null,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Text(
+                            "Найти",
+                            style: TextStyle(
+                              fontSize: 48 * scaleParam,
+                            ),
+                          )
                         ],
-                      )
-                    : Container(),
-                const SizedBox(
-                  height: 5,
-                ),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 125),
-                  switchInCurve: Curves.easeIn,
-                  switchOutCurve: Curves.easeOut,
-                  child: ElevatedButton(
-                    key: UniqueKey(),
-                    style: ElevatedButton.styleFrom(
-                      textStyle: TextStyle(
-                        color: Theme.of(context).colorScheme.onPrimary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    onPressed: isTextInField
-                        ? () {
-                            _search();
-                          }
-                        : null,
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        Text(
-                          "Найти",
-                        )
-                      ],
-                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

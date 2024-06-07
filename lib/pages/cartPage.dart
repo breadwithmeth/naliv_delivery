@@ -11,7 +11,7 @@ import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:intl/intl.dart';
 
 class CartPage extends StatefulWidget {
-  const CartPage({super.key, required this.business});
+  CartPage({super.key, required this.business});
 
   final Map<dynamic, dynamic> business;
 
@@ -26,7 +26,7 @@ class _CartPageState extends State<CartPage>
   late String sum = "0";
   int localSum = 0;
   late AnimationController animController;
-  final Duration animDuration = const Duration(milliseconds: 250);
+  final Duration animDuration = Duration(milliseconds: 250);
   int localDiscount = 0;
   TextEditingController _promoController = TextEditingController();
   Map<String, dynamic> client = {};
@@ -104,7 +104,7 @@ class _CartPageState extends State<CartPage>
     // TODO: implement initState
     super.initState();
     _setAnimationController();
-    // Future.delayed(const Duration(milliseconds: 0), () async {
+    // Future.delayed( Duration(milliseconds: 0), () async {
     //   setState(() {
     //     isCartLoading = true;
     //   });
@@ -133,11 +133,13 @@ class _CartPageState extends State<CartPage>
 
   @override
   Widget build(BuildContext context) {
-    double screenSize = MediaQuery.of(context).size.width;
+    Size screenSize = MediaQuery.of(context).size;
+    double scaleParam =
+        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Row(
+        title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,7 +159,8 @@ class _CartPageState extends State<CartPage>
               return Center(
                 child: Text(
                   "Ваша корзина пуста",
-                  style: TextStyle(fontSize: 20, color: Colors.grey),
+                  style:
+                      TextStyle(fontSize: 40 * scaleParam, color: Colors.grey),
                 ),
               );
             } else {
@@ -205,7 +208,7 @@ class _CartPageState extends State<CartPage>
 
                             // Show a red background as the item is swiped away.
                             background: SizedBox(
-                              width: 100,
+                              width: 200 * scaleParam,
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -215,16 +218,16 @@ class _CartPageState extends State<CartPage>
                                     width:
                                         MediaQuery.of(context).size.width * 0.7,
                                     alignment: Alignment.center,
-                                    padding: const EdgeInsets.only(right: 10),
+                                    padding: EdgeInsets.only(right: 10),
                                     color: Colors.grey.shade100,
                                   ),
                                   Container(
                                     width:
                                         MediaQuery.of(context).size.width * 0.3,
                                     alignment: Alignment.center,
-                                    padding: const EdgeInsets.only(right: 10),
+                                    padding: EdgeInsets.only(right: 10),
                                     color: Colors.grey.shade100,
-                                    child: const Column(
+                                    child: Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
@@ -271,7 +274,7 @@ class _CartPageState extends State<CartPage>
                                   },
                                 ),
                                 items.length - 1 != index
-                                    ? const Padding(
+                                    ? Padding(
                                         padding: EdgeInsets.symmetric(
                                             horizontal: 16),
                                         child: Divider(),
@@ -290,67 +293,67 @@ class _CartPageState extends State<CartPage>
                       SizedBox(
                         width: MediaQuery.of(context).size.width,
                         height: items.length < 4
-                            ? (MediaQuery.of(context).size.height * 0.244) *
-                                (4 - items.length) *
-                                (screenSize / 720)
+                            ? (125 * scaleParam) * (4 - items.length)
                             : 0,
                       ),
-                      const Divider(
+                      Divider(
                         color: Colors.transparent,
                       ),
                     ],
                   ),
-                  const SizedBox(
-                    height: 20,
+                  SizedBox(
+                    height: 40 * scaleParam,
                   ),
-                  const Divider(),
+                  Divider(),
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 10),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 40 * scaleParam, vertical: 40 * scaleParam),
                     child: Row(
                       mainAxisSize: MainAxisSize.max,
                       children: [
-                        const Flexible(
+                        Flexible(
                           flex: 5,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Padding(
-                                padding: EdgeInsets.only(left: 15),
+                                padding: EdgeInsets.only(left: 30 * scaleParam),
                                 child: Text(
                                   "Цена без скидки",
                                   style: TextStyle(
-                                    fontSize: 18,
+                                    fontSize: 32 * scaleParam,
                                     fontWeight: FontWeight.w700,
                                     color: Colors.black,
                                   ),
                                 ),
                               ),
                               Padding(
-                                padding: EdgeInsets.only(right: 20),
+                                padding:
+                                    EdgeInsets.only(right: 40 * scaleParam),
                                 child: Divider(),
                               ),
                               Padding(
-                                padding: EdgeInsets.only(left: 15),
+                                padding: EdgeInsets.only(left: 30 * scaleParam),
                                 child: Text(
                                   "Скидка",
                                   style: TextStyle(
-                                    fontSize: 18,
+                                    fontSize: 32 * scaleParam,
                                     fontWeight: FontWeight.w700,
                                     color: Colors.black,
                                   ),
                                 ),
                               ),
                               Padding(
-                                padding: EdgeInsets.only(right: 20),
+                                padding:
+                                    EdgeInsets.only(right: 40 * scaleParam),
                                 child: Divider(),
                               ),
                               Padding(
-                                padding: EdgeInsets.only(left: 15),
+                                padding: EdgeInsets.only(left: 30 * scaleParam),
                                 child: Text(
                                   "Итого",
                                   style: TextStyle(
-                                    fontSize: 18,
+                                    fontSize: 32 * scaleParam,
                                     fontWeight: FontWeight.w700,
                                     color: Colors.black,
                                   ),
@@ -367,52 +370,43 @@ class _CartPageState extends State<CartPage>
                               Row(
                                 children: [
                                   Flexible(
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(right: 5),
-                                      child: Text(
-                                        "${formatCost(localSum.toString())} ₸", // CHANGE THIS TO REPRESENT SUM WITHOUT DISCOUNT
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.black,
-                                        ),
+                                    child: Text(
+                                      "${formatCost(localSum.toString())} ₸", // CHANGE THIS TO REPRESENT SUM WITHOUT DISCOUNT
+                                      style: TextStyle(
+                                        fontSize: 32 * scaleParam,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black,
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
-                              const Divider(),
+                              Divider(),
                               Row(
                                 children: [
                                   Flexible(
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(right: 5),
-                                      child: Text(
-                                        "${formatCost(localDiscount.toString())} ₸", // CHANGE THIS TO REPRESENT DISCOUNT
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.black,
-                                        ),
+                                    child: Text(
+                                      "${formatCost(localDiscount.toString())} ₸", // CHANGE THIS TO REPRESENT DISCOUNT
+                                      style: TextStyle(
+                                        fontSize: 32 * scaleParam,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black,
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
-                              const Divider(),
+                              Divider(),
                               Row(
                                 children: [
                                   Flexible(
                                     fit: FlexFit.tight,
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(right: 5),
-                                      child: Text(
-                                        "${formatCost(localSum.toString())} ₸",
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.black,
-                                        ),
+                                    child: Text(
+                                      "${formatCost(localSum.toString())} ₸",
+                                      style: TextStyle(
+                                        fontSize: 32 * scaleParam,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black,
                                       ),
                                     ),
                                   ),
@@ -424,11 +418,11 @@ class _CartPageState extends State<CartPage>
                       ],
                     ),
                   ),
-                  const SizedBox(
-                    height: 10,
+                  SizedBox(
+                    height: 20 * scaleParam,
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    padding: EdgeInsets.symmetric(horizontal: 30 * scaleParam),
                     child: ElevatedButton(
                       onPressed: () {
                         // Navigator.push(
@@ -462,7 +456,7 @@ class _CartPageState extends State<CartPage>
                               textAlign: TextAlign.justify,
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
-                                fontSize: 18,
+                                fontSize: 36 * scaleParam,
                                 color: Theme.of(context).colorScheme.onPrimary,
                               ),
                             ),
@@ -477,10 +471,12 @@ class _CartPageState extends State<CartPage>
                     children: [
                       TextButton(
                         style: TextButton.styleFrom(
-                          padding: const EdgeInsets.all(0),
+                          padding: EdgeInsets.all(0),
                           foregroundColor: Colors.white,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(3)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(10),
+                            ),
                           ),
                         ),
                         onPressed: () {
@@ -488,17 +484,19 @@ class _CartPageState extends State<CartPage>
                             context: context,
                             builder: (context) {
                               return AlertDialog(
-                                shape: const RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(3))),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(10),
+                                  ),
+                                ),
                                 backgroundColor:
                                     Theme.of(context).colorScheme.background,
                                 surfaceTintColor: Colors.transparent,
                                 elevation: 0.0,
-                                title: const Text(
+                                title: Text(
                                   "Промокод",
                                   style: TextStyle(
-                                    fontSize: 22,
+                                    fontSize: 48 * scaleParam,
                                     fontWeight: FontWeight.w700,
                                     color: Colors.black,
                                   ),
@@ -509,17 +507,18 @@ class _CartPageState extends State<CartPage>
                                   children: [
                                     TextField(
                                       controller: _promoController,
-                                      decoration: const InputDecoration(
+                                      decoration: InputDecoration(
                                         border: UnderlineInputBorder(),
                                       ),
                                     ),
-                                    const SizedBox(
-                                      height: 15,
+                                    SizedBox(
+                                      height: 30 * scaleParam,
                                     ),
                                     ElevatedButton(
                                       style: ElevatedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 15, vertical: 15),
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 30 * scaleParam,
+                                            vertical: 30 * scaleParam),
                                       ),
                                       onPressed: () {
                                         print(
@@ -532,7 +531,7 @@ class _CartPageState extends State<CartPage>
                                           Text(
                                             "Подтвердить",
                                             style: TextStyle(
-                                              fontSize: 18,
+                                              fontSize: 36 * scaleParam,
                                               fontWeight: FontWeight.w900,
                                               color: Theme.of(context)
                                                   .colorScheme
@@ -551,7 +550,7 @@ class _CartPageState extends State<CartPage>
                         child: Text(
                           "Есть промокод?",
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 28 * scaleParam,
                             fontWeight: FontWeight.w600,
                             color: Theme.of(context).colorScheme.secondary,
                           ),
@@ -565,7 +564,7 @@ class _CartPageState extends State<CartPage>
           } else if (snapshot.hasError) {
             return Center(
               child: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.65,
+                width: 350 * scaleParam,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -573,7 +572,8 @@ class _CartPageState extends State<CartPage>
                       child: Text(
                         "Произошла ошибка при загрузке корзины.",
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 20, color: Colors.grey),
+                        style: TextStyle(
+                            fontSize: 40 * scaleParam, color: Colors.grey),
                       ),
                     ),
                     Flexible(
@@ -584,7 +584,7 @@ class _CartPageState extends State<CartPage>
                         child: Text(
                           "Повторить",
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 20),
+                          style: TextStyle(fontSize: 40 * scaleParam),
                         ),
                       ),
                     ),
@@ -593,7 +593,7 @@ class _CartPageState extends State<CartPage>
               ),
             );
           } else {
-            return const LinearProgressIndicator();
+            return LinearProgressIndicator();
           }
         },
       ),

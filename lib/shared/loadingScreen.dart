@@ -10,10 +10,17 @@ class LoadingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Size screenSize = MediaQuery.of(context).size;
+    double scaleParam =
+        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
+
     return Scaffold(
       body: Stack(
         children: [
-          const MarqueeText(text: "НАЛИВ"),
+          MarqueeText(
+            text: "НАЛИВ",
+            scaleParam: scaleParam,
+          ),
           Center(
             child: Container(
               alignment: Alignment.center,
@@ -25,14 +32,14 @@ class LoadingScreen extends StatelessWidget {
                       "Загрузка..",
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 30,
+                        fontSize: 60 * scaleParam,
                         fontWeight: FontWeight.w700,
                         color: Theme.of(context).colorScheme.onBackground,
-                        shadows: const [
+                        shadows: [
                           Shadow(
                             color: Colors.black38,
-                            offset: Offset(3, 5),
-                            blurRadius: 20,
+                            offset: Offset(3 * scaleParam, 5 * scaleParam),
+                            blurRadius: 20 * scaleParam,
                           )
                         ],
                       ),
@@ -49,9 +56,10 @@ class LoadingScreen extends StatelessWidget {
 }
 
 class MarqueeText extends StatefulWidget {
-  const MarqueeText({super.key, required this.text});
+  MarqueeText({super.key, required this.text, required this.scaleParam});
 
   final String text;
+  final double scaleParam;
 
   @override
   State<MarqueeText> createState() => _MarqueeTextState();
@@ -67,20 +75,20 @@ class _MarqueeTextState extends State<MarqueeText>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(seconds: 220),
+      duration: Duration(seconds: 220),
       vsync: this,
     )..repeat(reverse: true);
 
     _animationOne = Tween<Offset>(
-      begin: const Offset(0.35, 0),
-      end: const Offset(-0.35, 0),
+      begin: Offset(0.66 * widget.scaleParam, 0),
+      end: Offset(-0.66 * widget.scaleParam, 0),
     ).animate(
       CurvedAnimation(parent: _controller, curve: Curves.linear),
     );
 
     _animationTwo = Tween<Offset>(
-      begin: const Offset(-0.35, 0),
-      end: const Offset(0.35, 0),
+      begin: Offset(-0.66 * widget.scaleParam, 0),
+      end: Offset(0.66 * widget.scaleParam, 0),
     ).animate(
       CurvedAnimation(parent: _controller, curve: Curves.linear),
     );
@@ -97,20 +105,18 @@ class _MarqueeTextState extends State<MarqueeText>
 
   @override
   Widget build(BuildContext context) {
-    double screenSize = MediaQuery.of(context).size.width;
-
     return Container(
       width: double.infinity,
       height: double.infinity,
       alignment: Alignment.center,
-      // decoration: const BoxDecoration(
+      // decoration:  BoxDecoration(
       //   color: Colors.gre,
       // ),
       child: OverflowBox(
         maxWidth: double.infinity,
         maxHeight: double.infinity,
         child: RotationTransition(
-          turns: const AlwaysStoppedAnimation(-30 / 360),
+          turns: AlwaysStoppedAnimation(-30 / 360),
           child: Column(
             children: [
               for (int i = 0; i < 14; i++)
@@ -118,14 +124,14 @@ class _MarqueeTextState extends State<MarqueeText>
                   position: i.isOdd ? _animationOne : _animationTwo,
                   child: Text(
                     i.isOdd
-                        ? "  ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO "
-                        : "ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ",
+                        ? "ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO"
+                        : "ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO",
                     style: TextStyle(
-                      fontSize: 150 * (screenSize / 720),
+                      fontSize: 150 * widget.scaleParam,
                       fontWeight: FontWeight.w900,
                       color: Colors.black12,
-                      height: 1.9 * (screenSize / 720),
-                      wordSpacing: 8,
+                      height: 1.9 * widget.scaleParam,
+                      wordSpacing: 8 * widget.scaleParam,
                       fontFamily: "montserrat",
                     ),
                   ),

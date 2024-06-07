@@ -24,60 +24,26 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
 
   @override
   Widget build(BuildContext context) {
+    Size screenSize = MediaQuery.of(context).size;
+    double scaleParam =
+        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
+
     return Scaffold(
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 35),
-        child: ElevatedButton(
-          onPressed: isClientReady
-              ? () {
-                  // Navigator.push(context, CupertinoPageRoute(
-                  //   builder: (context) {
-                  //     return PickAddressPage(
-                  //       client: client,
-                  //       business: widget.business,
-                  //     );
-                  //   },
-                  // ));
-                  Navigator.push(
-                    context,
-                    CupertinoPageRoute(
-                      builder: (context) {
-                        return CreateOrderPage(
-                          client: client,
-                          business: widget.business,
-                        );
-                      },
-                    ),
-                  );
-                }
-              : null,
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                "Продолжить",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
-              )
-            ],
-          ),
-        ),
-      ),
       appBar: AppBar(
-        title: const Text("Укажите клиента"),
+        title: Text("Укажите клиента"),
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          padding: EdgeInsets.symmetric(vertical: 20 * scaleParam),
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 15),
+                padding: EdgeInsets.symmetric(horizontal: 30 * scaleParam),
                 child: IntlPhoneField(
                   controller: _phone_number,
                   dropdownIconPosition: IconPosition.trailing,
                   showCountryFlag: true,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Номер клиента',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(10)),
@@ -113,14 +79,14 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                   });
                 },
                 child: SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.4,
+                  width: 450 * scaleParam,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         "Найти",
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: 40 * scaleParam,
                           fontWeight: FontWeight.w500,
                           color: Theme.of(context).colorScheme.onPrimary,
                         ),
@@ -129,9 +95,7 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                   ),
                 ),
               ),
-              isSearchInProgress
-                  ? const CircularProgressIndicator()
-                  : const SizedBox(),
+              isSearchInProgress ? CircularProgressIndicator() : SizedBox(),
               isClientReady
                   ? Container(
                       child: Column(
@@ -139,7 +103,7 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                           Text(
                             "Клиент: ${client["name"]}. ID: ${client["user_id"]}",
                             style: TextStyle(
-                              fontSize: 20,
+                              fontSize: 40 * scaleParam,
                               fontWeight: FontWeight.w500,
                               color: Theme.of(context).colorScheme.onBackground,
                             ),
@@ -147,7 +111,54 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                         ],
                       ),
                     )
-                  : const SizedBox(),
+                  : SizedBox(),
+              SizedBox(
+                height: 200 * scaleParam,
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20 * scaleParam),
+                child: ElevatedButton(
+                  onPressed: isClientReady
+                      ? () {
+                          // Navigator.push(context, CupertinoPageRoute(
+                          //   builder: (context) {
+                          //     return PickAddressPage(
+                          //       client: client,
+                          //       business: widget.business,
+                          //     );
+                          //   },
+                          // ));
+                          Navigator.push(
+                            context,
+                            CupertinoPageRoute(
+                              builder: (context) {
+                                return CreateOrderPage(
+                                  client: client,
+                                  business: widget.business,
+                                );
+                              },
+                            ),
+                          );
+                        }
+                      : null,
+                  child: SizedBox(
+                    width: 450 * scaleParam,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Продолжить",
+                          style: TextStyle(
+                            fontSize: 40 * scaleParam,
+                            fontWeight: FontWeight.w500,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),

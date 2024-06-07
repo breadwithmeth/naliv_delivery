@@ -29,7 +29,7 @@ import 'package:naliv_delivery/pages/searchPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key, required this.business, required this.user});
+  HomePage({super.key, required this.business, required this.user});
 
   final Map<dynamic, dynamic> business;
   final Map user;
@@ -74,7 +74,7 @@ class _HomePageState extends State<HomePage>
       imagesLength,
       (index) {
         return Container(
-          margin: const EdgeInsets.all(3),
+          margin: EdgeInsets.all(3),
           width: 5,
           height: 5,
           decoration: BoxDecoration(
@@ -169,7 +169,9 @@ class _HomePageState extends State<HomePage>
 
   @override
   Widget build(BuildContext context) {
-    double screenSize = MediaQuery.of(context).size.width;
+    Size screenSize = MediaQuery.of(context).size;
+    double scaleParam =
+        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
 
     super.build(context);
     return FutureBuilder(
@@ -183,10 +185,10 @@ class _HomePageState extends State<HomePage>
             ),
             appBar: AppBar(
               automaticallyImplyLeading: false,
-              toolbarHeight: 120,
+              toolbarHeight: 240 * scaleParam,
               titleSpacing: 0,
               title: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
+                padding: EdgeInsets.symmetric(horizontal: 20 * scaleParam),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -201,7 +203,7 @@ class _HomePageState extends State<HomePage>
                             onPressed: () {
                               Navigator.pop(context);
                             },
-                            icon: const Icon(Icons.arrow_back_rounded),
+                            icon: Icon(Icons.arrow_back_rounded),
                           ),
                         ),
                         Flexible(
@@ -213,14 +215,12 @@ class _HomePageState extends State<HomePage>
                               Text(
                                 widget.business["name"],
                                 maxLines: 1,
-                                style: TextStyle(
-                                    fontSize: 24 * (screenSize / 720)),
+                                style: TextStyle(fontSize: 28 * scaleParam),
                               ),
                               Text(
                                 widget.business["address"],
                                 maxLines: 1,
-                                style: TextStyle(
-                                    fontSize: 24 * (screenSize / 720)),
+                                style: TextStyle(fontSize: 28 * scaleParam),
                               ),
                             ],
                           ),
@@ -243,23 +243,25 @@ class _HomePageState extends State<HomePage>
                             child: Container(
                               decoration: BoxDecoration(
                                   color: Colors.black.withOpacity(0.1),
-                                  borderRadius: const BorderRadius.all(
-                                      Radius.circular(10))),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(10))),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  const Spacer(
+                                  Spacer(
                                     flex: 3,
                                   ),
-                                  const Text(
+                                  Text(
                                     "Найти",
                                     style: TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.black),
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 28 * scaleParam,
+                                      color: Colors.black,
+                                    ),
                                   ),
                                   Container(
-                                    padding: const EdgeInsets.all(10),
-                                    child: const Icon(
+                                    padding: EdgeInsets.all(20 * scaleParam),
+                                    child: Icon(
                                       Icons.search,
                                       color: Colors.black,
                                     ),
@@ -274,6 +276,7 @@ class _HomePageState extends State<HomePage>
                     isThereActiveOrder
                         ? ActiveOrderButton(
                             business: widget.business,
+                            scaleParam: scaleParam,
                           )
                         : Container(),
                   ],
@@ -286,20 +289,20 @@ class _HomePageState extends State<HomePage>
                   flex: 20,
                   fit: FlexFit.tight,
                   child: Padding(
-                    padding: const EdgeInsets.all(10),
+                    padding: EdgeInsets.all(20 * scaleParam),
                     child: Container(
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         borderRadius: BorderRadius.all(Radius.circular(10)),
                       ),
                       clipBehavior: Clip.antiAlias,
                       child: SingleChildScrollView(
                         child: GridView.builder(
-                          padding: const EdgeInsets.all(0),
-                          physics: const NeverScrollableScrollPhysics(),
+                          padding: EdgeInsets.all(0),
+                          physics: NeverScrollableScrollPhysics(),
                           shrinkWrap: true,
                           gridDelegate:
-                              const SliverGridDelegateWithMaxCrossAxisExtent(
-                                  maxCrossAxisExtent: 200,
+                              SliverGridDelegateWithMaxCrossAxisExtent(
+                                  maxCrossAxisExtent: 400 * scaleParam,
                                   childAspectRatio: 10 / 8,
                                   crossAxisSpacing: 0,
                                   mainAxisSpacing: 0),
@@ -317,6 +320,7 @@ class _HomePageState extends State<HomePage>
                                     image: snapshot.data![index]["photo"],
                                     categories: snapshot.data!,
                                     business: widget.business,
+                                    scaleParam: scaleParam,
                                   );
                           },
                         ),
@@ -336,24 +340,26 @@ class _HomePageState extends State<HomePage>
 }
 
 class CategoryItem extends StatefulWidget {
-  const CategoryItem(
+  CategoryItem(
       {super.key,
       required this.category_id,
       required this.name,
       required this.image,
       required this.categories,
-      required this.business});
+      required this.business,
+      required this.scaleParam});
   final String category_id;
   final String name;
   final String? image;
   final List<dynamic> categories;
   final Map<dynamic, dynamic> business;
+  final double scaleParam;
   @override
   State<CategoryItem> createState() => _CategoryItemState();
 }
 
 class _CategoryItemState extends State<CategoryItem> {
-  Color firstColor = const Color.fromARGB(255, 201, 201, 201);
+  Color firstColor = Color.fromARGB(255, 201, 201, 201);
   Color secondColor = Colors.blueGrey;
   late Image imageBG = Image.asset(
     'assets/vectors/wine.png',
@@ -361,7 +367,7 @@ class _CategoryItemState extends State<CategoryItem> {
     height: 120,
   );
   Alignment? _alignment;
-  Offset _offset = const Offset(0.15, -0.05);
+  Offset _offset = Offset(0.15, -0.05);
   double? _rotation;
   Color textBG = Colors.white.withOpacity(0);
 
@@ -373,75 +379,75 @@ class _CategoryItemState extends State<CategoryItem> {
       case '28':
         setState(() {
           firstColor = Color.fromARGB(255, 255, 228, 128);
-          secondColor = const Color(0xFFF5A265);
+          secondColor = Color(0xFFF5A265);
           imageBG = Image.asset(
             'assets/vectors/beer.png',
-            width: 130,
-            height: 130,
+            width: 260 * widget.scaleParam,
+            height: 260 * widget.scaleParam,
           );
         });
         break;
       // Whiskey
       case '8':
         setState(() {
-          firstColor = const Color(0xFF898989);
-          secondColor = const Color(0xFF464343);
+          firstColor = Color(0xFF898989);
+          secondColor = Color(0xFF464343);
           imageBG = Image.asset(
             'assets/vectors/whiskey.png',
-            width: 150,
-            height: 150,
+            width: 300 * widget.scaleParam,
+            height: 300 * widget.scaleParam,
           );
-          _offset = const Offset(0, 0);
+          _offset = Offset(0, 0);
         });
         break;
       // Wine
       case '13':
         setState(() {
           firstColor = Color.fromARGB(255, 255, 134, 178);
-          secondColor = const Color(0xFFE3427C);
+          secondColor = Color(0xFFE3427C);
           imageBG = Image.asset(
             'assets/vectors/wine.png',
-            width: 120,
-            height: 120,
+            width: 240 * widget.scaleParam,
+            height: 240 * widget.scaleParam,
           );
-          _offset = const Offset(0.15, -0.05);
+          _offset = Offset(0.15, -0.05);
         });
         break;
       // Vodka
       case '14':
         setState(() {
           firstColor = Color.fromARGB(255, 205, 222, 224);
-          secondColor = const Color(0xFF8C9698);
+          secondColor = Color(0xFF8C9698);
           imageBG = Image.asset(
             'assets/vectors/vodka.png',
-            width: 170,
-            height: 170,
+            width: 340 * widget.scaleParam,
+            height: 340 * widget.scaleParam,
           );
-          _offset = const Offset(0, -0.18);
+          _offset = Offset(0, -0.18);
         });
         break;
       case '20':
         setState(() {
           firstColor = Color.fromARGB(255, 132, 233, 255);
-          secondColor = const Color(0xFF285B98);
+          secondColor = Color(0xFF285B98);
           imageBG = Image.asset(
             'assets/vectors/drinks.png',
-            width: 85,
-            height: 85,
+            width: 170 * widget.scaleParam,
+            height: 170 * widget.scaleParam,
           );
-          _offset = const Offset(0, 0);
+          _offset = Offset(0, 0);
         });
         break;
       case '23':
         setState(() {
           firstColor = Color.fromARGB(255, 255, 211, 129);
-          secondColor = const Color(0xFF8C9698);
+          secondColor = Color(0xFF8C9698);
           imageBG = Image.asset(
             'assets/vectors/snacks.png',
-            width: 130,
-            height: 130,
+            width: 260 * widget.scaleParam,
+            height: 260 * widget.scaleParam,
           );
-          _offset = const Offset(0.18, 0.05);
+          _offset = Offset(0.18, 0.05);
           _rotation = -20 / 360;
         });
         break;
@@ -497,10 +503,8 @@ class _CategoryItemState extends State<CategoryItem> {
 
   @override
   Widget build(BuildContext context) {
-    double screenSize = MediaQuery.of(context).size.width;
-
     return TextButton(
-      style: TextButton.styleFrom(padding: const EdgeInsets.all(0)),
+      style: TextButton.styleFrom(padding: EdgeInsets.all(0)),
       onPressed: () {
         print("CATEGORY_ID IS ${widget.category_id}");
         Navigator.push(
@@ -522,9 +526,9 @@ class _CategoryItemState extends State<CategoryItem> {
               color: firstColor,
               // gradient: LinearGradient(
               //   colors: [firstColor, secondColor],
-              //   transform: const GradientRotation(2),
+              //   transform:  GradientRotation(2),
               // ),
-              // boxShadow: const [
+              // boxShadow:  [
               //   BoxShadow(
               //     color: Color.fromARGB(255, 200, 200, 200),
               //     offset: Offset(0, 3),
@@ -577,7 +581,7 @@ class _CategoryItemState extends State<CategoryItem> {
           //         children: <Widget>[
           //           widget.image != null
           //               ? Transform.translate(
-          //                   offset: const Offset(15.0, -6.0),
+          //                   offset:  Offset(15.0, -6.0),
           //                   child: ImageFiltered(
           //                     imageFilter:
           //                         ImageFilter.blur(sigmaY: 14, sigmaX: 14),
@@ -591,13 +595,13 @@ class _CategoryItemState extends State<CategoryItem> {
           //                       child: Opacity(
           //                         opacity: 0.8,
           //                         child: ColorFiltered(
-          //                           colorFilter: const ColorFilter.mode(
+          //                           colorFilter:  ColorFilter.mode(
           //                               Colors.black, BlendMode.srcATop),
           //                           child: CachedNetworkImage(
           //                             imageUrl: widget.image!,
           //                             cacheManager: CacheManager(Config(
           //                               "itemImage",
-          //                               stalePeriod: const Duration(days: 7),
+          //                               stalePeriod:  Duration(days: 7),
           //                               //one week cache period
           //                             )),
           //                             fit: BoxFit.fitHeight,
@@ -609,12 +613,12 @@ class _CategoryItemState extends State<CategoryItem> {
           //                     ),
           //                   ),
           //                 )
-          //               : const SizedBox(),
+          //               :  SizedBox(),
           //           // CachedNetworkImage(
           //           //   imageUrl: widget.image!,
           //           //   cacheManager: CacheManager(Config(
           //           //     "itemImage",
-          //           //     stalePeriod: const Duration(days: 7),
+          //           //     stalePeriod:  Duration(days: 7),
           //           //     //one week cache period
           //           //   )),
           //           //   fit: BoxFit.fitHeight,
@@ -625,7 +629,7 @@ class _CategoryItemState extends State<CategoryItem> {
           //           //       alignment: Alignment.center,
           //           //       width: 10,
           //           //       height: 10,
-          //           //       child: const SizedBox(),
+          //           //       child:  SizedBox(),
           //           //     );
           //           //   },
           //           // ),
@@ -642,35 +646,36 @@ class _CategoryItemState extends State<CategoryItem> {
           //       ),
           // ),
           Container(
-            padding: const EdgeInsets.all(15),
+            padding: EdgeInsets.all(30 * widget.scaleParam),
             alignment: Alignment.topLeft,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.circular(5))),
             child: Container(
-                decoration: BoxDecoration(
-                    color: textBG,
-                    borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(5),
-                        bottomRight: Radius.circular(5))),
-                child: Text(
-                  widget.name,
-                  style: GoogleFonts.montserratAlternates(
-                    textStyle: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        fontSize: 38 * (screenSize / 720),
-                        height: 1.2,
-                        shadows: [
-                          Shadow(
-                            blurRadius: 8,
-                            color: Colors.black.withOpacity(0.3),
-                            offset: const Offset(0, 2),
-                          )
-                        ]
-                        // background: Paint()..color = textBG)
-                        ),
-                  ),
-                )),
+              decoration: BoxDecoration(
+                  color: textBG,
+                  borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(5),
+                      bottomRight: Radius.circular(5))),
+              child: Text(
+                widget.name,
+                style: GoogleFonts.montserratAlternates(
+                  textStyle: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      fontSize: 42 * widget.scaleParam,
+                      height: 2.4 * widget.scaleParam,
+                      shadows: [
+                        Shadow(
+                          blurRadius: 8,
+                          color: Colors.black.withOpacity(0.3),
+                          offset: Offset(0, 2),
+                        )
+                      ]
+                      // background: Paint()..color = textBG)
+                      ),
+                ),
+              ),
+            ),
           ),
         ],
       ),

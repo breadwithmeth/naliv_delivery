@@ -21,10 +21,14 @@ class _OrderPageState extends State<OrderPage> {
 
   @override
   Widget build(BuildContext context) {
+    Size screenSize = MediaQuery.of(context).size;
+    double scaleParam =
+        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
+
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 15),
+        padding: EdgeInsets.symmetric(horizontal: 30 * scaleParam),
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(),
           onPressed: () {
@@ -40,32 +44,35 @@ class _OrderPageState extends State<OrderPage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                "Вернуться на главную",
-                style: TextStyle(
+              Flexible(
+                child: Text(
+                  "Вернуться на главную",
+                  style: TextStyle(
                     color: Theme.of(context).colorScheme.onPrimary,
                     fontWeight: FontWeight.w700,
-                    fontSize: 18),
+                    fontSize: 36 * scaleParam,
+                  ),
+                ),
               ),
             ],
           ),
         ),
       ),
       appBar: AppBar(
-        title: const Text("Ваш заказ"),
+        title: Text("Ваш заказ"),
       ),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              width: MediaQuery.of(context).size.width * 0.8,
+              width: 500 * scaleParam,
               child: Text(
                 "Ваш заказ был успешно добавлен и находится в обработке",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onBackground,
-                  fontSize: 16,
+                  fontSize: 38 * scaleParam,
                   fontWeight: FontWeight.w500,
                 ),
               ),
