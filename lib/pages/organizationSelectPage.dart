@@ -746,7 +746,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                       scrollDirection: Axis.horizontal,
                       itemCount: widget.businesses.length,
                       itemBuilder: (context, index) {
-                        return BusinessItem(business: widget.businesses[index], user: widget.user,);
+                        return BusinessItem(
+                          business: widget.businesses[index],
+                          user: widget.user,
+                        );
                       },
                     ),
                   ),

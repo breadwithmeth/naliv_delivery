@@ -205,7 +205,7 @@ class _HomePageState extends State<HomePage>
                           ),
                         ),
                         Flexible(
-                          flex: 2,
+                          flex: 3,
                           fit: FlexFit.tight,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

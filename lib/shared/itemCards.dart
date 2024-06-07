@@ -93,13 +93,14 @@ class _ItemCardState extends State<ItemCard> {
 
   @override
   Widget build(BuildContext context) {
-    double screenSize = MediaQuery.of(context).size.width;
+    Size screenSize = MediaQuery.of(context).size;
 
     chack = widget.chack;
     return Container(
       // margin: const EdgeInsets.all(10),
-      width: (MediaQuery.of(context).size.width * 2) * (screenSize / 720),
-      height: (MediaQuery.of(context).size.height * 0.56) * (screenSize / 720),
+      width: (MediaQuery.of(context).size.width * 2) * (screenSize.width / 720),
+      height: (MediaQuery.of(context).size.height * 0.56) *
+          (screenSize.width / 720),
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -161,7 +162,7 @@ class _ItemCardState extends State<ItemCard> {
                       text: TextSpan(
                         style: TextStyle(
                           textBaseline: TextBaseline.alphabetic,
-                          fontSize: 40 * (screenSize / 720),
+                          fontSize: 40 * (screenSize.width / 720),
                           color: Colors.black,
                         ),
                         children: [
@@ -202,14 +203,14 @@ class _ItemCardState extends State<ItemCard> {
                               style: TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.w600,
-                                  fontSize: 56 * (screenSize / 720)),
+                                  fontSize: 56 * (screenSize.width / 720)),
                             ),
                             Text(
                               "₸",
                               style: TextStyle(
                                   color: Colors.grey.shade600,
                                   fontWeight: FontWeight.w900,
-                                  fontSize: 56 * (screenSize / 720)),
+                                  fontSize: 56 * (screenSize.width / 720)),
                             )
                           ],
                         ),
@@ -226,7 +227,8 @@ class _ItemCardState extends State<ItemCard> {
                                           decorationColor: Colors.grey.shade500,
                                           decorationThickness: 1.85,
                                           color: Colors.grey.shade500,
-                                          fontSize: 28 * (screenSize / 720),
+                                          fontSize:
+                                              28 * (screenSize.width / 720),
                                           fontWeight: FontWeight.w500),
                                     ),
                                     Text(
@@ -234,7 +236,8 @@ class _ItemCardState extends State<ItemCard> {
                                       style: TextStyle(
                                           color: Colors.grey.shade600,
                                           fontWeight: FontWeight.w900,
-                                          fontSize: 28 * (screenSize / 720)),
+                                          fontSize:
+                                              28 * (screenSize.width / 720)),
                                     )
                                   ],
                                 ),
@@ -441,14 +444,17 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
 
   @override
   Widget build(BuildContext context) {
-    double screenSize = MediaQuery.of(context).size.width;
+    Size screenSize = MediaQuery.of(context).size;
+    double scaleParam =
+        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
 
     chack = widget.chack;
     return Container(
       // margin: const EdgeInsets.all(10),
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      width: (MediaQuery.of(context).size.width * 2) * (screenSize / 720),
-      height: (MediaQuery.of(context).size.height * 0.4) * (screenSize / 720),
+      padding: EdgeInsets.symmetric(horizontal: 5 * scaleParam),
+      // width: (MediaQuery.of(context).size.width * 0.8) * (screenSize.width / 720),
+      width: double.infinity,
+      height: 300 * scaleParam,
       child: Stack(
         children: [
           // Image.asset(
@@ -505,8 +511,8 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                 flex: 5,
                 fit: FlexFit.tight,
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: 15 * scaleParam, vertical: 5 * scaleParam),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     mainAxisSize: MainAxisSize.max,
@@ -517,65 +523,91 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Flexible(
-                                  flex: 5,
-                                  child: RichText(
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    text: TextSpan(
-                                      style: TextStyle(
-                                        textBaseline: TextBaseline.alphabetic,
-                                        fontSize: 28 * (screenSize / 720),
-                                        color: Colors.black,
-                                      ),
-                                      children: [
-                                        TextSpan(
-                                          text: element["name"],
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w500),
+                            Flexible(
+                              flex: 2,
+                              fit: FlexFit.tight,
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Flexible(
+                                    flex: 5,
+                                    fit: FlexFit.tight,
+                                    child: RichText(
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      text: TextSpan(
+                                        style: TextStyle(
+                                          textBaseline: TextBaseline.alphabetic,
+                                          fontSize: 28 *
+                                              (screenSize.height / 1080) *
+                                              (screenSize.width / 720) *
+                                              2,
+                                          color: Colors.black,
                                         ),
-                                        element["country"] != null
-                                            ? WidgetSpan(
-                                                child: Container(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                    horizontal: 2,
-                                                    vertical: 1,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.grey.shade200,
-                                                    borderRadius:
-                                                        const BorderRadius.all(
-                                                      Radius.circular(3),
+                                        children: [
+                                          TextSpan(
+                                            text: element["name"],
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w500,
+                                                fontSize: 28 * scaleParam),
+                                          ),
+                                          element["country"] != null
+                                              ? WidgetSpan(
+                                                  child: Container(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                      horizontal: 2 *
+                                                          (screenSize.height /
+                                                              1080) *
+                                                          (screenSize.width /
+                                                              720) *
+                                                          2,
+                                                      vertical: 1 *
+                                                          (screenSize.height /
+                                                              1080) *
+                                                          (screenSize.width /
+                                                              720) *
+                                                          2,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color:
+                                                          Colors.grey.shade200,
+                                                      borderRadius:
+                                                          const BorderRadius
+                                                              .all(
+                                                        Radius.circular(10),
+                                                      ),
+                                                    ),
+                                                    child: Text(
+                                                      element["country"] ?? "",
+                                                      style: TextStyle(
+                                                        color: Colors.black,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
                                                     ),
                                                   ),
-                                                  child: Text(
-                                                    element["country"] ?? "",
-                                                    style: TextStyle(
-                                                      color: Colors.black,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ),
-                                              )
-                                            : const TextSpan()
-                                      ],
+                                                )
+                                              : const TextSpan()
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                             Flexible(
+                              fit: FlexFit.tight,
                               child: Text(
                                 "В наличии ${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт.",
                                 style: TextStyle(
                                     color:
                                         Theme.of(context).colorScheme.secondary,
-                                    fontSize: 28 * (screenSize / 720),
+                                    fontSize: 28 *
+                                        (screenSize.height / 1080) *
+                                        (screenSize.width / 720) *
+                                        2,
                                     fontWeight: FontWeight.w500),
                               ),
                             ),
@@ -607,7 +639,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                   //                   .colorScheme
                                   //                   .secondary,
                                   //               fontSize:
-                                  //                   28 * (screenSize / 720),
+                                  //                   28 * (screenSize.width / 720),
                                   //               fontWeight: FontWeight.w500),
                                   //         ),
                                   //       ),
@@ -623,8 +655,10 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                             style: TextStyle(
                                                 color: Colors.black,
                                                 fontWeight: FontWeight.w600,
-                                                fontSize:
-                                                    36 * (screenSize / 720)),
+                                                fontSize: 36 *
+                                                    (screenSize.height / 1080) *
+                                                    (screenSize.width / 720) *
+                                                    2),
                                           ),
                                         ),
                                         Flexible(
@@ -633,8 +667,10 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                             style: TextStyle(
                                                 color: Colors.grey.shade600,
                                                 fontWeight: FontWeight.w700,
-                                                fontSize:
-                                                    36 * (screenSize / 720)),
+                                                fontSize: 36 *
+                                                    (screenSize.height / 1080) *
+                                                    (screenSize.width / 720) *
+                                                    2),
                                           ),
                                         )
                                       ],
@@ -691,8 +727,12 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                                   textAlign: TextAlign.center,
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.w700,
-                                                    fontSize:
-                                                        36 * (screenSize / 720),
+                                                    fontSize: 36 *
+                                                        (screenSize.height /
+                                                            1080) *
+                                                        (screenSize.width /
+                                                            720) *
+                                                        2,
                                                     color: amountInCart != 0
                                                         ? Theme.of(context)
                                                             .colorScheme
@@ -861,7 +901,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
 
   @override
   Widget build(BuildContext context) {
-    double screenSize = MediaQuery.of(context).size.width;
+    Size screenSize = MediaQuery.of(context).size;
 
     chack = widget.chack;
     return Container(
@@ -932,7 +972,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                       text: TextSpan(
                         style: TextStyle(
                           textBaseline: TextBaseline.alphabetic,
-                          fontSize: 28 * (screenSize / 720),
+                          fontSize: 28 * (screenSize.width / 720),
                           color: Colors.black,
                         ),
                         children: [
@@ -977,7 +1017,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                   .secondary
                                   .withOpacity(0.2),
                               fontWeight: FontWeight.w600,
-                              fontSize: 28 * (screenSize / 720),
+                              fontSize: 28 * (screenSize.width / 720),
                             ),
                           ),
                         ),
@@ -993,7 +1033,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                           style: TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.w600,
-                            fontSize: 32 * (screenSize / 720),
+                            fontSize: 32 * (screenSize.width / 720),
                           ),
                         ),
                         Padding(
@@ -1003,7 +1043,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                             style: TextStyle(
                               color: Colors.black,
                               fontWeight: FontWeight.w700,
-                              fontSize: 32 * (screenSize / 720),
+                              fontSize: 32 * (screenSize.width / 720),
                             ),
                           ),
                         ),
@@ -1023,7 +1063,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                         //     //                       Colors.grey.shade500,
                         //     //                   decorationThickness: 1.85,
                         //     //                   color: Colors.grey.shade500,
-                        //     //                   fontSize: 12 * (screenSize / 720),
+                        //     //                   fontSize: 12 * (screenSize.width / 720),
                         //     //                   fontWeight: FontWeight.w500),
                         //     //             ),
                         //     //             Text(
@@ -1031,7 +1071,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                         //     //               style: TextStyle(
                         //     //                   color: Colors.grey.shade600,
                         //     //                   fontWeight: FontWeight.w700,
-                        //     //                   fontSize: 12 * (screenSize / 720)),
+                        //     //                   fontSize: 12 * (screenSize.width / 720)),
                         //     //             )
                         //     //           ],
                         //     //         ),
@@ -1161,7 +1201,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
 
   @override
   Widget build(BuildContext context) {
-    double screenSize = MediaQuery.of(context).size.width;
+    Size screenSize = MediaQuery.of(context).size;
 
     chack = widget.chack;
     return Container(
@@ -1185,7 +1225,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                     style: TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.w600,
-                      fontSize: 32 * (screenSize / 720),
+                      fontSize: 32 * (screenSize.width / 720),
                     ),
                   ),
                 ),
@@ -1209,7 +1249,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                     text: TextSpan(
                       style: TextStyle(
                         textBaseline: TextBaseline.alphabetic,
-                        fontSize: 28 * (screenSize / 720),
+                        fontSize: 28 * (screenSize.width / 720),
                         color: Colors.black,
                       ),
                       children: [
@@ -1254,7 +1294,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                                 .secondary
                                 .withOpacity(0.2),
                             fontWeight: FontWeight.w600,
-                            fontSize: 28 * (screenSize / 720),
+                            fontSize: 28 * (screenSize.width / 720),
                           ),
                         ),
                       ),
@@ -1295,7 +1335,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                     style: TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.w600,
-                      fontSize: 32 * (screenSize / 720),
+                      fontSize: 32 * (screenSize.width / 720),
                     ),
                   ),
                 ),
@@ -1312,14 +1352,14 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
           //           style: TextStyle(
           //               color: Colors.black,
           //               fontWeight: FontWeight.w600,
-          //               fontSize: 16 * (screenSize / 720)),
+          //               fontSize: 16 * (screenSize.width / 720)),
           //         ),
           //         // Text(
           //         //   "₸",
           //         //   style: TextStyle(
           //         //       color: Colors.grey.shade600,
           //         //       fontWeight: FontWeight.w700,
-          //         //       fontSize: 16 * (screenSize / 720)),
+          //         //       fontSize: 16 * (screenSize.width / 720)),
           //         // // ),
           //         // element["prev_price"] != null
           //         //     ? Padding(
@@ -1333,7 +1373,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
           //         //                   decorationColor: Colors.grey.shade500,
           //         //                   decorationThickness: 1.85,
           //         //                   color: Colors.grey.shade500,
-          //         //                   fontSize: 12 * (screenSize / 720),
+          //         //                   fontSize: 12 * (screenSize.width / 720),
           //         //                   fontWeight: FontWeight.w500),
           //         //             ),
           //         //             Text(
@@ -1341,7 +1381,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
           //         //               style: TextStyle(
           //         //                   color: Colors.grey.shade600,
           //         //                   fontWeight: FontWeight.w700,
-          //         //                   fontSize: 12 * (screenSize / 720)),
+          //         //                   fontSize: 12 * (screenSize.width / 720)),
           //         //             )
           //         //           ],
           //         //         ),

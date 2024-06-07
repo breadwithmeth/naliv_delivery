@@ -62,7 +62,9 @@ class _CategoryPageState extends State<CategoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    double screenSize = MediaQuery.of(context).size.width;
+    Size screenSize = MediaQuery.of(context).size;
+    double scaleParam =
+        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
 
     return DefaultTabController(
       initialIndex: initialIndexTabbar,
@@ -73,13 +75,14 @@ class _CategoryPageState extends State<CategoryPage> {
           business: widget.business,
         ),
         appBar: AppBar(
+          toolbarHeight: 100 * scaleParam,
           bottom: TabBar(
             tabAlignment: TabAlignment.start,
             physics: const BouncingScrollPhysics(),
-            labelPadding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            labelPadding: EdgeInsets.symmetric(
+                horizontal: 10 * scaleParam, vertical: 10 * scaleParam),
             labelStyle: TextStyle(
-              fontSize: 32 * (screenSize / 720),
+              fontSize: 38 * scaleParam,
               fontWeight: FontWeight.w500,
               color: Theme.of(context).colorScheme.onBackground,
             ),
@@ -96,7 +99,7 @@ class _CategoryPageState extends State<CategoryPage> {
           // toolbarHeight: 90,
           titleSpacing: 0,
           title: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+            padding: EdgeInsets.symmetric(horizontal: 10 * scaleParam),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -115,7 +118,7 @@ class _CategoryPageState extends State<CategoryPage> {
                       ),
                     ),
                     Flexible(
-                      flex: 2,
+                      flex: 3,
                       fit: FlexFit.tight,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,12 +126,12 @@ class _CategoryPageState extends State<CategoryPage> {
                           Text(
                             widget.business["name"],
                             maxLines: 1,
-                            style: TextStyle(fontSize: 24 * (screenSize / 720)),
+                            style: TextStyle(fontSize: 28 * scaleParam),
                           ),
                           Text(
                             widget.business["address"],
                             maxLines: 1,
-                            style: TextStyle(fontSize: 24 * (screenSize / 720)),
+                            style: TextStyle(fontSize: 28 * scaleParam),
                           ),
                         ],
                       ),
@@ -160,10 +163,11 @@ class _CategoryPageState extends State<CategoryPage> {
                               const Spacer(
                                 flex: 3,
                               ),
-                              const Text(
+                              Text(
                                 "Найти",
                                 style: TextStyle(
                                   fontWeight: FontWeight.w500,
+                                  fontSize: 34 * scaleParam,
                                   color: Colors.black,
                                 ),
                               ),
@@ -254,7 +258,8 @@ class _CategoryPageState extends State<CategoryPage> {
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+              padding: EdgeInsets.symmetric(
+                  horizontal: 15 * scaleParam, vertical: 10 * scaleParam),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -264,11 +269,11 @@ class _CategoryPageState extends State<CategoryPage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const Text(
+                        Text(
                           "Фильтры",
                           style: TextStyle(
                             color: Colors.black,
-                            fontSize: 22,
+                            fontSize: 44 * scaleParam,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -280,8 +285,8 @@ class _CategoryPageState extends State<CategoryPage> {
                         )
                       ],
                     ),
-                    const SizedBox(
-                      height: 15,
+                    SizedBox(
+                      height: 15 * scaleParam,
                     ),
                     // Column(
                     //   crossAxisAlignment:
@@ -289,8 +294,9 @@ class _CategoryPageState extends State<CategoryPage> {
                     //   children: propertyWidget,
                     // ),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 15),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 10 * scaleParam,
+                          vertical: 15 * scaleParam),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade300,
                         borderRadius: const BorderRadius.all(
@@ -306,7 +312,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                 "Бренды",
                                 style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: 32 * (screenSize / 720),
+                                  fontSize: 32 * scaleParam,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -320,12 +326,13 @@ class _CategoryPageState extends State<CategoryPage> {
                         ],
                       ),
                     ),
-                    const SizedBox(
-                      height: 15,
+                    SizedBox(
+                      height: 15 * scaleParam,
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 15),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 10 * scaleParam,
+                          vertical: 15 * scaleParam),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade300,
                         borderRadius: const BorderRadius.all(
@@ -341,7 +348,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                 "Производители",
                                 style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: 32 * (screenSize / 720),
+                                  fontSize: 32 * scaleParam,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -355,12 +362,13 @@ class _CategoryPageState extends State<CategoryPage> {
                         ],
                       ),
                     ),
-                    const SizedBox(
-                      height: 15,
+                    SizedBox(
+                      height: 15 * scaleParam,
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 15),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 10 * scaleParam,
+                          vertical: 15 * scaleParam),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade300,
                         borderRadius: const BorderRadius.all(
@@ -376,7 +384,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                 "Страны",
                                 style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: 32 * (screenSize / 720),
+                                  fontSize: 32 * scaleParam,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -390,8 +398,8 @@ class _CategoryPageState extends State<CategoryPage> {
                         ],
                       ),
                     ),
-                    const SizedBox(
-                      height: 20,
+                    SizedBox(
+                      height: 20 * scaleParam,
                     ),
                     ElevatedButton(
                       onPressed: () {
@@ -405,7 +413,7 @@ class _CategoryPageState extends State<CategoryPage> {
                             child: Text(
                               "Применить",
                               style: TextStyle(
-                                fontSize: 32 * (screenSize / 720),
+                                fontSize: 32 * scaleParam,
                                 fontWeight: FontWeight.w700,
                                 color: Theme.of(context).colorScheme.onPrimary,
                               ),
@@ -426,6 +434,7 @@ class _CategoryPageState extends State<CategoryPage> {
               CategoryPageList(
                 categoryId: categoriesWidgetList[j]["category_id"],
                 business: widget.business,
+                scaleParam: scaleParam,
               )
           ],
         ),
@@ -442,10 +451,14 @@ class _CategoryPageState extends State<CategoryPage> {
 
 class CategoryPageList extends StatefulWidget {
   const CategoryPageList(
-      {super.key, required this.categoryId, required this.business});
+      {super.key,
+      required this.categoryId,
+      required this.business,
+      required this.scaleParam});
 
   final String categoryId;
   final Map<dynamic, dynamic> business;
+  final double scaleParam;
   @override
   State<CategoryPageList> createState() => _CategoryPageListState();
 }
@@ -648,10 +661,10 @@ class _CategoryPageListState extends State<CategoryPageList>
                       updateCategoryPageInfo: updateDataAmount,
                     ),
                     _items.length != index
-                        ? const Padding(
+                        ? Padding(
                             padding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 5,
+                              horizontal: 16 * widget.scaleParam,
+                              vertical: 5 * widget.scaleParam,
                             ),
                             child: Divider(
                               height: 0,
@@ -661,8 +674,8 @@ class _CategoryPageListState extends State<CategoryPageList>
                     if ((index ==
                             (_items.length + (_isLastPage ? 0 : 1) - 1)) &&
                         (_isLastPage))
-                      const SizedBox(
-                        height: 95,
+                      SizedBox(
+                        height: 95 * widget.scaleParam,
                       ),
                   ],
                 ),
