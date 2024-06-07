@@ -539,10 +539,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                       text: TextSpan(
                                         style: TextStyle(
                                           textBaseline: TextBaseline.alphabetic,
-                                          fontSize: 28 *
-                                              (screenSize.height / 1080) *
-                                              (screenSize.width / 720) *
-                                              2,
+                                          fontSize: 28 * scaleParam,
                                           color: Colors.black,
                                         ),
                                         children: [
@@ -557,18 +554,9 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                                   child: Container(
                                                     padding:
                                                         EdgeInsets.symmetric(
-                                                      horizontal: 2 *
-                                                          (screenSize.height /
-                                                              1080) *
-                                                          (screenSize.width /
-                                                              720) *
-                                                          2,
-                                                      vertical: 1 *
-                                                          (screenSize.height /
-                                                              1080) *
-                                                          (screenSize.width /
-                                                              720) *
-                                                          2,
+                                                      horizontal:
+                                                          4 * scaleParam,
+                                                      vertical: 2 * scaleParam,
                                                     ),
                                                     decoration: BoxDecoration(
                                                       color:
@@ -584,6 +572,8 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                                         color: Colors.black,
                                                         fontWeight:
                                                             FontWeight.w600,
+                                                        fontSize:
+                                                            26 * scaleParam,
                                                       ),
                                                     ),
                                                   ),
@@ -603,10 +593,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                 style: TextStyle(
                                     color:
                                         Theme.of(context).colorScheme.secondary,
-                                    fontSize: 28 *
-                                        (screenSize.height / 1080) *
-                                        (screenSize.width / 720) *
-                                        2,
+                                    fontSize: 28 * scaleParam,
                                     fontWeight: FontWeight.w500),
                               ),
                             ),
@@ -652,24 +639,20 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                           child: Text(
                                             formatCost(element['price'] ?? ""),
                                             style: TextStyle(
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 36 *
-                                                    (screenSize.height / 1080) *
-                                                    (screenSize.width / 720) *
-                                                    2),
+                                              color: Colors.black,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 36 * scaleParam,
+                                            ),
                                           ),
                                         ),
                                         Flexible(
                                           child: Text(
                                             "₸",
                                             style: TextStyle(
-                                                color: Colors.grey.shade600,
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 36 *
-                                                    (screenSize.height / 1080) *
-                                                    (screenSize.width / 720) *
-                                                    2),
+                                              color: Colors.grey.shade600,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 36 * scaleParam,
+                                            ),
                                           ),
                                         )
                                       ],
@@ -726,12 +709,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                                   textAlign: TextAlign.center,
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.w700,
-                                                    fontSize: 36 *
-                                                        (screenSize.height /
-                                                            1080) *
-                                                        (screenSize.width /
-                                                            720) *
-                                                        2,
+                                                    fontSize: 36 * scaleParam,
                                                     color: amountInCart != 0
                                                         ? Theme.of(context)
                                                             .colorScheme
