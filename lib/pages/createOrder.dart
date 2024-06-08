@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 import 'package:flutter/widgets.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:naliv_delivery/main.dart';
@@ -323,8 +324,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
   @override
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
-    double scaleParam =
-        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
+    
 
     return Scaffold(
       appBar: AppBar(
@@ -333,15 +333,16 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
       body: ListView(
         children: [
           SizedBox(
-            height: 10 * scaleParam,
+            height: 10 * globals.scaleParam,
           ),
           Container(
             decoration: BoxDecoration(
                 color: Colors.grey.shade100,
                 borderRadius: BorderRadius.all(Radius.circular(10))),
             margin: EdgeInsets.symmetric(
-                horizontal: 20 * scaleParam, vertical: 10 * scaleParam),
-            padding: EdgeInsets.all(10 * scaleParam),
+                horizontal: 20 * globals.scaleParam,
+                vertical: 10 * globals.scaleParam),
+            padding: EdgeInsets.all(10 * globals.scaleParam),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               mainAxisSize: MainAxisSize.max,
@@ -358,7 +359,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                       decoration: BoxDecoration(
                           color: delivery ? Colors.white : Colors.grey.shade100,
                           borderRadius: BorderRadius.all(Radius.circular(10))),
-                      padding: EdgeInsets.all(20 * scaleParam),
+                      padding: EdgeInsets.all(20 * globals.scaleParam),
                       alignment: Alignment.center,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -369,7 +370,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                 delivery ? Colors.black : Colors.grey.shade400,
                           ),
                           SizedBox(
-                            width: 10 * scaleParam,
+                            width: 10 * globals.scaleParam,
                           ),
                           Text(
                             "Доставка",
@@ -378,7 +379,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                   ? Colors.black
                                   : Colors.grey.shade400,
                               fontWeight: FontWeight.w700,
-                              fontSize: 32 * scaleParam,
+                              fontSize: 32 * globals.scaleParam,
                             ),
                           )
                         ],
@@ -398,7 +399,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                       decoration: BoxDecoration(
                           color: delivery ? Colors.grey.shade100 : Colors.white,
                           borderRadius: BorderRadius.all(Radius.circular(10))),
-                      padding: EdgeInsets.all(20 * scaleParam),
+                      padding: EdgeInsets.all(20 * globals.scaleParam),
                       alignment: Alignment.center,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -409,7 +410,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                 delivery ? Colors.grey.shade400 : Colors.black,
                           ),
                           SizedBox(
-                            width: 10 * scaleParam,
+                            width: 10 * globals.scaleParam,
                           ),
                           Text(
                             "Самовывоз",
@@ -418,7 +419,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                   ? Colors.grey.shade400
                                   : Colors.black,
                               fontWeight: FontWeight.w700,
-                              fontSize: 32 * scaleParam,
+                              fontSize: 32 * globals.scaleParam,
                             ),
                           )
                         ],
@@ -430,9 +431,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
             ),
           ),
           Container(
-            height: screenSize.height < 700 * scaleParam
-                ? 300 * scaleParam
-                : 650 * scaleParam,
+            height: screenSize.height < 700 * globals.scaleParam
+                ? 300 * globals.scaleParam
+                : 650 * globals.scaleParam,
             decoration: BoxDecoration(
                 border: Border.all(
                   width: 2,
@@ -441,8 +442,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                 color: Colors.white,
                 borderRadius: BorderRadius.all(Radius.circular(10))),
             margin: EdgeInsets.symmetric(
-                horizontal: 20 * scaleParam, vertical: 10 * scaleParam),
-            padding: EdgeInsets.all(10 * scaleParam),
+                horizontal: 20 * globals.scaleParam,
+                vertical: 10 * globals.scaleParam),
+            padding: EdgeInsets.all(10 * globals.scaleParam),
             child: ListView.builder(
               primary: false,
               shrinkWrap: true,
@@ -462,8 +464,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                     items.length - 1 != index
                         ? Padding(
                             padding: EdgeInsets.symmetric(
-                              horizontal: 32 * scaleParam,
-                              vertical: 10 * scaleParam,
+                              horizontal: 32 * globals.scaleParam,
+                              vertical: 10 * globals.scaleParam,
                             ),
                             child: Divider(
                               height: 0,
@@ -481,20 +483,22 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                       Theme.of(context).colorScheme.secondary.withOpacity(0.05),
                   highlightColor: Theme.of(context).colorScheme.secondary,
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20 * scaleParam),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 20 * globals.scaleParam),
                     child: Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.all(Radius.circular(10)),
                         color: Colors.white,
                       ),
                       width: double.infinity,
-                      height: 100 * scaleParam,
+                      height: 100 * globals.scaleParam,
                     ),
                   ),
                 )
               : delivery
                   ? Container(
-                      padding: EdgeInsets.symmetric(vertical: 20 * scaleParam),
+                      padding: EdgeInsets.symmetric(
+                          vertical: 20 * globals.scaleParam),
                       decoration: BoxDecoration(
                           border: Border.all(
                             width: 2,
@@ -502,7 +506,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                           ),
                           color: Colors.white,
                           borderRadius: BorderRadius.all(Radius.circular(10))),
-                      margin: EdgeInsets.symmetric(horizontal: 20 * scaleParam),
+                      margin: EdgeInsets.symmetric(
+                          horizontal: 20 * globals.scaleParam),
                       // This should be null only if user doesn't have any addresses, else there will be user address
                       // child: currentAddressWidget ??
                       child: currentAddress.isNotEmpty
@@ -523,7 +528,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                               child: Text(
                                                 "Доставка: ${currentAddress["name"]}",
                                                 style: TextStyle(
-                                                  fontSize: 32 * scaleParam,
+                                                  fontSize:
+                                                      32 * globals.scaleParam,
                                                   fontWeight: FontWeight.w600,
                                                   color: Theme.of(context)
                                                       .colorScheme
@@ -539,7 +545,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                               child: Text(
                                                 currentAddress["address"],
                                                 style: TextStyle(
-                                                  fontSize: 32 * scaleParam,
+                                                  fontSize:
+                                                      32 * globals.scaleParam,
                                                   fontWeight: FontWeight.w600,
                                                   color: Theme.of(context)
                                                       .colorScheme
@@ -555,7 +562,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                   Flexible(
                                     child: Icon(
                                       Icons.add_box_rounded,
-                                      size: 50 * scaleParam,
+                                      size: 50 * globals.scaleParam,
                                     ),
                                   ),
                                 ],
@@ -622,7 +629,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                     "Добавьте адрес доставки",
                                     style: TextStyle(
                                       fontWeight: FontWeight.w500,
-                                      fontSize: 32 * scaleParam,
+                                      fontSize: 32 * globals.scaleParam,
                                       color: Theme.of(context)
                                           .colorScheme
                                           .secondary,
@@ -632,14 +639,15 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                     Icons.add_box_rounded,
                                     color:
                                         Theme.of(context).colorScheme.secondary,
-                                    size: 50 * scaleParam,
+                                    size: 50 * globals.scaleParam,
                                   ),
                                 ],
                               ),
                             ),
                     )
                   : Container(
-                      padding: EdgeInsets.symmetric(vertical: 20 * scaleParam),
+                      padding: EdgeInsets.symmetric(
+                          vertical: 20 * globals.scaleParam),
                       decoration: BoxDecoration(
                           border: Border.all(
                             width: 2,
@@ -647,7 +655,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                           ),
                           color: Colors.white,
                           borderRadius: BorderRadius.all(Radius.circular(10))),
-                      margin: EdgeInsets.symmetric(horizontal: 20 * scaleParam),
+                      margin: EdgeInsets.symmetric(
+                          horizontal: 20 * globals.scaleParam),
                       // This should be null only if user doesn't have any addresses, else there will be user address
                       // child: currentAddressWidget ??
                       child: Column(
@@ -667,7 +676,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                           child: Text(
                                             "Самовывозом: ${widget.business["name"]}",
                                             style: TextStyle(
-                                              fontSize: 32 * scaleParam,
+                                              fontSize: 32 * globals.scaleParam,
                                               fontWeight: FontWeight.w600,
                                               color: Theme.of(context)
                                                   .colorScheme
@@ -683,7 +692,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                           child: Text(
                                             widget.business["address"],
                                             style: TextStyle(
-                                              fontSize: 32 * scaleParam,
+                                              fontSize: 32 * globals.scaleParam,
                                               fontWeight: FontWeight.w600,
                                               color: Theme.of(context)
                                                   .colorScheme
@@ -699,7 +708,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                               Flexible(
                                 child: Icon(
                                   Icons.add_box_rounded,
-                                  size: 50 * scaleParam,
+                                  size: 50 * globals.scaleParam,
                                 ),
                               ),
                             ],
@@ -717,14 +726,15 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                       color: Colors.white,
                       borderRadius: BorderRadius.all(Radius.circular(10))),
                   margin: EdgeInsets.symmetric(
-                      horizontal: 20 * scaleParam, vertical: 10 * scaleParam),
-                  padding: EdgeInsets.all(30 * scaleParam),
+                      horizontal: 20 * globals.scaleParam,
+                      vertical: 10 * globals.scaleParam),
+                  padding: EdgeInsets.all(30 * globals.scaleParam),
                   child: Text(
                     "Детали доставки",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontWeight: FontWeight.w500,
-                      fontSize: 32 * scaleParam,
+                      fontSize: 32 * globals.scaleParam,
                       color: Theme.of(context).colorScheme.secondary,
                     ),
                   ),
@@ -738,8 +748,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                 ),
                 color: Colors.white,
                 borderRadius: BorderRadius.all(Radius.circular(10))),
-            margin: EdgeInsets.symmetric(horizontal: 20 * scaleParam),
-            padding: EdgeInsets.all(30 * scaleParam),
+            margin: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
+            padding: EdgeInsets.all(30 * globals.scaleParam),
             child: Column(
               children: [
                 Row(
@@ -753,7 +763,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                 : "Счёт на каспи: ${widget.client["login"].toString()}",
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
-                          fontSize: 32 * scaleParam,
+                          fontSize: 32 * globals.scaleParam,
                           color: Theme.of(context).colorScheme.onBackground,
                         ),
                       ),
@@ -770,7 +780,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
-                          fontSize: 32 * scaleParam,
+                          fontSize: 32 * globals.scaleParam,
                           color: Theme.of(context).colorScheme.onBackground,
                         ),
                       ),
@@ -789,8 +799,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                 color: Colors.white,
                 borderRadius: BorderRadius.all(Radius.circular(10))),
             margin: EdgeInsets.symmetric(
-                horizontal: 20 * scaleParam, vertical: 10 * scaleParam),
-            padding: EdgeInsets.all(30 * scaleParam),
+                horizontal: 20 * globals.scaleParam,
+                vertical: 10 * globals.scaleParam),
+            padding: EdgeInsets.all(30 * globals.scaleParam),
             child: ElevatedButton(
               onPressed:
                   isCartLoading || isAddressesLoading || currentAddress.isEmpty
@@ -818,7 +829,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                     "Подтвердить заказ",
                     style: TextStyle(
                       fontWeight: FontWeight.w900,
-                      fontSize: 32 * scaleParam,
+                      fontSize: 32 * globals.scaleParam,
                       color: Theme.of(context).colorScheme.onPrimary,
                     ),
                   ),

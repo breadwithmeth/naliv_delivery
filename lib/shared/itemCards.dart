@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:naliv_delivery/misc/api.dart';
@@ -459,16 +460,14 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
   @override
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
-    double scaleParam =
-        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
 
     chack = widget.chack;
     return Container(
       // margin:  EdgeInsets.all(10),
-      padding: EdgeInsets.symmetric(horizontal: 5 * scaleParam),
+      padding: EdgeInsets.symmetric(horizontal: 5 * globals.scaleParam),
       // width: (MediaQuery.of(context).size.width * 0.8) * (screenSize.width / 720),
       width: double.infinity,
-      height: 300 * scaleParam,
+      height: 300 * globals.scaleParam,
       child: Stack(
         children: [
           // Image.asset(
@@ -526,7 +525,8 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                 fit: FlexFit.tight,
                 child: Padding(
                   padding: EdgeInsets.symmetric(
-                      horizontal: 15 * scaleParam, vertical: 5 * scaleParam),
+                      horizontal: 15 * globals.scaleParam,
+                      vertical: 5 * globals.scaleParam),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     mainAxisSize: MainAxisSize.max,
@@ -553,7 +553,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                       text: TextSpan(
                                         style: TextStyle(
                                           textBaseline: TextBaseline.alphabetic,
-                                          fontSize: 28 * scaleParam,
+                                          fontSize: 28 * globals.scaleParam,
                                           color: Colors.black,
                                         ),
                                         children: [
@@ -561,16 +561,18 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                             text: element["name"],
                                             style: TextStyle(
                                                 fontWeight: FontWeight.w500,
-                                                fontSize: 28 * scaleParam),
+                                                fontSize:
+                                                    28 * globals.scaleParam),
                                           ),
                                           element["country"] != null
                                               ? WidgetSpan(
                                                   child: Container(
                                                     padding:
                                                         EdgeInsets.symmetric(
-                                                      horizontal:
-                                                          4 * scaleParam,
-                                                      vertical: 2 * scaleParam,
+                                                      horizontal: 4 *
+                                                          globals.scaleParam,
+                                                      vertical: 2 *
+                                                          globals.scaleParam,
                                                     ),
                                                     decoration: BoxDecoration(
                                                       color:
@@ -586,8 +588,8 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                                         color: Colors.black,
                                                         fontWeight:
                                                             FontWeight.w600,
-                                                        fontSize:
-                                                            26 * scaleParam,
+                                                        fontSize: 26 *
+                                                            globals.scaleParam,
                                                       ),
                                                     ),
                                                   ),
@@ -607,7 +609,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                 style: TextStyle(
                                     color:
                                         Theme.of(context).colorScheme.secondary,
-                                    fontSize: 28 * scaleParam,
+                                    fontSize: 28 * globals.scaleParam,
                                     fontWeight: FontWeight.w500),
                               ),
                             ),
@@ -655,7 +657,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                             style: TextStyle(
                                               color: Colors.black,
                                               fontWeight: FontWeight.w600,
-                                              fontSize: 36 * scaleParam,
+                                              fontSize: 36 * globals.scaleParam,
                                             ),
                                           ),
                                         ),
@@ -665,7 +667,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                             style: TextStyle(
                                               color: Colors.grey.shade600,
                                               fontWeight: FontWeight.w700,
-                                              fontSize: 36 * scaleParam,
+                                              fontSize: 36 * globals.scaleParam,
                                             ),
                                           ),
                                         )
@@ -723,7 +725,8 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                                   textAlign: TextAlign.center,
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.w700,
-                                                    fontSize: 36 * scaleParam,
+                                                    fontSize:
+                                                        36 * globals.scaleParam,
                                                     color: amountInCart != 0
                                                         ? Theme.of(context)
                                                             .colorScheme
@@ -893,14 +896,12 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
   @override
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
-    double scaleParam =
-        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
 
     chack = widget.chack;
     return Container(
       // margin:  EdgeInsets.all(10),
       width: double.infinity,
-      height: 125 * scaleParam,
+      height: 125 * globals.scaleParam,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         mainAxisSize: MainAxisSize.max,
@@ -950,7 +951,8 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
             flex: 5,
             fit: FlexFit.tight,
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 30 * scaleParam),
+              padding:
+                  EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 mainAxisSize: MainAxisSize.max,
@@ -971,15 +973,15 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                             text: element["name"],
                             style: TextStyle(
                               fontWeight: FontWeight.w500,
-                              fontSize: 38 * scaleParam,
+                              fontSize: 38 * globals.scaleParam,
                             ),
                           ),
                           element["country"] != null
                               ? WidgetSpan(
                                   child: Container(
                                     padding: EdgeInsets.symmetric(
-                                        horizontal: 4 * scaleParam,
-                                        vertical: 2 * scaleParam),
+                                        horizontal: 4 * globals.scaleParam,
+                                        vertical: 2 * globals.scaleParam),
                                     decoration: BoxDecoration(
                                       color: Colors.grey.shade200,
                                       borderRadius: BorderRadius.all(
@@ -991,7 +993,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                       style: TextStyle(
                                         color: Colors.black,
                                         fontWeight: FontWeight.w600,
-                                        fontSize: 32 * scaleParam,
+                                        fontSize: 32 * globals.scaleParam,
                                       ),
                                     ),
                                   ),
@@ -1014,7 +1016,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                   .secondary
                                   .withOpacity(0.2),
                               fontWeight: FontWeight.w600,
-                              fontSize: 28 * scaleParam,
+                              fontSize: 28 * globals.scaleParam,
                             ),
                           ),
                         ),
@@ -1033,7 +1035,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                             style: TextStyle(
                               color: Colors.black,
                               fontWeight: FontWeight.w600,
-                              fontSize: 36 * scaleParam,
+                              fontSize: 36 * globals.scaleParam,
                             ),
                           ),
                         ),
@@ -1041,13 +1043,13 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                           fit: FlexFit.tight,
                           child: Padding(
                             padding: EdgeInsets.symmetric(
-                                horizontal: 8 * scaleParam),
+                                horizontal: 8 * globals.scaleParam),
                             child: Text(
                               "${element["amount"]} шт.",
                               style: TextStyle(
                                 color: Colors.black,
                                 fontWeight: FontWeight.w700,
-                                fontSize: 32 * scaleParam,
+                                fontSize: 32 * globals.scaleParam,
                               ),
                             ),
                           ),
@@ -1206,14 +1208,12 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
   @override
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
-    double scaleParam =
-        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
 
     chack = widget.chack;
     return Container(
       // margin:  EdgeInsets.all(10),
       width: double.infinity,
-      height: 100 * scaleParam,
+      height: 100 * globals.scaleParam,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         mainAxisSize: MainAxisSize.max,
@@ -1232,7 +1232,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                       style: TextStyle(
                         color: Colors.black,
                         fontWeight: FontWeight.w600,
-                        fontSize: 36 * scaleParam,
+                        fontSize: 36 * globals.scaleParam,
                       ),
                     ),
                   ),
@@ -1263,14 +1263,14 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                           text: element["name"],
                           style: TextStyle(
                               fontWeight: FontWeight.w500,
-                              fontSize: 36 * scaleParam),
+                              fontSize: 36 * globals.scaleParam),
                         ),
                         element["country"] != null
                             ? WidgetSpan(
                                 child: Container(
                                   padding: EdgeInsets.symmetric(
-                                      horizontal: 4 * scaleParam,
-                                      vertical: 2 * scaleParam),
+                                      horizontal: 4 * globals.scaleParam,
+                                      vertical: 2 * globals.scaleParam),
                                   decoration: BoxDecoration(
                                     color: Colors.grey.shade200,
                                     borderRadius: BorderRadius.all(
@@ -1282,7 +1282,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                                     style: TextStyle(
                                       color: Colors.black,
                                       fontWeight: FontWeight.w600,
-                                      fontSize: 36 * scaleParam,
+                                      fontSize: 36 * globals.scaleParam,
                                     ),
                                   ),
                                 ),
@@ -1306,7 +1306,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                                 .secondary
                                 .withOpacity(0.2),
                             fontWeight: FontWeight.w600,
-                            fontSize: 30 * scaleParam,
+                            fontSize: 30 * globals.scaleParam,
                           ),
                         ),
                       ),
@@ -1350,7 +1350,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                       style: TextStyle(
                         color: Colors.black,
                         fontWeight: FontWeight.w600,
-                        fontSize: 36 * scaleParam,
+                        fontSize: 36 * globals.scaleParam,
                       ),
                     ),
                   ),

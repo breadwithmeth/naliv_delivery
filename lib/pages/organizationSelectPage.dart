@@ -4,6 +4,8 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
+
 import 'package:flutter/painting.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
@@ -167,18 +169,16 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
           "вот это ключ, всем ключам ключ, надеюсь он тут не потеряется");
   @override
   Widget build(BuildContext context) {
-    Size screenSize = MediaQuery.of(context).size;
-    double scaleParam =
-        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
+    super.build(context);
 
     // TextStyle titleStyle = TextStyle(
-    //   fontSize: 50 * scaleParam,
+    //   fontSize: 50 * globals.scaleParam,
     //   fontWeight: FontWeight.w500,
     //   color: Theme.of(context).colorScheme.onBackground,
     // );
 
     // TextStyle plainStyle = TextStyle(
-    //   fontSize: 32 * scaleParam,
+    //   fontSize: 32 * globals.scaleParam,
     //   fontWeight: FontWeight.w500,
     //   color: Theme.of(context).colorScheme.onBackground,
     // );
@@ -207,10 +207,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                           _key.currentState!.closeEndDrawer();
                         },
                         icon: Container(
-                          padding: EdgeInsets.all(20 * scaleParam),
+                          padding: EdgeInsets.all(20 * globals.scaleParam),
                           child: Icon(
                             Icons.close,
-                            size: 48 * scaleParam,
+                            size: 48 * globals.scaleParam,
                           ),
                         ),
                       ),
@@ -221,7 +221,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                     fit: FlexFit.tight,
                     child: Container(
                       alignment: Alignment.center,
-                      height: 275 * scaleParam,
+                      height: 275 * globals.scaleParam,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         mainAxisSize: MainAxisSize.max,
@@ -231,12 +231,12 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                               style: GoogleFonts.montserratAlternates(
                                 textStyle: TextStyle(
                                     fontWeight: FontWeight.w900,
-                                    fontSize: 48 * scaleParam),
+                                    fontSize: 48 * globals.scaleParam),
                               )),
                           Icon(
                             Icons.local_dining_outlined,
                             color: Colors.black,
-                            size: 48 * scaleParam,
+                            size: 48 * globals.scaleParam,
                           )
                         ],
                       ),
@@ -245,7 +245,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                   flex: 8,
                   fit: FlexFit.tight,
                   child: GridView.count(
-                    padding: EdgeInsets.all(10 * scaleParam),
+                    padding: EdgeInsets.all(10 * globals.scaleParam),
                     mainAxisSpacing: 10,
                     crossAxisSpacing: 10,
                     childAspectRatio: 2 / 1,
@@ -254,8 +254,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                       DrawerMenuItem(
                         name: "История заказов",
                         icon: Icons.book_outlined,
-                        route: OrderHistoryPage(),
-                        scaleParam: scaleParam,
+                        route: const OrderHistoryPage(),
                       ),
                       DrawerMenuItem(
                         name: "Адреса доставки",
@@ -263,19 +262,16 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                         route: PickAddressPage(
                           client: widget.user,
                         ),
-                        scaleParam: scaleParam,
                       ),
                       DrawerMenuItem(
                         name: "Поддержка",
                         icon: Icons.support_agent_rounded,
-                        route: SupportPage(),
-                        scaleParam: scaleParam,
+                        route: const SupportPage(),
                       ),
                       DrawerMenuItem(
                         name: "Настройки",
                         icon: Icons.settings_outlined,
-                        route: SettingsPage(),
-                        scaleParam: scaleParam,
+                        route: const SettingsPage(),
                       )
                     ],
                   ),
@@ -295,7 +291,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
               automaticallyImplyLeading: false,
               elevation: 0,
               forceElevated: true,
-              shape: LinearBorder(bottom: LinearBorderEdge(size: 1)),
+              shape: const LinearBorder(bottom: LinearBorderEdge(size: 1)),
               shadowColor: Colors.transparent,
               backgroundColor:
                   !isCollapsed ? Colors.deepOrangeAccent : Colors.transparent,
@@ -318,17 +314,17 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                   duration: Durations.medium1,
                   child: isCollapsed
                       ? Container(
-                          padding: EdgeInsets.all(10 * scaleParam),
+                          padding: EdgeInsets.all(10 * globals.scaleParam),
                           decoration: BoxDecoration(
                               boxShadow: [
                                 BoxShadow(
                                     color: Colors.blueGrey.shade200,
-                                    offset: Offset(5, 5),
+                                    offset: const Offset(5, 5),
                                     blurRadius: 5)
                               ],
                               color: Colors.white,
                               borderRadius:
-                                  BorderRadius.all(Radius.circular(20))),
+                                  const BorderRadius.all(Radius.circular(20))),
                           child: TextButton(
                             onPressed: () {
                               Navigator.push(context, CupertinoPageRoute(
@@ -349,16 +345,16 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                         ? widget.currentAddress["address"]
                                         : "Нет адреса",
                                     style: TextStyle(
-                                        fontSize: 32 * scaleParam,
+                                        fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w700),
                                   ),
                                 ),
                                 SizedBox(
-                                  width: 10 * scaleParam,
+                                  width: 10 * globals.scaleParam,
                                 ),
                                 Icon(
                                   Icons.edit_outlined,
-                                  size: 48 * scaleParam,
+                                  size: 48 * globals.scaleParam,
                                 ),
                               ],
                             ),
@@ -400,10 +396,11 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                     "",
                                                 style: TextStyle(
                                                     fontWeight: FontWeight.w700,
-                                                    fontSize: 48 * scaleParam,
+                                                    fontSize:
+                                                        48 * globals.scaleParam,
                                                     color: Colors.white),
                                               ),
-                                              Icon(
+                                              const Icon(
                                                 Icons.arrow_drop_down,
                                                 color: Colors.white,
                                               ),
@@ -418,7 +415,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                           icon: Icon(
                                             Icons.favorite,
                                             color: Colors.white,
-                                            size: 48 * scaleParam,
+                                            size: 48 * globals.scaleParam,
                                           )),
                                       IconButton(
                                           onPressed: () {
@@ -427,7 +424,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                           icon: Icon(
                                             Icons.menu,
                                             color: Colors.white,
-                                            size: 48 * scaleParam,
+                                            size: 48 * globals.scaleParam,
                                           )),
                                     ],
                                   )
@@ -457,7 +454,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                         boxShadow: [
                           BoxShadow(
                             spreadRadius: 5,
-                            offset: Offset(0, -100),
+                            offset: const Offset(0, -100),
                             color: !isStartingToCollapse
                                 ? Colors.deepOrangeAccent
                                 : Colors.grey.shade50,
@@ -477,22 +474,22 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                             decoration: BoxDecoration(
                                 boxShadow: [
                                   !isStartingToCollapse
-                                      ? BoxShadow(
+                                      ? const BoxShadow(
                                           offset: Offset(0, -10),
                                           color: Colors.black26,
                                           blurRadius: 20)
-                                      : BoxShadow(color: Colors.white),
+                                      : const BoxShadow(color: Colors.white),
                                   BoxShadow(
                                       color: Colors.grey.shade50,
-                                      offset: Offset(0, 5),
+                                      offset: const Offset(0, 5),
                                       blurRadius: 5)
                                 ],
                                 color: Colors.grey.shade50,
                                 borderRadius: !isCollapsed
-                                    ? BorderRadius.only(
+                                    ? const BorderRadius.only(
                                         topLeft: Radius.elliptical(100, 50),
                                         topRight: Radius.elliptical(100, 50))
-                                    : BorderRadius.all(Radius.zero)),
+                                    : const BorderRadius.all(Radius.zero)),
                           ),
                           Column(
                             mainAxisSize: MainAxisSize.min,
@@ -510,9 +507,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                       duration: Durations.medium1,
                                       // foregroundDecoration: BoxDecoration(color: isCollapsed ? Colors.deepOrangeAccent : Colors.transparent),
                                       width: double.infinity,
-                                      height: 250 * scaleParam,
-                                      margin: EdgeInsets.all(15 * scaleParam),
-                                      decoration: BoxDecoration(
+                                      height: 250 * globals.scaleParam,
+                                      margin: EdgeInsets.all(
+                                          15 * globals.scaleParam),
+                                      decoration: const BoxDecoration(
                                           // color: Colors.pinkAccent,
 
                                           ),
@@ -522,13 +520,13 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                             mainAxisAlignment:
                                                 MainAxisAlignment.center,
                                             children: [
-                                              Spacer(
+                                              const Spacer(
                                                 flex: 2,
                                               ),
                                               CircleAvatar(
-                                                radius: 60 * scaleParam,
+                                                radius: 60 * globals.scaleParam,
                                               ),
-                                              Spacer(),
+                                              const Spacer(),
                                               Flexible(
                                                 flex: 3,
                                                 child: Text(
@@ -536,20 +534,20 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                   style: GoogleFonts.mulish(
                                                     textStyle: TextStyle(
                                                         letterSpacing: 1,
-                                                        fontSize:
-                                                            48 * scaleParam,
+                                                        fontSize: 48 *
+                                                            globals.scaleParam,
                                                         color: Colors.white,
                                                         fontWeight:
                                                             FontWeight.w900),
                                                   ),
                                                 ),
                                               ),
-                                              Spacer(
+                                              const Spacer(
                                                 flex: 2,
                                               ),
                                             ],
                                           ),
-                                          Spacer(),
+                                          const Spacer(),
                                           Row(
                                             mainAxisAlignment:
                                                 MainAxisAlignment.center,
@@ -584,7 +582,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                               : "Нет адреса",
                                                           style: TextStyle(
                                                               fontSize: 32 *
-                                                                  scaleParam,
+                                                                  globals
+                                                                      .scaleParam,
                                                               fontWeight:
                                                                   FontWeight
                                                                       .w500,
@@ -593,12 +592,14 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                         ),
                                                       ),
                                                       SizedBox(
-                                                        width: 20 * scaleParam,
+                                                        width: 20 *
+                                                            globals.scaleParam,
                                                       ),
                                                       Icon(
                                                         Icons.edit_outlined,
                                                         color: Colors.white,
-                                                        size: 48 * scaleParam,
+                                                        size: 48 *
+                                                            globals.scaleParam,
                                                       ),
                                                     ],
                                                   ),
@@ -606,7 +607,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                               )
                                             ],
                                           ),
-                                          Spacer(
+                                          const Spacer(
                                             flex: 2,
                                           )
                                         ],
@@ -617,10 +618,11 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                               ),
                               Container(
                                 width: double.infinity,
-                                height: 300 * scaleParam,
-                                margin: EdgeInsets.all(30 * scaleParam),
-                                padding: EdgeInsets.all(60 * scaleParam),
-                                decoration: BoxDecoration(
+                                height: 300 * globals.scaleParam,
+                                margin: EdgeInsets.all(30 * globals.scaleParam),
+                                padding:
+                                    EdgeInsets.all(60 * globals.scaleParam),
+                                decoration: const BoxDecoration(
                                   color: Colors.blueGrey,
                                   borderRadius:
                                       BorderRadius.all(Radius.circular(30)),
@@ -646,7 +648,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
                                                 color: Colors.white,
-                                                fontSize: 136 * scaleParam,
+                                                fontSize:
+                                                    136 * globals.scaleParam,
                                                 fontWeight: FontWeight.w700,
                                                 fontFamily: "montserrat",
                                                 // shadows: [
@@ -675,14 +678,14 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
             ),
             SliverToBoxAdapter(
                 child: Container(
-              height: 350 * scaleParam,
+              height: 350 * globals.scaleParam,
               child: PageView.builder(
                 controller: PageController(viewportFraction: 0.8),
                 itemCount: _carouselItems.length,
                 itemBuilder: (context, index) {
                   return Container(
                     clipBehavior: Clip.antiAlias,
-                    margin: EdgeInsets.all(30 * scaleParam),
+                    margin: EdgeInsets.all(30 * globals.scaleParam),
                     decoration: BoxDecoration(
                         boxShadow: [
                           BoxShadow(
@@ -691,7 +694,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                               color: Colors.grey.shade200)
                         ],
                         color: Colors.white,
-                        borderRadius: BorderRadius.all(Radius.circular(10))),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(10))),
                     child: Stack(
                       children: [
                         Image.network(
@@ -703,7 +707,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                         Container(
                           width: double.infinity,
                           height: double.infinity,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                               gradient: LinearGradient(
                                   transform: GradientRotation(pi / -2),
                                   colors: [
@@ -712,7 +716,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                               ])),
                         ),
                         Container(
-                          padding: EdgeInsets.all(40 * scaleParam),
+                          padding: EdgeInsets.all(40 * globals.scaleParam),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
@@ -722,7 +726,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                 style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
-                                    fontSize: 48 * scaleParam),
+                                    fontSize: 48 * globals.scaleParam),
                               ))
                             ],
                           ),
@@ -735,13 +739,13 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
             )),
             SliverToBoxAdapter(
                 child: Container(
-              width: 500 * scaleParam,
-              height: 400 * scaleParam,
+              width: 500 * globals.scaleParam,
+              height: 400 * globals.scaleParam,
               child: SingleChildScrollView(
                 controller: ScrollController(),
                 scrollDirection: Axis.horizontal,
                 child: ListView.builder(
-                  padding: EdgeInsets.all(10 * scaleParam),
+                  padding: EdgeInsets.all(10 * globals.scaleParam),
                   primary: false,
                   shrinkWrap: true,
                   scrollDirection: Axis.horizontal,
@@ -750,7 +754,6 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                     return BusinessItem(
                       business: widget.businesses[index],
                       user: widget.user,
-                      scaleParam: scaleParam,
                     );
                   },
                 ),
@@ -758,7 +761,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
             )),
             SliverToBoxAdapter(
               child: Container(
-                height: 500 * scaleParam,
+                height: 5000,
               ),
             )
           ],
@@ -768,15 +771,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
 
 class DrawerMenuItem extends StatefulWidget {
   DrawerMenuItem(
-      {super.key,
-      required this.name,
-      required this.icon,
-      required this.route,
-      required this.scaleParam});
+      {super.key, required this.name, required this.icon, required this.route});
   final String name;
   final IconData icon;
   final Widget route;
-  final double scaleParam;
   @override
   State<DrawerMenuItem> createState() => _DrawerMenuItemState();
 }
@@ -793,7 +791,7 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
         ));
       },
       child: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           borderRadius: BorderRadius.only(bottomRight: Radius.circular(15)),
           color: Colors.white,
           boxShadow: [
@@ -807,10 +805,10 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
             Flexible(
                 flex: 1,
                 child: Container(
-                  margin: EdgeInsets.all(20 * widget.scaleParam),
+                  margin: EdgeInsets.all(20 * globals.scaleParam),
                   child: Icon(
                     widget.icon,
-                    size: 48 * widget.scaleParam,
+                    size: 48 * globals.scaleParam,
                   ),
                 )),
             Flexible(
@@ -819,7 +817,7 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
                 widget.name,
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
-                  fontSize: 36 * widget.scaleParam,
+                  fontSize: 36 * globals.scaleParam,
                 ),
               ),
             ),
@@ -831,14 +829,13 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
 }
 
 class BusinessItem extends StatefulWidget {
-  BusinessItem(
-      {super.key,
-      required this.business,
-      required this.user,
-      required this.scaleParam});
+  BusinessItem({
+    super.key,
+    required this.business,
+    required this.user,
+  });
   final Map business;
   final Map user;
-  final double scaleParam;
   @override
   State<BusinessItem> createState() => BusinessItemState();
 }
@@ -861,10 +858,10 @@ class BusinessItemState extends State<BusinessItem> {
         );
       },
       child: Container(
-        margin: EdgeInsets.all(10 * widget.scaleParam),
-        width: 600 * widget.scaleParam,
+        margin: EdgeInsets.all(10 * globals.scaleParam),
+        width: 600 * globals.scaleParam,
         clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: Colors.white,
           boxShadow: [
             BoxShadow(
@@ -883,7 +880,7 @@ class BusinessItemState extends State<BusinessItem> {
                   child: CachedNetworkImage(
                     imageUrl: widget.business["img"],
                     errorWidget: (context, url, error) {
-                      return SizedBox();
+                      return const SizedBox();
                     },
                   )),
             ),
@@ -900,7 +897,7 @@ class BusinessItemState extends State<BusinessItem> {
                           widget.business["name"],
                           style: TextStyle(
                               fontWeight: FontWeight.w900,
-                              fontSize: 38 * widget.scaleParam),
+                              fontSize: 38 * globals.scaleParam),
                         ),
                       ),
                     ],
@@ -913,7 +910,7 @@ class BusinessItemState extends State<BusinessItem> {
                         widget.business["address"],
                         style: TextStyle(
                             fontWeight: FontWeight.w500,
-                            fontSize: 30 * widget.scaleParam),
+                            fontSize: 30 * globals.scaleParam),
                       ),
                     )
                   ],
@@ -927,7 +924,7 @@ class BusinessItemState extends State<BusinessItem> {
                         "Короткое описание",
                         style: TextStyle(
                             fontWeight: FontWeight.w500,
-                            fontSize: 30 * widget.scaleParam),
+                            fontSize: 30 * globals.scaleParam),
                       ),
                     ),
                   ],

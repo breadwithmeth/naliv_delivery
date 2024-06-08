@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
+import 'package:flutter/services.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/misc/colors.dart';
 import 'package:naliv_delivery/pages/homePage.dart';
@@ -11,6 +13,7 @@ import 'package:naliv_delivery/pages/startLoadingPage.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'globals.dart' as globals;
 
 void main() {
   runApp(const Main());
@@ -80,6 +83,11 @@ class _MainState extends State<Main> {
     // TODO: implement initState
     super.initState();
 
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      globals.scaleParam = (MediaQuery.of(context).size.height / 1080) *
+          (MediaQuery.of(context).size.width / 720) *
+          1;
+    });
     _checkAuth();
     // setState(() {
     //   _redirect = PermissionPage();
@@ -121,6 +129,10 @@ class _MainState extends State<Main> {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     return MaterialApp(
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -178,8 +190,7 @@ class _MainState extends State<Main> {
         dividerTheme: DividerThemeData(
           color: Colors.grey.shade300,
         ),
-        textTheme: GoogleFonts.montserratTextTheme(
-        ).copyWith(
+        textTheme: GoogleFonts.montserratTextTheme().copyWith(
           labelLarge: GoogleFonts.mulish(fontWeight: FontWeight.w700),
         ),
 

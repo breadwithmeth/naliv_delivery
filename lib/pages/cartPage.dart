@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -134,8 +135,7 @@ class _CartPageState extends State<CartPage>
   @override
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
-    double scaleParam =
-        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
+    
 
     return Scaffold(
       appBar: AppBar(
@@ -159,8 +159,8 @@ class _CartPageState extends State<CartPage>
               return Center(
                 child: Text(
                   "Ваша корзина пуста",
-                  style:
-                      TextStyle(fontSize: 40 * scaleParam, color: Colors.grey),
+                  style: TextStyle(
+                      fontSize: 40 * globals.scaleParam, color: Colors.grey),
                 ),
               );
             } else {
@@ -208,7 +208,7 @@ class _CartPageState extends State<CartPage>
 
                             // Show a red background as the item is swiped away.
                             background: SizedBox(
-                              width: 200 * scaleParam,
+                              width: 200 * globals.scaleParam,
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -293,7 +293,7 @@ class _CartPageState extends State<CartPage>
                       SizedBox(
                         width: MediaQuery.of(context).size.width,
                         height: items.length < 4
-                            ? (125 * scaleParam) * (4 - items.length)
+                            ? (125 * globals.scaleParam) * (4 - items.length)
                             : 0,
                       ),
                       Divider(
@@ -302,12 +302,13 @@ class _CartPageState extends State<CartPage>
                     ],
                   ),
                   SizedBox(
-                    height: 40 * scaleParam,
+                    height: 40 * globals.scaleParam,
                   ),
                   Divider(),
                   Padding(
                     padding: EdgeInsets.symmetric(
-                        horizontal: 40 * scaleParam, vertical: 40 * scaleParam),
+                        horizontal: 40 * globals.scaleParam,
+                        vertical: 40 * globals.scaleParam),
                     child: Row(
                       mainAxisSize: MainAxisSize.max,
                       children: [
@@ -317,43 +318,46 @@ class _CartPageState extends State<CartPage>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Padding(
-                                padding: EdgeInsets.only(left: 30 * scaleParam),
+                                padding: EdgeInsets.only(
+                                    left: 30 * globals.scaleParam),
                                 child: Text(
                                   "Цена без скидки",
                                   style: TextStyle(
-                                    fontSize: 32 * scaleParam,
+                                    fontSize: 32 * globals.scaleParam,
                                     fontWeight: FontWeight.w700,
                                     color: Colors.black,
                                   ),
                                 ),
                               ),
                               Padding(
-                                padding:
-                                    EdgeInsets.only(right: 40 * scaleParam),
+                                padding: EdgeInsets.only(
+                                    right: 40 * globals.scaleParam),
                                 child: Divider(),
                               ),
                               Padding(
-                                padding: EdgeInsets.only(left: 30 * scaleParam),
+                                padding: EdgeInsets.only(
+                                    left: 30 * globals.scaleParam),
                                 child: Text(
                                   "Скидка",
                                   style: TextStyle(
-                                    fontSize: 32 * scaleParam,
+                                    fontSize: 32 * globals.scaleParam,
                                     fontWeight: FontWeight.w700,
                                     color: Colors.black,
                                   ),
                                 ),
                               ),
                               Padding(
-                                padding:
-                                    EdgeInsets.only(right: 40 * scaleParam),
+                                padding: EdgeInsets.only(
+                                    right: 40 * globals.scaleParam),
                                 child: Divider(),
                               ),
                               Padding(
-                                padding: EdgeInsets.only(left: 30 * scaleParam),
+                                padding: EdgeInsets.only(
+                                    left: 30 * globals.scaleParam),
                                 child: Text(
                                   "Итого",
                                   style: TextStyle(
-                                    fontSize: 32 * scaleParam,
+                                    fontSize: 32 * globals.scaleParam,
                                     fontWeight: FontWeight.w700,
                                     color: Colors.black,
                                   ),
@@ -373,7 +377,7 @@ class _CartPageState extends State<CartPage>
                                     child: Text(
                                       "${formatCost(localSum.toString())} ₸", // CHANGE THIS TO REPRESENT SUM WITHOUT DISCOUNT
                                       style: TextStyle(
-                                        fontSize: 32 * scaleParam,
+                                        fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w700,
                                         color: Colors.black,
                                       ),
@@ -388,7 +392,7 @@ class _CartPageState extends State<CartPage>
                                     child: Text(
                                       "${formatCost(localDiscount.toString())} ₸", // CHANGE THIS TO REPRESENT DISCOUNT
                                       style: TextStyle(
-                                        fontSize: 32 * scaleParam,
+                                        fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w700,
                                         color: Colors.black,
                                       ),
@@ -404,7 +408,7 @@ class _CartPageState extends State<CartPage>
                                     child: Text(
                                       "${formatCost(localSum.toString())} ₸",
                                       style: TextStyle(
-                                        fontSize: 32 * scaleParam,
+                                        fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w700,
                                         color: Colors.black,
                                       ),
@@ -419,10 +423,11 @@ class _CartPageState extends State<CartPage>
                     ),
                   ),
                   SizedBox(
-                    height: 20 * scaleParam,
+                    height: 20 * globals.scaleParam,
                   ),
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 30 * scaleParam),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 30 * globals.scaleParam),
                     child: ElevatedButton(
                       onPressed: () {
                         // Navigator.push(
@@ -456,7 +461,7 @@ class _CartPageState extends State<CartPage>
                               textAlign: TextAlign.justify,
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
-                                fontSize: 36 * scaleParam,
+                                fontSize: 36 * globals.scaleParam,
                                 color: Theme.of(context).colorScheme.onPrimary,
                               ),
                             ),
@@ -496,7 +501,7 @@ class _CartPageState extends State<CartPage>
                                 title: Text(
                                   "Промокод",
                                   style: TextStyle(
-                                    fontSize: 48 * scaleParam,
+                                    fontSize: 48 * globals.scaleParam,
                                     fontWeight: FontWeight.w700,
                                     color: Colors.black,
                                   ),
@@ -512,13 +517,13 @@ class _CartPageState extends State<CartPage>
                                       ),
                                     ),
                                     SizedBox(
-                                      height: 30 * scaleParam,
+                                      height: 30 * globals.scaleParam,
                                     ),
                                     ElevatedButton(
                                       style: ElevatedButton.styleFrom(
                                         padding: EdgeInsets.symmetric(
-                                            horizontal: 30 * scaleParam,
-                                            vertical: 30 * scaleParam),
+                                            horizontal: 30 * globals.scaleParam,
+                                            vertical: 30 * globals.scaleParam),
                                       ),
                                       onPressed: () {
                                         print(
@@ -531,7 +536,7 @@ class _CartPageState extends State<CartPage>
                                           Text(
                                             "Подтвердить",
                                             style: TextStyle(
-                                              fontSize: 36 * scaleParam,
+                                              fontSize: 36 * globals.scaleParam,
                                               fontWeight: FontWeight.w900,
                                               color: Theme.of(context)
                                                   .colorScheme
@@ -550,7 +555,7 @@ class _CartPageState extends State<CartPage>
                         child: Text(
                           "Есть промокод?",
                           style: TextStyle(
-                            fontSize: 28 * scaleParam,
+                            fontSize: 28 * globals.scaleParam,
                             fontWeight: FontWeight.w600,
                             color: Theme.of(context).colorScheme.secondary,
                           ),
@@ -564,7 +569,7 @@ class _CartPageState extends State<CartPage>
           } else if (snapshot.hasError) {
             return Center(
               child: SizedBox(
-                width: 350 * scaleParam,
+                width: 350 * globals.scaleParam,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -573,7 +578,8 @@ class _CartPageState extends State<CartPage>
                         "Произошла ошибка при загрузке корзины.",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                            fontSize: 40 * scaleParam, color: Colors.grey),
+                            fontSize: 40 * globals.scaleParam,
+                            color: Colors.grey),
                       ),
                     ),
                     Flexible(
@@ -584,7 +590,7 @@ class _CartPageState extends State<CartPage>
                         child: Text(
                           "Повторить",
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 40 * scaleParam),
+                          style: TextStyle(fontSize: 40 * globals.scaleParam),
                         ),
                       ),
                     ),

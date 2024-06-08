@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/homePage.dart';
 import 'package:naliv_delivery/pages/preLoadDataPage.dart';
@@ -22,13 +23,12 @@ class _OrderPageState extends State<OrderPage> {
   @override
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
-    double scaleParam =
-        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
+    
 
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 30 * scaleParam),
+        padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(),
           onPressed: () {
@@ -50,7 +50,7 @@ class _OrderPageState extends State<OrderPage> {
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onPrimary,
                     fontWeight: FontWeight.w700,
-                    fontSize: 36 * scaleParam,
+                    fontSize: 36 * globals.scaleParam,
                   ),
                 ),
               ),
@@ -66,13 +66,13 @@ class _OrderPageState extends State<OrderPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              width: 500 * scaleParam,
+              width: 500 * globals.scaleParam,
               child: Text(
                 "Ваш заказ был успешно добавлен и находится в обработке",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onBackground,
-                  fontSize: 38 * scaleParam,
+                  fontSize: 38 * globals.scaleParam,
                   fontWeight: FontWeight.w500,
                 ),
               ),

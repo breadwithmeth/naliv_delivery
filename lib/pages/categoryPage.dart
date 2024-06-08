@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/cartPage.dart';
@@ -63,8 +64,6 @@ class _CategoryPageState extends State<CategoryPage> {
   @override
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
-    double scaleParam =
-        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
 
     return DefaultTabController(
       initialIndex: initialIndexTabbar,
@@ -75,14 +74,15 @@ class _CategoryPageState extends State<CategoryPage> {
           business: widget.business,
         ),
         appBar: AppBar(
-          toolbarHeight: 90 * scaleParam,
+          toolbarHeight: 90 * globals.scaleParam,
           bottom: TabBar(
             tabAlignment: TabAlignment.start,
             physics: const BouncingScrollPhysics(),
             labelPadding: EdgeInsets.symmetric(
-                horizontal: 10 * scaleParam, vertical: 10 * scaleParam),
+                horizontal: 10 * globals.scaleParam,
+                vertical: 10 * globals.scaleParam),
             labelStyle: TextStyle(
-              fontSize: 38 * scaleParam,
+              fontSize: 38 * globals.scaleParam,
               fontWeight: FontWeight.w500,
               color: Theme.of(context).colorScheme.onBackground,
             ),
@@ -99,7 +99,7 @@ class _CategoryPageState extends State<CategoryPage> {
           // toolbarHeight: 120,
           titleSpacing: 0,
           title: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10 * scaleParam),
+            padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -126,12 +126,12 @@ class _CategoryPageState extends State<CategoryPage> {
                           Text(
                             widget.business["name"],
                             maxLines: 1,
-                            style: TextStyle(fontSize: 28 * scaleParam),
+                            style: TextStyle(fontSize: 28 * globals.scaleParam),
                           ),
                           Text(
                             widget.business["address"],
                             maxLines: 1,
-                            style: TextStyle(fontSize: 28 * scaleParam),
+                            style: TextStyle(fontSize: 28 * globals.scaleParam),
                           ),
                         ],
                       ),
@@ -167,7 +167,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                 "Найти",
                                 style: TextStyle(
                                   fontWeight: FontWeight.w500,
-                                  fontSize: 34 * scaleParam,
+                                  fontSize: 34 * globals.scaleParam,
                                   color: Colors.black,
                                 ),
                               ),
@@ -259,7 +259,8 @@ class _CategoryPageState extends State<CategoryPage> {
           child: SafeArea(
             child: Padding(
               padding: EdgeInsets.symmetric(
-                  horizontal: 15 * scaleParam, vertical: 10 * scaleParam),
+                  horizontal: 15 * globals.scaleParam,
+                  vertical: 10 * globals.scaleParam),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -273,7 +274,7 @@ class _CategoryPageState extends State<CategoryPage> {
                           "Фильтры",
                           style: TextStyle(
                             color: Colors.black,
-                            fontSize: 44 * scaleParam,
+                            fontSize: 44 * globals.scaleParam,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -286,7 +287,7 @@ class _CategoryPageState extends State<CategoryPage> {
                       ],
                     ),
                     SizedBox(
-                      height: 15 * scaleParam,
+                      height: 15 * globals.scaleParam,
                     ),
                     // Column(
                     //   crossAxisAlignment:
@@ -295,8 +296,8 @@ class _CategoryPageState extends State<CategoryPage> {
                     // ),
                     Container(
                       padding: EdgeInsets.symmetric(
-                          horizontal: 10 * scaleParam,
-                          vertical: 15 * scaleParam),
+                          horizontal: 10 * globals.scaleParam,
+                          vertical: 15 * globals.scaleParam),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade300,
                         borderRadius: const BorderRadius.all(
@@ -312,7 +313,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                 "Бренды",
                                 style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: 32 * scaleParam,
+                                  fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -327,12 +328,12 @@ class _CategoryPageState extends State<CategoryPage> {
                       ),
                     ),
                     SizedBox(
-                      height: 15 * scaleParam,
+                      height: 15 * globals.scaleParam,
                     ),
                     Container(
                       padding: EdgeInsets.symmetric(
-                          horizontal: 10 * scaleParam,
-                          vertical: 15 * scaleParam),
+                          horizontal: 10 * globals.scaleParam,
+                          vertical: 15 * globals.scaleParam),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade300,
                         borderRadius: const BorderRadius.all(
@@ -348,7 +349,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                 "Производители",
                                 style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: 32 * scaleParam,
+                                  fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -363,12 +364,12 @@ class _CategoryPageState extends State<CategoryPage> {
                       ),
                     ),
                     SizedBox(
-                      height: 15 * scaleParam,
+                      height: 15 * globals.scaleParam,
                     ),
                     Container(
                       padding: EdgeInsets.symmetric(
-                          horizontal: 10 * scaleParam,
-                          vertical: 15 * scaleParam),
+                          horizontal: 10 * globals.scaleParam,
+                          vertical: 15 * globals.scaleParam),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade300,
                         borderRadius: const BorderRadius.all(
@@ -384,7 +385,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                 "Страны",
                                 style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: 32 * scaleParam,
+                                  fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -399,7 +400,7 @@ class _CategoryPageState extends State<CategoryPage> {
                       ),
                     ),
                     SizedBox(
-                      height: 20 * scaleParam,
+                      height: 20 * globals.scaleParam,
                     ),
                     ElevatedButton(
                       onPressed: () {
@@ -413,7 +414,7 @@ class _CategoryPageState extends State<CategoryPage> {
                             child: Text(
                               "Применить",
                               style: TextStyle(
-                                fontSize: 32 * scaleParam,
+                                fontSize: 32 * globals.scaleParam,
                                 fontWeight: FontWeight.w700,
                                 color: Theme.of(context).colorScheme.onPrimary,
                               ),
@@ -434,7 +435,6 @@ class _CategoryPageState extends State<CategoryPage> {
               CategoryPageList(
                 categoryId: categoriesWidgetList[j]["category_id"],
                 business: widget.business,
-                scaleParam: scaleParam,
               )
           ],
         ),
@@ -450,15 +450,15 @@ class _CategoryPageState extends State<CategoryPage> {
 // }
 
 class CategoryPageList extends StatefulWidget {
-  const CategoryPageList(
-      {super.key,
-      required this.categoryId,
-      required this.business,
-      required this.scaleParam});
+  const CategoryPageList({
+    super.key,
+    required this.categoryId,
+    required this.business,
+  });
 
   final String categoryId;
   final Map<dynamic, dynamic> business;
-  final double scaleParam;
+
   @override
   State<CategoryPageList> createState() => _CategoryPageListState();
 }
@@ -663,8 +663,8 @@ class _CategoryPageListState extends State<CategoryPageList>
                     _items.length != index
                         ? Padding(
                             padding: EdgeInsets.symmetric(
-                              horizontal: 16 * widget.scaleParam,
-                              vertical: 5 * widget.scaleParam,
+                              horizontal: 16 * globals.scaleParam,
+                              vertical: 5 * globals.scaleParam,
                             ),
                             child: Divider(
                               height: 0,
@@ -675,7 +675,7 @@ class _CategoryPageListState extends State<CategoryPageList>
                             (_items.length + (_isLastPage ? 0 : 1) - 1)) &&
                         (_isLastPage))
                       SizedBox(
-                        height: 95 * widget.scaleParam,
+                        height: 95 * globals.scaleParam,
                       ),
                   ],
                 ),

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 import 'dart:math' as math;
 
 import 'package:google_fonts/google_fonts.dart';
@@ -11,15 +12,13 @@ class LoadingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
-    double scaleParam =
-        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
+        
 
     return Scaffold(
       body: Stack(
         children: [
           MarqueeText(
             text: "НАЛИВ",
-            scaleParam: scaleParam,
           ),
           Center(
             child: Container(
@@ -32,14 +31,14 @@ class LoadingScreen extends StatelessWidget {
                       "Загрузка..",
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 60 * scaleParam,
+                        fontSize: 60 *globals.scaleParam,
                         fontWeight: FontWeight.w700,
                         color: Theme.of(context).colorScheme.onBackground,
                         shadows: [
                           Shadow(
                             color: Colors.black38,
-                            offset: Offset(3 * scaleParam, 5 * scaleParam),
-                            blurRadius: 20 * scaleParam,
+                            offset: Offset(3 *globals.scaleParam, 5 *globals.scaleParam),
+                            blurRadius: 20 *globals.scaleParam,
                           )
                         ],
                       ),
@@ -56,10 +55,10 @@ class LoadingScreen extends StatelessWidget {
 }
 
 class MarqueeText extends StatefulWidget {
-  MarqueeText({super.key, required this.text, required this.scaleParam});
+  MarqueeText({super.key, required this.text,            });
 
   final String text;
-  final double scaleParam;
+          
 
   @override
   State<MarqueeText> createState() => _MarqueeTextState();
@@ -80,15 +79,15 @@ class _MarqueeTextState extends State<MarqueeText>
     )..repeat(reverse: true);
 
     _animationOne = Tween<Offset>(
-      begin: Offset(0.66 * widget.scaleParam, 0),
-      end: Offset(-0.66 * widget.scaleParam, 0),
+      begin: Offset(0.66 *         globals.scaleParam   , 0),
+      end: Offset(-0.66 *         globals.scaleParam   , 0),
     ).animate(
       CurvedAnimation(parent: _controller, curve: Curves.linear),
     );
 
     _animationTwo = Tween<Offset>(
-      begin: Offset(-0.66 * widget.scaleParam, 0),
-      end: Offset(0.66 * widget.scaleParam, 0),
+      begin: Offset(-0.66 *         globals.scaleParam   , 0),
+      end: Offset(0.66 *         globals.scaleParam   , 0),
     ).animate(
       CurvedAnimation(parent: _controller, curve: Curves.linear),
     );
@@ -127,11 +126,11 @@ class _MarqueeTextState extends State<MarqueeText>
                         ? "ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO"
                         : "ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO",
                     style: TextStyle(
-                      fontSize: 150 * widget.scaleParam,
+                      fontSize: 150 *         globals.scaleParam   ,
                       fontWeight: FontWeight.w900,
                       color: Colors.black12,
-                      height: 1.9 * widget.scaleParam,
-                      wordSpacing: 8 * widget.scaleParam,
+                      height: 1.9 *         globals.scaleParam   ,
+                      wordSpacing: 8 *         globals.scaleParam   ,
                       fontFamily: "montserrat",
                     ),
                   ),

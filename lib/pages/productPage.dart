@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 import 'package:flutter/painting.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
@@ -463,14 +464,14 @@ class _ProductPageState extends State<ProductPage> {
 
   Scaffold _productPage(BuildContext context, ScrollController scrollController,
       Size screenSize) {
-    double scaleParam =
-        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
+ 
     return Scaffold(
       // color: Colors.white,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Padding(
         padding: EdgeInsets.symmetric(
-            horizontal: 20 * scaleParam, vertical: 20 * scaleParam),
+            horizontal: 20 * globals.scaleParam,
+            vertical: 20 * globals.scaleParam),
         child: item.isNotEmpty
             ? Stack(
                 alignment: Alignment.bottomCenter,
@@ -480,8 +481,8 @@ class _ProductPageState extends State<ProductPage> {
                       disabledBackgroundColor:
                           Theme.of(context).colorScheme.primary,
                       padding: EdgeInsets.symmetric(
-                        vertical: 28 * scaleParam,
-                        horizontal: 20 * scaleParam,
+                        vertical: 28 * globals.scaleParam,
+                        horizontal: 20 * globals.scaleParam,
                       ),
                     ),
                     onPressed: null,
@@ -524,7 +525,7 @@ class _ProductPageState extends State<ProductPage> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
-                              fontSize: 52 * scaleParam,
+                              fontSize: 52 * globals.scaleParam,
                               color: Theme.of(context).colorScheme.onPrimary,
                             ),
                           ),
@@ -541,7 +542,7 @@ class _ProductPageState extends State<ProductPage> {
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
-                                    fontSize: 40 * scaleParam,
+                                    fontSize: 40 * globals.scaleParam,
                                     color:
                                         Theme.of(context).colorScheme.onPrimary,
                                   ),
@@ -565,7 +566,7 @@ class _ProductPageState extends State<ProductPage> {
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontWeight: FontWeight.w700,
-                                      fontSize: 40 * scaleParam,
+                                      fontSize: 40 * globals.scaleParam,
                                       color: Theme.of(context)
                                           .colorScheme
                                           .onPrimary,
@@ -635,7 +636,7 @@ class _ProductPageState extends State<ProductPage> {
                 highlightColor: Theme.of(context).colorScheme.secondary,
                 child: Container(
                   width: MediaQuery.of(context).size.width,
-                  height: 50 * scaleParam,
+                  height: 50 * globals.scaleParam,
                   decoration: const BoxDecoration(
                     borderRadius: BorderRadius.all(Radius.circular(10)),
                     color: Colors.white,
@@ -648,7 +649,7 @@ class _ProductPageState extends State<ProductPage> {
         controller: scrollController,
         children: [
           Container(
-            padding: EdgeInsets.all(10 * scaleParam),
+            padding: EdgeInsets.all(10 * globals.scaleParam),
             width: MediaQuery.of(context).size.width,
             height: MediaQuery.of(context).size.width,
             child: Stack(
@@ -714,7 +715,8 @@ class _ProductPageState extends State<ProductPage> {
           ),
           Container(
             padding: EdgeInsets.symmetric(
-                horizontal: 30 * scaleParam, vertical: 10 * scaleParam),
+                horizontal: 30 * globals.scaleParam,
+                vertical: 10 * globals.scaleParam),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -723,8 +725,9 @@ class _ProductPageState extends State<ProductPage> {
                     children: [
                       Flexible(
                         child: Container(
-                          margin: EdgeInsets.only(right: 10 * scaleParam),
-                          padding: EdgeInsets.all(5 * scaleParam),
+                          margin:
+                              EdgeInsets.only(right: 10 * globals.scaleParam),
+                          padding: EdgeInsets.all(5 * globals.scaleParam),
                           decoration: BoxDecoration(
                               color: Colors.grey.shade200,
                               borderRadius:
@@ -732,14 +735,16 @@ class _ProductPageState extends State<ProductPage> {
                           child: Text(
                             "Новинка",
                             style: TextStyle(
-                                color: Colors.black, fontSize: 28 * scaleParam),
+                                color: Colors.black,
+                                fontSize: 28 * globals.scaleParam),
                           ),
                         ),
                       ),
                       Flexible(
                         child: Container(
-                          margin: EdgeInsets.only(right: 10 * scaleParam),
-                          padding: EdgeInsets.all(5 * scaleParam),
+                          margin:
+                              EdgeInsets.only(right: 10 * globals.scaleParam),
+                          padding: EdgeInsets.all(5 * globals.scaleParam),
                           decoration: BoxDecoration(
                               color: Colors.grey.shade200,
                               borderRadius:
@@ -747,14 +752,16 @@ class _ProductPageState extends State<ProductPage> {
                           child: Text(
                             "Новинка",
                             style: TextStyle(
-                                color: Colors.black, fontSize: 28 * scaleParam),
+                                color: Colors.black,
+                                fontSize: 28 * globals.scaleParam),
                           ),
                         ),
                       ),
                       Flexible(
                         child: Container(
-                          margin: EdgeInsets.only(right: 10 * scaleParam),
-                          padding: EdgeInsets.all(5 * scaleParam),
+                          margin:
+                              EdgeInsets.only(right: 10 * globals.scaleParam),
+                          padding: EdgeInsets.all(5 * globals.scaleParam),
                           decoration: BoxDecoration(
                               color: Colors.grey.shade200,
                               borderRadius:
@@ -762,7 +769,8 @@ class _ProductPageState extends State<ProductPage> {
                           child: Text(
                             "Новинка",
                             style: TextStyle(
-                                color: Colors.black, fontSize: 28 * scaleParam),
+                                color: Colors.black,
+                                fontSize: 28 * globals.scaleParam),
                           ),
                         ),
                       ),
@@ -770,7 +778,7 @@ class _ProductPageState extends State<ProductPage> {
                   ),
                 ),
                 Container(
-                  margin: EdgeInsets.all(5 * scaleParam),
+                  margin: EdgeInsets.all(5 * globals.scaleParam),
                   child: item.isNotEmpty
                       ? LikeButton(
                           item_id: item["item_id"],
@@ -784,7 +792,7 @@ class _ProductPageState extends State<ProductPage> {
           item.isNotEmpty
               ? Container(
                   padding: EdgeInsets.symmetric(
-                      horizontal: 30 * scaleParam,
+                      horizontal: 30 * globals.scaleParam,
                       vertical: 10 * (screenSize.height / 1080)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -793,7 +801,7 @@ class _ProductPageState extends State<ProductPage> {
                       Text(
                         item["name"] ?? "",
                         style: TextStyle(
-                          fontSize: 40 * scaleParam,
+                          fontSize: 40 * globals.scaleParam,
                           fontWeight: FontWeight.w700,
                           color: Colors.black,
                         ),
@@ -801,7 +809,7 @@ class _ProductPageState extends State<ProductPage> {
                       Text(
                         "${double.parse(item["in_stock"] ?? "0").truncate().toString()} шт. в наличии",
                         style: TextStyle(
-                          fontSize: 28 * scaleParam,
+                          fontSize: 28 * globals.scaleParam,
                           fontWeight: FontWeight.w700,
                           color: Theme.of(context).colorScheme.secondary,
                         ),
@@ -823,7 +831,7 @@ class _ProductPageState extends State<ProductPage> {
           Container(
             width: MediaQuery.of(context).size.width,
             padding: EdgeInsets.symmetric(
-                horizontal: 30 * scaleParam,
+                horizontal: 30 * globals.scaleParam,
                 vertical: 10 * (screenSize.height / 1080)),
             child: Wrap(
               children: propertiesWidget,
@@ -831,7 +839,8 @@ class _ProductPageState extends State<ProductPage> {
           ),
           item["group"] != null
               ? Container(
-                  padding: EdgeInsets.symmetric(horizontal: 20 * scaleParam),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
                   height: 50,
                   width: MediaQuery.of(context).size.width,
                   child: ListView(
@@ -890,7 +899,8 @@ class _ProductPageState extends State<ProductPage> {
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                           style: TextStyle(
-                              color: Colors.black, fontSize: 32 * scaleParam),
+                              color: Colors.black,
+                              fontSize: 32 * globals.scaleParam),
                         ),
                       ),
                       onTap: () {
@@ -920,7 +930,8 @@ class _ProductPageState extends State<ProductPage> {
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                           style: TextStyle(
-                              color: Colors.black, fontSize: 32 * scaleParam),
+                              color: Colors.black,
+                              fontSize: 32 * globals.scaleParam),
                         ),
                       ),
                       onTap: () {
@@ -950,7 +961,8 @@ class _ProductPageState extends State<ProductPage> {
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                           style: TextStyle(
-                              color: Colors.black, fontSize: 32 * scaleParam),
+                              color: Colors.black,
+                              fontSize: 32 * globals.scaleParam),
                         ),
                       ),
                       onTap: () {
@@ -966,7 +978,7 @@ class _ProductPageState extends State<ProductPage> {
           ),
           isDescriptionLoaded
               ? Container(
-                  padding: EdgeInsets.all(30 * scaleParam),
+                  padding: EdgeInsets.all(30 * globals.scaleParam),
                   child: Text(TabText[currentTab]),
                 )
               : SizedBox(
@@ -978,7 +990,7 @@ class _ProductPageState extends State<ProductPage> {
                   ),
                 ),
           Container(
-            padding: EdgeInsets.all(30 * scaleParam),
+            padding: EdgeInsets.all(30 * globals.scaleParam),
             child: Table(
               columnWidths: const {0: FlexColumnWidth(), 1: FlexColumnWidth()},
               border: TableBorder(

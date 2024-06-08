@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:geolocator/geolocator.dart';
@@ -170,8 +171,6 @@ class _HomePageState extends State<HomePage>
   @override
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
-    double scaleParam =
-        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
 
     super.build(context);
     return FutureBuilder(
@@ -185,10 +184,11 @@ class _HomePageState extends State<HomePage>
             ),
             appBar: AppBar(
               automaticallyImplyLeading: false,
-              toolbarHeight: 240 * scaleParam,
+              toolbarHeight: 240 * globals.scaleParam,
               titleSpacing: 0,
               title: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20 * scaleParam),
+                padding:
+                    EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -215,12 +215,14 @@ class _HomePageState extends State<HomePage>
                               Text(
                                 widget.business["name"],
                                 maxLines: 1,
-                                style: TextStyle(fontSize: 28 * scaleParam),
+                                style: TextStyle(
+                                    fontSize: 28 * globals.scaleParam),
                               ),
                               Text(
                                 widget.business["address"],
                                 maxLines: 1,
-                                style: TextStyle(fontSize: 28 * scaleParam),
+                                style: TextStyle(
+                                    fontSize: 28 * globals.scaleParam),
                               ),
                             ],
                           ),
@@ -255,12 +257,13 @@ class _HomePageState extends State<HomePage>
                                     "Найти",
                                     style: TextStyle(
                                       fontWeight: FontWeight.w500,
-                                      fontSize: 28 * scaleParam,
+                                      fontSize: 28 * globals.scaleParam,
                                       color: Colors.black,
                                     ),
                                   ),
                                   Container(
-                                    padding: EdgeInsets.all(20 * scaleParam),
+                                    padding:
+                                        EdgeInsets.all(20 * globals.scaleParam),
                                     child: Icon(
                                       Icons.search,
                                       color: Colors.black,
@@ -276,7 +279,6 @@ class _HomePageState extends State<HomePage>
                     isThereActiveOrder
                         ? ActiveOrderButton(
                             business: widget.business,
-                            scaleParam: scaleParam,
                           )
                         : Container(),
                   ],
@@ -289,7 +291,7 @@ class _HomePageState extends State<HomePage>
                   flex: 20,
                   fit: FlexFit.tight,
                   child: Padding(
-                    padding: EdgeInsets.all(20 * scaleParam),
+                    padding: EdgeInsets.all(20 * globals.scaleParam),
                     child: Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.all(Radius.circular(10)),
@@ -302,7 +304,7 @@ class _HomePageState extends State<HomePage>
                           shrinkWrap: true,
                           gridDelegate:
                               SliverGridDelegateWithMaxCrossAxisExtent(
-                                  maxCrossAxisExtent: 400 * scaleParam,
+                                  maxCrossAxisExtent: 400 * globals.scaleParam,
                                   childAspectRatio: 10 / 8,
                                   crossAxisSpacing: 0,
                                   mainAxisSpacing: 0),
@@ -320,7 +322,6 @@ class _HomePageState extends State<HomePage>
                                     image: snapshot.data![index]["photo"],
                                     categories: snapshot.data!,
                                     business: widget.business,
-                                    scaleParam: scaleParam,
                                   );
                           },
                         ),
@@ -340,20 +341,20 @@ class _HomePageState extends State<HomePage>
 }
 
 class CategoryItem extends StatefulWidget {
-  CategoryItem(
-      {super.key,
-      required this.category_id,
-      required this.name,
-      required this.image,
-      required this.categories,
-      required this.business,
-      required this.scaleParam});
+  CategoryItem({
+    super.key,
+    required this.category_id,
+    required this.name,
+    required this.image,
+    required this.categories,
+    required this.business,
+  });
   final String category_id;
   final String name;
   final String? image;
   final List<dynamic> categories;
   final Map<dynamic, dynamic> business;
-  final double scaleParam;
+
   @override
   State<CategoryItem> createState() => _CategoryItemState();
 }
@@ -382,8 +383,8 @@ class _CategoryItemState extends State<CategoryItem> {
           secondColor = Color(0xFFF5A265);
           imageBG = Image.asset(
             'assets/vectors/beer.png',
-            width: 260 * widget.scaleParam,
-            height: 260 * widget.scaleParam,
+            width: 260 * globals.scaleParam,
+            height: 260 * globals.scaleParam,
           );
         });
         break;
@@ -394,8 +395,8 @@ class _CategoryItemState extends State<CategoryItem> {
           secondColor = Color(0xFF464343);
           imageBG = Image.asset(
             'assets/vectors/whiskey.png',
-            width: 300 * widget.scaleParam,
-            height: 300 * widget.scaleParam,
+            width: 300 * globals.scaleParam,
+            height: 300 * globals.scaleParam,
           );
           _offset = Offset(0, 0);
         });
@@ -407,8 +408,8 @@ class _CategoryItemState extends State<CategoryItem> {
           secondColor = Color(0xFFE3427C);
           imageBG = Image.asset(
             'assets/vectors/wine.png',
-            width: 240 * widget.scaleParam,
-            height: 240 * widget.scaleParam,
+            width: 240 * globals.scaleParam,
+            height: 240 * globals.scaleParam,
           );
           _offset = Offset(0.15, -0.05);
         });
@@ -420,8 +421,8 @@ class _CategoryItemState extends State<CategoryItem> {
           secondColor = Color(0xFF8C9698);
           imageBG = Image.asset(
             'assets/vectors/vodka.png',
-            width: 340 * widget.scaleParam,
-            height: 340 * widget.scaleParam,
+            width: 340 * globals.scaleParam,
+            height: 340 * globals.scaleParam,
           );
           _offset = Offset(0, -0.18);
         });
@@ -432,8 +433,8 @@ class _CategoryItemState extends State<CategoryItem> {
           secondColor = Color(0xFF285B98);
           imageBG = Image.asset(
             'assets/vectors/drinks.png',
-            width: 170 * widget.scaleParam,
-            height: 170 * widget.scaleParam,
+            width: 170 * globals.scaleParam,
+            height: 170 * globals.scaleParam,
           );
           _offset = Offset(0, 0);
         });
@@ -444,8 +445,8 @@ class _CategoryItemState extends State<CategoryItem> {
           secondColor = Color(0xFF8C9698);
           imageBG = Image.asset(
             'assets/vectors/snacks.png',
-            width: 260 * widget.scaleParam,
-            height: 260 * widget.scaleParam,
+            width: 260 * globals.scaleParam,
+            height: 260 * globals.scaleParam,
           );
           _offset = Offset(0.18, 0.05);
           _rotation = -20 / 360;
@@ -646,7 +647,7 @@ class _CategoryItemState extends State<CategoryItem> {
           //       ),
           // ),
           Container(
-            padding: EdgeInsets.all(30 * widget.scaleParam),
+            padding: EdgeInsets.all(30 * globals.scaleParam),
             alignment: Alignment.topLeft,
             decoration: BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.circular(5))),
@@ -662,8 +663,8 @@ class _CategoryItemState extends State<CategoryItem> {
                   textStyle: TextStyle(
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
-                      fontSize: 42 * widget.scaleParam,
-                      height: 2.4 * widget.scaleParam,
+                      fontSize: 42 * globals.scaleParam,
+                      height: 2.4 * globals.scaleParam,
                       shadows: [
                         Shadow(
                           blurRadius: 8,

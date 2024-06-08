@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-
+import '../globals.dart' as globals;
 import '../misc/colors.dart';
 
 class CommonAppBar extends StatefulWidget {
@@ -9,7 +9,8 @@ class CommonAppBar extends StatefulWidget {
       {super.key,
       required this.business,
       required this.title,
-      required this.titleIcon, required this.options});
+      required this.titleIcon,
+      required this.options});
   final Map business;
   final String title;
   final Icon titleIcon;

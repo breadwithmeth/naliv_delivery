@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -119,8 +120,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
   @override
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
-    double scaleParam =
-        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
+    
 
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.centerTop,
@@ -136,7 +136,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                 borderRadius: BorderRadius.all(Radius.circular(15)),
               ),
               padding: EdgeInsets.symmetric(
-                  horizontal: 25 * scaleParam, vertical: 25 * scaleParam),
+                  horizontal: 25 * globals.scaleParam,
+                  vertical: 25 * globals.scaleParam),
               minimumSize: Size(0, 0),
             ),
             onPressed: () {
@@ -144,7 +145,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
             },
             child: Icon(
               Icons.arrow_back_rounded,
-              size: 48 * scaleParam,
+              size: 48 * globals.scaleParam,
             ),
           ),
           ElevatedButton(
@@ -155,7 +156,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                 borderRadius: BorderRadius.all(Radius.circular(15)),
               ),
               padding: EdgeInsets.symmetric(
-                  horizontal: 15 * scaleParam, vertical: 15 * scaleParam),
+                  horizontal: 15 * globals.scaleParam,
+                  vertical: 15 * globals.scaleParam),
             ),
             onPressed: () {
               showDialog(
@@ -170,7 +172,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                       child: Container(
                         alignment: Alignment.center,
                         color: Colors.transparent,
-                        padding: EdgeInsets.all(20 * scaleParam),
+                        padding: EdgeInsets.all(20 * globals.scaleParam),
                         child: ListView.builder(
                           primary: false,
                           itemCount: widget.cities.length,
@@ -198,14 +200,15 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                 Navigator.pop(context);
                               },
                               child: Container(
-                                padding: EdgeInsets.all(10 * scaleParam),
+                                padding:
+                                    EdgeInsets.all(10 * globals.scaleParam),
                                 child: Row(
                                   children: [
                                     Text(
                                       widget.cities[index]["name"],
                                       style: TextStyle(
                                         fontWeight: FontWeight.w700,
-                                        fontSize: 48 * scaleParam,
+                                        fontSize: 48 * globals.scaleParam,
                                       ),
                                     )
                                   ],
@@ -230,12 +233,12 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                   style: TextStyle(
                     color: Colors.black,
                     fontWeight: FontWeight.w700,
-                    fontSize: 38 * scaleParam,
+                    fontSize: 38 * globals.scaleParam,
                   ),
                 ),
                 Icon(
                   Icons.arrow_drop_down,
-                  size: 48 * scaleParam,
+                  size: 48 * globals.scaleParam,
                 )
               ],
             ),
@@ -303,7 +306,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                 BoxShadow(
                                     color: Colors.orange,
                                     blurRadius: 10,
-                                    spreadRadius: 200 * scaleParam)
+                                    spreadRadius: 200 * globals.scaleParam)
                               ],
                             ),
                           ],
@@ -331,7 +334,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                   child: Container(
                     child: Icon(
                       Icons.circle_outlined,
-                      size: 58 * scaleParam,
+                      size: 58 * globals.scaleParam,
                     ),
                   ),
                 ),
@@ -343,7 +346,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
             fit: FlexFit.tight,
             child: Container(
               padding: EdgeInsets.symmetric(
-                  horizontal: 30 * scaleParam, vertical: 20 * scaleParam),
+                  horizontal: 30 * globals.scaleParam,
+                  vertical: 20 * globals.scaleParam),
               child: !isMapSetteled
                   ? Center(
                       child: CircularProgressIndicator.adaptive(),
@@ -356,8 +360,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                           flex: 10,
                           fit: FlexFit.tight,
                           child: Padding(
-                            padding:
-                                EdgeInsets.symmetric(vertical: 5 * scaleParam),
+                            padding: EdgeInsets.symmetric(
+                                vertical: 5 * globals.scaleParam),
                             child: Column(
                               children: [
                                 Flexible(
@@ -371,8 +375,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                           maxLines: 1,
                                           style: TextStyle(
                                             fontWeight: FontWeight.w900,
-                                            fontSize: 36 * scaleParam,
-                                            height: 2 * scaleParam,
+                                            fontSize: 36 * globals.scaleParam,
+                                            height: 2 * globals.scaleParam,
                                           ),
                                         ),
                                       ),
@@ -389,7 +393,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                           "Ваш адрес",
                                           style: TextStyle(
                                             fontWeight: FontWeight.w700,
-                                            fontSize: 28 * scaleParam,
+                                            fontSize: 28 * globals.scaleParam,
                                             color: Colors.grey,
                                           ),
                                         ),
@@ -411,7 +415,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                           _currentAddressName ?? "",
                                           style: TextStyle(
                                               fontWeight: FontWeight.w700,
-                                              fontSize: 32 * scaleParam,
+                                              fontSize: 32 * globals.scaleParam,
                                               color: Colors.black),
                                         ),
                                       ),
@@ -433,8 +437,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                                       RoundedRectangleBorder(),
                                                   child: Container(
                                                     color: Colors.transparent,
-                                                    padding: EdgeInsets.all(
-                                                        20 * scaleParam),
+                                                    padding: EdgeInsets.all(20 *
+                                                        globals.scaleParam),
                                                     child: Column(
                                                       mainAxisSize:
                                                           MainAxisSize.min,
@@ -466,8 +470,9 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                                                   "Введите адрес"),
                                                         )),
                                                         SizedBox(
-                                                          height:
-                                                              40 * scaleParam,
+                                                          height: 40 *
+                                                              globals
+                                                                  .scaleParam,
                                                         ),
                                                         Flexible(
                                                           child:
@@ -486,7 +491,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                                             child: Container(
                                                               padding: EdgeInsets
                                                                   .all(30 *
-                                                                      scaleParam),
+                                                                      globals
+                                                                          .scaleParam),
                                                               decoration: BoxDecoration(
                                                                   color: Colors
                                                                       .deepOrangeAccent,
@@ -522,7 +528,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                           icon: Icon(
                                             Icons.search,
                                             color: Colors.deepOrangeAccent,
-                                            size: 48 * scaleParam,
+                                            size: 48 * globals.scaleParam,
                                           ),
                                         ),
                                       ),
@@ -530,7 +536,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                   ),
                                 ),
                                 Divider(
-                                  height: 15 * scaleParam,
+                                  height: 15 * globals.scaleParam,
                                 ),
                               ],
                             ),
@@ -554,7 +560,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                               ));
                             },
                             child: Container(
-                              padding: EdgeInsets.all(15 * scaleParam),
+                              padding: EdgeInsets.all(15 * globals.scaleParam),
                               decoration: BoxDecoration(
                                   color: Colors.deepOrangeAccent,
                                   borderRadius:
@@ -567,7 +573,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w900,
-                                      fontSize: 32 * scaleParam,
+                                      fontSize: 32 * globals.scaleParam,
                                     ),
                                   )
                                 ],
@@ -714,8 +720,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
   @override
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
-    double scaleParam =
-        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
+
 
     return Scaffold(
       body: CustomScrollView(
@@ -730,7 +735,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
               childCount: 1,
               (context, index) {
                 return Container(
-                  padding: EdgeInsets.all(20 * scaleParam),
+                  padding: EdgeInsets.all(20 * globals.scaleParam),
                   width: MediaQuery.of(context).size.width,
                   child: SingleChildScrollView(
                     child: Column(
@@ -758,12 +763,12 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                                     borderRadius:
                                         BorderRadius.all(Radius.circular(10)),
                                   ),
-                                  labelStyle:
-                                      TextStyle(fontSize: 38 * scaleParam),
+                                  labelStyle: TextStyle(
+                                      fontSize: 38 * globals.scaleParam),
                                 ),
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
-                                  fontSize: 38 * scaleParam,
+                                  fontSize: 38 * globals.scaleParam,
                                 ),
                                 controller: name,
                               ),
@@ -771,7 +776,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                           ],
                         ),
                         SizedBox(
-                          height: 20 * scaleParam,
+                          height: 20 * globals.scaleParam,
                         ),
                         Row(
                           children: [
@@ -787,13 +792,13 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                                     borderRadius:
                                         BorderRadius.all(Radius.circular(10)),
                                   ),
-                                  labelStyle:
-                                      TextStyle(fontSize: 38 * scaleParam),
+                                  labelStyle: TextStyle(
+                                      fontSize: 38 * globals.scaleParam),
                                 ),
                                 readOnly: true,
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
-                                  fontSize: 38 * scaleParam,
+                                  fontSize: 38 * globals.scaleParam,
                                 ),
                                 controller: TextEditingController(
                                     text: widget.addressName),
@@ -805,7 +810,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                           ],
                         ),
                         SizedBox(
-                          height: 20 * scaleParam,
+                          height: 20 * globals.scaleParam,
                         ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -827,10 +832,11 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                                     borderRadius:
                                         BorderRadius.all(Radius.circular(10)),
                                   ),
-                                  labelStyle:
-                                      TextStyle(fontSize: 32 * scaleParam),
+                                  labelStyle: TextStyle(
+                                      fontSize: 32 * globals.scaleParam),
                                 ),
-                                style: TextStyle(fontSize: 32 * scaleParam),
+                                style: TextStyle(
+                                    fontSize: 32 * globals.scaleParam),
                               ),
                             ),
                             Spacer(),
@@ -851,10 +857,11 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                                     borderRadius:
                                         BorderRadius.all(Radius.circular(10)),
                                   ),
-                                  labelStyle:
-                                      TextStyle(fontSize: 32 * scaleParam),
+                                  labelStyle: TextStyle(
+                                      fontSize: 32 * globals.scaleParam),
                                 ),
-                                style: TextStyle(fontSize: 32 * scaleParam),
+                                style: TextStyle(
+                                    fontSize: 32 * globals.scaleParam),
                               ),
                             ),
                             Spacer(),
@@ -875,16 +882,17 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                                     borderRadius:
                                         BorderRadius.all(Radius.circular(10)),
                                   ),
-                                  labelStyle:
-                                      TextStyle(fontSize: 32 * scaleParam),
+                                  labelStyle: TextStyle(
+                                      fontSize: 32 * globals.scaleParam),
                                 ),
-                                style: TextStyle(fontSize: 32 * scaleParam),
+                                style: TextStyle(
+                                    fontSize: 32 * globals.scaleParam),
                               ),
                             ),
                           ],
                         ),
                         SizedBox(
-                          height: 20 * scaleParam,
+                          height: 20 * globals.scaleParam,
                         ),
                         Row(
                           children: [
@@ -899,8 +907,8 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                                     return Text(
                                       '$currentLength/$maxLength',
                                       semanticsLabel: 'character count',
-                                      style:
-                                          TextStyle(fontSize: 32 * scaleParam),
+                                      style: TextStyle(
+                                          fontSize: 32 * globals.scaleParam),
                                     );
                                   } else {
                                     return null;
@@ -916,10 +924,11 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                                     borderRadius:
                                         BorderRadius.all(Radius.circular(10)),
                                   ),
-                                  labelStyle:
-                                      TextStyle(fontSize: 38 * scaleParam),
+                                  labelStyle: TextStyle(
+                                      fontSize: 38 * globals.scaleParam),
                                 ),
-                                style: TextStyle(fontSize: 38 * scaleParam),
+                                style: TextStyle(
+                                    fontSize: 38 * globals.scaleParam),
                                 controller: other,
                               ),
                             ),
@@ -929,13 +938,13 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                           children: [
                             Text(widget.lat.toString()),
                             SizedBox(
-                              width: 20 * scaleParam,
+                              width: 20 * globals.scaleParam,
                             ),
                             Text(widget.lon.toString())
                           ],
                         ),
                         SizedBox(
-                          height: 40 * scaleParam,
+                          height: 40 * globals.scaleParam,
                         ),
                         GestureDetector(
                           onTap: () {
@@ -944,7 +953,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                             });
                           },
                           child: Container(
-                            padding: EdgeInsets.all(30 * scaleParam),
+                            padding: EdgeInsets.all(30 * globals.scaleParam),
                             decoration: BoxDecoration(
                               color: Colors.deepOrangeAccent,
                               borderRadius:
@@ -958,7 +967,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w900,
-                                    fontSize: 48 * scaleParam,
+                                    fontSize: 48 * globals.scaleParam,
                                   ),
                                 )
                               ],

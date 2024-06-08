@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 import 'package:flutter/services.dart';
 import 'package:naliv_delivery/bottomMenu.dart';
 import 'package:naliv_delivery/misc/api.dart';

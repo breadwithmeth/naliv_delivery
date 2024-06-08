@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 
 class OrderHistoryPage extends StatefulWidget {
@@ -17,8 +18,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
   @override
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
-    double scaleParam =
-        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
+    
 
     return Scaffold(
       appBar: AppBar(
@@ -37,7 +37,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     SizedBox(
-                      width: 500 * scaleParam,
+                      width: 500 * globals.scaleParam,
                       child: Column(
                         children: [
                           Text(
@@ -45,7 +45,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.secondary,
-                              fontSize: 32 * scaleParam,
+                              fontSize: 32 * globals.scaleParam,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -54,7 +54,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.secondary,
-                              fontSize: 32 * scaleParam,
+                              fontSize: 32 * globals.scaleParam,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -67,7 +67,8 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
             } else {
               children = Padding(
                 padding: EdgeInsets.symmetric(
-                    horizontal: 20 * scaleParam, vertical: 20 * scaleParam),
+                    horizontal: 20 * globals.scaleParam,
+                    vertical: 20 * globals.scaleParam),
                 child: ListView.builder(
                   itemCount: snapshot.data!.length,
                   itemBuilder: (context, index) {
@@ -79,8 +80,8 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                             color: Colors.black12,
                           ),
                           padding: EdgeInsets.symmetric(
-                              horizontal: 20 * scaleParam,
-                              vertical: 10 * scaleParam),
+                              horizontal: 20 * globals.scaleParam,
+                              vertical: 10 * globals.scaleParam),
                           child: Row(
                             children: [
                               Flexible(
@@ -91,7 +92,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                     color: Theme.of(context)
                                         .colorScheme
                                         .onBackground,
-                                    fontSize: 32 * scaleParam,
+                                    fontSize: 32 * globals.scaleParam,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -107,7 +108,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onBackground,
-                                        fontSize: 32 * scaleParam,
+                                        fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -118,7 +119,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onBackground,
-                                        fontSize: 32 * scaleParam,
+                                        fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -137,7 +138,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onBackground,
-                                        fontSize: 32 * scaleParam,
+                                        fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -148,7 +149,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onBackground,
-                                        fontSize: 32 * scaleParam,
+                                        fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),

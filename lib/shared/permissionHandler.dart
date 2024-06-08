@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 
 class gps extends StatefulWidget {
   const gps({super.key});

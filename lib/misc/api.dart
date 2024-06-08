@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/cupertino.dart';
@@ -788,8 +789,6 @@ Future<bool> selectAddressClient(String addressId, String user_id) async {
     }
   }
 }
-
-
 
 Future<List<dynamic>> getCities() async {
   String? token = await getToken();

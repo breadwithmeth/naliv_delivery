@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:intl_phone_number_input/intl_phone_number_input_test.dart';
 import 'package:naliv_delivery/misc/api.dart';
@@ -25,8 +26,7 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
   @override
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
-    double scaleParam =
-        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
+    
 
     return Scaffold(
       appBar: AppBar(
@@ -34,11 +34,12 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 20 * scaleParam),
+          padding: EdgeInsets.symmetric(vertical: 20 * globals.scaleParam),
           child: Column(
             children: [
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 30 * scaleParam),
+                padding:
+                    EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
                 child: IntlPhoneField(
                   controller: _phone_number,
                   dropdownIconPosition: IconPosition.trailing,
@@ -79,14 +80,14 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                   });
                 },
                 child: SizedBox(
-                  width: 450 * scaleParam,
+                  width: 450 * globals.scaleParam,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         "Найти",
                         style: TextStyle(
-                          fontSize: 40 * scaleParam,
+                          fontSize: 40 * globals.scaleParam,
                           fontWeight: FontWeight.w500,
                           color: Theme.of(context).colorScheme.onPrimary,
                         ),
@@ -103,7 +104,7 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                           Text(
                             "Клиент: ${client["name"]}. ID: ${client["user_id"]}",
                             style: TextStyle(
-                              fontSize: 40 * scaleParam,
+                              fontSize: 40 * globals.scaleParam,
                               fontWeight: FontWeight.w500,
                               color: Theme.of(context).colorScheme.onBackground,
                             ),
@@ -113,10 +114,11 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                     )
                   : SizedBox(),
               SizedBox(
-                height: 200 * scaleParam,
+                height: 200 * globals.scaleParam,
               ),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20 * scaleParam),
+                padding:
+                    EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
                 child: ElevatedButton(
                   onPressed: isClientReady
                       ? () {
@@ -142,14 +144,14 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                         }
                       : null,
                   child: SizedBox(
-                    width: 450 * scaleParam,
+                    width: 450 * globals.scaleParam,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
                           "Продолжить",
                           style: TextStyle(
-                            fontSize: 40 * scaleParam,
+                            fontSize: 40 * globals.scaleParam,
                             fontWeight: FontWeight.w500,
                             color: Theme.of(context).colorScheme.onPrimary,
                           ),

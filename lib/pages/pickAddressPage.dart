@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
@@ -62,8 +63,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
   @override
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
-    double scaleParam =
-        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
+    
 
     return Scaffold(
       appBar: AppBar(
@@ -121,7 +121,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                 if (snapshot.hasData) {
                   if (snapshot.data!.isEmpty) {
                     return Container(
-                      height: 500 * scaleParam,
+                      height: 500 * globals.scaleParam,
                       alignment: Alignment.center,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -133,7 +133,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                   : "Здесь пусто",
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 40 * scaleParam,
+                                fontSize: 40 * globals.scaleParam,
                                 fontWeight: FontWeight.w500,
                                 color: Colors.grey,
                                 fontFamily: "montserrat",
@@ -170,8 +170,8 @@ class _PickAddressPageState extends State<PickAddressPage> {
                         },
                         child: Padding(
                           padding: EdgeInsets.symmetric(
-                              horizontal: 30 * scaleParam,
-                              vertical: 10 * scaleParam),
+                              horizontal: 30 * globals.scaleParam,
+                              vertical: 10 * globals.scaleParam),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -190,13 +190,15 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                           _addresses[index]["address"],
                                           style: TextStyle(
                                               fontWeight: FontWeight.w700,
-                                              fontSize: 36 * scaleParam),
+                                              fontSize:
+                                                  36 * globals.scaleParam),
                                         ),
                                         Text(
                                           _addresses[index]["city_name"] ?? "",
                                           style: TextStyle(
                                               fontWeight: FontWeight.w700,
-                                              fontSize: 32 * scaleParam),
+                                              fontSize:
+                                                  32 * globals.scaleParam),
                                         ),
                                       ],
                                     ),
@@ -212,7 +214,8 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                             textAlign: TextAlign.end,
                                             style: TextStyle(
                                                 fontWeight: FontWeight.w500,
-                                                fontSize: 32 * scaleParam),
+                                                fontSize:
+                                                    32 * globals.scaleParam),
                                           ),
                                         ),
                                       ],
@@ -229,7 +232,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                       "Подъезд/Вход: ",
                                       style: TextStyle(
                                           fontWeight: FontWeight.w500,
-                                          fontSize: 32 * scaleParam),
+                                          fontSize: 32 * globals.scaleParam),
                                     ),
                                   ),
                                   Flexible(
@@ -237,7 +240,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                       _addresses[index]["entrance"] ?? "-",
                                       style: TextStyle(
                                           fontWeight: FontWeight.w500,
-                                          fontSize: 32 * scaleParam),
+                                          fontSize: 32 * globals.scaleParam),
                                     ),
                                   )
                                 ],
@@ -251,7 +254,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                       "Этаж: ",
                                       style: TextStyle(
                                         fontWeight: FontWeight.w500,
-                                        fontSize: 32 * scaleParam,
+                                        fontSize: 32 * globals.scaleParam,
                                       ),
                                     ),
                                   ),
@@ -260,7 +263,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                       _addresses[index]["floor"] ?? "-",
                                       style: TextStyle(
                                         fontWeight: FontWeight.w500,
-                                        fontSize: 32 * scaleParam,
+                                        fontSize: 32 * globals.scaleParam,
                                       ),
                                     ),
                                   )
@@ -275,7 +278,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                       "Квартира/Офис: ",
                                       style: TextStyle(
                                         fontWeight: FontWeight.w500,
-                                        fontSize: 32 * scaleParam,
+                                        fontSize: 32 * globals.scaleParam,
                                       ),
                                     ),
                                   ),
@@ -284,7 +287,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                       _addresses[index]["apartment"] ?? "-",
                                       style: TextStyle(
                                         fontWeight: FontWeight.w500,
-                                        fontSize: 32 * scaleParam,
+                                        fontSize: 32 * globals.scaleParam,
                                       ),
                                     ),
                                   )
@@ -297,7 +300,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                       _addresses[index]["other"] ?? "-",
                                       style: TextStyle(
                                         fontWeight: FontWeight.w500,
-                                        fontSize: 32 * scaleParam,
+                                        fontSize: 32 * globals.scaleParam,
                                       ),
                                     ),
                                   ),
@@ -314,7 +317,8 @@ class _PickAddressPageState extends State<PickAddressPage> {
                   return Text(
                     "Error",
                     style: TextStyle(
-                        fontWeight: FontWeight.w500, fontSize: 32 * scaleParam),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 32 * globals.scaleParam),
                   );
                 } else {
                   return LinearProgressIndicator();

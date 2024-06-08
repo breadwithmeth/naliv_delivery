@@ -1,5 +1,6 @@
 // import 'package:flutter/material.dart';
-// import 'package:naliv_delivery/misc/api.dart';
+import '../globals.dart'
+    as globals;// import 'package:naliv_delivery/misc/api.dart';
 // import 'package:naliv_delivery/pages/addressesPage.dart';
 // import 'package:naliv_delivery/pages/loginPage.dart';
 // import 'package:naliv_delivery/pages/settingsPage.dart';

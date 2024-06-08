@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 import 'dart:async';
 import 'package:naliv_delivery/pages/orderPage.dart';
 import 'package:flutter/cupertino.dart';
 
 class ActiveOrderButton extends StatefulWidget {
-  ActiveOrderButton(
-      {super.key, required this.business, required this.scaleParam});
+  ActiveOrderButton({
+    super.key,
+    required this.business,
+  });
 
   final Map<dynamic, dynamic> business;
-  final double scaleParam;
 
   @override
   State<ActiveOrderButton> createState() => _ActiveOrderButtonState();
@@ -114,7 +116,7 @@ class _ActiveOrderButtonState extends State<ActiveOrderButton> {
   Widget build(BuildContext context) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
-        padding: EdgeInsets.symmetric(vertical: 30 * widget.scaleParam),
+        padding: EdgeInsets.symmetric(vertical: 30 * globals.scaleParam),
       ),
       onPressed: () {
         Navigator.push(context, CupertinoPageRoute(builder: (context) {
@@ -129,7 +131,7 @@ class _ActiveOrderButtonState extends State<ActiveOrderButton> {
         switchOutCurve: Curves.easeOut,
         child: Padding(
           key: UniqueKey(),
-          padding: EdgeInsets.symmetric(horizontal: 20 * widget.scaleParam),
+          padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -137,11 +139,11 @@ class _ActiveOrderButtonState extends State<ActiveOrderButton> {
               Flexible(
                 flex: 4,
                 child: Padding(
-                  padding: EdgeInsets.only(right: 10 * widget.scaleParam),
+                  padding: EdgeInsets.only(right: 10 * globals.scaleParam),
                   child: Text(
                     "Заказ ${orderCurrentStatus[0]}",
                     style: TextStyle(
-                      fontSize: 28 * widget.scaleParam,
+                      fontSize: 28 * globals.scaleParam,
                       fontWeight: FontWeight.w700,
                       color: Theme.of(context).colorScheme.onPrimary,
                     ),

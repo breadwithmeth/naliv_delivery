@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/pages/searchResultPage.dart';
 
@@ -44,8 +45,7 @@ class _SearchPageState extends State<SearchPage> {
   @override
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
-    double scaleParam =
-        (screenSize.height / 1080) * (screenSize.width / 720) * 2;
+
 
     return Scaffold(
       appBar: AppBar(
@@ -58,13 +58,14 @@ class _SearchPageState extends State<SearchPage> {
         child: Column(
           children: [
             Container(
-              margin: EdgeInsets.all(20 * scaleParam),
-              padding: EdgeInsets.all(40 * scaleParam),
+              margin: EdgeInsets.all(20 * globals.scaleParam),
+              padding: EdgeInsets.all(40 * globals.scaleParam),
               decoration: BoxDecoration(
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.1),
-                      offset: Offset(10 * scaleParam, 10 * scaleParam),
+                      offset: Offset(
+                          10 * globals.scaleParam, 10 * globals.scaleParam),
                       blurRadius: 10,
                     )
                   ],
@@ -120,7 +121,7 @@ class _SearchPageState extends State<SearchPage> {
                                 BorderRadius.all(Radius.circular(10)))),
                   ),
                   SizedBox(
-                    height: 10 * scaleParam,
+                    height: 10 * globals.scaleParam,
                   ),
                   widget.category_id != ""
                       ? Row(
@@ -138,7 +139,7 @@ class _SearchPageState extends State<SearchPage> {
                             Text(
                               "Искать везде",
                               style: TextStyle(
-                                fontSize: 28 * scaleParam,
+                                fontSize: 28 * globals.scaleParam,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.black,
                               ),
@@ -147,7 +148,7 @@ class _SearchPageState extends State<SearchPage> {
                         )
                       : Container(),
                   SizedBox(
-                    height: 10 * scaleParam,
+                    height: 10 * globals.scaleParam,
                   ),
                   AnimatedSwitcher(
                     duration: Duration(milliseconds: 125),
@@ -158,7 +159,7 @@ class _SearchPageState extends State<SearchPage> {
                       style: ElevatedButton.styleFrom(
                         textStyle: TextStyle(
                           color: Theme.of(context).colorScheme.onPrimary,
-                          fontSize: 32 * scaleParam,
+                          fontSize: 32 * globals.scaleParam,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -174,7 +175,7 @@ class _SearchPageState extends State<SearchPage> {
                           Text(
                             "Найти",
                             style: TextStyle(
-                              fontSize: 48 * scaleParam,
+                              fontSize: 48 * globals.scaleParam,
                             ),
                           )
                         ],
