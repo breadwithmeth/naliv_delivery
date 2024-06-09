@@ -170,8 +170,8 @@ class _PickAddressPageState extends State<PickAddressPage> {
                         },
                         child: Padding(
                           padding: EdgeInsets.symmetric(
-                              horizontal: 30 * globals.scaleParam,
-                              vertical: 10 * globals.scaleParam),
+                              horizontal: 50 * globals.scaleParam,
+                              vertical: 30 * globals.scaleParam),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -191,7 +191,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                           style: TextStyle(
                                               fontWeight: FontWeight.w700,
                                               fontSize:
-                                                  36 * globals.scaleParam),
+                                                  42 * globals.scaleParam),
                                         ),
                                         Text(
                                           _addresses[index]["city_name"] ?? "",

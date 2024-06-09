@@ -13,6 +13,7 @@ import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 
 class PickOnMapPage extends StatefulWidget {
   const PickOnMapPage(
@@ -120,130 +121,131 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
   @override
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
-    
 
     return Scaffold(
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerTop,
-      floatingActionButton: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        mainAxisSize: MainAxisSize.max,
-        children: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(15)),
+      resizeToAvoidBottomInset: true,
+      // resizeToAvoidBottomPadding: true,
+      appBar: AppBar(
+        automaticallyImplyLeading: true,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // TextButton(
+            //   style: ElevatedButton.styleFrom(
+            //     foregroundColor: Colors.black,
+            //     shape: RoundedRectangleBorder(
+            //       borderRadius: BorderRadius.all(Radius.circular(15)),
+            //     ),
+            //     padding: EdgeInsets.symmetric(
+            //         horizontal: 25 * globals.scaleParam,
+            //         vertical: 25 * globals.scaleParam),
+            //     minimumSize: Size(0, 0),
+            //   ),
+            //   onPressed: () {
+            //     Navigator.pop(context);
+            //   },
+            //   child: Icon(
+            //     Icons.arrow_back_rounded,
+            //     size: 48 * globals.scaleParam,
+            //   ),
+            // ),
+            TextButton(
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(15)),
+                ),
+                padding: EdgeInsets.symmetric(
+                    horizontal: 15 * globals.scaleParam,
+                    vertical: 15 * globals.scaleParam),
               ),
-              padding: EdgeInsets.symmetric(
-                  horizontal: 25 * globals.scaleParam,
-                  vertical: 25 * globals.scaleParam),
-              minimumSize: Size(0, 0),
-            ),
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: Icon(
-              Icons.arrow_back_rounded,
-              size: 48 * globals.scaleParam,
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(15)),
-              ),
-              padding: EdgeInsets.symmetric(
-                  horizontal: 15 * globals.scaleParam,
-                  vertical: 15 * globals.scaleParam),
-            ),
-            onPressed: () {
-              showDialog(
-                barrierColor: Colors.white70,
-                context: context,
-                builder: (context) {
-                  return Dialog(
-                    backgroundColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                      child: Container(
-                        alignment: Alignment.center,
-                        color: Colors.transparent,
-                        padding: EdgeInsets.all(20 * globals.scaleParam),
-                        child: ListView.builder(
-                          primary: false,
-                          itemCount: widget.cities.length,
-                          itemBuilder: (context, index) {
-                            return TextButton(
-                              onPressed: () {
-                                setState(() {
-                                  _currentCity = widget.cities[index]["name"];
-                                  _currentCityId =
-                                      widget.cities[index]["city_id"];
-                                });
-                                _mapController.move(
-                                    LatLng(
-                                        (double.parse(widget.cities[index]
-                                                    ["x1"]) +
-                                                double.parse(widget
-                                                    .cities[index]["x2"])) /
-                                            2,
-                                        (double.parse(widget.cities[index]
-                                                    ["y1"]) +
-                                                double.parse(widget
-                                                    .cities[index]["y1"])) /
-                                            2),
-                                    10);
-                                Navigator.pop(context);
-                              },
-                              child: Container(
-                                padding:
-                                    EdgeInsets.all(10 * globals.scaleParam),
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      widget.cities[index]["name"],
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 48 * globals.scaleParam,
-                                      ),
-                                    )
-                                  ],
+              onPressed: () {
+                showDialog(
+                  barrierColor: Colors.white70,
+                  context: context,
+                  builder: (context) {
+                    return Dialog(
+                      backgroundColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                        child: Container(
+                          alignment: Alignment.center,
+                          color: Colors.transparent,
+                          padding: EdgeInsets.all(20 * globals.scaleParam),
+                          child: ListView.builder(
+                            primary: false,
+                            itemCount: widget.cities.length,
+                            itemBuilder: (context, index) {
+                              return TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _currentCity = widget.cities[index]["name"];
+                                    _currentCityId =
+                                        widget.cities[index]["city_id"];
+                                  });
+                                  _mapController.move(
+                                      LatLng(
+                                          (double.parse(widget.cities[index]
+                                                      ["x1"]) +
+                                                  double.parse(widget
+                                                      .cities[index]["x2"])) /
+                                              2,
+                                          (double.parse(widget.cities[index]
+                                                      ["y1"]) +
+                                                  double.parse(widget
+                                                      .cities[index]["y1"])) /
+                                              2),
+                                      10);
+                                  Navigator.pop(context);
+                                },
+                                child: Container(
+                                  padding:
+                                      EdgeInsets.all(10 * globals.scaleParam),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        widget.cities[index]["name"],
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 48 * globals.scaleParam,
+                                        ),
+                                      )
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          ),
                         ),
                       ),
+                    );
+                  },
+                );
+              },
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _currentCity.isEmpty ? "Выберите город" : _currentCity,
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 38 * globals.scaleParam,
                     ),
-                  );
-                },
-              );
-            },
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _currentCity.isEmpty ? "Выберите город" : _currentCity,
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 38 * globals.scaleParam,
                   ),
-                ),
-                Icon(
-                  Icons.arrow_drop_down,
-                  size: 48 * globals.scaleParam,
-                )
-              ],
+                  Icon(
+                    Icons.arrow_drop_down,
+                    size: 48 * globals.scaleParam,
+                  )
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       body: Column(
         children: [
@@ -301,7 +303,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                             // AnimatedCurrentPosition(),
                             Icon(
                               Icons.circle,
-                              color: Colors.deepOrangeAccent,
+                              color: globals.mainColor,
                               shadows: [
                                 BoxShadow(
                                     color: Colors.orange,
@@ -353,9 +355,10 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                       child: CircularProgressIndicator.adaptive(),
                     )
                   : Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Spacer(),
                         Flexible(
                           flex: 10,
                           fit: FlexFit.tight,
@@ -375,7 +378,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                           maxLines: 1,
                                           style: TextStyle(
                                             fontWeight: FontWeight.w900,
-                                            fontSize: 36 * globals.scaleParam,
+                                            fontSize: 42 * globals.scaleParam,
                                             height: 2 * globals.scaleParam,
                                           ),
                                         ),
@@ -393,7 +396,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                           "Ваш адрес",
                                           style: TextStyle(
                                             fontWeight: FontWeight.w700,
-                                            fontSize: 28 * globals.scaleParam,
+                                            fontSize: 24 * globals.scaleParam,
                                             color: Colors.grey,
                                           ),
                                         ),
@@ -402,7 +405,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                   ),
                                 ),
                                 Flexible(
-                                  flex: 2,
+                                  flex: 1,
                                   child: Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
@@ -527,7 +530,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                           },
                                           icon: Icon(
                                             Icons.search,
-                                            color: Colors.deepOrangeAccent,
+                                            color: globals.mainColor,
                                             size: 48 * globals.scaleParam,
                                           ),
                                         ),
@@ -547,7 +550,12 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                           fit: FlexFit.tight,
                           child: GestureDetector(
                             onTap: () {
-                              Navigator.push(context, CupertinoPageRoute(
+                              showModalBottomSheet(
+                                backgroundColor: Colors.white,
+                                barrierColor: Colors.black45,
+                                isScrollControlled: true,
+                                context: context,
+                                useSafeArea: true,
                                 builder: (context) {
                                   return CreateAddressPage(
                                     lat: _lat,
@@ -557,12 +565,12 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                     isFromCreateOrder: true,
                                   );
                                 },
-                              ));
+                              );
                             },
                             child: Container(
                               padding: EdgeInsets.all(15 * globals.scaleParam),
                               decoration: BoxDecoration(
-                                  color: Colors.deepOrangeAccent,
+                                  color: globals.mainColor,
                                   borderRadius:
                                       BorderRadius.all(Radius.circular(5))),
                               child: Row(
@@ -687,7 +695,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
   TextEditingController house = TextEditingController();
   TextEditingController entrance = TextEditingController();
   TextEditingController other = TextEditingController();
-  TextEditingController name = TextEditingController();
+  TextEditingController name = TextEditingController(text: "Мой первый адрес");
   Future<void> _createAddress() async {
     await createAddress({
       "lat": widget.lat,
@@ -719,269 +727,187 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
 
   @override
   Widget build(BuildContext context) {
-    Size screenSize = MediaQuery.of(context).size;
-
-
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            title: Text("Создание адреса"),
-            shadowColor: Colors.black26,
-            forceElevated: true,
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              childCount: 1,
-              (context, index) {
-                return Container(
-                  padding: EdgeInsets.all(20 * globals.scaleParam),
-                  width: MediaQuery.of(context).size.width,
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              flex: 7,
-                              child: TextField(
-                                maxLength: 250,
-                                buildCounter: (context,
-                                    {required currentLength,
-                                    required isFocused,
-                                    required maxLength}) {
-                                  return null;
-                                },
-                                decoration: InputDecoration(
-                                  labelText: "Название",
-                                  filled: true,
-                                  fillColor: Colors.grey.shade100,
-                                  border: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                        color: Colors.black, width: 10),
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(10)),
-                                  ),
-                                  labelStyle: TextStyle(
-                                      fontSize: 38 * globals.scaleParam),
-                                ),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 38 * globals.scaleParam,
-                                ),
-                                controller: name,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(
-                          height: 20 * globals.scaleParam,
-                        ),
-                        Row(
-                          children: [
-                            Flexible(
-                              flex: 7,
-                              child: TextField(
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: Colors.grey.shade200,
-                                  border: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                        color: Colors.black, width: 10),
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(10)),
-                                  ),
-                                  labelStyle: TextStyle(
-                                      fontSize: 38 * globals.scaleParam),
-                                ),
-                                readOnly: true,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 38 * globals.scaleParam,
-                                ),
-                                controller: TextEditingController(
-                                    text: widget.addressName),
-                              ),
-                            ),
-                            Spacer(
-                              flex: 1,
-                            ),
-                          ],
-                        ),
-                        SizedBox(
-                          height: 20 * globals.scaleParam,
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Flexible(
-                              flex: 5,
-                              child: TextField(
-                                controller: house,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly
-                                ],
-                                decoration: InputDecoration(
-                                  labelText: "Квартира/Офис",
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                  border: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                        color: Colors.black, width: 10),
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(10)),
-                                  ),
-                                  labelStyle: TextStyle(
-                                      fontSize: 32 * globals.scaleParam),
-                                ),
-                                style: TextStyle(
-                                    fontSize: 32 * globals.scaleParam),
-                              ),
-                            ),
-                            Spacer(),
-                            Flexible(
-                              flex: 5,
-                              child: TextField(
-                                controller: entrance,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly
-                                ],
-                                decoration: InputDecoration(
-                                  labelText: "Подъезд/Вход",
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                  border: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                        color: Colors.black, width: 10),
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(10)),
-                                  ),
-                                  labelStyle: TextStyle(
-                                      fontSize: 32 * globals.scaleParam),
-                                ),
-                                style: TextStyle(
-                                    fontSize: 32 * globals.scaleParam),
-                              ),
-                            ),
-                            Spacer(),
-                            Flexible(
-                              flex: 3,
-                              child: TextField(
-                                controller: floor,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly
-                                ],
-                                decoration: InputDecoration(
-                                  labelText: "Этаж",
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                  border: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                        color: Colors.black, width: 10),
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(10)),
-                                  ),
-                                  labelStyle: TextStyle(
-                                      fontSize: 32 * globals.scaleParam),
-                                ),
-                                style: TextStyle(
-                                    fontSize: 32 * globals.scaleParam),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(
-                          height: 20 * globals.scaleParam,
-                        ),
-                        Row(
-                          children: [
-                            Flexible(
-                              child: TextField(
-                                maxLength: 500,
-                                buildCounter: (context,
-                                    {required currentLength,
-                                    required isFocused,
-                                    required maxLength}) {
-                                  if (isFocused) {
-                                    return Text(
-                                      '$currentLength/$maxLength',
-                                      semanticsLabel: 'character count',
-                                      style: TextStyle(
-                                          fontSize: 32 * globals.scaleParam),
-                                    );
-                                  } else {
-                                    return null;
-                                  }
-                                },
-                                decoration: InputDecoration(
-                                  labelText: "Комментарий",
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                  border: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                        color: Colors.black, width: 10),
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(10)),
-                                  ),
-                                  labelStyle: TextStyle(
-                                      fontSize: 38 * globals.scaleParam),
-                                ),
-                                style: TextStyle(
-                                    fontSize: 38 * globals.scaleParam),
-                                controller: other,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Text(widget.lat.toString()),
-                            SizedBox(
-                              width: 20 * globals.scaleParam,
-                            ),
-                            Text(widget.lon.toString())
-                          ],
-                        ),
-                        SizedBox(
-                          height: 40 * globals.scaleParam,
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            _createAddress().whenComplete(() {
-                              // widget.isFromCreateOrder
-                            });
-                          },
-                          child: Container(
-                            padding: EdgeInsets.all(30 * globals.scaleParam),
-                            decoration: BoxDecoration(
-                              color: Colors.deepOrangeAccent,
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(10)),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  "Продолжить",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 48 * globals.scaleParam,
-                                  ),
-                                )
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+    return Padding(
+      padding: EdgeInsets.only(
+        top: 20,
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 20,
+          right: 20),
+      child: Container(
+        child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+             
+              Row(
+                children: [
+                  Flexible(
+                      child: Text(
+                    widget.addressName,
+                    style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black),
+                  )),
+                ],
+              ),
+              Divider(thickness: 1,),
+              Flexible(
+                child: TextField(
+                  maxLength: 250,
+                  buildCounter: (context,
+                      {required currentLength,
+                      required isFocused,
+                      required maxLength}) {
+                    return null;
+                  },
+                  decoration: InputDecoration(
+                    labelText: "Название",
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: UnderlineInputBorder(),
+                    labelStyle: TextStyle(fontSize: 38 * globals.scaleParam),
+                  ),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 38 * globals.scaleParam,
+                  ),
+                  controller: name,
+                ),
+              ),
+              // TextField(
+              //   decoration: InputDecoration(
+              //     filled: true,
+              //     fillColor: Colors.grey.shade200,
+              //     border: OutlineInputBorder(
+              //       borderSide: BorderSide(color: Colors.black, width: 10),
+              //       borderRadius: BorderRadius.all(Radius.circular(10)),
+              //     ),
+              //     labelStyle: TextStyle(fontSize: 38 * globals.scaleParam),
+              //   ),
+              //   readOnly: true,
+              //   style: TextStyle(
+              //     fontWeight: FontWeight.w700,
+              //     fontSize: 38 * globals.scaleParam,
+              //   ),
+              //   controller: TextEditingController(text: widget.addressName),
+              // ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: TextField(
+                      keyboardType: TextInputType.number,
+                      controller: house,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: InputDecoration(
+                        labelText: "Квартира/Офис",
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: UnderlineInputBorder(),
+                        labelStyle:
+                            TextStyle(fontSize: 32 * globals.scaleParam),
+                      ),
+                      style: TextStyle(fontSize: 32 * globals.scaleParam),
                     ),
                   ),
-                );
-              },
-            ),
-          ),
-        ],
+                  Flexible(
+                    child: TextField(
+                      keyboardType: TextInputType.number,
+                      controller: entrance,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: InputDecoration(
+                        labelText: "Подъезд/Вход",
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: UnderlineInputBorder(),
+                        labelStyle:
+                            TextStyle(fontSize: 32 * globals.scaleParam),
+                      ),
+                      style: TextStyle(fontSize: 32 * globals.scaleParam),
+                    ),
+                  ),
+                  Flexible(
+                    child: TextField(
+                      keyboardType: TextInputType.number,
+                      controller: floor,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: InputDecoration(
+                        labelText: "Этаж",
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: UnderlineInputBorder(),
+                        labelStyle:
+                            TextStyle(fontSize: 32 * globals.scaleParam),
+                      ),
+                      style: TextStyle(fontSize: 32 * globals.scaleParam),
+                    ),
+                  )
+                ],
+              ),
+              TextField(
+                maxLength: 500,
+                buildCounter: (context,
+                    {required currentLength,
+                    required isFocused,
+                    required maxLength}) {
+                  if (isFocused) {
+                    return Text(
+                      '$currentLength/$maxLength',
+                      semanticsLabel: 'character count',
+                      style: TextStyle(fontSize: 32 * globals.scaleParam),
+                    );
+                  } else {
+                    return null;
+                  }
+                },
+                decoration: InputDecoration(
+                  labelText: "Комментарий",
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: UnderlineInputBorder(),
+                  labelStyle: TextStyle(fontSize: 38 * globals.scaleParam),
+                ),
+                style: TextStyle(fontSize: 38 * globals.scaleParam),
+                controller: other,
+              ),
+              Row(
+                children: [
+                  Text(widget.lat.toString()),
+                  SizedBox(
+                    width: 20 * globals.scaleParam,
+                  ),
+                  Text(widget.lon.toString())
+                ],
+              ),
+              GestureDetector(
+                onTap: () {
+                  _createAddress().whenComplete(() {
+                    // widget.isFromCreateOrder
+                  });
+                },
+                child: Container(
+                  padding: EdgeInsets.all(30 * globals.scaleParam),
+                  decoration: BoxDecoration(
+                    color: globals.mainColor,
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Продолжить",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 48 * globals.scaleParam,
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            ]),
       ),
     );
   }

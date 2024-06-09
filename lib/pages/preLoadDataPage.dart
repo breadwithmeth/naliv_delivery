@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/createProfilePage.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/organizationSelectPage.dart';
@@ -65,22 +66,46 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
     _getAddresses().then((v) {
       _getUser().then((vv) {
         _getBusinesses().then((b) {
-          _addresses.isNotEmpty
-              ? Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
-                  builder: (context) {
-                    return OrganizationSelectPage(
-                      addresses: _addresses,
-                      currentAddress: _currentAddress,
-                      user: user,
-                      businesses: b,
-                    );
-                  },
-                ), (Route<dynamic> route) => false)
-              : Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
-                  builder: (context) {
-                    return PickAddressPage(client: user, isFirstTime: true);
-                  },
-                ), (Route<dynamic> route) => false);
+          if (user["name"].toString().isEmpty) {
+            Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+              builder: (context) {
+                return const ProfileCreatePage();
+              },
+            ), (route) => false);
+          } else {
+            _addresses.isNotEmpty
+                ? Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+                    builder: (context) {
+                      return OrganizationSelectPage(
+                        addresses: _addresses,
+                        currentAddress: _currentAddress,
+                        user: user,
+                        businesses: b,
+                      );
+                    },
+                  ), (Route<dynamic> route) => false)
+                : Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+                    builder: (context) {
+                      return PickAddressPage(client: user, isFirstTime: true);
+                    },
+                  ), (Route<dynamic> route) => false);
+            _addresses.isNotEmpty
+                ? Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+                    builder: (context) {
+                      return OrganizationSelectPage(
+                        addresses: _addresses,
+                        currentAddress: _currentAddress,
+                        user: user,
+                        businesses: b,
+                      );
+                    },
+                  ), (Route<dynamic> route) => false)
+                : Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+                    builder: (context) {
+                      return PickAddressPage(client: user, isFirstTime: true);
+                    },
+                  ), (Route<dynamic> route) => false);
+          }
         });
       });
     });

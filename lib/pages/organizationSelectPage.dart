@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/createProfilePage.dart';
 import '../globals.dart' as globals;
 
 import 'package:flutter/painting.dart';
@@ -153,9 +154,15 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     // Future.delayed(Duration.zero).then((value) async {
     //   _getUser();
     // });
-    // WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-    //   _getAddresses();
-    // });
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      if (widget.user["name"].toString().isEmpty) {
+        Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+          builder: (context) {
+            return const ProfileCreatePage();
+          },
+        ), (route) => false);
+      }
+    });
     // _initData();
   }
 
@@ -281,7 +288,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
           ),
         ),
         backgroundColor: Colors.grey.shade50,
-        // !isCollapsed ?  Colors.deepOrangeAccent : Colors.white,
+        // !isCollapsed ?      globals.mainColor : Colors.white,
         body: SafeArea(
             child: CustomScrollView(
           controller: _sc,
@@ -294,7 +301,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
               shape: const LinearBorder(bottom: LinearBorderEdge(size: 1)),
               shadowColor: Colors.transparent,
               backgroundColor:
-                  !isCollapsed ? Colors.deepOrangeAccent : Colors.transparent,
+                  !isCollapsed ? globals.mainColor : Colors.transparent,
               surfaceTintColor: Colors.transparent,
               foregroundColor: Colors.transparent,
               // scrolledUnderElevation: collapsedBarHeight,
@@ -362,7 +369,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                         )
                       : Container(
                           alignment: Alignment.center,
-                          color: Colors.deepOrangeAccent,
+                          color: globals.mainColor,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
@@ -456,12 +463,12 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                             spreadRadius: 5,
                             offset: const Offset(0, -100),
                             color: !isStartingToCollapse
-                                ? Colors.deepOrangeAccent
+                                ? globals.mainColor
                                 : Colors.grey.shade50,
                           )
                         ],
                         color: !isStartingToCollapse
-                            ? Colors.deepOrangeAccent
+                            ? globals.mainColor
                             : Colors.grey.shade50,
                       ),
                       child: Stack(
@@ -497,7 +504,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                               AnimatedContainer(
                                 foregroundDecoration: BoxDecoration(
                                     color: !isStartingToCollapse
-                                        ? Colors.deepOrangeAccent.withOpacity(0)
+                                        ? globals.mainColor.withOpacity(0)
                                         : Colors.grey.shade50),
                                 duration: Durations.medium1,
                                 child: Column(
@@ -505,9 +512,12 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                   children: [
                                     AnimatedContainer(
                                       duration: Durations.medium1,
-                                      // foregroundDecoration: BoxDecoration(color: isCollapsed ? Colors.deepOrangeAccent : Colors.transparent),
+                                      // foregroundDecoration: BoxDecoration(color: isCollapsed ?     globals.mainColor : Colors.transparent),
                                       width: double.infinity,
-                                      height: 250 * globals.scaleParam,
+                                      // height: 250 * globals.scaleParam,
+                                      height:
+                                          MediaQuery.of(context).size.height /
+                                              5,
                                       margin: EdgeInsets.all(
                                           15 * globals.scaleParam),
                                       decoration: const BoxDecoration(
@@ -516,37 +526,47 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                           ),
                                       child: Column(
                                         children: [
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              const Spacer(
-                                                flex: 2,
-                                              ),
-                                              CircleAvatar(
-                                                radius: 60 * globals.scaleParam,
-                                              ),
-                                              const Spacer(),
-                                              Flexible(
-                                                flex: 3,
-                                                child: Text(
-                                                  widget.user["name"],
-                                                  style: GoogleFonts.mulish(
-                                                    textStyle: TextStyle(
-                                                        letterSpacing: 1,
-                                                        fontSize: 48 *
-                                                            globals.scaleParam,
-                                                        color: Colors.white,
-                                                        fontWeight:
-                                                            FontWeight.w900),
-                                                  ),
+                                          widget.user["name"] != ""
+                                              ? Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    const Spacer(
+                                                      flex: 2,
+                                                    ),
+                                                    CircleAvatar(
+                                                      radius: 60 *
+                                                          globals.scaleParam,
+                                                    ),
+                                                    const Spacer(),
+                                                    Flexible(
+                                                      flex: 3,
+                                                      child: Text(
+                                                        widget.user["name"],
+                                                        style:
+                                                            GoogleFonts.mulish(
+                                                          textStyle: TextStyle(
+                                                              letterSpacing: 1,
+                                                              fontSize: 48 *
+                                                                  globals
+                                                                      .scaleParam,
+                                                              color:
+                                                                  Colors.white,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w900),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const Spacer(
+                                                      flex: 2,
+                                                    ),
+                                                  ],
+                                                )
+                                              : Container(
+                                                  height: 10,
+                                                  width: 10,
                                                 ),
-                                              ),
-                                              const Spacer(
-                                                flex: 2,
-                                              ),
-                                            ],
-                                          ),
                                           const Spacer(),
                                           Row(
                                             mainAxisAlignment:
@@ -617,58 +637,72 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                 ),
                               ),
                               Container(
-                                width: double.infinity,
-                                height: 300 * globals.scaleParam,
-                                margin: EdgeInsets.all(30 * globals.scaleParam),
-                                padding:
-                                    EdgeInsets.all(60 * globals.scaleParam),
-                                decoration: const BoxDecoration(
-                                  color: Colors.blueGrey,
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(30)),
-                                  boxShadow: [
-                                    BoxShadow(
-                                        offset: Offset(0, -1),
-                                        color: Colors.black26,
-                                        blurRadius: 5)
-                                  ],
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Flexible(
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                height: 500 * globals.scaleParam,
+                                child: PageView.builder(
+                                  controller:
+                                      PageController(viewportFraction: 0.8),
+                                  itemCount: _carouselItems.length,
+                                  itemBuilder: (context, index) {
+                                    return Container(
+                                      clipBehavior: Clip.antiAlias,
+                                      margin: EdgeInsets.all(
+                                          30 * globals.scaleParam),
+                                      decoration: BoxDecoration(
+                                          boxShadow: [
+                                            BoxShadow(
+                                                spreadRadius: 5,
+                                                blurRadius: 5,
+                                                color: Colors.black12)
+                                          ],
+                                          color: Colors.white,
+                                          borderRadius: const BorderRadius.all(
+                                              Radius.circular(10))),
+                                      child: Stack(
                                         children: [
-                                          Flexible(
-                                            fit: FlexFit.tight,
-                                            child: Text(
-                                              "ALLCO",
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize:
-                                                    136 * globals.scaleParam,
-                                                fontWeight: FontWeight.w700,
-                                                fontFamily: "montserrat",
-                                                // shadows: [
-                                                //   Shadow(
-                                                //     color: Colors.black26,
-                                                //     blurRadius: 15,
-                                                //     offset: Offset(0, 0),
-                                                //   ),
-                                                // ],
-                                                height: 1,
-                                              ),
-                                            ),
+                                          Image.network(
+                                            _carouselItems[index]["image"],
+                                            fit: BoxFit.cover,
+                                            width: double.infinity,
+                                            height: double.infinity,
                                           ),
+                                          Container(
+                                            width: double.infinity,
+                                            height: double.infinity,
+                                            decoration: const BoxDecoration(
+                                                gradient: LinearGradient(
+                                                    transform: GradientRotation(
+                                                        pi / -2),
+                                                    colors: [
+                                                  Colors.black45,
+                                                  Colors.transparent
+                                                ])),
+                                          ),
+                                          Container(
+                                            padding: EdgeInsets.all(
+                                                40 * globals.scaleParam),
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.end,
+                                              children: [
+                                                Flexible(
+                                                    child: Text(
+                                                  "kkfuwhefkuhwfukhfkwehfuwhfiuwfhwiuefhew",
+                                                  style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      fontSize: 48 *
+                                                          globals.scaleParam),
+                                                ))
+                                              ],
+                                            ),
+                                          )
                                         ],
                                       ),
-                                    ),
-                                  ],
+                                    );
+                                  },
                                 ),
-                              )
+                              ),
                             ],
                           )
                         ],
@@ -676,67 +710,6 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                 );
               },
             ),
-            SliverToBoxAdapter(
-                child: Container(
-              height: 350 * globals.scaleParam,
-              child: PageView.builder(
-                controller: PageController(viewportFraction: 0.8),
-                itemCount: _carouselItems.length,
-                itemBuilder: (context, index) {
-                  return Container(
-                    clipBehavior: Clip.antiAlias,
-                    margin: EdgeInsets.all(30 * globals.scaleParam),
-                    decoration: BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                              spreadRadius: 5,
-                              blurRadius: 5,
-                              color: Colors.grey.shade200)
-                        ],
-                        color: Colors.white,
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(10))),
-                    child: Stack(
-                      children: [
-                        Image.network(
-                          _carouselItems[index]["image"],
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                        ),
-                        Container(
-                          width: double.infinity,
-                          height: double.infinity,
-                          decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                  transform: GradientRotation(pi / -2),
-                                  colors: [
-                                Colors.black45,
-                                Colors.transparent
-                              ])),
-                        ),
-                        Container(
-                          padding: EdgeInsets.all(40 * globals.scaleParam),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Flexible(
-                                  child: Text(
-                                "kkfuwhefkuhwfukhfkwehfuwhfiuwfhwiuefhew",
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 48 * globals.scaleParam),
-                              ))
-                            ],
-                          ),
-                        )
-                      ],
-                    ),
-                  );
-                },
-              ),
-            )),
             SliverToBoxAdapter(
                 child: Container(
               width: 500 * globals.scaleParam,

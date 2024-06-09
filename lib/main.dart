@@ -84,9 +84,17 @@ class _MainState extends State<Main> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      globals.scaleParam = (MediaQuery.of(context).size.height / 1080) *
-          (MediaQuery.of(context).size.width / 720) *
-          1;
+      print("========================================");
+      print(MediaQuery.of(context).size.aspectRatio );
+      if (MediaQuery.of(context).size.aspectRatio < 1) {
+        globals.scaleParam = (MediaQuery.of(context).size.height / 1920) *
+            (MediaQuery.of(context).size.width / 1080) *
+            3;
+      } else {
+        globals.scaleParam = (MediaQuery.of(context).size.height / 1080) *
+            (MediaQuery.of(context).size.width / 1920) *
+            2;
+      }
     });
     _checkAuth();
     // setState(() {

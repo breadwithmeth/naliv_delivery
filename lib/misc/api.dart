@@ -810,3 +810,23 @@ Future<List<dynamic>> getCities() async {
   print(response.body);
   return result;
 }
+
+Future<bool> changeName(String name) async {
+  String? token = await getToken();
+  if (token == null) {
+    return false;
+  }
+  var url = Uri.https(URL_API, 'api/user/changeName.php');
+  var response = await http.post(
+    url,
+    body: json.encode({'name': name}),
+    headers: {"Content-Type": "application/json", "AUTH": token},
+  );
+  var data = jsonDecode(response.body);
+  print(response.statusCode);
+  if (data["result"] == "true") {
+    return true;
+  } else {
+    return false;
+  }
+}
