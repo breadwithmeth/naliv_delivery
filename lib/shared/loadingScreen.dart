@@ -12,7 +12,6 @@ class LoadingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
-        
 
     return Scaffold(
       body: Stack(
@@ -31,14 +30,15 @@ class LoadingScreen extends StatelessWidget {
                       "Загрузка..",
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 60 *globals.scaleParam,
+                        fontSize: 60 * globals.scaleParam,
                         fontWeight: FontWeight.w700,
                         color: Theme.of(context).colorScheme.onBackground,
                         shadows: [
                           Shadow(
                             color: Colors.black38,
-                            offset: Offset(3 *globals.scaleParam, 5 *globals.scaleParam),
-                            blurRadius: 20 *globals.scaleParam,
+                            offset: Offset(
+                                3 * globals.scaleParam, 5 * globals.scaleParam),
+                            blurRadius: 20 * globals.scaleParam,
                           )
                         ],
                       ),
@@ -55,10 +55,12 @@ class LoadingScreen extends StatelessWidget {
 }
 
 class MarqueeText extends StatefulWidget {
-  MarqueeText({super.key, required this.text,            });
+  MarqueeText({
+    super.key,
+    required this.text,
+  });
 
   final String text;
-          
 
   @override
   State<MarqueeText> createState() => _MarqueeTextState();
@@ -79,15 +81,15 @@ class _MarqueeTextState extends State<MarqueeText>
     )..repeat(reverse: true);
 
     _animationOne = Tween<Offset>(
-      begin: Offset(0.66 *         globals.scaleParam   , 0),
-      end: Offset(-0.66 *         globals.scaleParam   , 0),
+      begin: Offset(0.66 * globals.scaleParam, 0),
+      end: Offset(-0.66 * globals.scaleParam, 0),
     ).animate(
       CurvedAnimation(parent: _controller, curve: Curves.linear),
     );
 
     _animationTwo = Tween<Offset>(
-      begin: Offset(-0.66 *         globals.scaleParam   , 0),
-      end: Offset(0.66 *         globals.scaleParam   , 0),
+      begin: Offset(-0.60 * globals.scaleParam, 0),
+      end: Offset(0.60 * globals.scaleParam, 0),
     ).animate(
       CurvedAnimation(parent: _controller, curve: Curves.linear),
     );
@@ -118,19 +120,24 @@ class _MarqueeTextState extends State<MarqueeText>
           turns: AlwaysStoppedAnimation(-30 / 360),
           child: Column(
             children: [
-              for (int i = 0; i < 14; i++)
+              for (int i = 0; i < 24; i++)
                 SlideTransition(
                   position: i.isOdd ? _animationOne : _animationTwo,
                   child: Text(
                     i.isOdd
                         ? "ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO"
                         : "ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO",
+                    // textScaler: MediaQuery.textScalerOf(context),
                     style: TextStyle(
-                      fontSize: 150 *         globals.scaleParam   ,
+                      fontSize: 55,
+                      // fontSize: 150 * globals.scaleParam,
                       fontWeight: FontWeight.w900,
                       color: Colors.black12,
-                      height: 1.9 *         globals.scaleParam   ,
-                      wordSpacing: 8 *         globals.scaleParam   ,
+                      height: MediaQuery.sizeOf(context).longestSide *
+                          0.001 /
+                          globals.scaleParam /
+                          2.5,
+                      wordSpacing: 8 * globals.scaleParam,
                       fontFamily: "montserrat",
                     ),
                   ),
