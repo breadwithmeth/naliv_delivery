@@ -50,8 +50,8 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
     });
   }
 
-  Future<List> _getBusinesses() async {
-    List? businesses = await getBusinesses();
+  Future<List<Map>> _getBusinesses() async {
+    List<Map>? businesses = await getBusinesses();
     if (businesses == null) {
       return [];
     } else {

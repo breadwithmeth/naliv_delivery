@@ -17,10 +17,9 @@ class _CartButtonState extends State<CartButton> {
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
 
-    return SizedBox(
-      width: 160 * (screenSize.height / 1080) * (screenSize.width / 720) * 2,
-      height: 160 * (screenSize.height / 1080) * (screenSize.width / 720) * 2,
+    return Container(
       child: FloatingActionButton(
+        
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(10))),
         child: Icon(

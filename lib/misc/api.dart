@@ -166,7 +166,7 @@ Future<Map<String, dynamic>?> getLastSelectedBusiness() async {
   return data;
 }
 
-Future<List?> getBusinesses() async {
+Future<List<Map>?> getBusinesses() async {
   String? token = await getToken();
   if (token == null) {
     return [];
@@ -178,7 +178,7 @@ Future<List?> getBusinesses() async {
   );
 
   // List<dynamic> list = json.decode(response.body);
-  List? data = json.decode(utf8.decode(response.bodyBytes));
+  List<Map> data = List.from(json.decode(utf8.decode(response.bodyBytes)));
   print(data);
   return data;
 }
