@@ -198,7 +198,7 @@ class _MainState extends State<Main> {
         dividerTheme: DividerThemeData(
           color: Colors.grey.shade300,
         ),
-        textTheme: GoogleFonts.montserratTextTheme().copyWith(
+        textTheme: GoogleFonts.mulishTextTheme().copyWith(
           labelLarge: GoogleFonts.mulish(fontWeight: FontWeight.w700),
         ),
 
