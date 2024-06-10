@@ -304,7 +304,9 @@ class _HomePageState extends State<HomePage>
                           shrinkWrap: true,
                           gridDelegate:
                               SliverGridDelegateWithMaxCrossAxisExtent(
-                                  maxCrossAxisExtent: 400 * globals.scaleParam,
+                                  maxCrossAxisExtent:
+                                      MediaQuery.sizeOf(context).shortestSide *
+                                          0.5,
                                   childAspectRatio: 10 / 8,
                                   crossAxisSpacing: 0,
                                   mainAxisSpacing: 0),

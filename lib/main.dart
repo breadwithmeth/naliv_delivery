@@ -85,7 +85,7 @@ class _MainState extends State<Main> {
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       print("========================================");
-      print(MediaQuery.of(context).size.aspectRatio );
+      print(MediaQuery.of(context).size.aspectRatio);
       if (MediaQuery.of(context).size.aspectRatio < 1) {
         globals.scaleParam = (MediaQuery.of(context).size.height / 1920) *
             (MediaQuery.of(context).size.width / 1080) *
@@ -137,10 +137,10 @@ class _MainState extends State<Main> {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
+    // SystemChrome.setPreferredOrientations([
+    //   DeviceOrientation.portraitUp,
+    //   DeviceOrientation.portraitDown,
+    // ]);
     return MaterialApp(
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(

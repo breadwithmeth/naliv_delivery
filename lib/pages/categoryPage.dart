@@ -63,8 +63,6 @@ class _CategoryPageState extends State<CategoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    Size screenSize = MediaQuery.of(context).size;
-
     return DefaultTabController(
       initialIndex: initialIndexTabbar,
       length: widget.categories.length,
