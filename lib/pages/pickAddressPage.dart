@@ -168,7 +168,10 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                   },
                                 ), (Route<dynamic> route) => false);
                         },
-                        child: Padding(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: _addresses[index]["is_selected"] == "1" ? Border(left: BorderSide(color: globals.mainColor, width: 10)) : Border()
+                          ),
                           padding: EdgeInsets.symmetric(
                               horizontal: 50 * globals.scaleParam,
                               vertical: 30 * globals.scaleParam),

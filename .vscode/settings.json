@@ -4,5 +4,7 @@
     "prettier.printWidth": 160,
     "html.format.wrapLineLength": 160,
     "git.mergeEditor": true,
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "dart.previewLsp": true,
+
 }
