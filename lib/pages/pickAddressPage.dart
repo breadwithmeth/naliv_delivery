@@ -62,9 +62,6 @@ class _PickAddressPageState extends State<PickAddressPage> {
 
   @override
   Widget build(BuildContext context) {
-    Size screenSize = MediaQuery.of(context).size;
-    
-
     return Scaffold(
       appBar: AppBar(
         title: Text("Адреса"),
@@ -170,8 +167,11 @@ class _PickAddressPageState extends State<PickAddressPage> {
                         },
                         child: Container(
                           decoration: BoxDecoration(
-                            border: _addresses[index]["is_selected"] == "1" ? Border(left: BorderSide(color: globals.mainColor, width: 10)) : Border()
-                          ),
+                              border: _addresses[index]["is_selected"] == "1"
+                                  ? Border(
+                                      left: BorderSide(
+                                          color: globals.mainColor, width: 10))
+                                  : Border()),
                           padding: EdgeInsets.symmetric(
                               horizontal: 50 * globals.scaleParam,
                               vertical: 30 * globals.scaleParam),

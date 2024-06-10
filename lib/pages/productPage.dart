@@ -446,8 +446,6 @@ class _ProductPageState extends State<ProductPage> {
 
   @override
   Widget build(BuildContext context) {
-    Size screenSize = MediaQuery.of(context).size;
-
     return DraggableScrollableSheet(
       snap: true,
       expand: false,
@@ -457,14 +455,13 @@ class _ProductPageState extends State<ProductPage> {
       shouldCloseOnMinExtent: true,
       snapAnimationDuration: const Duration(milliseconds: 150),
       builder: ((context, scrollController) {
-        return _productPage(context, scrollController, screenSize);
+        return _productPage(context, scrollController);
       }),
     );
   }
 
-  Scaffold _productPage(BuildContext context, ScrollController scrollController,
-      Size screenSize) {
- 
+  Scaffold _productPage(
+      BuildContext context, ScrollController scrollController) {
     return Scaffold(
       // color: Colors.white,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -793,7 +790,8 @@ class _ProductPageState extends State<ProductPage> {
               ? Container(
                   padding: EdgeInsets.symmetric(
                       horizontal: 30 * globals.scaleParam,
-                      vertical: 10 * (screenSize.height / 1080)),
+                      vertical:
+                          10 * (MediaQuery.sizeOf(context).height / 1080)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.start,
@@ -832,7 +830,7 @@ class _ProductPageState extends State<ProductPage> {
             width: MediaQuery.of(context).size.width,
             padding: EdgeInsets.symmetric(
                 horizontal: 30 * globals.scaleParam,
-                vertical: 10 * (screenSize.height / 1080)),
+                vertical: 10 * (MediaQuery.sizeOf(context).height / 1080)),
             child: Wrap(
               children: propertiesWidget,
             ),
@@ -984,7 +982,8 @@ class _ProductPageState extends State<ProductPage> {
               : SizedBox(
                   child: SlideTransition(
                     position: AlwaysStoppedAnimation(
-                      Offset(0, -2.3 * (screenSize.height / 1080)),
+                      Offset(
+                          0, -2.3 * (MediaQuery.sizeOf(context).height / 1080)),
                     ),
                     child: const LinearProgressIndicator(),
                   ),

@@ -96,14 +96,13 @@ class _ItemCardState extends State<ItemCard> {
 
   @override
   Widget build(BuildContext context) {
-    Size screenSize = MediaQuery.of(context).size;
-
     chack = widget.chack;
     return Container(
       // margin:  EdgeInsets.all(10),
-      width: (MediaQuery.of(context).size.width * 2) * (screenSize.width / 720),
+      width: (MediaQuery.of(context).size.width * 2) *
+          (MediaQuery.sizeOf(context).width / 720),
       height: (MediaQuery.of(context).size.height * 0.56) *
-          (screenSize.width / 720),
+          (MediaQuery.sizeOf(context).width / 720),
       padding: EdgeInsets.symmetric(horizontal: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -165,7 +164,8 @@ class _ItemCardState extends State<ItemCard> {
                       text: TextSpan(
                         style: TextStyle(
                           textBaseline: TextBaseline.alphabetic,
-                          fontSize: 40 * (screenSize.width / 720),
+                          fontSize:
+                              40 * (MediaQuery.sizeOf(context).width / 720),
                           color: Colors.black,
                         ),
                         children: [
@@ -206,14 +206,16 @@ class _ItemCardState extends State<ItemCard> {
                               style: TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.w600,
-                                  fontSize: 56 * (screenSize.width / 720)),
+                                  fontSize: 56 *
+                                      (MediaQuery.sizeOf(context).width / 720)),
                             ),
                             Text(
                               "₸",
                               style: TextStyle(
                                   color: Colors.grey.shade600,
                                   fontWeight: FontWeight.w900,
-                                  fontSize: 56 * (screenSize.width / 720)),
+                                  fontSize: 56 *
+                                      (MediaQuery.sizeOf(context).width / 720)),
                             )
                           ],
                         ),
@@ -230,8 +232,10 @@ class _ItemCardState extends State<ItemCard> {
                                           decorationColor: Colors.grey.shade500,
                                           decorationThickness: 1.85,
                                           color: Colors.grey.shade500,
-                                          fontSize:
-                                              28 * (screenSize.width / 720),
+                                          fontSize: 28 *
+                                              (MediaQuery.sizeOf(context)
+                                                      .width /
+                                                  720),
                                           fontWeight: FontWeight.w500),
                                     ),
                                     Text(
@@ -239,8 +243,10 @@ class _ItemCardState extends State<ItemCard> {
                                       style: TextStyle(
                                           color: Colors.grey.shade600,
                                           fontWeight: FontWeight.w900,
-                                          fontSize:
-                                              28 * (screenSize.width / 720)),
+                                          fontSize: 28 *
+                                              (MediaQuery.sizeOf(context)
+                                                      .width /
+                                                  720)),
                                     )
                                   ],
                                 ),
@@ -471,7 +477,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
     return Container(
       // margin:  EdgeInsets.all(10),
       padding: EdgeInsets.symmetric(horizontal: 5 * globals.scaleParam),
-      // width: (MediaQuery.of(context).size.width * 0.8) * (screenSize.width / 720),
+      // width: (MediaQuery.of(context).size.width * 0.8) * (MediaQuery.sizeOf(context).width / 720),
       width: double.infinity,
       height: 300 * globals.scaleParam,
       child: Stack(
@@ -647,7 +653,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                   //                   .colorScheme
                                   //                   .secondary,
                                   //               fontSize:
-                                  //                   28 * (screenSize.width / 720),
+                                  //                   28 * (MediaQuery.sizeOf(context).width / 720),
                                   //               fontWeight: FontWeight.w500),
                                   //         ),
                                   //       ),
@@ -923,8 +929,6 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
 
   @override
   Widget build(BuildContext context) {
-    Size screenSize = MediaQuery.of(context).size;
-
     chack = widget.chack;
     return Container(
       // margin:  EdgeInsets.all(10),
@@ -1098,7 +1102,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                         //     //                       Colors.grey.shade500,
                         //     //                   decorationThickness: 1.85,
                         //     //                   color: Colors.grey.shade500,
-                        //     //                   fontSize: 12 * (screenSize.width / 720),
+                        //     //                   fontSize: 12 * (MediaQuery.sizeOf(context).width / 720),
                         //     //                   fontWeight: FontWeight.w500),
                         //     //             ),
                         //     //             Text(
@@ -1106,7 +1110,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                         //     //               style: TextStyle(
                         //     //                   color: Colors.grey.shade600,
                         //     //                   fontWeight: FontWeight.w700,
-                        //     //                   fontSize: 12 * (screenSize.width / 720)),
+                        //     //                   fontSize: 12 * (MediaQuery.sizeOf(context).width / 720)),
                         //     //             )
                         //     //           ],
                         //     //         ),
@@ -1235,8 +1239,6 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
 
   @override
   Widget build(BuildContext context) {
-    Size screenSize = MediaQuery.of(context).size;
-
     chack = widget.chack;
     return Container(
       // margin:  EdgeInsets.all(10),
@@ -1396,14 +1398,14 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
           //           style: TextStyle(
           //               color: Colors.black,
           //               fontWeight: FontWeight.w600,
-          //               fontSize: 16 * (screenSize.width / 720)),
+          //               fontSize: 16 * (MediaQuery.sizeOf(context).width / 720)),
           //         ),
           //         // Text(
           //         //   "₸",
           //         //   style: TextStyle(
           //         //       color: Colors.grey.shade600,
           //         //       fontWeight: FontWeight.w700,
-          //         //       fontSize: 16 * (screenSize.width / 720)),
+          //         //       fontSize: 16 * (MediaQuery.sizeOf(context).width / 720)),
           //         // // ),
           //         // element["prev_price"] != null
           //         //     ? Padding(
@@ -1417,7 +1419,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
           //         //                   decorationColor: Colors.grey.shade500,
           //         //                   decorationThickness: 1.85,
           //         //                   color: Colors.grey.shade500,
-          //         //                   fontSize: 12 * (screenSize.width / 720),
+          //         //                   fontSize: 12 * (MediaQuery.sizeOf(context).width / 720),
           //         //                   fontWeight: FontWeight.w500),
           //         //             ),
           //         //             Text(
@@ -1425,7 +1427,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
           //         //               style: TextStyle(
           //         //                   color: Colors.grey.shade600,
           //         //                   fontWeight: FontWeight.w700,
-          //         //                   fontSize: 12 * (screenSize.width / 720)),
+          //         //                   fontSize: 12 * (MediaQuery.sizeOf(context).width / 720)),
           //         //             )
           //         //           ],
           //         //         ),

@@ -120,8 +120,6 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
 
   @override
   Widget build(BuildContext context) {
-    Size screenSize = MediaQuery.of(context).size;
-
     return Scaffold(
       resizeToAvoidBottomInset: true,
       // resizeToAvoidBottomPadding: true,
@@ -344,7 +342,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
             ),
           ),
           Flexible(
-            flex: screenSize.height > 400 ? 15 : 28,
+            flex: MediaQuery.sizeOf(context).height > 400 ? 15 : 28,
             fit: FlexFit.tight,
             child: Container(
               padding: EdgeInsets.symmetric(
@@ -729,7 +727,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(
-        top: 20,
+          top: 20,
           bottom: MediaQuery.of(context).viewInsets.bottom,
           left: 20,
           right: 20),
@@ -738,7 +736,6 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-             
               Row(
                 children: [
                   Flexible(
@@ -751,7 +748,9 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                   )),
                 ],
               ),
-              Divider(thickness: 1,),
+              Divider(
+                thickness: 1,
+              ),
               Flexible(
                 child: TextField(
                   maxLength: 250,

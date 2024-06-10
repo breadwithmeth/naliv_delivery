@@ -323,9 +323,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
 
   @override
   Widget build(BuildContext context) {
-    Size screenSize = MediaQuery.of(context).size;
-    
-
     return Scaffold(
       appBar: AppBar(
         title: Text("Заказ"),
@@ -431,7 +428,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
             ),
           ),
           Container(
-            height: screenSize.height < 700 * globals.scaleParam
+            height: MediaQuery.sizeOf(context).height < 700 * globals.scaleParam
                 ? 300 * globals.scaleParam
                 : 650 * globals.scaleParam,
             decoration: BoxDecoration(
