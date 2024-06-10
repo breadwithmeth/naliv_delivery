@@ -86,12 +86,12 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
           "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
     },
     {
-      "name": "1",
+      "name": "длинное название",
       "image":
           "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
     },
     {
-      "name": "1",
+      "name": "название еще длинее здесь наверное будет какая то акция",
       "image":
           "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
     },
@@ -627,6 +627,15 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                               )
                                             ],
                                           ),
+                                          Text(
+                                            globals.currentColor.toString(),
+                                            style: TextStyle(
+                                                letterSpacing: 1,
+                                                fontSize:
+                                                    16 * globals.scaleParam,
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w900),
+                                          ),
                                           const Spacer(
                                             flex: 2,
                                           )
@@ -637,7 +646,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                 ),
                               ),
                               Container(
-                                height: 500 * globals.scaleParam,
+                                height: 400 * globals.scaleParam,
                                 child: PageView.builder(
                                   controller:
                                       PageController(viewportFraction: 0.8),
@@ -673,7 +682,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                     transform: GradientRotation(
                                                         pi / -2),
                                                     colors: [
-                                                  Colors.black45,
+                                                  Colors.black,
                                                   Colors.transparent
                                                 ])),
                                           ),
@@ -686,7 +695,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                               children: [
                                                 Flexible(
                                                     child: Text(
-                                                  "kkfuwhefkuhwfukhfkwehfuwhfiuwfhwiuefhew",
+                                                  _carouselItems[index]["name"],
                                                   style: TextStyle(
                                                       color: Colors.white,
                                                       fontWeight:
