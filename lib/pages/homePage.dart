@@ -170,8 +170,6 @@ class _HomePageState extends State<HomePage>
 
   @override
   Widget build(BuildContext context) {
-    Size screenSize = MediaQuery.of(context).size;
-
     super.build(context);
     return FutureBuilder(
       future: _getCategories(),

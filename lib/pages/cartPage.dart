@@ -134,9 +134,6 @@ class _CartPageState extends State<CartPage>
 
   @override
   Widget build(BuildContext context) {
-    Size screenSize = MediaQuery.of(context).size;
-    
-
     return Scaffold(
       appBar: AppBar(
         title: Row(

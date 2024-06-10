@@ -21,6 +21,7 @@ import 'package:naliv_delivery/pages/pickAddressPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
 import 'package:naliv_delivery/pages/supportPage.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
 class OrganizationSelectPage extends StatefulWidget {
   OrganizationSelectPage(
@@ -709,7 +710,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                 child: Column(
               children: [
                 SizedBox(
-                  height: 400 * globals.scaleParam,
+                  height: 500 * globals.scaleParam,
                   child: BusinessSelectCarousel(
                     businesses: widget.businesses,
                     user: widget.user,
@@ -724,7 +725,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
               ),
             )
           ],
-        )));
+        ),
+      ),
+    );
   }
 }
 
@@ -802,27 +805,34 @@ class BusinessItem extends StatefulWidget {
 }
 
 class BusinessItemState extends State<BusinessItem> {
+  String formatCost(String costString) {
+    int cost = int.parse(costString);
+    return NumberFormat("###,###", "en_US").format(cost);
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            CupertinoPageRoute(
-              builder: (context) {
-                return HomePage(
-                  business: widget.business,
-                  user: widget.user,
-                ); //! TOOD: Change to redirect page to a different organizations or do this right here.
-              },
-            ),
-          );
-        },
-        child: Stack(
-          children: [
-            Container(
+      onTap: () {
+        Navigator.push(
+          context,
+          CupertinoPageRoute(
+            builder: (context) {
+              return HomePage(
+                business: widget.business,
+                user: widget.user,
+              ); //! TOOD: Change to redirect page to a different organizations or do this right here.
+            },
+          ),
+        );
+      },
+      child: Stack(
+        children: [
+          AspectRatio(
+            aspectRatio: 16 / 10,
+            child: Container(
               margin: EdgeInsets.all(10 * globals.scaleParam),
-              width: 550 * globals.scaleParam,
+              width: 650 * globals.scaleParam,
               // height: 600 * globals.scaleParam,
               clipBehavior: Clip.antiAlias,
               decoration: const BoxDecoration(
@@ -931,29 +941,89 @@ class BusinessItemState extends State<BusinessItem> {
                 ],
               ),
             ),
-            Container(
-              margin: EdgeInsets.all(10 * globals.scaleParam),
-              width: 500 * globals.scaleParam,
-              height: 400 * globals.scaleParam,
-              padding: EdgeInsets.all(30 * globals.scaleParam),
-              alignment: Alignment.topLeft,
-              child: Row(
-                children: [
-                  widget.isClosest
-                      ? Container(
-                          color: Colors.green,
-                          child: Text("Быстрая доставка",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                  fontSize: 32 * globals.scaleParam)),
-                        )
-                      : Container()
-                ],
+          ),
+          AspectRatio(
+            aspectRatio: 16 / 10,
+            child: Padding(
+              padding: EdgeInsets.all(10 * globals.scaleParam),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  print(constraints.maxWidth);
+                  return Container(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 10 * globals.scaleParam,
+                        vertical: 10 * globals.scaleParam),
+                    alignment: Alignment.topCenter,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        widget.isClosest
+                            ? Container(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 10 * globals.scaleParam),
+                                decoration: BoxDecoration(
+                                  color: Colors.green,
+                                  borderRadius: BorderRadius.only(
+                                    bottomRight: Radius.circular(10),
+                                    topLeft: Radius.circular(10),
+                                  ),
+                                  // gradient: LinearGradient(
+                                  //   colors: [
+                                  //     Colors.green,
+                                  //     Colors.green.withOpacity(0.5),
+                                  //     Colors.transparent
+                                  //   ],
+                                  //   begin: Alignment.centerLeft,
+                                  //   end: Alignment.centerRight,
+                                  //   stops: [0.4, 0.9, 1],
+                                  // ),
+                                ),
+                                child: Text(
+                                  "Быстрая доставка",
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                      fontSize: 32 * globals.scaleParam),
+                                ),
+                              )
+                            : SizedBox(),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 10 * globals.scaleParam),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            borderRadius: BorderRadius.only(
+                              bottomRight: Radius.circular(10),
+                              topLeft: Radius.circular(10),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.delivery_dining_rounded,
+                                size: 48 * globals.scaleParam,
+                              ),
+                              Text(
+                                "${formatCost("4000000")} ₸", // ! CHANGE TO ACTUAL DELIVERY COST
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.black,
+                                    fontSize: 32 * globals.scaleParam),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
-            )
-          ],
-        ));
+            ),
+          )
+        ],
+      ),
+    );
   }
 }
 
@@ -1022,6 +1092,7 @@ class _BusinessSelectCarouselState extends State<BusinessSelectCarousel> {
       shrinkWrap: true,
       primary: false,
       scrollDirection: Axis.horizontal,
+      // itemExtent: 650 * globals.scaleParam,
       physics: PageScrollPhysics(),
       // controller: PageController(viewportFraction: .6),
       itemCount: widget.businesses.length,

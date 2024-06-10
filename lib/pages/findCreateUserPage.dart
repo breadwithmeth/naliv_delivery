@@ -25,9 +25,6 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
 
   @override
   Widget build(BuildContext context) {
-    Size screenSize = MediaQuery.of(context).size;
-    
-
     return Scaffold(
       appBar: AppBar(
         title: Text("Укажите клиента"),
