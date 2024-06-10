@@ -152,9 +152,11 @@ class _CategoryPageState extends State<CategoryPage> {
                             foregroundColor: Colors.white.withOpacity(0)),
                         child: Container(
                           decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.1),
-                              borderRadius:
-                                  const BorderRadius.all(Radius.circular(10))),
+                            color: Colors.black.withOpacity(0.1),
+                            borderRadius: const BorderRadius.all(
+                              Radius.circular(10),
+                            ),
+                          ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [

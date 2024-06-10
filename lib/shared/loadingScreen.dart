@@ -107,12 +107,13 @@ class _MarqueeTextState extends State<MarqueeText>
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      height: double.infinity,
+      width: MediaQuery.sizeOf(context).width,
+      height: MediaQuery.sizeOf(context).height,
       alignment: Alignment.center,
-      // decoration:  BoxDecoration(
-      //   color: Colors.gre,
-      // ),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+      ),
       child: OverflowBox(
         maxWidth: double.infinity,
         maxHeight: double.infinity,
@@ -129,8 +130,8 @@ class _MarqueeTextState extends State<MarqueeText>
                         : "ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO",
                     // textScaler: MediaQuery.textScalerOf(context),
                     style: TextStyle(
-                      fontSize: 55,
-                      // fontSize: 150 * globals.scaleParam,
+                      // fontSize: 55,
+                      fontSize: 150 * globals.scaleParam,
                       fontWeight: FontWeight.w900,
                       color: Colors.black12,
                       height: MediaQuery.sizeOf(context).longestSide *

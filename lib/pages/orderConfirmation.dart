@@ -60,7 +60,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
   void startTimer() {
     Timer(const Duration(seconds: 1), () {
       setState(() {
-        _w = 595 *globals.scaleParam;
+        _w = 595 * globals.scaleParam;
       });
     });
     timer = Timer(const Duration(seconds: 6), () {
@@ -116,10 +116,11 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                       color: Theme.of(context).colorScheme.onSecondary,
                     ),
                     content: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20 *globals.scaleParam),
+                      padding: EdgeInsets.symmetric(
+                          vertical: 20 * globals.scaleParam),
                       child: SizedBox(
-                        width: 600 *globals.scaleParam,
-                        height: 400 *globals.scaleParam,
+                        width: 600 * globals.scaleParam,
+                        height: 400 * globals.scaleParam,
                         child: ListView.builder(
                           itemCount: wrongItems.length,
                           itemBuilder: (context, index) {
@@ -134,7 +135,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                           wrongItems[index]["name"].toString(),
                                           style: TextStyle(
                                             fontWeight: FontWeight.w700,
-                                            fontSize: 28 *globals.scaleParam,
+                                            fontSize: 28 * globals.scaleParam,
                                             color: Theme.of(context)
                                                 .colorScheme
                                                 .onSecondary,
@@ -152,7 +153,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                           "В корзине: ${wrongItems[index]['amount'].toString()}",
                                           style: TextStyle(
                                             fontWeight: FontWeight.w500,
-                                            fontSize: 28 *globals.scaleParam,
+                                            fontSize: 28 * globals.scaleParam,
                                             color: Theme.of(context)
                                                 .colorScheme
                                                 .secondary,
@@ -164,7 +165,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                           "В наличии: ${double.parse(wrongItems[index]['in_stock'].toString()).toStringAsFixed(0)}",
                                           style: TextStyle(
                                             fontWeight: FontWeight.w500,
-                                            fontSize: 28 *globals.scaleParam,
+                                            fontSize: 28 * globals.scaleParam,
                                             color: Theme.of(context)
                                                 .colorScheme
                                                 .secondary,
@@ -184,8 +185,8 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     actions: [
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          padding:
-                              EdgeInsets.symmetric(vertical: 10 *globals.scaleParam),
+                          padding: EdgeInsets.symmetric(
+                              vertical: 10 * globals.scaleParam),
                         ),
                         onPressed: () {
                           //! TODO: CHANGE AMOUNT IN CART ACCORDINGLY TO REAL AMOUNT LEFT
@@ -197,7 +198,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                             Text(
                               "Применить изменения",
                               style: TextStyle(
-                                fontSize: 28 *globals.scaleParam,
+                                fontSize: 28 * globals.scaleParam,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -206,8 +207,8 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                       ),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          padding:
-                              EdgeInsets.symmetric(vertical: 10 *globals.scaleParam),
+                          padding: EdgeInsets.symmetric(
+                              vertical: 10 * globals.scaleParam),
                           backgroundColor:
                               Theme.of(context).colorScheme.secondary,
                         ),
@@ -220,7 +221,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                             Text(
                               "Изменить самостоятельно",
                               style: TextStyle(
-                                fontSize: 28 *globals.scaleParam,
+                                fontSize: 28 * globals.scaleParam,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -241,15 +242,16 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                       ],
                     ),
                     titleTextStyle: TextStyle(
-                      fontSize: 32 *globals.scaleParam,
+                      fontSize: 32 * globals.scaleParam,
                       fontWeight: FontWeight.w700,
                       color: Theme.of(context).colorScheme.onSecondary,
                     ),
                     content: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20 *globals.scaleParam),
+                      padding: EdgeInsets.symmetric(
+                          vertical: 20 * globals.scaleParam),
                       child: SizedBox(
-                        width: 600 *globals.scaleParam,
-                        height: 400 *globals.scaleParam,
+                        width: 600 * globals.scaleParam,
+                        height: 400 * globals.scaleParam,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -258,7 +260,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                 "Повторите попытку позже, пожалуйста",
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  fontSize: 28 *globals.scaleParam,
+                                  fontSize: 28 * globals.scaleParam,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.black,
                                 ),
@@ -271,8 +273,8 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     actions: [
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          padding:
-                              EdgeInsets.symmetric(vertical: 10 *globals.scaleParam),
+                          padding: EdgeInsets.symmetric(
+                              vertical: 10 * globals.scaleParam),
                         ),
                         onPressed: () {
                           //! TODO: CHANGE AMOUNT IN CART ACCORDINGLY TO REAL AMOUNT LEFT
@@ -285,7 +287,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                             Text(
                               "Принять",
                               style: TextStyle(
-                                fontSize: 28 *globals.scaleParam,
+                                fontSize: 28 * globals.scaleParam,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -306,20 +308,17 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
   @override
   void initState() {
     super.initState();
+    startTimer();
   }
 
   @override
   void dispose() {
-    super.dispose();
     timer.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    Size screenSize = MediaQuery.of(context).size;
-    
-
-
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -338,7 +337,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         child: Text(
                           "Убедитесь в правильности заказа",
                           style: TextStyle(
-                            fontSize: 32 *globals.scaleParam,
+                            fontSize: 32 * globals.scaleParam,
                             fontWeight: FontWeight.w700,
                             color: Theme.of(context).colorScheme.onBackground,
                           ),
@@ -347,18 +346,19 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                       Stack(
                         children: [
                           Container(
-                            width: 595 *globals.scaleParam,
-                            height: 20 *globals.scaleParam,
+                            width: 595 * globals.scaleParam,
+                            height: 20 * globals.scaleParam,
                             decoration: BoxDecoration(
                               color: Colors.white,
                               border: Border.all(
-                                  color: Colors.black, width: 2 *globals.scaleParam),
+                                  color: Colors.black,
+                                  width: 2 * globals.scaleParam),
                             ),
                           ),
                           AnimatedContainer(
                             duration: const Duration(seconds: 5),
                             width: _w,
-                            height: 20 *globals.scaleParam,
+                            height: 20 * globals.scaleParam,
                             color: Colors.black,
                           ),
                         ],
@@ -377,10 +377,12 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         color: Colors.grey.shade100,
                       ),
                       color: Colors.white,
-                      borderRadius: const BorderRadius.all(Radius.circular(10))),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(10))),
                   margin: EdgeInsets.symmetric(
-                      horizontal: 20 *globals.scaleParam, vertical: 10 *globals.scaleParam),
-                  padding: EdgeInsets.all(10 *globals.scaleParam),
+                      horizontal: 20 * globals.scaleParam,
+                      vertical: 10 * globals.scaleParam),
+                  padding: EdgeInsets.all(10 * globals.scaleParam),
                   child: ListView.builder(
                     primary: false,
                     shrinkWrap: true,
@@ -400,8 +402,8 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                           widget.items.length - 1 != index
                               ? Padding(
                                   padding: EdgeInsets.symmetric(
-                                    horizontal: 32 *globals.scaleParam,
-                                    vertical: 10 *globals.scaleParam,
+                                    horizontal: 32 * globals.scaleParam,
+                                    vertical: 10 * globals.scaleParam,
                                   ),
                                   child: const Divider(
                                     height: 0,
@@ -427,8 +429,9 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     borderRadius: const BorderRadius.all(Radius.circular(10)),
                   ),
                   margin: EdgeInsets.symmetric(
-                      horizontal: 20 *globals.scaleParam, vertical: 5 *globals.scaleParam),
-                  padding: EdgeInsets.all(20 *globals.scaleParam),
+                      horizontal: 20 * globals.scaleParam,
+                      vertical: 5 * globals.scaleParam),
+                  padding: EdgeInsets.all(20 * globals.scaleParam),
                   child: Column(
                     children: [
                       Flexible(
@@ -440,7 +443,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                     ? "Доставка по адресу: "
                                     : "Самовывоз из магазина: ",
                                 style: TextStyle(
-                                  fontSize: 32 *globals.scaleParam,
+                                  fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w700,
                                   color: Theme.of(context)
                                       .colorScheme
@@ -459,7 +462,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                       ? widget.address!["address"] ?? ""
                                       : widget.business["address"],
                                   style: TextStyle(
-                                    fontSize: 32 *globals.scaleParam,
+                                    fontSize: 32 * globals.scaleParam,
                                     fontWeight: FontWeight.w700,
                                     color: Theme.of(context)
                                         .colorScheme
@@ -484,10 +487,12 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         color: Colors.grey.shade100,
                       ),
                       color: Colors.white,
-                      borderRadius: const BorderRadius.all(Radius.circular(10))),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(10))),
                   margin: EdgeInsets.symmetric(
-                      horizontal: 20 *globals.scaleParam, vertical: 5 *globals.scaleParam),
-                  padding: EdgeInsets.all(20 *globals.scaleParam),
+                      horizontal: 20 * globals.scaleParam,
+                      vertical: 5 * globals.scaleParam),
+                  padding: EdgeInsets.all(20 * globals.scaleParam),
                   child: Column(
                     children: [
                       Flexible(
@@ -500,7 +505,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                     : "Счёт на каспи: ${widget.user["login"].toString()}",
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
-                                  fontSize: 32 *globals.scaleParam,
+                                  fontSize: 32 * globals.scaleParam,
                                   color: Theme.of(context)
                                       .colorScheme
                                       .onBackground,
@@ -520,7 +525,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
-                                fontSize: 32 *globals.scaleParam,
+                                fontSize: 32 * globals.scaleParam,
                                 color:
                                     Theme.of(context).colorScheme.onBackground,
                               ),
@@ -542,10 +547,12 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         color: Colors.grey.shade100,
                       ),
                       color: Colors.white,
-                      borderRadius: const BorderRadius.all(Radius.circular(10))),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(10))),
                   margin: EdgeInsets.symmetric(
-                      horizontal: 20 *globals.scaleParam, vertical: 5 *globals.scaleParam),
-                  padding: EdgeInsets.all(15 *globals.scaleParam),
+                      horizontal: 20 * globals.scaleParam,
+                      vertical: 5 * globals.scaleParam),
+                  padding: EdgeInsets.all(15 * globals.scaleParam),
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.pop(context);
@@ -556,7 +563,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         Text(
                           "Отменить",
                           style: TextStyle(
-                            fontSize: 35 *globals.scaleParam,
+                            fontSize: 35 * globals.scaleParam,
                             fontWeight: FontWeight.w700,
                             color: Theme.of(context).colorScheme.onPrimary,
                           ),

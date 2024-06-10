@@ -326,33 +326,40 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
   Map<String, dynamic> element = {};
   List<InlineSpan> propertiesWidget = [];
   int amountInCart = 0;
+  int previousAmount = 0;
   bool isItemAmountChanging = false;
   late int chack;
   Timer? _debounce;
 
   void _updateItemCountServerCall() {
-    setState(() {
-      isItemAmountChanging = true;
-    });
-    changeCartItem(
-            element["item_id"], amountInCart, widget.business["business_id"])
-        .then((value) {
-      if (value != null) {
-        setState(() {
-          amountInCart = int.parse(value);
-        });
-        if (widget.updateCategoryPageInfo != null) {
-          widget.updateCategoryPageInfo!(amountInCart.toString(), widget.index);
-        }
-        print(value);
-      } else {
-        print(
-            "Something gone wrong, can't add item to cart in ItemCardMedium _updateItemCountServerCall");
-      }
+    if (previousAmount == amountInCart) {
+      return;
+    } else {
       setState(() {
-        isItemAmountChanging = false;
+        isItemAmountChanging = true;
       });
-    });
+      changeCartItem(
+              element["item_id"], amountInCart, widget.business["business_id"])
+          .then((value) {
+        if (value != null) {
+          setState(() {
+            amountInCart = int.parse(value);
+            previousAmount = amountInCart;
+          });
+          if (widget.updateCategoryPageInfo != null) {
+            widget.updateCategoryPageInfo!(
+                amountInCart.toString(), widget.index);
+          }
+          print(value);
+        } else {
+          print(
+              "Something gone wrong, can't add item to cart in ItemCardMedium _updateItemCountServerCall");
+        }
+        setState(() {
+          isItemAmountChanging = false;
+        });
+      });
+    }
   }
 
   void _updateItemCount() {
@@ -396,6 +403,7 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
     setState(() {
       element = widget.element;
       amountInCart = int.parse(element["amount"] ?? "0");
+      previousAmount = amountInCart;
     });
     getProperties();
   }
@@ -459,8 +467,6 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
 
   @override
   Widget build(BuildContext context) {
-    Size screenSize = MediaQuery.of(context).size;
-
     chack = widget.chack;
     return Container(
       // margin:  EdgeInsets.all(10),
@@ -691,18 +697,26 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                             icon: Container(
                                               decoration: BoxDecoration(
                                                 border: Border.all(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onBackground,
+                                                  color: amountInCart > 0
+                                                      ? Theme.of(context)
+                                                          .colorScheme
+                                                          .onBackground
+                                                      : Theme.of(context)
+                                                          .colorScheme
+                                                          .secondary,
                                                 ),
                                                 borderRadius:
                                                     BorderRadius.circular(6),
                                               ),
                                               child: Icon(
                                                 Icons.remove_rounded,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onBackground,
+                                                color: amountInCart > 0
+                                                    ? Theme.of(context)
+                                                        .colorScheme
+                                                        .onBackground
+                                                    : Theme.of(context)
+                                                        .colorScheme
+                                                        .secondary,
                                               ),
                                             ),
                                           ),
@@ -750,18 +764,32 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                             icon: Container(
                                               decoration: BoxDecoration(
                                                 border: Border.all(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onBackground,
+                                                  color: amountInCart <
+                                                          double.parse(element[
+                                                                  "in_stock"])
+                                                              .truncate()
+                                                      ? Theme.of(context)
+                                                          .colorScheme
+                                                          .onBackground
+                                                      : Theme.of(context)
+                                                          .colorScheme
+                                                          .secondary,
                                                 ),
                                                 borderRadius:
                                                     BorderRadius.circular(6),
                                               ),
                                               child: Icon(
                                                 Icons.add_rounded,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onBackground,
+                                                color: amountInCart <
+                                                        double.parse(element[
+                                                                "in_stock"])
+                                                            .truncate()
+                                                    ? Theme.of(context)
+                                                        .colorScheme
+                                                        .onBackground
+                                                    : Theme.of(context)
+                                                        .colorScheme
+                                                        .secondary,
                                               ),
                                             ),
                                           ),
