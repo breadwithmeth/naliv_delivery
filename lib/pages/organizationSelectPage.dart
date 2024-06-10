@@ -32,7 +32,7 @@ class OrganizationSelectPage extends StatefulWidget {
   final List addresses;
   final Map currentAddress;
   final Map<String, dynamic> user;
-  final List businesses;
+  final List<Map> businesses;
   @override
   State<OrganizationSelectPage> createState() => _OrganizationSelectPageState();
 }
@@ -720,26 +720,17 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
               },
             ),
             SliverToBoxAdapter(
-                child: Container(
-              width: 500 * globals.scaleParam,
-              height: 400 * globals.scaleParam,
-              child: SingleChildScrollView(
-                controller: ScrollController(),
-                scrollDirection: Axis.horizontal,
-                child: ListView.builder(
-                  padding: EdgeInsets.all(10 * globals.scaleParam),
-                  primary: false,
-                  shrinkWrap: true,
-                  scrollDirection: Axis.horizontal,
-                  itemCount: widget.businesses.length,
-                  itemBuilder: (context, index) {
-                    return BusinessItem(
-                      business: widget.businesses[index],
-                      user: widget.user,
-                    );
-                  },
-                ),
-              ),
+                child: Column(
+              children: [
+                SizedBox(
+                  height: 400 * globals.scaleParam,
+                  child: BusinessSelectCarousel(
+                    businesses: widget.businesses,
+                    user: widget.user,
+                    currentAddress: widget.currentAddress,
+                  ),
+                )
+              ],
             )),
             SliverToBoxAdapter(
               child: Container(
@@ -815,9 +806,11 @@ class BusinessItem extends StatefulWidget {
     super.key,
     required this.business,
     required this.user,
+    required this.isClosest,
   });
   final Map business;
   final Map user;
+  final bool isClosest;
   @override
   State<BusinessItem> createState() => BusinessItemState();
 }
@@ -826,96 +819,215 @@ class BusinessItemState extends State<BusinessItem> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          CupertinoPageRoute(
-            builder: (context) {
-              return HomePage(
-                business: widget.business,
-                user: widget.user,
-              ); //! TOOD: Change to redirect page to a different organizations or do this right here.
-            },
-          ),
-        );
-      },
-      child: Container(
-        margin: EdgeInsets.all(10 * globals.scaleParam),
-        width: 600 * globals.scaleParam,
-        clipBehavior: Clip.antiAlias,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-                offset: Offset(2, 2), blurRadius: 2, color: Colors.black12),
-          ],
-          borderRadius: BorderRadius.all(
-            Radius.circular(10),
-          ),
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: Container(
-                  height: double.infinity,
-                  width: double.infinity,
-                  child: CachedNetworkImage(
-                    imageUrl: widget.business["img"],
-                    errorWidget: (context, url, error) {
-                      return const SizedBox();
-                    },
-                  )),
+        onTap: () {
+          Navigator.push(
+            context,
+            CupertinoPageRoute(
+              builder: (context) {
+                return HomePage(
+                  business: widget.business,
+                  user: widget.user,
+                ); //! TOOD: Change to redirect page to a different organizations or do this right here.
+              },
             ),
-            Expanded(
-                child: Column(
-              children: [
-                Flexible(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          widget.business["name"],
-                          style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 38 * globals.scaleParam),
-                        ),
-                      ),
-                    ],
+          );
+        },
+        child: Stack(
+          children: [
+            Container(
+              margin: EdgeInsets.all(10 * globals.scaleParam),
+              width: 500 * globals.scaleParam,
+              height: 400 * globals.scaleParam,
+              clipBehavior: Clip.antiAlias,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                      offset: Offset(2, 2),
+                      blurRadius: 2,
+                      color: Colors.black12),
+                ],
+                borderRadius: BorderRadius.all(
+                  Radius.circular(10),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Container(
+                        height: double.infinity,
+                        width: double.infinity,
+                        child: CachedNetworkImage(
+                          imageUrl: widget.business["img"],
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, error) {
+                            return const SizedBox();
+                          },
+                        )),
                   ),
-                ),
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        widget.business["address"],
-                        style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 30 * globals.scaleParam),
-                      ),
-                    )
-                  ],
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        "Короткое описание",
-                        style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 30 * globals.scaleParam),
-                      ),
+                  Expanded(
+                      child: Container(
+                    padding: EdgeInsets.all(30 * globals.scaleParam),
+                    child: Column(
+                      children: [
+                        Flexible(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  widget.business["name"],
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 38 * globals.scaleParam),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                widget.business["address"],
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 30 * globals.scaleParam),
+                              ),
+                            )
+                          ],
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                "Короткое описание",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 30 * globals.scaleParam),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ],
-            )),
+                  )),
+                ],
+              ),
+            ),
+            Container(
+              margin: EdgeInsets.all(10 * globals.scaleParam),
+              width: 500 * globals.scaleParam,
+              height: 400 * globals.scaleParam,
+              padding: EdgeInsets.all(30 * globals.scaleParam),
+              alignment: Alignment.topLeft,
+              child: Row(
+                children: [
+                  widget.isClosest
+                      ? Container(
+                          color: Colors.green,
+                          child: Text("Быстрая доставка",
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                  fontSize: 32 * globals.scaleParam)),
+                        )
+                      : Container()
+                ],
+              ),
+            )
           ],
-        ),
-      ),
+        ));
+  }
+}
+
+class BusinessSelectCarousel extends StatefulWidget {
+  const BusinessSelectCarousel(
+      {super.key,
+      required this.businesses,
+      required this.user,
+      required this.currentAddress});
+  final List<Map> businesses;
+  final Map user;
+  final Map currentAddress;
+
+  @override
+  State<BusinessSelectCarousel> createState() => _BusinessSelectCarouselState();
+}
+
+class _BusinessSelectCarouselState extends State<BusinessSelectCarousel> {
+  String? _closestBusinessId;
+  List<Map> _businesses = [];
+  findClosestBusiness() {
+    List<Map> businesses = [];
+
+    double storex = double.parse(widget.businesses.first["lat"]);
+    double storey = double.parse(widget.businesses.first["lon"]);
+    double userx = double.parse(widget.currentAddress["lat"]);
+    double usery = double.parse(widget.currentAddress["lon"]);
+    double dist = sqrt(pow((storex - userx), 2) + pow((storey - usery), 2));
+    String closestBusinessId = widget.businesses.first["business_id"];
+    for (var i = 0; i < widget.businesses.length; i++) {
+      double storex = double.parse(widget.businesses[i]["lat"]);
+      double storey = double.parse(widget.businesses[i]["lon"]);
+      double userx = double.parse(widget.currentAddress["lat"]);
+      double usery = double.parse(widget.currentAddress["lon"]);
+      double temp = sqrt(pow((storex - userx), 2) + pow((storey - usery), 2));
+
+      if (temp < dist) {
+        closestBusinessId = widget.businesses[i]["business_id"];
+        businesses.insert(0, widget.businesses[i]);
+      } else {
+        businesses.add(widget.businesses[i]);
+      }
+
+      print(temp);
+      // businesses!.sort((a, b) => (b['dist']).compareTo(a['dist']));
+    }
+
+    setState(() {
+      _closestBusinessId = closestBusinessId;
+      _businesses = businesses;
+    });
+    print(dist);
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    findClosestBusiness();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: EdgeInsets.all(10),
+      shrinkWrap: true,
+      primary: false,
+      scrollDirection: Axis.horizontal,
+      physics: PageScrollPhysics(),
+      // controller: PageController(viewportFraction: .6),
+      itemCount: widget.businesses.length,
+      itemBuilder: (context, index) {
+        if (_businesses[index]["business_id"] == _closestBusinessId) {
+          return BusinessItem(
+            business: _businesses[index],
+            user: widget.user,
+            isClosest: true,
+          );
+        } else {
+          return BusinessItem(
+            business: _businesses[index],
+            user: widget.user,
+            isClosest: false,
+          );
+        }
+        // return Container(height: 10, width: 1000, color: Colors.yellow, child: Text("data"),);
+      },
     );
   }
 }

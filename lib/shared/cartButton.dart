@@ -15,16 +15,11 @@ class CartButton extends StatefulWidget {
 class _CartButtonState extends State<CartButton> {
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width:
-          MediaQuery.of(context).size.width < MediaQuery.of(context).size.height
-              ? MediaQuery.of(context).size.width * 0.25
-              : MediaQuery.of(context).size.height * 0.25,
-      height:
-          MediaQuery.of(context).size.width < MediaQuery.of(context).size.height
-              ? MediaQuery.of(context).size.width * 0.25
-              : MediaQuery.of(context).size.height * 0.25,
+    Size screenSize = MediaQuery.of(context).size;
+
+    return Container(
       child: FloatingActionButton(
+        
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(10))),
         child: Icon(
