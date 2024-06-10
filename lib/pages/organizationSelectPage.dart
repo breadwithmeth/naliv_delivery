@@ -836,8 +836,8 @@ class BusinessItemState extends State<BusinessItem> {
           children: [
             Container(
               margin: EdgeInsets.all(10 * globals.scaleParam),
-              width: 500 * globals.scaleParam,
-              height: 400 * globals.scaleParam,
+              width: 550 * globals.scaleParam,
+              // height: 600 * globals.scaleParam,
               clipBehavior: Clip.antiAlias,
               decoration: const BoxDecoration(
                 color: Colors.white,
@@ -855,66 +855,93 @@ class BusinessItemState extends State<BusinessItem> {
                 children: [
                   Expanded(
                     child: Container(
-                        height: double.infinity,
-                        width: double.infinity,
-                        child: CachedNetworkImage(
-                          imageUrl: widget.business["img"],
-                          fit: BoxFit.cover,
-                          errorWidget: (context, url, error) {
-                            return const SizedBox();
-                          },
-                        )),
+                      height: double.infinity,
+                      width: double.infinity,
+                      child: CachedNetworkImage(
+                        imageUrl: widget.business["img"],
+                        fit: BoxFit.cover,
+                        errorWidget: (context, url, error) {
+                          return const SizedBox();
+                        },
+                      ),
+                    ),
                   ),
                   Expanded(
-                      child: Container(
-                    padding: EdgeInsets.all(30 * globals.scaleParam),
-                    child: Column(
-                      children: [
-                        Flexible(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  widget.business["name"],
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 38 * globals.scaleParam),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Row(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Flexible(
-                              child: Text(
-                                widget.business["address"],
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 30 * globals.scaleParam),
-                              ),
-                            )
-                          ],
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                "Короткое описание",
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 30 * globals.scaleParam),
+                            SizedBox(
+                              width: constraints.maxWidth * 0.9,
+                              height: constraints.maxHeight * 0.9,
+                              child: Column(
+                                children: [
+                                  Flexible(
+                                    fit: FlexFit.tight,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            widget.business["name"],
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 38 * globals.scaleParam,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Flexible(
+                                    fit: FlexFit.tight,
+                                    child: Row(
+                                      children: [
+                                        Flexible(
+                                          fit: FlexFit.tight,
+                                          child: Text(
+                                            widget.business["address"],
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w500,
+                                                fontSize:
+                                                    30 * globals.scaleParam),
+                                          ),
+                                        )
+                                      ],
+                                    ),
+                                  ),
+                                  Flexible(
+                                    fit: FlexFit.tight,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            "Короткое описание",
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w500,
+                                                fontSize:
+                                                    30 * globals.scaleParam),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
-                        ),
-                      ],
+                        );
+                      },
                     ),
-                  )),
+                  ),
                 ],
               ),
             ),
