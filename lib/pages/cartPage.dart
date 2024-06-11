@@ -31,6 +31,7 @@ class _CartPageState extends State<CartPage>
   int localDiscount = 0;
   TextEditingController _promoController = TextEditingController();
   Map<String, dynamic> client = {};
+  int distance = 0;
 
   String formatCost(String costString) {
     int cost = int.parse(costString);
@@ -164,6 +165,20 @@ class _CartPageState extends State<CartPage>
               List items = snapshot.data!["cart"];
               print(items);
               String localSum = snapshot.data!["sum"];
+              int distance = int.parse(snapshot.data!["distance"]);
+              double dist = distance / 1000;
+              dist = (dist * 2).round() / 2;
+              int price = 0;
+              if (dist <= 1.5) {
+                price = 700;
+              } else {
+                if (dist < 5) {
+                  price = ((dist - 1.5) * 300 + 700).toInt();
+                } else {
+                  price = ((dist - 1.5) * 250 + 700).toInt();
+                }
+              }
+              price = (price / 100).round() * 100;
               return ListView(
                 children: [
                   ListView.builder(
@@ -360,6 +375,23 @@ class _CartPageState extends State<CartPage>
                                   ),
                                 ),
                               ),
+                              Padding(
+                                padding: EdgeInsets.only(
+                                    right: 40 * globals.scaleParam),
+                                child: Divider(),
+                              ),
+                              Padding(
+                                padding: EdgeInsets.only(
+                                    left: 30 * globals.scaleParam),
+                                child: Text(
+                                  "Стоимость доставки",
+                                  style: TextStyle(
+                                    fontSize: 32 * globals.scaleParam,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -404,6 +436,23 @@ class _CartPageState extends State<CartPage>
                                     fit: FlexFit.tight,
                                     child: Text(
                                       "${formatCost(localSum.toString())} ₸",
+                                      style: TextStyle(
+                                        fontSize: 32 * globals.scaleParam,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Divider(),
+                              Row(
+                                children: [
+                                  //TODO: перенести расчет цены доставки на бэк
+                                  Flexible(
+                                    fit: FlexFit.tight,
+                                    child: Text(
+                                      "${distance} м - ${price} тг",
                                       style: TextStyle(
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w700,
