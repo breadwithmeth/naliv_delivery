@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/pages/createProfilePage.dart';
 import '../globals.dart' as globals;
 
@@ -41,6 +42,10 @@ class OrganizationSelectPage extends StatefulWidget {
 class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     with AutomaticKeepAliveClientMixin {
   bool get wantKeepAlive => true;
+
+  double _lat = 0;
+  double _lon = 0;
+  String? _currentAddressName;
 
   List<Map<String, dynamic>> bars = [
     {"organization_id": "1", "name": "НАЛИВ"},
@@ -162,10 +167,46 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     //         (expandedBarHeight - collapsedBarHeight);
   }
 
+  Future<void> searchGeoData(double lon, double lat) async {
+    await getGeoData(lon.toString() + "," + lat.toString()).then((value) {
+      print(value);
+      List objects = value?["response"]["GeoObjectCollection"]["featureMember"];
+
+      double lat = double.parse(
+          objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
+      double lon = double.parse(
+          objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
+      setState(() {
+        _currentAddressName = objects.first["GeoObject"]["name"];
+        _lat = lat;
+        _lon = lon;
+      });
+    });
+  }
+
+  Future<void> _getPosition() async {
+    await determinePosition(context).then((v) {
+      searchGeoData(v.longitude, v.latitude).then((vv) {
+        showModalBottomSheet(
+          context: context,
+          builder: (context) {
+            return Container(
+              width: double.infinity,
+              child: Column(
+                children: [Text(_currentAddressName!)],
+              ),
+            );
+          },
+        );
+      });
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     _sc.addListener(_scrollListener);
+    _getPosition();
 
     // Future.delayed(Duration.zero).then((value) async {
     //   _getUser();
@@ -560,8 +601,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
             ),
             SliverToBoxAdapter(
                 child: Container(
-              padding:
-                  EdgeInsets.symmetric(horizontal: 50 * globals.scaleParam, vertical: 20 * globals.scaleParam),
+              padding: EdgeInsets.symmetric(
+                  horizontal: 50 * globals.scaleParam,
+                  vertical: 20 * globals.scaleParam),
               child: Row(
                 children: [
                   Flexible(
