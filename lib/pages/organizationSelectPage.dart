@@ -82,92 +82,32 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
 
   List<Map> _carouselItems = [
     {
-      "name": "название",
+      "name": "Алкоголь",
       "image":
           "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
     },
     {
-      "name": "длинное название",
+      "name": "Восточная кухня",
       "image":
           "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
     },
     {
-      "name": "название еще длинее здесь наверное будет какая то акция",
+      "name": "Какая-то еще кухня",
       "image":
           "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
     },
     {
-      "name": "название",
+      "name": "Надо будет написать бэк для этого",
       "image":
           "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
     },
     {
-      "name": "длинное название",
+      "name": "Потому что здесь",
       "image":
           "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
     },
     {
-      "name": "название еще длинее здесь наверное будет какая то акция",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
-    {
-      "name": "название",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
-    {
-      "name": "длинное название",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
-    {
-      "name": "название еще длинее здесь наверное будет какая то акция",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
-    {
-      "name": "название",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
-    {
-      "name": "длинное название",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
-    {
-      "name": "название еще длинее здесь наверное будет какая то акция",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
-    {
-      "name": "название",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
-    {
-      "name": "длинное название",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
-    {
-      "name": "название еще длинее здесь наверное будет какая то акция",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
-    {
-      "name": "название",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
-    {
-      "name": "длинное название",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
-    {
-      "name": "название еще длинее здесь наверное будет какая то акция",
+      "name": "просто массив",
       "image":
           "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
     },
@@ -270,103 +210,103 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     // final isCollapsed = useState(false);
 
     return Scaffold(
-        key: _key,
-        drawerEnableOpenDragGesture: false,
-        drawerScrimColor: Colors.white,
-        endDrawer: SafeArea(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                Flexible(
-                  fit: FlexFit.tight,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          _key.currentState!.closeEndDrawer();
-                        },
-                        icon: Container(
-                          padding: EdgeInsets.all(20 * globals.scaleParam),
-                          child: Icon(
-                            Icons.close,
-                            size: 48 * globals.scaleParam,
-                          ),
+      key: _key,
+      drawerEnableOpenDragGesture: false,
+      drawerScrimColor: Colors.white,
+      endDrawer: SafeArea(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Flexible(
+                fit: FlexFit.tight,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        _key.currentState!.closeEndDrawer();
+                      },
+                      icon: Container(
+                        padding: EdgeInsets.all(20 * globals.scaleParam),
+                        child: Icon(
+                          Icons.close,
+                          size: 48 * globals.scaleParam,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                Flexible(
-                    fit: FlexFit.tight,
-                    child: Container(
-                      alignment: Alignment.center,
-                      height: 275 * globals.scaleParam,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.max,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text("НАЗВАНИЕ",
-                              style: GoogleFonts.montserratAlternates(
-                                textStyle: TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 48 * globals.scaleParam),
-                              )),
-                          Icon(
-                            Icons.local_dining_outlined,
-                            color: Colors.black,
-                            size: 48 * globals.scaleParam,
-                          )
-                        ],
-                      ),
-                    )),
-                Flexible(
-                  flex: 8,
+              ),
+              Flexible(
                   fit: FlexFit.tight,
-                  child: GridView.count(
-                    padding: EdgeInsets.all(10 * globals.scaleParam),
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childAspectRatio: 2 / 1,
-                    crossAxisCount: 2,
-                    children: [
-                      DrawerMenuItem(
-                        name: "История заказов",
-                        icon: Icons.book_outlined,
-                        route: const OrderHistoryPage(),
+                  child: Container(
+                    alignment: Alignment.center,
+                    height: 275 * globals.scaleParam,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.max,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text("НАЗВАНИЕ",
+                            style: GoogleFonts.montserratAlternates(
+                              textStyle: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 48 * globals.scaleParam),
+                            )),
+                        Icon(
+                          Icons.local_dining_outlined,
+                          color: Colors.black,
+                          size: 48 * globals.scaleParam,
+                        )
+                      ],
+                    ),
+                  )),
+              Flexible(
+                flex: 8,
+                fit: FlexFit.tight,
+                child: GridView.count(
+                  padding: EdgeInsets.all(10 * globals.scaleParam),
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 2 / 1,
+                  crossAxisCount: 2,
+                  children: [
+                    DrawerMenuItem(
+                      name: "История заказов",
+                      icon: Icons.book_outlined,
+                      route: const OrderHistoryPage(),
+                    ),
+                    DrawerMenuItem(
+                      name: "Адреса доставки",
+                      icon: Icons.map_outlined,
+                      route: PickAddressPage(
+                        client: widget.user,
                       ),
-                      DrawerMenuItem(
-                        name: "Адреса доставки",
-                        icon: Icons.map_outlined,
-                        route: PickAddressPage(
-                          client: widget.user,
-                        ),
-                      ),
-                      DrawerMenuItem(
-                        name: "Поддержка",
-                        icon: Icons.support_agent_rounded,
-                        route: const SupportPage(),
-                      ),
-                      DrawerMenuItem(
-                        name: "Настройки",
-                        icon: Icons.settings_outlined,
-                        route: const SettingsPage(),
-                      )
-                    ],
-                  ),
+                    ),
+                    DrawerMenuItem(
+                      name: "Поддержка",
+                      icon: Icons.support_agent_rounded,
+                      route: const SupportPage(),
+                    ),
+                    DrawerMenuItem(
+                      name: "Настройки",
+                      icon: Icons.settings_outlined,
+                      route: const SettingsPage(),
+                    )
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-        backgroundColor: Colors.white,
-        // !isCollapsed ?      globals.mainColor : Colors.white,
-        body: SafeArea(
-            child: CustomScrollView(
+      ),
+      backgroundColor: Colors.white,
+      // !isCollapsed ?      globals.mainColor : Colors.white,
+      body: SafeArea(
+        child: CustomScrollView(
           controller: _sc,
           slivers: <Widget>[
             SliverAppBar(
@@ -396,7 +336,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                   transitionBuilder: (child, animation) {
                     return SlideTransition(
                       position: Tween<Offset>(
-                              begin: const Offset(-0.4, 0),
+                              begin: const Offset(0, -1),
                               end: const Offset(0, 0))
                           .animate(animation),
                       child: child,
@@ -621,7 +561,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
             SliverToBoxAdapter(
                 child: Container(
               padding:
-                  EdgeInsets.symmetric(horizontal: 50 * globals.scaleParam),
+                  EdgeInsets.symmetric(horizontal: 50 * globals.scaleParam, vertical: 20 * globals.scaleParam),
               child: Row(
                 children: [
                   Flexible(
@@ -641,7 +581,6 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                 color: Colors.white,
                 height: 200 * globals.scaleParam,
                 child: ListView.builder(
-
                   scrollDirection: Axis.horizontal,
                   // addRepaintBoundaries: false,
                   shrinkWrap: true,
@@ -652,12 +591,13 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                     return Row(
                       children: [
                         Container(
-                width: 200 * globals.scaleParam,
-                height: 200 * globals.scaleParam,
+                          width: 200 * globals.scaleParam,
+                          height: 200 * globals.scaleParam,
                           clipBehavior: Clip.antiAlias,
-                          margin: EdgeInsets.all(5 * globals.scaleParam),
+                          margin: EdgeInsets.only(
+                              top: 5 * globals.scaleParam,
+                              left: 25 * globals.scaleParam),
                           decoration: BoxDecoration(
-                             
                               color: Colors.white,
                               borderRadius:
                                   const BorderRadius.all(Radius.circular(10))),
@@ -682,7 +622,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                               ),
                               Container(
                                 padding:
-                                    EdgeInsets.all(40 * globals.scaleParam),
+                                    EdgeInsets.all(20 * globals.scaleParam),
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
@@ -692,7 +632,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                       style: TextStyle(
                                           color: Colors.white,
                                           fontWeight: FontWeight.w700,
-                                          fontSize: 48 * globals.scaleParam),
+                                          fontSize: 24 * globals.scaleParam),
                                     ))
                                   ],
                                 ),
@@ -826,202 +766,151 @@ class BusinessItemState extends State<BusinessItem> {
           ),
         );
       },
-      child: Stack(
-        children: [
-          AspectRatio(
-            aspectRatio: 16 / 10,
-            child: Container(
-              margin: EdgeInsets.all(10 * globals.scaleParam),
-              width: 650 * globals.scaleParam,
-              // height: 600 * globals.scaleParam,
-              clipBehavior: Clip.antiAlias,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                      offset: Offset(2, 2),
-                      blurRadius: 2,
-                      color: Colors.black12),
-                ],
-                borderRadius: BorderRadius.all(
-                  Radius.circular(10),
-                ),
-              ),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: double.infinity,
-                      width: double.infinity,
-                      child: CachedNetworkImage(
-                        imageUrl: widget.business["img"],
-                        fit: BoxFit.cover,
-                        errorWidget: (context, url, error) {
-                          return const SizedBox();
-                        },
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              width: constraints.maxWidth * 0.9,
-                              height: constraints.maxHeight * 0.9,
-                              child: Column(
-                                children: [
-                                  Flexible(
-                                    fit: FlexFit.tight,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        Flexible(
-                                          child: Text(
-                                            widget.business["name"],
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w900,
-                                              fontSize: 38 * globals.scaleParam,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Flexible(
-                                    fit: FlexFit.tight,
-                                    child: Row(
-                                      children: [
-                                        Flexible(
-                                          fit: FlexFit.tight,
-                                          child: Text(
-                                            widget.business["address"],
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w500,
-                                                fontSize:
-                                                    30 * globals.scaleParam),
-                                          ),
-                                        )
-                                      ],
-                                    ),
-                                  ),
-                                  Flexible(
-                                    fit: FlexFit.tight,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        Flexible(
-                                          child: Text(
-                                            "Короткое описание",
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w500,
-                                                fontSize:
-                                                    30 * globals.scaleParam),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
+      child: AspectRatio(
+        aspectRatio: 1,
+        child: Container(
+          margin: EdgeInsets.all(10 * globals.scaleParam),
+          width: 650 * globals.scaleParam,
+          // height: 600 * globals.scaleParam,
+          clipBehavior: Clip.antiAlias,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                  offset: Offset(2, 2), blurRadius: 2, color: Colors.black12),
+            ],
+            borderRadius: BorderRadius.all(
+              Radius.circular(10),
             ),
           ),
-          AspectRatio(
-            aspectRatio: 16 / 10,
-            child: Padding(
-              padding: EdgeInsets.all(10 * globals.scaleParam),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  print(constraints.maxWidth);
-                  return Container(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 10 * globals.scaleParam,
-                        vertical: 10 * globals.scaleParam),
-                    alignment: Alignment.topCenter,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        widget.isClosest
-                            ? Container(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 10 * globals.scaleParam),
-                                decoration: BoxDecoration(
-                                  color: Colors.green,
-                                  borderRadius: BorderRadius.only(
-                                    bottomRight: Radius.circular(10),
-                                    topLeft: Radius.circular(10),
-                                  ),
-                                  // gradient: LinearGradient(
-                                  //   colors: [
-                                  //     Colors.green,
-                                  //     Colors.green.withOpacity(0.5),
-                                  //     Colors.transparent
-                                  //   ],
-                                  //   begin: Alignment.centerLeft,
-                                  //   end: Alignment.centerRight,
-                                  //   stops: [0.4, 0.9, 1],
-                                  // ),
-                                ),
-                                child: Text(
-                                  "Быстрая доставка",
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                      fontSize: 32 * globals.scaleParam),
-                                ),
-                              )
-                            : SizedBox(),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 10 * globals.scaleParam),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade50,
-                            borderRadius: BorderRadius.only(
-                              bottomRight: Radius.circular(10),
-                              topLeft: Radius.circular(10),
+          child: Column(
+            children: [
+              Expanded(
+                child: Stack(children: [
+                  CachedNetworkImage(
+                    imageUrl: widget.business["img"],
+                    height: double.infinity,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorWidget: (context, url, error) {
+                      return const SizedBox();
+                    },
+                  ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.max,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 10 * globals.scaleParam),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.delivery_dining_rounded,
+                              size: 48 * globals.scaleParam,
                             ),
-                          ),
-                          child: Row(
+                            Text(
+                              "${formatCost("4000000")} ₸", // ! CHANGE TO ACTUAL DELIVERY COST
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
+                                  fontSize: 32 * globals.scaleParam),
+                            ),
+                          ],
+                        ),
+                      ),
+                      widget.isClosest
+                          ? Text(
+                              "Быстрая доставка",
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                  fontSize: 32 * globals.scaleParam,
+                                  backgroundColor: Colors.green),
+                            )
+                          : SizedBox(),
+                    ],
+                  ),
+                ]),
+              ),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: constraints.maxWidth * 0.9,
+                          height: constraints.maxHeight * 0.9,
+                          child: Column(
                             children: [
-                              Icon(
-                                Icons.delivery_dining_rounded,
-                                size: 48 * globals.scaleParam,
+                              Flexible(
+                                fit: FlexFit.tight,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        widget.business["name"],
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 38 * globals.scaleParam,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              Text(
-                                "${formatCost("4000000")} ₸", // ! CHANGE TO ACTUAL DELIVERY COST
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black,
-                                    fontSize: 32 * globals.scaleParam),
+                              Flexible(
+                                fit: FlexFit.tight,
+                                child: Row(
+                                  children: [
+                                    Flexible(
+                                      fit: FlexFit.tight,
+                                      child: Text(
+                                        widget.business["address"],
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 30 * globals.scaleParam),
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              ),
+                              Flexible(
+                                fit: FlexFit.tight,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        "Короткое описание",
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 30 * globals.scaleParam),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
                         ),
                       ],
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
-          )
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
