@@ -5,7 +5,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/pages/createProfilePage.dart';
+import 'package:naliv_delivery/pages/pickOnMap.dart';
+import 'package:naliv_delivery/pages/preLoadDataPage.dart';
 import '../globals.dart' as globals;
 
 import 'package:flutter/painting.dart';
@@ -187,17 +190,284 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
   Future<void> _getPosition() async {
     await determinePosition(context).then((v) {
       searchGeoData(v.longitude, v.latitude).then((vv) {
-        showModalBottomSheet(
-          context: context,
-          builder: (context) {
-            return Container(
-              width: double.infinity,
-              child: Column(
-                children: [Text(_currentAddressName!)],
-              ),
+        if (_currentAddressName != widget.currentAddress["address"]) {
+          bool isAddressAlreadyExist = false;
+          for (var address in widget.addresses) {
+            print(address["name"]);
+            if (address["address"] == _currentAddressName) {
+              isAddressAlreadyExist = true;
+              showModalBottomSheet(
+                backgroundColor: Colors.white,
+                context: context,
+                builder: (context) {
+                  return Container(
+                    padding: EdgeInsets.all(50 * globals.scaleParam),
+                    width: double.infinity,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Flexible(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Flexible(
+                                  child: Text(
+                                "Изменить адрес доставки?",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 76 * globals.scaleParam,
+                                    color: Colors.black),
+                              )),
+                              SizedBox(
+                                height: 10 * globals.scaleParam,
+                              ),
+                              Flexible(
+                                  child: Text(
+                                _currentAddressName!,
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 48 * globals.scaleParam,
+                                    color: Colors.black),
+                              )),
+                              SizedBox(
+                                height: 10 * globals.scaleParam,
+                              ),
+                              Row(
+                                mainAxisSize: MainAxisSize.max,
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      "Подъезд/Вход: ",
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 32 * globals.scaleParam),
+                                    ),
+                                  ),
+                                  Flexible(
+                                    child: Text(
+                                      address["entrance"] ?? "-",
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 32 * globals.scaleParam),
+                                    ),
+                                  )
+                                ],
+                              ),
+                              Row(
+                                mainAxisSize: MainAxisSize.max,
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      "Этаж: ",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 32 * globals.scaleParam,
+                                      ),
+                                    ),
+                                  ),
+                                  Flexible(
+                                    child: Text(
+                                      address["floor"] ?? "-",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 32 * globals.scaleParam,
+                                      ),
+                                    ),
+                                  )
+                                ],
+                              ),
+                              Row(
+                                mainAxisSize: MainAxisSize.max,
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      "Квартира/Офис: ",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 32 * globals.scaleParam,
+                                      ),
+                                    ),
+                                  ),
+                                  Flexible(
+                                    child: Text(
+                                      address["apartment"] ?? "-",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 32 * globals.scaleParam,
+                                      ),
+                                    ),
+                                  )
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      address["other"] ?? "-",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 32 * globals.scaleParam,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            IconButton(
+                                style: IconButton.styleFrom(
+                                    backgroundColor: Colors.tealAccent.shade700,
+                                    padding: EdgeInsets.all(
+                                        20 * globals.scaleParam)),
+                                onPressed: () {
+                                  selectAddressClient(address["address_id"],
+                                          widget.user["user_id"])
+                                      .then((q) {
+                                    Navigator.pushAndRemoveUntil(context,
+                                        CupertinoPageRoute(
+                                      builder: (context) {
+                                        return PreLoadDataPage(
+                                            // business: widget.business,
+                                            // client: widget.client,
+                                            // customAddress: _addresses[index],
+                                            );
+                                      },
+                                    ), (Route<dynamic> route) => false);
+                                  });
+                                },
+                                icon: Icon(
+                                  Icons.done_sharp,
+                                  size: 76 * globals.scaleParam,
+                                  color: Colors.white,
+                                )),
+                            SizedBox(
+                              height: 10 * globals.scaleParam,
+                            ),
+                            IconButton(
+                                style: IconButton.styleFrom(
+                                    backgroundColor: Colors.redAccent.shade700,
+                                    padding: EdgeInsets.all(
+                                        20 * globals.scaleParam)),
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                },
+                                icon: Icon(
+                                  Icons.close_sharp,
+                                  size: 76 * globals.scaleParam,
+                                  color: Colors.white,
+                                )),
+                          ],
+                        )
+                      ],
+                    ),
+                  );
+                },
+              );
+            }
+          }
+          if (!isAddressAlreadyExist) {
+            showModalBottomSheet(
+              backgroundColor: Colors.white,
+              context: context,
+              builder: (context) {
+                return Container(
+                  padding: EdgeInsets.all(50 * globals.scaleParam),
+                  width: double.infinity,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.max,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Flexible(
+                                child: Text(
+                              "Изменить адрес доставки?",
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 76 * globals.scaleParam,
+                                  color: Colors.black),
+                            )),
+                            SizedBox(
+                              height: 10 * globals.scaleParam,
+                            ),
+                            Flexible(
+                                child: Text(
+                              _currentAddressName!,
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 48 * globals.scaleParam,
+                                  color: Colors.black),
+                            )),
+                          ],
+                        ),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          IconButton(
+                              style: IconButton.styleFrom(
+                                  backgroundColor: Colors.tealAccent.shade700,
+                                  padding:
+                                      EdgeInsets.all(20 * globals.scaleParam)),
+                              onPressed: () {
+                                showModalBottomSheet(
+                                  backgroundColor: Colors.white,
+                                  barrierColor: Colors.black45,
+                                  isScrollControlled: true,
+                                  context: context,
+                                  useSafeArea: true,
+                                  builder: (context) {
+                                    return CreateAddressPage(
+                                      lat: _lat,
+                                      lon: _lon,
+                                      addressName: _currentAddressName!,
+                                      isFromCreateOrder: false,
+                                    );
+                                  },
+                                );
+                              },
+                              icon: Icon(
+                                Icons.done_sharp,
+                                size: 76 * globals.scaleParam,
+                                color: Colors.white,
+                              )),
+                          SizedBox(
+                            height: 10 * globals.scaleParam,
+                          ),
+                          IconButton(
+                              style: IconButton.styleFrom(
+                                  backgroundColor: Colors.redAccent.shade700,
+                                  padding:
+                                      EdgeInsets.all(20 * globals.scaleParam)),
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              icon: Icon(
+                                Icons.close_sharp,
+                                size: 76 * globals.scaleParam,
+                                color: Colors.white,
+                              )),
+                        ],
+                      )
+                    ],
+                  ),
+                );
+              },
             );
-          },
-        );
+          }
+        } else {}
       });
     });
   }

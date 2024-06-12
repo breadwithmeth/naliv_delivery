@@ -14,4 +14,4 @@ Color currentColor = Colors.primaries[_random.nextInt(Colors.primaries.length)];
 
 bool isLoggedIn = false;
 double scaleParam = 1;
-Color mainColor = Colors.deepOrangeAccent.shade100;
+Color mainColor = Colors.deepOrangeAccent;

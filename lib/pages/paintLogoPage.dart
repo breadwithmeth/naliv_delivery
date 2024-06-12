@@ -13,7 +13,7 @@ class _paintLogoPageState extends State<paintLogoPage>
     with SingleTickerProviderStateMixin {
   late final AnimationController animationController = AnimationController(
     vsync: this,
-    duration: const Duration(seconds: 1),
+    duration: const Duration(seconds: 2),
   );
 
   bool isExample1 = false;
