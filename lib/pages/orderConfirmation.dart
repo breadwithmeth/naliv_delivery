@@ -42,11 +42,6 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
   List<dynamic> wrongPositions = [];
   List<dynamic> wrongItems = [];
 
-  String formatCost(String costString) {
-    int cost = int.parse(costString);
-    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
-  }
-
   void composeWrongItemsList() {
     if (!wrongPositions.isEmpty) {
       for (int i = 0; i < widget.items.length; i++) {
@@ -394,9 +389,9 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         children: [
                           ItemCardNoImage(
                             element: item,
-                            item_id: item["item_id"],
-                            category_id: "",
-                            category_name: "",
+                            itemId: item["item_id"],
+                            categoryId: "",
+                            categoryName: "",
                             scroll: 0,
                           ),
                           widget.items.length - 1 != index
@@ -520,7 +515,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                           Flexible(
                             child: Text(
                               widget.cartInfo.isNotEmpty
-                                  ? "Сумма к оплате: ${formatCost(widget.cartInfo).toString()} ₸"
+                                  ? "Сумма к оплате: ${globals.formatCost(widget.cartInfo).toString()} ₸"
                                   : "Сумма к оплате: 0 ₸",
                               textAlign: TextAlign.center,
                               style: TextStyle(

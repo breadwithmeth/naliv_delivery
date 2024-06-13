@@ -25,7 +25,6 @@ import 'package:naliv_delivery/pages/pickAddressPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
 import 'package:naliv_delivery/pages/supportPage.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 
 class OrganizationSelectPage extends StatefulWidget {
   OrganizationSelectPage(
@@ -1057,11 +1056,6 @@ class BusinessItem extends StatefulWidget {
 }
 
 class BusinessItemState extends State<BusinessItem> {
-  String formatCost(String costString) {
-    int cost = int.parse(costString);
-    return NumberFormat("###,###", "en_US").format(cost);
-  }
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -1127,7 +1121,7 @@ class BusinessItemState extends State<BusinessItem> {
                               size: 48 * globals.scaleParam,
                             ),
                             Text(
-                              "${formatCost("4000000")} ₸", // ! CHANGE TO ACTUAL DELIVERY COST
+                              "${globals.formatCost("4000000")} ₸", // ! CHANGE TO ACTUAL DELIVERY COST
                               style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                   color: Colors.black,

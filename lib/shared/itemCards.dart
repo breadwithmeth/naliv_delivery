@@ -11,21 +11,21 @@ import 'package:naliv_delivery/shared/likeButton.dart';
 import 'package:intl/intl.dart';
 
 class ItemCard extends StatefulWidget {
-  ItemCard(
+  const ItemCard(
       {super.key,
-      required this.item_id,
+      required this.itemId,
       required this.element,
-      required this.category_name,
-      required this.category_id,
+      required this.categoryName,
+      required this.categoryId,
       required this.scroll});
   final Map<String, dynamic> element;
-  final String category_name;
+  final String categoryName;
 
-  final String item_id;
+  final String itemId;
 
-  final String category_id;
+  final String categoryId;
   final double scroll;
-  int chack = 1;
+  final int chack = 1;
   @override
   State<ItemCard> createState() => _ItemCardState();
 }
@@ -35,11 +35,6 @@ class _ItemCardState extends State<ItemCard> {
   List<InlineSpan> propertiesWidget = [];
   late int chack;
   bool isNumPickerActive = false;
-
-  String formatCost(String costString) {
-    int cost = int.parse(costString);
-    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
-  }
 
   @override
   void initState() {
@@ -202,7 +197,7 @@ class _ItemCardState extends State<ItemCard> {
                         Row(
                           children: [
                             Text(
-                              formatCost(element['price'] ?? ""),
+                              globals.formatCost(element['price'] ?? ""),
                               style: TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.w600,
@@ -225,7 +220,8 @@ class _ItemCardState extends State<ItemCard> {
                                 child: Row(
                                   children: [
                                     Text(
-                                      formatCost(element["prev_price"] ?? 0),
+                                      globals.formatCost(
+                                          element["prev_price"] ?? 0),
                                       style: TextStyle(
                                           decoration:
                                               TextDecoration.lineThrough,
@@ -303,32 +299,33 @@ class _ItemCardState extends State<ItemCard> {
 }
 
 class ItemCardMedium extends StatefulWidget {
-  ItemCardMedium(
+  const ItemCardMedium(
       {super.key,
-      required this.item_id,
+      required this.itemId,
       required this.element,
-      required this.category_name,
-      required this.category_id,
+      required this.categoryName,
+      required this.categoryId,
       required this.scroll,
       required this.business,
       required this.index,
       this.updateCategoryPageInfo});
   final Map<String, dynamic> element;
-  final String category_name;
+  final String categoryName;
 
-  final String item_id;
+  final String itemId;
 
-  final String category_id;
+  final String categoryId;
   final double scroll;
   final Map<dynamic, dynamic> business;
   final int index;
   final Function(String, int)? updateCategoryPageInfo;
-  int chack = 1;
+  final chack = 1;
   @override
   State<ItemCardMedium> createState() => _ItemCardMediumState();
 }
 
-class _ItemCardMediumState extends State<ItemCardMedium> {
+class _ItemCardMediumState extends State<ItemCardMedium>
+    with SingleTickerProviderStateMixin<ItemCardMedium> {
   Map<String, dynamic> element = {};
   List<InlineSpan> propertiesWidget = [];
   int amountInCart = 0;
@@ -336,6 +333,9 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
   bool isItemAmountChanging = false;
   late int chack;
   Timer? _debounce;
+
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnimation;
 
   void _updateItemCountServerCall() {
     if (previousAmount == amountInCart) {
@@ -397,11 +397,6 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
     }
   }
 
-  String formatCost(String costString) {
-    int cost = double.parse(costString).truncate().toInt();
-    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
-  }
-
   @override
   void initState() {
     // TODO: implement initState
@@ -412,6 +407,20 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
       previousAmount = amountInCart;
     });
     getProperties();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+
+    _offsetAnimation = Tween<Offset>(
+      begin: Offset(1, 0),
+      end: Offset(0, 0),
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.linear,
+      ),
+    );
   }
 
   @override
@@ -462,6 +471,14 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
     }
   }
 
+  void _moveButton() {
+    if (_controller.status == AnimationStatus.completed) {
+      _controller.reverse();
+    } else {
+      _controller.forward();
+    }
+  }
+
   Future<void> refreshItemCard() async {
     Map<String, dynamic>? element = await getItem(widget.element["item_id"]);
     print(element);
@@ -475,17 +492,11 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
   Widget build(BuildContext context) {
     chack = widget.chack;
     return Container(
-      // margin:  EdgeInsets.all(10),
       padding: EdgeInsets.symmetric(horizontal: 5 * globals.scaleParam),
-      // width: (MediaQuery.of(context).size.width * 0.8) * (MediaQuery.sizeOf(context).width / 720),
       width: double.infinity,
       height: 300 * globals.scaleParam,
       child: Stack(
         children: [
-          // Image.asset(
-          //   'assets/vectors/whiskey/whiskey1.png',
-          //   color: Colors.grey.shade300,
-          // ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             mainAxisSize: MainAxisSize.max,
@@ -501,28 +512,23 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                   child: CachedNetworkImage(
                     height: double.infinity,
                     imageUrl: element["thumb"],
-                    // width: MediaQuery.of(context).size.width * 0.2,
-                    // height: MediaQuery.of(context).size.width * 0.7,
                     fit: BoxFit.cover,
                     cacheManager: CacheManager(
                       Config(
                         "itemImage ${element["item_id"].toString()}",
                         stalePeriod: Duration(days: 700),
-                        //one week cache period
                       ),
                     ),
                     placeholder: (context, url) {
                       return Container(
                         alignment: Alignment.center,
                         color: Colors.white,
-                        // width: MediaQuery.of(context).size.width * 0.2,
                         child: CircularProgressIndicator(),
                       );
                     },
                     errorWidget: (context, url, error) {
                       return Container(
                         alignment: Alignment.center,
-                        // width: MediaQuery.of(context).size.width * 0.2,
                         child: Text(
                           "Нет изображения",
                           textAlign: TextAlign.center,
@@ -640,32 +646,13 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  // Flexible(
-                                  //   child: Row(
-                                  //     children: [
-                                  //       Flexible(
-                                  //         child: Text(
-                                  //           amountInCart != 0
-                                  //               ? "В корзине ${amountInCart.toString()} шт."
-                                  //               : "",
-                                  //           style: TextStyle(
-                                  //               color: Theme.of(context)
-                                  //                   .colorScheme
-                                  //                   .secondary,
-                                  //               fontSize:
-                                  //                   28 * (MediaQuery.sizeOf(context).width / 720),
-                                  //               fontWeight: FontWeight.w500),
-                                  //         ),
-                                  //       ),
-                                  //     ],
-                                  //   ),
-                                  // ),
                                   Flexible(
                                     child: Row(
                                       children: [
                                         Flexible(
                                           child: Text(
-                                            formatCost(element['price'] ?? ""),
+                                            globals.formatCost(
+                                                element['price'] ?? ""),
                                             style: TextStyle(
                                               color: Colors.black,
                                               fontWeight: FontWeight.w600,
@@ -687,118 +674,215 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                     ),
                                   ),
                                   Flexible(
-                                    // flex: 2,
                                     fit: FlexFit.tight,
-                                    child: Row(
+                                    child: Stack(
                                       children: [
-                                        Flexible(
-                                          fit: FlexFit.tight,
-                                          child: IconButton(
-                                            padding: EdgeInsets.all(0),
-                                            onPressed: () {
-                                              if (!isItemAmountChanging) {
-                                                _decrementAmountInCart();
-                                              }
-                                            },
-                                            icon: Container(
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                  color: amountInCart > 0
-                                                      ? Theme.of(context)
-                                                          .colorScheme
-                                                          .onBackground
-                                                      : Theme.of(context)
-                                                          .colorScheme
-                                                          .secondary,
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                              ),
-                                              child: Icon(
-                                                Icons.remove_rounded,
-                                                color: amountInCart > 0
-                                                    ? Theme.of(context)
-                                                        .colorScheme
-                                                        .onBackground
-                                                    : Theme.of(context)
-                                                        .colorScheme
-                                                        .secondary,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        Flexible(
-                                          flex: 2,
-                                          fit: FlexFit.tight,
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Flexible(
-                                                child: Text(
-                                                  "${amountInCart.toString()} шт.", //"${formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
-                                                  textHeightBehavior:
-                                                      TextHeightBehavior(
-                                                    applyHeightToFirstAscent:
-                                                        false,
+                                        LayoutBuilder(
+                                          builder: (context, constraints) {
+                                            return Row(
+                                              children: [
+                                                Container(
+                                                  color: Colors.amber,
+                                                  width: constraints.maxWidth *
+                                                      0.85,
+                                                  alignment:
+                                                      Alignment.centerLeft,
+                                                  child: ClipRect(
+                                                    clipBehavior:
+                                                        Clip.antiAlias,
+                                                    child: Visibility(
+                                                      // visible: false,
+                                                      child: SlideTransition(
+                                                        position:
+                                                            _offsetAnimation,
+                                                        child: Row(
+                                                          children: [
+                                                            Flexible(
+                                                              fit:
+                                                                  FlexFit.tight,
+                                                              child: IconButton(
+                                                                padding:
+                                                                    EdgeInsets
+                                                                        .all(0),
+                                                                onPressed: () {
+                                                                  if (!isItemAmountChanging) {
+                                                                    _decrementAmountInCart();
+                                                                    if (amountInCart <=
+                                                                        0) {
+                                                                      _moveButton();
+                                                                    }
+                                                                  }
+                                                                },
+                                                                icon: Container(
+                                                                  decoration:
+                                                                      BoxDecoration(
+                                                                    border:
+                                                                        Border
+                                                                            .all(
+                                                                      color: amountInCart >
+                                                                              0
+                                                                          ? Theme.of(context)
+                                                                              .colorScheme
+                                                                              .onBackground
+                                                                          : Theme.of(context)
+                                                                              .colorScheme
+                                                                              .secondary,
+                                                                    ),
+                                                                    borderRadius:
+                                                                        BorderRadius
+                                                                            .circular(6),
+                                                                  ),
+                                                                  child: Icon(
+                                                                    Icons
+                                                                        .remove_rounded,
+                                                                    color: amountInCart >
+                                                                            0
+                                                                        ? Theme.of(context)
+                                                                            .colorScheme
+                                                                            .onBackground
+                                                                        : Theme.of(context)
+                                                                            .colorScheme
+                                                                            .secondary,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            Flexible(
+                                                              flex: 2,
+                                                              fit:
+                                                                  FlexFit.tight,
+                                                              child: Row(
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .center,
+                                                                children: [
+                                                                  Flexible(
+                                                                    child: Text(
+                                                                      "${amountInCart.toString()} шт.", //"${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
+                                                                      textHeightBehavior:
+                                                                          TextHeightBehavior(
+                                                                        applyHeightToFirstAscent:
+                                                                            false,
+                                                                      ),
+                                                                      textAlign:
+                                                                          TextAlign
+                                                                              .center,
+                                                                      style:
+                                                                          TextStyle(
+                                                                        fontWeight:
+                                                                            FontWeight.w700,
+                                                                        fontSize:
+                                                                            36 *
+                                                                                globals.scaleParam,
+                                                                        color: amountInCart !=
+                                                                                0
+                                                                            ? Theme.of(context).colorScheme.onBackground
+                                                                            : Colors.grey.shade600,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                            Flexible(
+                                                              fit:
+                                                                  FlexFit.tight,
+                                                              child: IconButton(
+                                                                padding:
+                                                                    EdgeInsets
+                                                                        .all(0),
+                                                                onPressed: () {
+                                                                  if (!isItemAmountChanging) {
+                                                                    _incrementAmountInCart();
+                                                                  }
+                                                                },
+                                                                icon: Container(
+                                                                  decoration:
+                                                                      BoxDecoration(
+                                                                    border:
+                                                                        Border
+                                                                            .all(
+                                                                      color: amountInCart <
+                                                                              double.parse(element["in_stock"])
+                                                                                  .truncate()
+                                                                          ? Theme.of(context)
+                                                                              .colorScheme
+                                                                              .onBackground
+                                                                          : Theme.of(context)
+                                                                              .colorScheme
+                                                                              .secondary,
+                                                                    ),
+                                                                    borderRadius:
+                                                                        BorderRadius
+                                                                            .circular(6),
+                                                                  ),
+                                                                  child: Icon(
+                                                                    Icons
+                                                                        .add_rounded,
+                                                                    color: amountInCart <
+                                                                            double.parse(element["in_stock"])
+                                                                                .truncate()
+                                                                        ? Theme.of(context)
+                                                                            .colorScheme
+                                                                            .onBackground
+                                                                        : Theme.of(context)
+                                                                            .colorScheme
+                                                                            .secondary,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
                                                   ),
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.w700,
-                                                    fontSize:
-                                                        36 * globals.scaleParam,
-                                                    color: amountInCart != 0
-                                                        ? Theme.of(context)
-                                                            .colorScheme
-                                                            .onBackground
-                                                        : Colors.grey.shade600,
-                                                  ),
                                                 ),
-                                              ),
-                                            ],
-                                          ),
+                                              ],
+                                            );
+                                          },
                                         ),
-                                        Flexible(
-                                          fit: FlexFit.tight,
-                                          child: IconButton(
-                                            padding: EdgeInsets.all(0),
-                                            onPressed: () {
-                                              if (!isItemAmountChanging) {
-                                                _incrementAmountInCart();
-                                              }
-                                            },
-                                            icon: Container(
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                  color: amountInCart <
-                                                          double.parse(element[
-                                                                  "in_stock"])
-                                                              .truncate()
-                                                      ? Theme.of(context)
-                                                          .colorScheme
-                                                          .onBackground
-                                                      : Theme.of(context)
-                                                          .colorScheme
-                                                          .secondary,
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                              ),
-                                              child: Icon(
-                                                Icons.add_rounded,
-                                                color: amountInCart <
-                                                        double.parse(element[
-                                                                "in_stock"])
-                                                            .truncate()
-                                                    ? Theme.of(context)
-                                                        .colorScheme
-                                                        .onBackground
-                                                    : Theme.of(context)
-                                                        .colorScheme
-                                                        .secondary,
-                                              ),
-                                            ),
-                                          ),
+                                        AnimatedSwitcher(
+                                          duration: Duration(milliseconds: 150),
+                                          transitionBuilder: (Widget child,
+                                              Animation<double> animation) {
+                                            return ScaleTransition(
+                                                scale: animation, child: child);
+                                          },
+                                          child: amountInCart == 0
+                                              ? LayoutBuilder(
+                                                  builder:
+                                                      (context, constraints) {
+                                                    return SizedBox(
+                                                      width:
+                                                          constraints.maxWidth *
+                                                              0.85,
+                                                      child: Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .end,
+                                                        children: [
+                                                          IconButton(
+                                                            onPressed: () {
+                                                              if (!isItemAmountChanging) {
+                                                                if (!_controller
+                                                                    .isCompleted) {
+                                                                  _moveButton();
+                                                                }
+                                                                _incrementAmountInCart();
+                                                              }
+                                                            },
+                                                            icon: Icon(
+                                                              Icons
+                                                                  .add_shopping_cart_rounded,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    );
+                                                  },
+                                                )
+                                              : SizedBox(),
                                         ),
                                       ],
                                     ),
@@ -825,10 +909,6 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
                                 ],
                               ),
                             ),
-                            // Flexible(
-                            //   flex: 4,
-                            //   child: _buyButton,
-                            // ),
                           ],
                         ),
                       ),
@@ -845,21 +925,21 @@ class _ItemCardMediumState extends State<ItemCardMedium> {
 }
 
 class ItemCardMinimal extends StatefulWidget {
-  ItemCardMinimal(
+  const ItemCardMinimal(
       {super.key,
-      required this.item_id,
+      required this.itemId,
       required this.element,
-      required this.category_name,
-      required this.category_id,
+      required this.categoryName,
+      required this.categoryId,
       required this.scroll});
   final Map<String, dynamic> element;
-  final String category_name;
+  final String categoryName;
 
-  final String item_id;
+  final String itemId;
 
-  final String category_id;
+  final String categoryId;
   final double scroll;
-  int chack = 1;
+  final int chack = 1;
   @override
   State<ItemCardMinimal> createState() => _ItemCardMinimalState();
 }
@@ -868,11 +948,6 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
   Map<String, dynamic> element = {};
   List<InlineSpan> propertiesWidget = [];
   late int chack;
-
-  String formatCost(String costString) {
-    int cost = int.parse(costString);
-    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
-  }
 
   @override
   void initState() {
@@ -1041,7 +1116,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                       children: [
                         Flexible(
                           child: Text(
-                            "${formatCost(element["price"])} ₸ за шт.",
+                            "${globals.formatCost(element["price"])} ₸ за шт.",
                             style: TextStyle(
                               color: Theme.of(context)
                                   .colorScheme
@@ -1063,7 +1138,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                         Flexible(
                           fit: FlexFit.tight,
                           child: Text(
-                            "${formatCost((int.parse(element['price']) * int.parse(element["amount"])).toString())} ₸",
+                            "${globals.formatCost((int.parse(element['price']) * int.parse(element["amount"])).toString())} ₸",
                             style: TextStyle(
                               color: Colors.black,
                               fontWeight: FontWeight.w600,
@@ -1086,38 +1161,6 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                             ),
                           ),
                         ),
-                        // Row(
-                        //   children: [
-                        //     // element["prev_price"] != null
-                        //     //     ? Padding(
-                        //     //         padding:  EdgeInsets.only(left: 5),
-                        //     //         child: Row(
-                        //     //           children: [
-                        //     //             Text(
-                        //     //               formatCost(element["prev_price"]),
-                        //     //               style: TextStyle(
-                        //     //                   decoration:
-                        //     //                       TextDecoration.lineThrough,
-                        //     //                   decorationColor:
-                        //     //                       Colors.grey.shade500,
-                        //     //                   decorationThickness: 1.85,
-                        //     //                   color: Colors.grey.shade500,
-                        //     //                   fontSize: 12 * (MediaQuery.sizeOf(context).width / 720),
-                        //     //                   fontWeight: FontWeight.w500),
-                        //     //             ),
-                        //     //             Text(
-                        //     //               "₸",
-                        //     //               style: TextStyle(
-                        //     //                   color: Colors.grey.shade600,
-                        //     //                   fontWeight: FontWeight.w700,
-                        //     //                   fontSize: 12 * (MediaQuery.sizeOf(context).width / 720)),
-                        //     //             )
-                        //     //           ],
-                        //     //         ),
-                        //     //       )
-                        //     //     : Container(),
-                        //   ],
-                        // ),
                         Flexible(
                           child: LikeButton(
                             is_liked: element["is_liked"],
@@ -1127,23 +1170,6 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                       ],
                     ),
                   ),
-                  // Flexible(
-                  //   child: Row(
-                  //     mainAxisAlignment: MainAxisAlignment.end,
-                  //     mainAxisSize: MainAxisSize.max,
-                  //     children: [
-                  //       // Flexible(
-                  //       //   child: _buyButton,
-                  //       // ),
-                  //       Flexible(
-                  //         child: LikeButton(
-                  //           is_liked: element["is_liked"],
-                  //           item_id: element["item_id"],
-                  //         ),
-                  //       ),
-                  //     ],
-                  //   ),
-                  // ),
                 ],
               ),
             ),
@@ -1155,21 +1181,21 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
 }
 
 class ItemCardNoImage extends StatefulWidget {
-  ItemCardNoImage(
+  const ItemCardNoImage(
       {super.key,
-      required this.item_id,
+      required this.itemId,
       required this.element,
-      required this.category_name,
-      required this.category_id,
+      required this.categoryName,
+      required this.categoryId,
       required this.scroll});
   final Map<String, dynamic> element;
-  final String category_name;
+  final String categoryName;
 
-  final String item_id;
+  final String itemId;
 
-  final String category_id;
+  final String categoryId;
   final double scroll;
-  int chack = 1;
+  final int chack = 1;
   @override
   State<ItemCardNoImage> createState() => _ItemCardNoImageState();
 }
@@ -1178,11 +1204,6 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
   Map<String, dynamic> element = {};
   List<InlineSpan> propertiesWidget = [];
   late int chack;
-
-  String formatCost(String costString) {
-    int cost = int.parse(costString);
-    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
-  }
 
   @override
   void initState() {
@@ -1329,7 +1350,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                       Flexible(
                         fit: FlexFit.tight,
                         child: Text(
-                          "${formatCost(element["price"])} ₸ за шт.",
+                          "${globals.formatCost(element["price"])} ₸ за шт.",
                           style: TextStyle(
                             color: Theme.of(context)
                                 .colorScheme
@@ -1343,23 +1364,6 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                     ],
                   ),
                 ),
-                // Flexible(
-                //   child: Row(
-                //     mainAxisAlignment: MainAxisAlignment.end,
-                //     mainAxisSize: MainAxisSize.max,
-                //     children: [
-                //       // Flexible(
-                //       //   child: _buyButton,
-                //       // ),
-                //       Flexible(
-                //         child: LikeButton(
-                //           is_liked: element["is_liked"],
-                //           item_id: element["item_id"],
-                //         ),
-                //       ),
-                //     ],
-                //   ),
-                // ),
               ],
             ),
           ),
@@ -1376,7 +1380,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                     textAlign: TextAlign.end,
                     text: TextSpan(
                       text:
-                          "${formatCost((int.parse(element['price']) * int.parse(element['amount'])).toString())} ₸",
+                          "${globals.formatCost((int.parse(element['price']) * int.parse(element['amount'])).toString())} ₸",
                       style: TextStyle(
                         color: Colors.black,
                         fontWeight: FontWeight.w600,
@@ -1388,55 +1392,6 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
               ],
             ),
           ),
-          // child: Row(
-          //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          //   children: [
-          //     Row(
-          //       children: [
-          //         Text(
-          //           "${formatCost(element['price'])} ₸",
-          //           style: TextStyle(
-          //               color: Colors.black,
-          //               fontWeight: FontWeight.w600,
-          //               fontSize: 16 * (MediaQuery.sizeOf(context).width / 720)),
-          //         ),
-          //         // Text(
-          //         //   "₸",
-          //         //   style: TextStyle(
-          //         //       color: Colors.grey.shade600,
-          //         //       fontWeight: FontWeight.w700,
-          //         //       fontSize: 16 * (MediaQuery.sizeOf(context).width / 720)),
-          //         // // ),
-          //         // element["prev_price"] != null
-          //         //     ? Padding(
-          //         //         padding:  EdgeInsets.only(left: 5),
-          //         //         child: Row(
-          //         //           children: [
-          //         //             Text(
-          //         //               formatCost(element["prev_price"]),
-          //         //               style: TextStyle(
-          //         //                   decoration: TextDecoration.lineThrough,
-          //         //                   decorationColor: Colors.grey.shade500,
-          //         //                   decorationThickness: 1.85,
-          //         //                   color: Colors.grey.shade500,
-          //         //                   fontSize: 12 * (MediaQuery.sizeOf(context).width / 720),
-          //         //                   fontWeight: FontWeight.w500),
-          //         //             ),
-          //         //             Text(
-          //         //               "₸",
-          //         //               style: TextStyle(
-          //         //                   color: Colors.grey.shade600,
-          //         //                   fontWeight: FontWeight.w700,
-          //         //                   fontSize: 12 * (MediaQuery.sizeOf(context).width / 720)),
-          //         //             )
-          //         //           ],
-          //         //         ),
-          //         //       )
-          //         //     : Container(),
-          //       ],
-          //     ),
-          //   ],
-          // ),
         ],
       ),
     );
