@@ -21,7 +21,7 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
   Map _currentAddress = {};
 
   Map<String, dynamic> user = {};
-  Future<void> _getAddresses() async {
+  Future<bool> _getAddresses() async {
     List addresses = await getAddresses();
     print(addresses);
     if (addresses.isEmpty) {
@@ -34,7 +34,7 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
         _currentAddress = _addresses.firstWhere(
           (element) => element["is_selected"] == "1",
           orElse: () {
-            return null;
+            return false;
           },
         );
       });
@@ -65,50 +65,58 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
     // TODO: implement initState
     super.initState();
     _getAddresses().then((v) {
-      _getUser().then((vv) {
-        _getBusinesses().then((b) {
-          if (user["name"].toString().isEmpty) {
-            Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
-              builder: (context) {
-                return const ProfileCreatePage();
-              },
-            ), (route) => false);
-          } else {
-            _addresses.isNotEmpty
-                ? Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
-                    builder: (context) {
-                      return OrganizationSelectPage(
-                        addresses: _addresses,
-                        currentAddress: _currentAddress,
-                        user: user,
-                        businesses: b,
-                      );
-                    },
-                  ), (Route<dynamic> route) => false)
-                : Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
-                    builder: (context) {
-                      return PickAddressPage(client: user, isFirstTime: true);
-                    },
-                  ), (Route<dynamic> route) => false);
-            _addresses.isNotEmpty
-                ? Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
-                    builder: (context) {
-                      return OrganizationSelectPage(
-                        addresses: _addresses,
-                        currentAddress: _currentAddress,
-                        user: user,
-                        businesses: b,
-                      );
-                    },
-                  ), (Route<dynamic> route) => false)
-                : Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
-                    builder: (context) {
-                      return PickAddressPage(client: user, isFirstTime: true);
-                    },
-                  ), (Route<dynamic> route) => false);
-          }
+      if (v == false) {
+        Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+          builder: (context) {
+            return PickAddressPage(client: user, isFirstTime: true);
+          },
+        ), (Route<dynamic> route) => false);
+      } else {
+        _getUser().then((vv) {
+          _getBusinesses().then((b) {
+            if (user["name"].toString().isEmpty) {
+              Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+                builder: (context) {
+                  return const ProfileCreatePage();
+                },
+              ), (route) => false);
+            } else {
+              _addresses.isNotEmpty
+                  ? Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+                      builder: (context) {
+                        return OrganizationSelectPage(
+                          addresses: _addresses,
+                          currentAddress: _currentAddress,
+                          user: user,
+                          businesses: b,
+                        );
+                      },
+                    ), (Route<dynamic> route) => false)
+                  : Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+                      builder: (context) {
+                        return PickAddressPage(client: user, isFirstTime: true);
+                      },
+                    ), (Route<dynamic> route) => false);
+              _addresses.isNotEmpty
+                  ? Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+                      builder: (context) {
+                        return OrganizationSelectPage(
+                          addresses: _addresses,
+                          currentAddress: _currentAddress,
+                          user: user,
+                          businesses: b,
+                        );
+                      },
+                    ), (Route<dynamic> route) => false)
+                  : Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+                      builder: (context) {
+                        return PickAddressPage(client: user, isFirstTime: true);
+                      },
+                    ), (Route<dynamic> route) => false);
+            }
+          });
         });
-      });
+      }
     });
   }
 
