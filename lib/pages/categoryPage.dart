@@ -629,56 +629,35 @@ class _CategoryPageListState extends State<CategoryPageList>
                 }
               }
               final Map<String, dynamic> item = _items[index];
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                key: Key(item["item_id"]),
-                onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    clipBehavior: Clip.antiAlias,
-                    useSafeArea: true,
-                    isScrollControlled: true,
-                    builder: (context) {
-                      return ProductPage(
-                        item: item,
-                        index: index,
-                        returnDataAmount: updateDataAmount,
-                        business: widget.business,
-                      );
-                    },
-                  );
-                },
-                child: Column(
-                  children: [
-                    ItemCardMedium(
-                      item_id: item["item_id"],
-                      element: item,
-                      category_id: "",
-                      category_name: "",
-                      scroll: 0,
-                      business: widget.business,
-                      index: index,
-                      updateCategoryPageInfo: updateDataAmount,
+              return Column(
+                children: [
+                  ItemCardMedium(
+                    itemId: item["item_id"],
+                    element: item,
+                    categoryId: "",
+                    categoryName: "",
+                    scroll: 0,
+                    business: widget.business,
+                    index: index,
+                    updateCategoryPageInfo: updateDataAmount,
+                  ),
+                  _items.length != index
+                      ? Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16 * globals.scaleParam,
+                            vertical: 5 * globals.scaleParam,
+                          ),
+                          child: Divider(
+                            height: 0,
+                          ),
+                        )
+                      : Container(),
+                  if ((index == (_items.length + (_isLastPage ? 0 : 1) - 1)) &&
+                      (_isLastPage))
+                    SizedBox(
+                      height: 95 * globals.scaleParam,
                     ),
-                    _items.length != index
-                        ? Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 16 * globals.scaleParam,
-                              vertical: 5 * globals.scaleParam,
-                            ),
-                            child: Divider(
-                              height: 0,
-                            ),
-                          )
-                        : Container(),
-                    if ((index ==
-                            (_items.length + (_isLastPage ? 0 : 1) - 1)) &&
-                        (_isLastPage))
-                      SizedBox(
-                        height: 95 * globals.scaleParam,
-                      ),
-                  ],
-                ),
+                ],
               );
             },
           ),

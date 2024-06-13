@@ -133,10 +133,10 @@ class _SearchResultPageState extends State<SearchResultPage> {
           child: Column(
             children: [
               ItemCard(
-                item_id: item.data["item_id"],
+                itemId: item.data["item_id"],
                 element: item.data,
-                category_id: "",
-                category_name: "",
+                categoryId: "",
+                categoryName: "",
                 scroll: 0,
               ),
               _items.length - 1 != index

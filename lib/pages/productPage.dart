@@ -375,11 +375,6 @@ class _ProductPageState extends State<ProductPage> {
 
   // BUTTON VARIABLES/FUNCS END
 
-  String formatCost(String costString) {
-    int cost = double.parse(costString).truncate();
-    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
-  }
-
   @override
   void initState() {
     // TODO: implement initState
@@ -514,8 +509,8 @@ class _ProductPageState extends State<ProductPage> {
                           fit: FlexFit.tight,
                           child: Text(
                             cacheAmount == 0
-                                ? "${formatCost(item["price"])} ₸"
-                                : "${formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
+                                ? "${globals.formatCost(item["price"])} ₸"
+                                : "${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
                             textHeightBehavior: const TextHeightBehavior(
                               applyHeightToFirstAscent: false,
                             ),

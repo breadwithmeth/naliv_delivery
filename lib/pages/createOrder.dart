@@ -42,11 +42,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
 
   List<Map<dynamic, dynamic>> wrongAmountItems = [];
 
-  String formatCost(String costString) {
-    int cost = int.parse(costString);
-    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
-  }
-
   Future<void> _getUser() async {
     await getUser().then((value) {
       if (value != null) {
@@ -453,9 +448,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                   children: [
                     ItemCardNoImage(
                       element: item,
-                      item_id: item["item_id"],
-                      category_id: "",
-                      category_name: "",
+                      itemId: item["item_id"],
+                      categoryId: "",
+                      categoryName: "",
                       scroll: 0,
                     ),
                     items.length - 1 != index
@@ -772,7 +767,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                     Flexible(
                       child: Text(
                         cartInfo.isNotEmpty
-                            ? "Сумма к оплате: ${formatCost(cartInfo).toString()} ₸"
+                            ? "Сумма к оплате: ${globals.formatCost(cartInfo).toString()} ₸"
                             : "Сумма к оплате: 0 ₸",
                         textAlign: TextAlign.center,
                         style: TextStyle(

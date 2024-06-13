@@ -33,11 +33,6 @@ class _CartPageState extends State<CartPage>
   Map<String, dynamic> client = {};
   int distance = 0;
 
-  String formatCost(String costString) {
-    int cost = int.parse(costString);
-    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
-  }
-
   Future<Map<String, dynamic>> _getCart() async {
     Map<String, dynamic> cart = await getCart(widget.business["business_id"]);
     print(cart);
@@ -257,10 +252,10 @@ class _CartPageState extends State<CartPage>
                                   behavior: HitTestBehavior.opaque,
                                   key: Key(items[index]["item_id"]),
                                   child: ItemCardMinimal(
-                                    item_id: items[index]["item_id"],
+                                    itemId: items[index]["item_id"],
                                     element: items[index],
-                                    category_id: "",
-                                    category_name: "",
+                                    categoryId: "",
+                                    categoryName: "",
                                     scroll: 0,
                                   ),
                                   onTap: () {
@@ -404,7 +399,7 @@ class _CartPageState extends State<CartPage>
                                 children: [
                                   Flexible(
                                     child: Text(
-                                      "${formatCost(localSum.toString())} ₸", // CHANGE THIS TO REPRESENT SUM WITHOUT DISCOUNT
+                                      "${globals.formatCost(localSum.toString())} ₸", // CHANGE THIS TO REPRESENT SUM WITHOUT DISCOUNT
                                       style: TextStyle(
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w700,
@@ -419,7 +414,7 @@ class _CartPageState extends State<CartPage>
                                 children: [
                                   Flexible(
                                     child: Text(
-                                      "${formatCost(localDiscount.toString())} ₸", // CHANGE THIS TO REPRESENT DISCOUNT
+                                      "${globals.formatCost(localDiscount.toString())} ₸", // CHANGE THIS TO REPRESENT DISCOUNT
                                       style: TextStyle(
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w700,
@@ -435,7 +430,7 @@ class _CartPageState extends State<CartPage>
                                   Flexible(
                                     fit: FlexFit.tight,
                                     child: Text(
-                                      "${formatCost(localSum.toString())} ₸",
+                                      "${globals.formatCost(localSum.toString())} ₸",
                                       style: TextStyle(
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w700,
