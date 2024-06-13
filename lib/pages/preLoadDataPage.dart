@@ -28,6 +28,7 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
       setState(() {
         _currentAddress = {};
       });
+      return true;
     } else {
       setState(() {
         _addresses = addresses;
@@ -38,6 +39,7 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
           },
         );
       });
+      return true;
     }
   }
 
