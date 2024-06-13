@@ -36,7 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.2
   shared_preferences: ^2.1.1
   http: ^1.0.0
-  geolocator: ^9.0.2
+  geolocator: ^12.0.0
   states_rebuilder: ^6.3.0
   flutter_markdown: ^0.6.17+3
   intl_phone_number_input: ^0.7.3+1
