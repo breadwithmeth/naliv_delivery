@@ -160,7 +160,7 @@ class _CartPageState extends State<CartPage>
               List items = snapshot.data!["cart"];
               print(items);
               String localSum = snapshot.data!["sum"];
-              int distance = int.parse(snapshot.data!["distance"]);
+              int distance = int.parse(snapshot.data!["distance"].toString());
               double dist = distance / 1000;
               dist = (dist * 2).round() / 2;
               int price = 0;
@@ -379,7 +379,7 @@ class _CartPageState extends State<CartPage>
                                 padding: EdgeInsets.only(
                                     left: 30 * globals.scaleParam),
                                 child: Text(
-                                  "Стоимость доставки",
+                                  "Доставка",
                                   style: TextStyle(
                                     fontSize: 32 * globals.scaleParam,
                                     fontWeight: FontWeight.w700,
@@ -447,7 +447,7 @@ class _CartPageState extends State<CartPage>
                                   Flexible(
                                     fit: FlexFit.tight,
                                     child: Text(
-                                      "${distance} м - ${price} тг",
+                                      "${distance.toString()} м - ${price.toString()} ₸",
                                       style: TextStyle(
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w700,
