@@ -92,7 +92,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     {
       "name": "Алкоголь",
       "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
+          "https://status-k.ru/wp-content/uploads/2021/06/alkogol-440x440.png"
     },
     {
       "name": "Восточная кухня",
@@ -595,6 +595,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                       icon: Icons.map_outlined,
                       route: PickAddressPage(
                         client: widget.user,
+                        addresses: widget.addresses,
                       ),
                     ),
                     DrawerMenuItem(
@@ -670,6 +671,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                       builder: (context) {
                                         return PickAddressPage(
                                           client: widget.user,
+                                          addresses: widget.addresses,
                                         );
                                       },
                                     ));
@@ -733,6 +735,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                           builder: (context) {
                                             return PickAddressPage(
                                               client: widget.user,
+                                              addresses: widget.addresses,
                                             );
                                           },
                                         ));
@@ -833,7 +836,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                           context,
                           MaterialPageRoute(
                             builder: (context) {
-                              return PickAddressPage(client: widget.user);
+                              return PickAddressPage(
+                                client: widget.user,
+                                addresses: widget.addresses,
+                              );
                             },
                           ),
                         );
@@ -908,44 +914,63 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                           clipBehavior: Clip.antiAlias,
                           margin: EdgeInsets.only(
                               top: 5 * globals.scaleParam,
+                              bottom: 5 * globals.scaleParam,
                               left: 25 * globals.scaleParam),
                           decoration: BoxDecoration(
-                              color: Colors.white,
+                              boxShadow: [
+                                BoxShadow(
+                                    color: Colors.grey.shade300,
+                                    blurRadius: 5 * globals.scaleParam)
+                              ],
+                              color: Colors.grey.shade100,
                               borderRadius:
                                   const BorderRadius.all(Radius.circular(10))),
                           child: Stack(
                             children: [
-                              Image.network(
-                                _carouselItems[index]["image"],
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                                height: double.infinity,
-                              ),
-                              Container(
-                                width: double.infinity,
-                                height: double.infinity,
-                                decoration: const BoxDecoration(
-                                    gradient: LinearGradient(
-                                        transform: GradientRotation(pi / -2),
-                                        colors: [
-                                      Colors.black,
-                                      Colors.transparent
-                                    ])),
-                              ),
                               Container(
                                 padding:
-                                    EdgeInsets.all(20 * globals.scaleParam),
+                                    EdgeInsets.all(10 * globals.scaleParam),
+                                child: Image.network(
+                                  _carouselItems[index]["image"],
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                ),
+                              ),
+                              // Container(
+                              //   width: double.infinity,
+                              //   height: double.infinity,
+                              //   decoration: const BoxDecoration(
+                              //       gradient: LinearGradient(
+                              //           transform: GradientRotation(pi / -2),
+                              //           colors: [
+                              //         Colors.black,
+                              //         Colors.transparent
+                              //       ])),
+                              // ),
+                              Container(
+                                
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
-                                    Flexible(
-                                        child: Text(
-                                      _carouselItems[index]["name"],
-                                      style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 24 * globals.scaleParam),
-                                    ))
+                                    Container(
+                                        alignment: Alignment.topLeft,
+                                        color: Colors.white,
+                                        height: 80 * globals.scaleParam,
+                                        padding: EdgeInsets.all(10 *globals.scaleParam),
+                                        child: Row(
+                                          children: [
+                                            Flexible(
+                                                child: Text(
+                                              _carouselItems[index]["name"],
+                                              style: TextStyle(
+                                                  color: Colors.black,
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize:
+                                                      24 * globals.scaleParam),
+                                            )),
+                                          ],
+                                        ))
                                   ],
                                 ),
                               )

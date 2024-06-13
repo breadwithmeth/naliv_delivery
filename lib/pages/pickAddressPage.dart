@@ -8,17 +8,19 @@ import 'package:geolocator/geolocator.dart';
 import 'package:flutter/cupertino.dart';
 
 class PickAddressPage extends StatefulWidget {
-  const PickAddressPage({
+  PickAddressPage({
     super.key,
     required this.client,
     this.isFirstTime = false,
     this.business = const {},
     this.isFromCreateOrder = false,
+    this.addresses = const []
   });
   final Map client;
   final bool isFirstTime;
   final Map<dynamic, dynamic> business;
   final bool isFromCreateOrder;
+  final List addresses;
   //  String businessId;
   @override
   State<PickAddressPage> createState() => _PickAddressPageState();
@@ -30,7 +32,12 @@ class _PickAddressPageState extends State<PickAddressPage> {
   Position? _location;
   Future<List> _getAddresses() async {
     // List addresses = await getUserAddresses(widget.client["user_id"]);
-    List addresses = await getAddresses();
+    List addresses = [];
+    if (widget.addresses.isEmpty) {
+      addresses = await getAddresses();
+    } else {
+      addresses = widget.addresses;
+    }
 
     return addresses;
   }
@@ -55,7 +62,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    _getAddresses();
+    // _getAddresses();
     _getGeolocation();
     _getCities();
   }
