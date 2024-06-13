@@ -559,7 +559,6 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                     lat: _lat,
                                     lon: _lon,
                                     addressName: _currentAddressName!,
-                                    city_id: _currentCityId,
                                     isFromCreateOrder: true,
                                   );
                                 },
@@ -677,12 +676,10 @@ class CreateAddressPage extends StatefulWidget {
       required this.lat,
       required this.lon,
       required this.addressName,
-      required this.city_id,
       required this.isFromCreateOrder});
   final double lat;
   final double lon;
   final String addressName;
-  final String city_id;
   final bool isFromCreateOrder;
   @override
   State<CreateAddressPage> createState() => _CreateAddressPageState();
@@ -704,7 +701,6 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
       "entrance": entrance.text,
       "floor": floor.text,
       "other": other.text,
-      "city_id": widget.city_id
     }).then((value) {
       if (value == true) {
         // Navigator.pushReplacement(

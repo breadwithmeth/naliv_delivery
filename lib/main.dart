@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/paintLogoPage.dart';
 import '../globals.dart' as globals;
 import 'package:flutter/services.dart';
 import 'package:naliv_delivery/misc/api.dart';
@@ -30,7 +31,8 @@ class _MainState extends State<Main> {
   late Timer _timer;
   // int _tick = 0;
 
-  Widget _redirect = const StartLoadingPage();
+  // Widget _redirect = const StartLoadingPage();
+  Widget _redirect = paintLogoPage();
 
   Future<bool> _requestPermission() async {
     bool isGranted = true;
@@ -97,9 +99,9 @@ class _MainState extends State<Main> {
       }
     });
     _checkAuth();
-    // setState(() {
-    //   _redirect = PermissionPage();
-    // });
+    setState(() {
+      _redirect = PermissionPage();
+    });
   }
 
   Future<void> _checkAuth() async {
@@ -198,9 +200,11 @@ class _MainState extends State<Main> {
         dividerTheme: DividerThemeData(
           color: Colors.grey.shade300,
         ),
-        textTheme: GoogleFonts.montserratTextTheme().copyWith(
-          labelLarge: GoogleFonts.mulish(fontWeight: FontWeight.w700),
+        textTheme: GoogleFonts.nunitoTextTheme().copyWith(
+          labelLarge: GoogleFonts.nunito(fontWeight: FontWeight.w700),
         ),
+
+        // До этого здесь был шрифт Mulish
 
         // textTheme: const TextTheme(
         //     bodyMedium: TextStyle(color: gray1),
