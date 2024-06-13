@@ -630,49 +630,16 @@ class _CategoryPageListState extends State<CategoryPageList>
               }
               final Map<String, dynamic> item = _items[index];
               return Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                mainAxisSize: MainAxisSize.max,
                 children: [
-                  Stack(
-                    children: [
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        key: Key(item["item_id"]),
-                        onTap: () {
-                          showModalBottomSheet(
-                            context: context,
-                            clipBehavior: Clip.antiAlias,
-                            useSafeArea: true,
-                            isScrollControlled: true,
-                            builder: (context) {
-                              return ProductPage(
-                                item: item,
-                                index: index,
-                                returnDataAmount: updateDataAmount,
-                                business: widget.business,
-                              );
-                            },
-                          );
-                        },
-                        child: Container(
-                          color: Colors.blue,
-                          child: ItemCardMedium(
-                            itemId: item["item_id"],
-                            element: item,
-                            categoryId: "",
-                            categoryName: "",
-                            scroll: 0,
-                            business: widget.business,
-                            index: index,
-                            updateCategoryPageInfo: updateDataAmount,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        color: Colors.green,
-                        height: 150 * globals.scaleParam,
-                      ),
-                    ],
+                  ItemCardMedium(
+                    itemId: item["item_id"],
+                    element: item,
+                    categoryId: "",
+                    categoryName: "",
+                    scroll: 0,
+                    business: widget.business,
+                    index: index,
+                    updateCategoryPageInfo: updateDataAmount,
                   ),
                   _items.length != index
                       ? Padding(

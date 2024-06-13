@@ -337,8 +337,11 @@ Future<String?> changeCartItem(
   var url = Uri.https(URL_API, 'api/item/addToCart.php');
   var response = await http.post(
     url,
-    body: json.encode(
-        {'item_id': itemId, 'amount': amount, 'business_id': businessId}),
+    body: json.encode({
+      'item_id': itemId,
+      'amount': amount.toString(),
+      'business_id': businessId
+    }),
     headers: {"Content-Type": "application/json", "AUTH": token},
   );
   String? data;

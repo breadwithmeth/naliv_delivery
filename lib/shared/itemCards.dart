@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/productPage.dart';
 import '../globals.dart' as globals;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -336,6 +337,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
 
   late AnimationController _controller;
   late Animation<Offset> _offsetAnimation;
+  // late Animation<Offset> _offsetAnimationReverse;
 
   void _updateItemCountServerCall() {
     if (previousAmount == amountInCart) {
@@ -421,6 +423,18 @@ class _ItemCardMediumState extends State<ItemCardMedium>
         curve: Curves.linear,
       ),
     );
+
+    if (amountInCart > 0) {
+      _controller.forward();
+    }
+
+    // _offsetAnimationReverse = Tween<Offset>(
+    //   begin: Offset(0, 0),
+    //   end: Offset(1, 0),
+    // ).animate(CurvedAnimation(
+    //   parent: _controller,
+    //   curve: Curves.linear,
+    // ));
   }
 
   @override
@@ -504,37 +518,57 @@ class _ItemCardMediumState extends State<ItemCardMedium>
               Flexible(
                 flex: 2,
                 fit: FlexFit.tight,
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.all(Radius.circular(2)),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: CachedNetworkImage(
-                    height: double.infinity,
-                    imageUrl: element["thumb"],
-                    fit: BoxFit.cover,
-                    cacheManager: CacheManager(
-                      Config(
-                        "itemImage ${element["item_id"].toString()}",
-                        stalePeriod: Duration(days: 700),
-                      ),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  key: Key(widget.element["item_id"]),
+                  onTap: () {
+                    showModalBottomSheet(
+                      context: context,
+                      clipBehavior: Clip.antiAlias,
+                      useSafeArea: true,
+                      isScrollControlled: true,
+                      builder: (context) {
+                        return ProductPage(
+                          item: widget.element,
+                          index: widget.index,
+                          returnDataAmount: widget.updateCategoryPageInfo!,
+                          business: widget.business,
+                        );
+                      },
+                    );
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.all(Radius.circular(2)),
                     ),
-                    placeholder: (context, url) {
-                      return Container(
-                        alignment: Alignment.center,
-                        color: Colors.white,
-                        child: CircularProgressIndicator(),
-                      );
-                    },
-                    errorWidget: (context, url, error) {
-                      return Container(
-                        alignment: Alignment.center,
-                        child: Text(
-                          "Нет изображения",
-                          textAlign: TextAlign.center,
+                    clipBehavior: Clip.antiAlias,
+                    child: CachedNetworkImage(
+                      height: double.infinity,
+                      imageUrl: element["thumb"],
+                      fit: BoxFit.cover,
+                      cacheManager: CacheManager(
+                        Config(
+                          "itemImage ${element["item_id"].toString()}",
+                          stalePeriod: Duration(days: 700),
                         ),
-                      );
-                    },
+                      ),
+                      placeholder: (context, url) {
+                        return Container(
+                          alignment: Alignment.center,
+                          color: Colors.white,
+                          child: CircularProgressIndicator(),
+                        );
+                      },
+                      errorWidget: (context, url, error) {
+                        return Container(
+                          alignment: Alignment.center,
+                          child: Text(
+                            "Нет изображения",
+                            textAlign: TextAlign.center,
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -552,86 +586,111 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                     children: [
                       Flexible(
                         fit: FlexFit.tight,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Flexible(
-                              flex: 2,
-                              fit: FlexFit.tight,
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Flexible(
-                                    flex: 5,
-                                    fit: FlexFit.tight,
-                                    child: RichText(
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      text: TextSpan(
-                                        style: TextStyle(
-                                          textBaseline: TextBaseline.alphabetic,
-                                          fontSize: 28 * globals.scaleParam,
-                                          color: Colors.black,
-                                        ),
-                                        children: [
-                                          TextSpan(
-                                            text: element["name"],
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w500,
-                                                fontSize:
-                                                    28 * globals.scaleParam),
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          key: Key(widget.element["item_id"]),
+                          onTap: () {
+                            showModalBottomSheet(
+                              context: context,
+                              clipBehavior: Clip.antiAlias,
+                              useSafeArea: true,
+                              isScrollControlled: true,
+                              builder: (context) {
+                                return ProductPage(
+                                  item: widget.element,
+                                  index: widget.index,
+                                  returnDataAmount:
+                                      widget.updateCategoryPageInfo!,
+                                  business: widget.business,
+                                );
+                              },
+                            );
+                          },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Flexible(
+                                flex: 2,
+                                fit: FlexFit.tight,
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Flexible(
+                                      flex: 5,
+                                      fit: FlexFit.tight,
+                                      child: RichText(
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        text: TextSpan(
+                                          style: TextStyle(
+                                            textBaseline:
+                                                TextBaseline.alphabetic,
+                                            fontSize: 28 * globals.scaleParam,
+                                            color: Colors.black,
                                           ),
-                                          element["country"] != null
-                                              ? WidgetSpan(
-                                                  child: Container(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                      horizontal: 4 *
-                                                          globals.scaleParam,
-                                                      vertical: 2 *
-                                                          globals.scaleParam,
-                                                    ),
-                                                    decoration: BoxDecoration(
-                                                      color:
-                                                          Colors.grey.shade200,
-                                                      borderRadius:
-                                                          BorderRadius.all(
-                                                        Radius.circular(10),
-                                                      ),
-                                                    ),
-                                                    child: Text(
-                                                      element["country"] ?? "",
-                                                      style: TextStyle(
-                                                        color: Colors.black,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        fontSize: 26 *
+                                          children: [
+                                            TextSpan(
+                                              text: element["name"],
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.w500,
+                                                  fontSize:
+                                                      28 * globals.scaleParam),
+                                            ),
+                                            element["country"] != null
+                                                ? WidgetSpan(
+                                                    child: Container(
+                                                      padding:
+                                                          EdgeInsets.symmetric(
+                                                        horizontal: 4 *
+                                                            globals.scaleParam,
+                                                        vertical: 2 *
                                                             globals.scaleParam,
                                                       ),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors
+                                                            .grey.shade200,
+                                                        borderRadius:
+                                                            BorderRadius.all(
+                                                          Radius.circular(10),
+                                                        ),
+                                                      ),
+                                                      child: Text(
+                                                        element["country"] ??
+                                                            "",
+                                                        style: TextStyle(
+                                                          color: Colors.black,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          fontSize: 26 *
+                                                              globals
+                                                                  .scaleParam,
+                                                        ),
+                                                      ),
                                                     ),
-                                                  ),
-                                                )
-                                              : TextSpan()
-                                        ],
+                                                  )
+                                                : TextSpan()
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: Text(
-                                "В наличии ${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт.",
-                                style: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.secondary,
-                                    fontSize: 28 * globals.scaleParam,
-                                    fontWeight: FontWeight.w500),
+                              Flexible(
+                                fit: FlexFit.tight,
+                                child: Text(
+                                  "В наличии ${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт.",
+                                  style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .secondary,
+                                      fontSize: 28 * globals.scaleParam,
+                                      fontWeight: FontWeight.w500),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                       Flexible(
@@ -682,7 +741,6 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                             return Row(
                                               children: [
                                                 Container(
-                                                  color: Colors.amber,
                                                   width: constraints.maxWidth *
                                                       0.85,
                                                   alignment:
@@ -873,8 +931,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                               }
                                                             },
                                                             icon: Icon(
-                                                              Icons
-                                                                  .add_shopping_cart_rounded,
+                                                              Icons.add_rounded,
                                                             ),
                                                           ),
                                                         ],
