@@ -67,8 +67,11 @@ class MarqueeText extends StatefulWidget {
 class _MarqueeTextState extends State<MarqueeText>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late final Animation<Offset> _animationOne;
-  late final Animation<Offset> _animationTwo;
+  late final List<Animation<Offset>> _animations;
+  final int numberOfText = 24;
+  final math.Random _random = math.Random();
+  // late final Animation<Offset> _animationOne;
+  // late final Animation<Offset> _animationTwo;
 
   @override
   void initState() {
@@ -78,27 +81,39 @@ class _MarqueeTextState extends State<MarqueeText>
       vsync: this,
     )..repeat(reverse: true);
 
-    _animationOne = Tween<Offset>(
-      begin: Offset(0.66 * globals.scaleParam, 0),
-      end: Offset(-0.66 * globals.scaleParam, 0),
-    ).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.linear),
-    );
+    for (int i = 0; i < numberOfText; i++) {
+      setState(() {
+        _animations.add(
+          Tween<Offset>(
+            begin: Offset((_random.nextDouble() + 0.12 * 0.66), 0),
+            end: Offset((_random.nextDouble() + 0.12 * 0.66), 0),
+          ).animate(
+            CurvedAnimation(parent: _controller, curve: Curves.linear),
+          ),
+        );
+      });
+    }
 
-    _animationTwo = Tween<Offset>(
-      begin: Offset(-0.60 * globals.scaleParam, 0),
-      end: Offset(0.60 * globals.scaleParam, 0),
-    ).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.linear),
-    );
+    // _animationOne = Tween<Offset>(
+    //   begin: Offset(0.66 * globals.scaleParam, 0),
+    //   end: Offset(-0.66 * globals.scaleParam, 0),
+    // ).animate(
+    //   CurvedAnimation(parent: _controller, curve: Curves.linear),
+    // );
+
+    // _animationTwo = Tween<Offset>(
+    //   begin: Offset(-0.60 * globals.scaleParam, 0),
+    //   end: Offset(0.60 * globals.scaleParam, 0),
+    // ).animate(
+    //   CurvedAnimation(parent: _controller, curve: Curves.linear),
+    // );
   }
 
   @override
   void dispose() {
     // TODO: implement dispose
     _controller.dispose();
-    _animationOne.removeListener(() {});
-    _animationTwo.removeListener(() {});
+    // dispose all animations
     super.dispose();
   }
 
@@ -121,7 +136,7 @@ class _MarqueeTextState extends State<MarqueeText>
             children: [
               for (int i = 0; i < 24; i++)
                 SlideTransition(
-                  position: i.isOdd ? _animationOne : _animationTwo,
+                  position: _animations[i],
                   child: Text(
                     i.isOdd
                         ? "ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO"

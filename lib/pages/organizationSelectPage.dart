@@ -1017,9 +1017,10 @@ class BusinessItemState extends State<BusinessItem> {
                               Text(
                                 "${formatCost("4000000")} ₸", // ! CHANGE TO ACTUAL DELIVERY COST
                                 style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black,
-                                    fontSize: 32 * globals.scaleParam),
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
+                                  fontSize: 32 * globals.scaleParam,
+                                ),
                               ),
                             ],
                           ),
