@@ -87,7 +87,6 @@ class _MainState extends State<Main> {
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       print(MediaQuery.of(context).size.aspectRatio);
-      
     });
     _checkAuth();
     setState(() {

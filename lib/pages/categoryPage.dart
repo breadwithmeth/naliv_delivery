@@ -46,8 +46,13 @@ class _CategoryPageState extends State<CategoryPage> {
         initialIndexTabbar = i;
       }
       categoriesWidgetList.add({
-        "widget": Text(
-          widget.categories[i]["name"],
+        "widget": SizedBox(
+          width: 200 * globals.scaleParam,
+          child: Text(
+            widget.categories[i]["name"],
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
         "category_id": widget.categories[i]["category_id"]
       });
