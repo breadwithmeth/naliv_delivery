@@ -43,6 +43,7 @@ class OrganizationSelectPage extends StatefulWidget {
 
 class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     with AutomaticKeepAliveClientMixin {
+  @override
   bool get wantKeepAlive => true;
 
   double _lat = 0;
@@ -182,7 +183,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
         double lon = double.parse(objects.first["GeoObject"]["Point"]["pos"]
             .toString()
             .split(' ')[0]);
-        if (this.mounted) {
+        if (mounted) {
           setState(() {
             _currentAddressName = objects.first["GeoObject"]["name"] ?? "";
             _lat = lat;
@@ -506,7 +507,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
   bool isMenuOpen = false;
   final GlobalKey<ScaffoldState> _key = GlobalKey(
       debugLabel:
-          "вот это ключ, всем ключам ключ, надеюсь он тут не потеряется");
+          "вот это ключ, всем ключам ключ, надеюсь он тут не потеряется"); // lol, за что он отвечает?
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -558,29 +559,32 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                 ),
               ),
               Flexible(
-                  fit: FlexFit.tight,
-                  child: Container(
-                    alignment: Alignment.center,
-                    height: 275 * globals.scaleParam,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.max,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text("НАЗВАНИЕ",
-                            style: GoogleFonts.montserratAlternates(
-                              textStyle: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 48 * globals.scaleParam),
-                            )),
-                        Icon(
-                          Icons.local_dining_outlined,
-                          color: Colors.black,
-                          size: 48 * globals.scaleParam,
-                        )
-                      ],
-                    ),
-                  )),
+                fit: FlexFit.tight,
+                child: Container(
+                  alignment: Alignment.center,
+                  height: 275 * globals.scaleParam,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.max,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        "НАЗВАНИЕ",
+                        style: GoogleFonts.montserratAlternates(
+                          textStyle: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 48 * globals.scaleParam),
+                        ),
+                      ),
+                      Icon(
+                        Icons.local_dining_outlined,
+                        color: Colors.black,
+                        size: 48 * globals.scaleParam,
+                      )
+                    ],
+                  ),
+                ),
+              ),
               Flexible(
                 flex: 8,
                 fit: FlexFit.tight,
@@ -651,173 +655,153 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
               expandedHeight: 0,
               flexibleSpace: Container(),
               title: AnimatedSwitcher(
-                  transitionBuilder: (child, animation) {
-                    return SlideTransition(
-                      position: Tween<Offset>(
-                              begin: const Offset(0, -1),
-                              end: const Offset(0, 0))
-                          .animate(animation),
-                      child: child,
-                    );
-                  },
-                  duration: Durations.medium2,
-                  child: isCollapsed
-                      ? Container(
-                          key: ValueKey<bool>(isCollapsed),
-                          decoration: BoxDecoration(
-                              borderRadius:
-                                  const BorderRadius.all(Radius.circular(20))),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.max,
-                            children: [
-                              TextButton(
-                                  onPressed: () {
-                                    Navigator.push(context, CupertinoPageRoute(
-                                      builder: (context) {
-                                        return PickAddressPage(
-                                          client: widget.user,
-                                          addresses: widget.addresses,
-                                        );
-                                      },
-                                    ));
+                transitionBuilder: (child, animation) {
+                  return SlideTransition(
+                    position: Tween<Offset>(
+                            begin: const Offset(0, -1),
+                            end: const Offset(0, -0.16))
+                        .animate(animation),
+                    child: child,
+                  );
+                },
+                duration: Durations.medium2,
+                child: isCollapsed
+                    ? Container(
+                        key: ValueKey<bool>(isCollapsed),
+                        decoration: BoxDecoration(
+                            borderRadius:
+                                const BorderRadius.all(Radius.circular(20))),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.max,
+                          children: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.push(context, CupertinoPageRoute(
+                                  builder: (context) {
+                                    return PickAddressPage(
+                                      client: widget.user,
+                                      addresses: widget.addresses,
+                                    );
                                   },
-                                  child: Container(
-                                    padding:
-                                        EdgeInsets.all(30 * globals.scaleParam),
-                                    decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: const BorderRadius.all(
-                                            Radius.circular(20))),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Flexible(
-                                          child: Text(
-                                            widget.currentAddress.isNotEmpty
-                                                ? widget
-                                                    .currentAddress["address"]
-                                                : "Нет адреса",
-                                            style: TextStyle(
-                                                fontSize:
-                                                    32 * globals.scaleParam,
-                                                fontWeight: FontWeight.w700),
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          width: 10 * globals.scaleParam,
-                                        ),
-                                        Icon(
-                                          Icons.edit_outlined,
-                                          size: 48 * globals.scaleParam,
-                                        ),
-                                      ],
+                                ));
+                              },
+                              child: Container(
+                                padding:
+                                    EdgeInsets.all(30 * globals.scaleParam),
+                                decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: const BorderRadius.all(
+                                        Radius.circular(20))),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        widget.currentAddress.isNotEmpty
+                                            ? widget.currentAddress["address"]
+                                            : "Нет адреса",
+                                        style: TextStyle(
+                                            fontSize: 32 * globals.scaleParam,
+                                            fontWeight: FontWeight.w700),
+                                      ),
                                     ),
-                                  )),
-                            ],
-                          ))
-                      : Container(
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius:
-                                  const BorderRadius.all(Radius.circular(20))),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                mainAxisSize: MainAxisSize.max,
-                                children: [
-                                  TextButton(
-                                      onPressed: () {
-                                        Navigator.push(context,
-                                            CupertinoPageRoute(
-                                          builder: (context) {
-                                            return PickAddressPage(
-                                              client: widget.user,
-                                              addresses: widget.addresses,
-                                            );
-                                          },
-                                        ));
-                                      },
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.max,
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Text(
-                                                widget.currentAddress[
-                                                        "city_name"] ??
-                                                    "",
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.w700,
-                                                    fontSize:
-                                                        48 * globals.scaleParam,
-                                                    color: Colors.black),
-                                              ),
-                                              const Icon(
-                                                Icons.arrow_drop_down,
-                                                color: Colors.black,
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      )),
-                                  TextButton(
-                                      onPressed: () {
-                                        _key.currentState!.openEndDrawer();
-                                      },
-                                      child: Container(
-                                        width:
-                                            MediaQuery.of(context).size.width /
-                                                4,
-                                        alignment: Alignment.centerRight,
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            Flexible(
-                                              flex: 3,
-                                              child: Text(
-                                                widget.user["name"],
-                                                textAlign: TextAlign.right,
-                                                style: TextStyle(
-                                                    fontSize:
-                                                        30 * globals.scaleParam,
-                                                    color: Colors.black,
-                                                    fontWeight:
-                                                        FontWeight.w600),
-                                              ),
-                                            ),
-                                            SizedBox(
-                                              width: 10,
-                                            ),
-                                            CircleAvatar(),
-                                          ],
-                                        ),
-                                      )),
-
-                                  // IconButton(
-                                  //     onPressed: () {},
-                                  //     icon: Icon(Icons.settings, color: Colors.black,)),
-                                ],
-                              )
-                            ],
+                                    SizedBox(
+                                      width: 10 * globals.scaleParam,
+                                    ),
+                                    Icon(
+                                      Icons.edit_outlined,
+                                      size: 48 * globals.scaleParam,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Container(
+                        height: 80,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.all(
+                            Radius.circular(20),
                           ),
-                        )),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          mainAxisSize: MainAxisSize.max,
+                          children: [
+                            Flexible(
+                              fit: FlexFit.tight,
+                              child: TextButton(
+                                onPressed: () {
+                                  Navigator.push(context, CupertinoPageRoute(
+                                    builder: (context) {
+                                      return PickAddressPage(
+                                        client: widget.user,
+                                        addresses: widget.addresses,
+                                      );
+                                    },
+                                  ));
+                                },
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      widget.currentAddress["city_name"] ?? "",
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 48 * globals.scaleParam,
+                                          color: Colors.black),
+                                    ),
+                                    const Icon(
+                                      Icons.arrow_drop_down,
+                                      color: Colors.black,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Flexible(
+                              fit: FlexFit.tight,
+                              child: TextButton(
+                                onPressed: () {
+                                  _key.currentState!.openEndDrawer();
+                                },
+                                child: Row(
+                                  children: [
+                                    Flexible(
+                                      flex: 3,
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 5,
+                                        ),
+                                        child: Text(
+                                          widget.user["name"],
+                                          textAlign: TextAlign.right,
+                                          style: TextStyle(
+                                            fontSize: 30 * globals.scaleParam,
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Flexible(child: CircleAvatar()),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            // IconButton(
+                            //     onPressed: () {},
+                            //     icon: Icon(Icons.settings, color: Colors.black,)),
+                          ],
+                        ),
+                      ),
+              ),
             ),
             SliverLayoutBuilder(
               builder: (context, raints) {
@@ -1015,7 +999,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
 }
 
 class DrawerMenuItem extends StatefulWidget {
-  DrawerMenuItem(
+  const DrawerMenuItem(
       {super.key, required this.name, required this.icon, required this.route});
   final String name;
   final IconData icon;
@@ -1150,11 +1134,9 @@ class BusinessItemState extends State<BusinessItem> {
                               Icons.delivery_dining_rounded,
                               size: 48 * globals.scaleParam,
                             ),
-                            
                           ],
                         ),
                       ),
-                      
                     ],
                   ),
                 ]),
@@ -1252,16 +1234,11 @@ class BusinessSelectCarousel extends StatefulWidget {
 }
 
 class _BusinessSelectCarouselState extends State<BusinessSelectCarousel> {
-
-
-    @override
+  @override
   void initState() {
     // TODO: implement initState
     super.initState();
   }
-  
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -1276,9 +1253,9 @@ class _BusinessSelectCarouselState extends State<BusinessSelectCarousel> {
       itemCount: widget.businesses.length,
       itemBuilder: (context, index) {
         return BusinessItem(
-            business: widget.businesses[index],
-            user: widget.user,
-          );
+          business: widget.businesses[index],
+          user: widget.user,
+        );
         // return Container(height: 10, width: 1000, color: Colors.yellow, child: Text("data"),);
       },
     );

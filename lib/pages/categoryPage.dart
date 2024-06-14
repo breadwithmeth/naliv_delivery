@@ -40,14 +40,17 @@ class _CategoryPageState extends State<CategoryPage> {
     }
   }
 
-  void getCategoriesWidgetList() {
+  void getCategoriesWidgetList(double width) {
+    categoriesWidgetList.clear();
     for (int i = 0; i < widget.categories.length; i++) {
       if (widget.categories[i]["category_id"] == widget.categoryId) {
         initialIndexTabbar = i;
       }
       categoriesWidgetList.add({
-        "widget": SizedBox(
-          width: 200 * globals.scaleParam,
+        "widget": ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: width * 0.6,
+          ),
           child: Text(
             widget.categories[i]["name"],
             textAlign: TextAlign.center,
@@ -63,11 +66,12 @@ class _CategoryPageState extends State<CategoryPage> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    getCategoriesWidgetList();
+    // getCategoriesWidgetList();
   }
 
   @override
   Widget build(BuildContext context) {
+    getCategoriesWidgetList(MediaQuery.sizeOf(context).width);
     return DefaultTabController(
       initialIndex: initialIndexTabbar,
       length: widget.categories.length,
