@@ -752,9 +752,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                     Text(
                                       widget.currentAddress["city_name"] ?? "",
                                       style: TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 48 * globals.scaleParam,
-                                          color: Colors.black),
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 48 * globals.scaleParam,
+                                        color: Colors.black,
+                                      ),
                                     ),
                                     const Icon(
                                       Icons.arrow_drop_down,

@@ -751,7 +751,9 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                     clipBehavior:
                                                         Clip.antiAlias,
                                                     child: Visibility(
-                                                      // visible: false,
+                                                      visible: amountInCart > 0
+                                                          ? true
+                                                          : false,
                                                       child: SlideTransition(
                                                         position:
                                                             _offsetAnimation,

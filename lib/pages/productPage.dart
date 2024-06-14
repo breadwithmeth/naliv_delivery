@@ -43,281 +43,24 @@ class _ProductPageState extends State<ProductPage> {
   int currentTab = 0;
   String? amount;
   List<String> TabText = ["", "", ""];
-  bool isDescriptionLoaded = false;
+  // bool isDescriptionLoaded = false;
 
-  Future<void> _getItem() async {
-    await getItem(widget.item["item_id"]).then((value) {
-      print(value);
-      if (value.isNotEmpty) {
-        if (value["description"] != null) {
-          if (mounted) {
-            setState(() {
-              TabText[0] = value["description"];
+  // Future<void> _getItem() async {
+  //   await getItem(widget.item["item_id"]).then((value) {
+  //     print(value);
+  //     if (value.isNotEmpty) {
+  //       if (value["description"] != null) {
+  //         if (mounted) {
+  //           setState(() {
+  //             TabText[0] = value["description"];
 
-              isDescriptionLoaded = true;
-            });
-          }
-        }
-      }
-    });
-
-    // List<Widget> groupItems = [];
-    // List<TableRow> properties = [];
-    // List<Widget> propertiesT = [];
-
-    // if (item["group"] != null) {
-    //   List temp = item["group"];
-    //   for (var element in temp) {
-    //     print(element);
-    //     groupItems.add(
-    //       GestureDetector(
-    //         onTap: () {
-    //           Navigator.pushReplacement(
-    //             context,
-    //             CupertinoPageRoute(
-    //               builder: (context) {
-    //                 return ProductPage(item: element,);
-    //               },
-    //             ),
-    //           );
-    //         },
-    //         child: Container(
-    //           alignment: Alignment.center,
-    //           padding:
-    //               const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-    //           margin: const EdgeInsets.all(5),
-    //           decoration: BoxDecoration(
-    //               color: Colors.grey.shade400,
-    //               borderRadius: const BorderRadius.all(Radius.circular(5))),
-    //           child: Text(
-    //             element["amount"],
-    //             style: const TextStyle(
-    //                 color: Colors.white, fontWeight: FontWeight.w700),
-    //           ),
-    //         ),
-    //       ),
-    //     );
-    //   }
-    // }
-
-    //   if (item["properties"] != null) {
-    //     List temp = item["properties"];
-
-    //     for (var element in temp) {
-    //       propertiesT.add(
-    //         Container(
-    //           padding: const EdgeInsets.all(5),
-    //           child: Row(
-    //             mainAxisSize: MainAxisSize.min,
-    //             children: [
-    //               Text(
-    //                 element["amount"],
-    //                 style: const TextStyle(
-    //                     fontSize: 14,
-    //                     fontWeight: FontWeight.w700,
-    //                     color: Colors.black),
-    //               ),
-    //               Image.asset(
-    //                 "assets/property_icons/${element["icon"]}.png",
-    //                 width: 14,
-    //                 height: 14,
-    //               ),
-    //               const SizedBox(
-    //                 width: 10,
-    //               )
-    //             ],
-    //           ),
-    //         ),
-    //       );
-    //     }
-
-    //     if (item["country"] != null) {
-    //       propertiesT.add(
-    //         Container(
-    //           padding: const EdgeInsets.all(5),
-    //           child: Row(
-    //             mainAxisSize: MainAxisSize.min,
-    //             children: [
-    //               Text(
-    //                 item["country"],
-    //                 style: const TextStyle(
-    //                     fontSize: 14,
-    //                     fontWeight: FontWeight.w700,
-    //                     color: Colors.black),
-    //               ),
-    //               Image.asset(
-    //                 "assets/property_icons/litr.png",
-    //                 width: 14,
-    //                 height: 14,
-    //               ),
-    //               const SizedBox(
-    //                 width: 10,
-    //               )
-    //             ],
-    //           ),
-    //         ),
-    //       );
-    //     }
-
-    //     for (var element in temp) {
-    //       properties.add(
-    //         TableRow(
-    //           children: [
-    //             TableCell(
-    //               child: Container(
-    //                 padding: const EdgeInsets.all(5),
-    //                 child: Text(
-    //                   element["name"],
-    //                   style: const TextStyle(color: Colors.black, fontSize: 14),
-    //                 ),
-    //               ),
-    //             ),
-    //             TableCell(
-    //               child: Container(
-    //                 padding: const EdgeInsets.all(5),
-    //                 child: Text(
-    //                   element["amount"] + element["unit"],
-    //                   style: const TextStyle(color: Colors.black, fontSize: 14),
-    //                 ),
-    //               ),
-    //             )
-    //           ],
-    //         ),
-    //       );
-    //     }
-    //   }
-    //   properties.addAll(
-    //     [
-    //       TableRow(
-    //         children: [
-    //           TableCell(
-    //             child: Container(
-    //               padding: const EdgeInsets.all(5),
-    //               child: const Text(
-    //                 "Страна",
-    //                 style: TextStyle(color: Colors.black, fontSize: 14),
-    //               ),
-    //             ),
-    //           ),
-    //           TableCell(
-    //             child: Container(
-    //               padding: const EdgeInsets.all(5),
-    //               child: Text(
-    //                 item["country"] ?? "",
-    //                 style: const TextStyle(color: Colors.black, fontSize: 14),
-    //               ),
-    //             ),
-    //           )
-    //         ],
-    //       ),
-    //       TableRow(
-    //         children: [
-    //           TableCell(
-    //             child: Container(
-    //               padding: const EdgeInsets.all(5),
-    //               child: const Text(
-    //                 "Брэнд",
-    //                 style: TextStyle(color: Colors.black, fontSize: 14),
-    //               ),
-    //             ),
-    //           ),
-    //           TableCell(
-    //             child: Container(
-    //               padding: const EdgeInsets.all(5),
-    //               child: Text(
-    //                 item["b_name"] ?? "",
-    //                 style: const TextStyle(color: Colors.black, fontSize: 14),
-    //               ),
-    //             ),
-    //           )
-    //         ],
-    //       ),
-    //       TableRow(
-    //         children: [
-    //           TableCell(
-    //             child: Container(
-    //               padding: const EdgeInsets.all(5),
-    //               child: const Text(
-    //                 "Производитель",
-    //                 style: TextStyle(color: Colors.black, fontSize: 14),
-    //               ),
-    //             ),
-    //           ),
-    //           TableCell(
-    //             child: Container(
-    //               padding: const EdgeInsets.all(5),
-    //               child: Text(
-    //                 item["m_name"] ?? "",
-    //                 style: const TextStyle(color: Colors.black, fontSize: 14),
-    //               ),
-    //             ),
-    //           )
-    //         ],
-    //       ),
-    //     ],
-    //   );
-
-    //   setState(
-    //     () {
-    //       amount = item["amount"];
-    //       properties = properties;
-    //       TabText = [
-    //         item["description"] ?? "",
-    //         item["b_desc"] ?? "",
-    //         item["m_desc"] ?? ""
-    //       ];
-    //       groupItems = groupItems;
-
-    //       propertiesWidget = propertiesT;
-    //     },
-    //   );
-    //   setState(() {
-    //     if (item.isNotEmpty) {
-    //       _image = CachedNetworkImage(
-    //         fit: BoxFit.fitHeight,
-    //         cacheManager: CacheManager(Config(
-    //           "itemImage",
-    //           stalePeriod: const Duration(days: 7),
-    //           //one week cache period
-    //         )),
-    //         imageUrl: 'https://naliv.kz/img/${item["photo"]}',
-    //         placeholder: ((context, url) {
-    //           return const CircularProgressIndicator();
-    //         }),
-    //         errorWidget: ((context, url, error) {
-    //           return const Text("Нет изображения");
-    //         }),
-    //       );
-    //       // _image = Image.network(
-    //       //   'https://naliv.kz/img/${item["photo"]}',
-    //       //   fit: BoxFit.cover,
-    //       //   // width: MediaQuery.of(context).size.width * 0.8,
-    //       // );
-    //     }
-    //   });
-  }
-
-  // @override
-  // void initState() {
-  //   // TODO: implement initState
-  //   super.initState();
-  //   // setState(() {
-  //   //   element = widget.element;
-  //   //   isLoad = false;
-  //   // });
+  //             isDescriptionLoaded = true;
+  //           });
+  //         }
+  //       }
+  //     }
+  //   });
   // }
-
-  // // Future<void> refreshItemCard() async {
-  // //   if (item["item_id"] != null) {
-  // //     Map<String, dynamic>? _element = await getItem(item["item_id"]);
-  // //     setState(() {
-  // //       item = _element!;
-  // //     });
-  // //   }
-  // // }
-
-  // void _getRecomendations() {}
-
   // BUTTON VARIABLES/FUNCS START
 
   int cacheAmount = 0;
@@ -377,6 +120,8 @@ class _ProductPageState extends State<ProductPage> {
 
   @override
   void initState() {
+    TabText[0] = widget.item["description"];
+
     // TODO: implement initState
     super.initState();
     setState(() {
@@ -420,11 +165,11 @@ class _ProductPageState extends State<ProductPage> {
           }),
         ),
       );
-      Future.delayed(const Duration(milliseconds: 0)).whenComplete(() async {
-        await _getItem().then((value) {
-          print("DATA RECIEVED!");
-        });
-      });
+      // Future.delayed(const Duration(milliseconds: 0)).whenComplete(() async {
+      //   await _getItem().then((value) {
+      //     print("DATA RECIEVED!");
+      //   });
+      // });
     });
   }
 
@@ -969,20 +714,10 @@ class _ProductPageState extends State<ProductPage> {
               )
             ],
           ),
-          isDescriptionLoaded
-              ? Container(
-                  padding: EdgeInsets.all(30 * globals.scaleParam),
-                  child: Text(TabText[currentTab]),
-                )
-              : SizedBox(
-                  child: SlideTransition(
-                    position: AlwaysStoppedAnimation(
-                      Offset(
-                          0, -2.3 * (MediaQuery.sizeOf(context).height / 1080)),
-                    ),
-                    child: const LinearProgressIndicator(),
-                  ),
-                ),
+          Container(
+            padding: EdgeInsets.all(30 * globals.scaleParam),
+            child: Text(TabText[currentTab]),
+          ),
           Container(
             padding: EdgeInsets.all(30 * globals.scaleParam),
             child: Table(

@@ -146,7 +146,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                           Flexible(
                             child: Text(
                               widget.isFirstTime
-                                  ? "Добавьте ваш адрес для начала"
+                                  ? "Пожалуйста выберите адрес"
                                   : "Здесь пусто",
                               textAlign: TextAlign.center,
                               style: TextStyle(
