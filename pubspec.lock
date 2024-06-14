@@ -136,11 +136,7 @@ packages:
       sha256: ba631d1c7f7bef6b729a622b7b752645a2d076dba9976925b8f25725a30e1ee6
       url: "https://pub.dev"
     source: hosted
-<<<<<<< HEAD
-    version: "1.0.6"
-=======
     version: "1.0.8"
->>>>>>> 2a183f8526ab527071921d75cc5eada41802ee05
   dio:
     dependency: transitive
     description:
