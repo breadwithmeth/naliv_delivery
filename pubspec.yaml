@@ -1,5 +1,5 @@
 name: naliv_delivery
-description: Naliv delivery app.
+description: A new Flutter project.
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
@@ -16,7 +16,6 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-<<<<<<< HEAD
 version: 1.0.6+1
 =======
 version: 1.0.5+3
@@ -40,7 +39,7 @@ dependencies:
   cupertino_icons: ^1.0.2
   shared_preferences: ^2.1.1
   http: ^1.0.0
-  geolocator: ^12.0.0
+  geolocator: ^9.0.2
   states_rebuilder: ^6.3.0
   flutter_markdown: ^0.6.17+3
   intl_phone_number_input: ^0.7.3+1
@@ -59,8 +58,6 @@ dependencies:
   flutter_map_cancellable_tile_provider: ^2.0.0
   flutter_hooks: ^0.20.5
   aura_box: ^1.0.2
-  modal_bottom_sheet: ^3.0.0
-  animated_path: ^0.0.2
 
 dev_dependencies:
   flutter_test:
