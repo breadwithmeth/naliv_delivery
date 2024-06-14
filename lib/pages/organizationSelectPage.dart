@@ -1078,11 +1078,9 @@ class BusinessItem extends StatefulWidget {
     super.key,
     required this.business,
     required this.user,
-    required this.isClosest,
   });
   final Map business;
   final Map user;
-  final bool isClosest;
   @override
   State<BusinessItem> createState() => BusinessItemState();
 }
@@ -1152,26 +1150,11 @@ class BusinessItemState extends State<BusinessItem> {
                               Icons.delivery_dining_rounded,
                               size: 48 * globals.scaleParam,
                             ),
-                            Text(
-                              "${globals.formatCost("4000000")} ₸", // ! CHANGE TO ACTUAL DELIVERY COST
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.black,
-                                  fontSize: 32 * globals.scaleParam),
-                            ),
+                            
                           ],
                         ),
                       ),
-                      widget.isClosest
-                          ? Text(
-                              "Быстрая доставка",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                  fontSize: 32 * globals.scaleParam,
-                                  backgroundColor: Colors.green),
-                            )
-                          : SizedBox(),
+                      
                     ],
                   ),
                 ]),
@@ -1269,48 +1252,16 @@ class BusinessSelectCarousel extends StatefulWidget {
 }
 
 class _BusinessSelectCarouselState extends State<BusinessSelectCarousel> {
-  String? _closestBusinessId;
-  List<Map> _businesses = [];
-  findClosestBusiness() {
-    List<Map> businesses = [];
 
-    double storex = double.parse(widget.businesses.first["lat"]);
-    double storey = double.parse(widget.businesses.first["lon"]);
-    double userx = double.parse(widget.currentAddress["lat"]);
-    double usery = double.parse(widget.currentAddress["lon"]);
-    double dist = sqrt(pow((storex - userx), 2) + pow((storey - usery), 2));
-    String closestBusinessId = widget.businesses.first["business_id"];
-    for (var i = 0; i < widget.businesses.length; i++) {
-      double storex = double.parse(widget.businesses[i]["lat"]);
-      double storey = double.parse(widget.businesses[i]["lon"]);
-      double userx = double.parse(widget.currentAddress["lat"]);
-      double usery = double.parse(widget.currentAddress["lon"]);
-      double temp = sqrt(pow((storex - userx), 2) + pow((storey - usery), 2));
 
-      if (temp < dist) {
-        closestBusinessId = widget.businesses[i]["business_id"];
-        businesses.insert(0, widget.businesses[i]);
-      } else {
-        businesses.add(widget.businesses[i]);
-      }
-
-      print(temp);
-      // businesses!.sort((a, b) => (b['dist']).compareTo(a['dist']));
-    }
-
-    setState(() {
-      _closestBusinessId = closestBusinessId;
-      _businesses = businesses;
-    });
-    print(dist);
-  }
-
-  @override
+    @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    findClosestBusiness();
   }
+  
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -1324,19 +1275,10 @@ class _BusinessSelectCarouselState extends State<BusinessSelectCarousel> {
       // controller: PageController(viewportFraction: .6),
       itemCount: widget.businesses.length,
       itemBuilder: (context, index) {
-        if (_businesses[index]["business_id"] == _closestBusinessId) {
-          return BusinessItem(
-            business: _businesses[index],
+        return BusinessItem(
+            business: widget.businesses[index],
             user: widget.user,
-            isClosest: true,
           );
-        } else {
-          return BusinessItem(
-            business: _businesses[index],
-            user: widget.user,
-            isClosest: false,
-          );
-        }
         // return Container(height: 10, width: 1000, color: Colors.yellow, child: Text("data"),);
       },
     );

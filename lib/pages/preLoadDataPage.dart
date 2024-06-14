@@ -37,7 +37,7 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
         _currentAddress = _addresses.firstWhere(
           (element) => element["is_selected"] == "1",
           orElse: () {
-            return false;
+            return {};
           },
         );
       });
