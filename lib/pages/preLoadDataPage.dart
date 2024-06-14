@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/createProfilePage.dart';
@@ -66,6 +68,22 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    FlutterView view = WidgetsBinding.instance.platformDispatcher.views.first;
+    Size size = view.physicalSize;
+    double width = size.width;
+    double height = size.height;
+    if (size.aspectRatio < 1) {
+      globals.scaleParam = (height / 1920) *
+          (width / 1080) *
+          .4;
+    } else {
+      globals.scaleParam = (height / 1080) *
+          (width / 1920) *
+          1;
+    }
+
+    // globals.scaleParam = 1;
+
     _getAddresses().then((v) {
       if (v == false) {
         Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
@@ -120,6 +138,12 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
         });
       }
     });
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
   }
 
   @override

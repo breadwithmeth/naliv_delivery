@@ -18,6 +18,9 @@ bool isLoggedIn = false;
 double scaleParam = 1;
 Color mainColor = Colors.deepOrangeAccent;
 
+
+
+
 String formatCost(String costString) {
   int cost = int.parse(costString);
   return NumberFormat("###,###", "en_US").format(cost);
