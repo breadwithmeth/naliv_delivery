@@ -91,19 +91,18 @@ class _PickAddressPageState extends State<PickAddressPage> {
           if (_location == null) {
             print("LOCATION WAS NULL, SO GETGEOLOCATION IS STARTED");
             _getGeolocation().whenComplete(() {
-              Navigator.push(context, CupertinoPageRoute(
-                builder: (context) {
-                  return PickOnMapPage(
-                    currentPosition: _location!,
-                    cities: _cities,
-                    isFromCreateOrder: true,
-                  );
-                },
-              )).whenComplete(() {
-                _getCities().then((value) {
-                  _getAddresses().whenComplete(() {
-                    // setState(() {});
-                  });
+              _getCities().then((value) {
+                _getAddresses().whenComplete(() {
+                  // setState(() {});
+                  Navigator.push(context, CupertinoPageRoute(
+                    builder: (context) {
+                      return PickOnMapPage(
+                        currentPosition: _location!,
+                        cities: _cities,
+                        isFromCreateOrder: true,
+                      );
+                    },
+                  ));
                 });
               });
             });
