@@ -43,21 +43,25 @@ class _PickAddressPageState extends State<PickAddressPage> {
 
   Future<void> _getGeolocation() async {
     await determinePosition(context).then((v) {
-      setState(() {
-        _location = v;
-      });
+      if (this.mounted) {
+        setState(() {
+          _location = v;
+        });
+      }
     });
   }
 
   Future<void> _getCities() async {
     await getCities().then((v) {
-      setState(() {
-        if (v == null) {
-          _cities = [];
-        } else {
-          _cities = v;
-        }
-      });
+      if (this.mounted) {
+        setState(() {
+          if (v == null) {
+            _cities = [];
+          } else {
+            _cities = v;
+          }
+        });
+      }
     });
   }
 
@@ -68,6 +72,12 @@ class _PickAddressPageState extends State<PickAddressPage> {
     // _getAddresses();
     _getGeolocation();
     _getCities();
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
   }
 
   @override
@@ -92,7 +102,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
               )).whenComplete(() {
                 _getCities().then((value) {
                   _getAddresses().whenComplete(() {
-                    setState(() {});
+                    // setState(() {});
                   });
                 });
               });

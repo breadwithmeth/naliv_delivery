@@ -172,17 +172,24 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
   Future<void> searchGeoData(double lon, double lat) async {
     await getGeoData(lon.toString() + "," + lat.toString()).then((value) {
       print(value);
-      List objects = value?["response"]["GeoObjectCollection"]["featureMember"];
+      if (value != null) {
+        List objects =
+            value["response"]["GeoObjectCollection"]["featureMember"];
 
-      double lat = double.parse(
-          objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
-      double lon = double.parse(
-          objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
-      setState(() {
-        _currentAddressName = objects.first["GeoObject"]["name"];
-        _lat = lat;
-        _lon = lon;
-      });
+        double lat = double.parse(objects.first["GeoObject"]["Point"]["pos"]
+            .toString()
+            .split(' ')[1]);
+        double lon = double.parse(objects.first["GeoObject"]["Point"]["pos"]
+            .toString()
+            .split(' ')[0]);
+        if (this.mounted) {
+          setState(() {
+            _currentAddressName = objects.first["GeoObject"]["name"] ?? "";
+            _lat = lat;
+            _lon = lon;
+          });
+        }
+      }
     });
   }
 
@@ -948,7 +955,6 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                               //       ])),
                               // ),
                               Container(
-                                
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
@@ -956,7 +962,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                         alignment: Alignment.topLeft,
                                         color: Colors.white,
                                         height: 80 * globals.scaleParam,
-                                        padding: EdgeInsets.all(10 *globals.scaleParam),
+                                        padding: EdgeInsets.all(
+                                            10 * globals.scaleParam),
                                         child: Row(
                                           children: [
                                             Flexible(
