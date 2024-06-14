@@ -749,12 +749,14 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                 },
                                 child: Row(
                                   children: [
-                                    Text(
-                                      widget.currentAddress["city_name"] ?? "",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 48 * globals.scaleParam,
-                                        color: Colors.black,
+                                    Flexible(
+                                      child: Text(
+                                        widget.currentAddress["city_name"] ?? "",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 36 * globals.scaleParam,
+                                          color: Colors.black,
+                                        ),
                                       ),
                                     ),
                                     const Icon(
