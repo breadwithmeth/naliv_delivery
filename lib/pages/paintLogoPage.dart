@@ -13,7 +13,7 @@ class _paintLogoPageState extends State<paintLogoPage>
     with SingleTickerProviderStateMixin {
   late final AnimationController animationController = AnimationController(
     vsync: this,
-    duration: const Duration(seconds: 2),
+    duration: const Duration(seconds: 1),
   );
 
   bool isExample1 = false;
@@ -40,35 +40,45 @@ class _paintLogoPageState extends State<paintLogoPage>
     return Scaffold(
         backgroundColor: Colors.white,
         body: Container(
-          padding: EdgeInsets.all(10),
-          alignment: Alignment.center,
-            child: AnimatedPath(
-          animation: animationController.view,
-          path: Path()
-            ..moveTo(0, 0)
-            ..quadraticBezierTo(-10, 50, 10, 50)
-            ..moveTo(50, 20)
-            ..cubicTo(20, 10, 20, 60, 50, 50)
-            ..moveTo(55, 15)
-            ..quadraticBezierTo(50, 50, 60, 50)
-            ..moveTo(80, 10)
-            ..quadraticBezierTo(60, 40, 90, 50)
-            ..quadraticBezierTo(110, 40, 100, 10)
-            ..moveTo(115, 0)
-            ..lineTo(115, 5)
-            ..moveTo(115, 15)
-            ..lineTo(115, 50)
-            ..moveTo(140, 10)
-            ..cubicTo(110, 20, 170, 40, 140, 50)
-            ..moveTo(160, 10)
-            ..lineTo(160, 50)
-            ..moveTo(160, 20)
-            ..quadraticBezierTo(180, 20, 180, 50),
-          paint: paint,
-          start: Tween(begin: 0.0, end: 0),
-          end: Tween(begin: 0.0, end: 1.0),
-          offset: Tween(begin: 0.0, end: 0),
-        )
+            padding: EdgeInsets.all(10),
+            alignment: Alignment.center,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(fit: FlexFit.tight, child: SizedBox()),
+                Flexible(
+                  flex: 3,
+                  fit: FlexFit.tight,
+                  child: AnimatedPath(
+                    animation: animationController.view,
+                    path: Path()
+                      ..moveTo(0, 0)
+                      ..quadraticBezierTo(-10, 50, 10, 50)
+                      ..moveTo(50, 20)
+                      ..cubicTo(20, 10, 20, 60, 50, 50)
+                      ..moveTo(55, 15)
+                      ..quadraticBezierTo(50, 50, 60, 50)
+                      ..moveTo(80, 10)
+                      ..quadraticBezierTo(60, 40, 90, 50)
+                      ..quadraticBezierTo(110, 40, 100, 10)
+                      ..moveTo(115, 0)
+                      ..lineTo(115, 5)
+                      ..moveTo(115, 15)
+                      ..lineTo(115, 50)
+                      ..moveTo(140, 10)
+                      ..cubicTo(110, 20, 170, 40, 140, 50)
+                      ..moveTo(160, 10)
+                      ..lineTo(160, 50)
+                      ..moveTo(160, 20)
+                      ..quadraticBezierTo(180, 20, 180, 50),
+                    paint: paint,
+                    start: Tween(begin: 0.0, end: 0),
+                    end: Tween(begin: 0.0, end: 1.0),
+                    offset: Tween(begin: 0.0, end: 0),
+                  ),
+                ),
+              ],
+            )
             // Container(
             //   width: 200,
             //   height: 200,

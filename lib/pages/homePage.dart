@@ -1,10 +1,12 @@
 // ignore_for_file: file_names
 
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/paintLogoPage.dart';
 import '../globals.dart' as globals;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -104,6 +106,8 @@ class _HomePageState extends State<HomePage>
   Map<String, dynamic>? user;
   late Position _location;
 
+  bool isLogoPainted = false;
+
   Future<List> _getCategories() async {
     List cats = await getCategories(widget.business["business_id"]);
     return cats;
@@ -138,6 +142,12 @@ class _HomePageState extends State<HomePage>
   void initState() {
     // TODO: implement initState
     super.initState();
+
+    Timer(Duration(seconds: 1), () {
+      setState(() {
+        isLogoPainted = true;
+      });
+    });
     // if (widget.setCurrentBusiness.isNotEmpty) {
     // setCurrentStore(widget.setCurrentBusiness).then((value) {
     //   if (value) {
@@ -174,7 +184,7 @@ class _HomePageState extends State<HomePage>
     return FutureBuilder(
       future: _getCategories(),
       builder: (context, snapshot) {
-        if (snapshot.hasData) {
+        if (snapshot.hasData && isLogoPainted) {
           return Scaffold(
             key: _scaffoldKey,
             floatingActionButton: CartButton(
@@ -333,7 +343,7 @@ class _HomePageState extends State<HomePage>
             ),
           );
         } else {
-          return LoadingScreen();
+          return paintLogoPage();
         }
       },
     );

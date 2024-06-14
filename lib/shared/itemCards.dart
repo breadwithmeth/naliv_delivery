@@ -326,7 +326,9 @@ class ItemCardMedium extends StatefulWidget {
 }
 
 class _ItemCardMediumState extends State<ItemCardMedium>
-    with SingleTickerProviderStateMixin<ItemCardMedium> {
+    with
+        SingleTickerProviderStateMixin<ItemCardMedium>,
+        AutomaticKeepAliveClientMixin<ItemCardMedium> {
   Map<String, dynamic> element = {};
   List<InlineSpan> propertiesWidget = [];
   int amountInCart = 0;
@@ -979,6 +981,9 @@ class _ItemCardMediumState extends State<ItemCardMedium>
       ),
     );
   }
+
+  @override
+  bool get wantKeepAlive => true;
 }
 
 class ItemCardMinimal extends StatefulWidget {

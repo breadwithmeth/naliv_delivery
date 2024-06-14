@@ -65,9 +65,10 @@ class MarqueeText extends StatefulWidget {
 }
 
 class _MarqueeTextState extends State<MarqueeText>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
-  late final List<Animation<Offset>> _animations;
+  List<AnimationController> _controllers = [];
+  List<Animation<Offset>> _animations = [];
   final int numberOfText = 24;
   final math.Random _random = math.Random();
   // late final Animation<Offset> _animationOne;
@@ -76,22 +77,48 @@ class _MarqueeTextState extends State<MarqueeText>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: Duration(seconds: 220),
-      vsync: this,
-    )..repeat(reverse: true);
 
     for (int i = 0; i < numberOfText; i++) {
-      setState(() {
-        _animations.add(
-          Tween<Offset>(
-            begin: Offset((_random.nextDouble() + 0.12 * 0.66), 0),
-            end: Offset((_random.nextDouble() + 0.12 * 0.66), 0),
-          ).animate(
-            CurvedAnimation(parent: _controller, curve: Curves.linear),
-          ),
-        );
-      });
+      _controller = AnimationController(
+        duration: Duration(seconds: 50 - _random.nextInt(10)),
+        vsync: this,
+      )..repeat(reverse: true);
+    }
+    // _controller = AnimationController(
+    //   duration: Duration(seconds: 25),
+    //   vsync: this,
+    // )..repeat(reverse: true);
+
+    for (int i = 0; i < numberOfText; i++) {
+      if (i.isOdd) {
+        setState(() {
+          _animations.add(
+            Tween<Offset>(
+              begin: Offset(-0.35 + _random.nextDouble() * 0.33, 0),
+              end: Offset(0.35 - (_random.nextDouble() * 0.33), 0),
+            ).animate(
+              CurvedAnimation(
+                parent: _controller,
+                curve: Curves.linear,
+              ),
+            ),
+          );
+        });
+      } else {
+        setState(() {
+          _animations.add(
+            Tween<Offset>(
+              begin: Offset(0.35 + ((_random.nextDouble() * 0.33) * -1), 0),
+              end: Offset(-0.35 + _random.nextDouble() * 0.33, 0),
+            ).animate(
+              CurvedAnimation(
+                parent: _controller,
+                curve: Curves.linear,
+              ),
+            ),
+          );
+        });
+      }
     }
 
     // _animationOne = Tween<Offset>(
@@ -139,8 +166,8 @@ class _MarqueeTextState extends State<MarqueeText>
                   position: _animations[i],
                   child: Text(
                     i.isOdd
-                        ? "ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO"
-                        : "ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO",
+                        ? "LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH"
+                        : "LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH",
                     // textScaler: MediaQuery.textScalerOf(context),
                     style: TextStyle(
                       // fontSize: 55,
