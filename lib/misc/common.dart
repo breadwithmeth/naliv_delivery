@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
@@ -13,6 +12,7 @@ Future<Widget?> search(int page, String search) async {
       } else if (items.length < 30) {
         return null;
       } else if (items.length == 30) {
+
       } else {
         return null;
       }

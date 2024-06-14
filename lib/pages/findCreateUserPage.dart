@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../globals.dart' as globals;
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:intl_phone_number_input/intl_phone_number_input_test.dart';
 import 'package:naliv_delivery/misc/api.dart';
@@ -26,22 +25,59 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 35),
+        child: ElevatedButton(
+          onPressed: isClientReady
+              ? () {
+                  // Navigator.push(context, CupertinoPageRoute(
+                  //   builder: (context) {
+                  //     return PickAddressPage(
+                  //       client: client,
+                  //       business: widget.business,
+                  //     );
+                  //   },
+                  // ));
+                  Navigator.push(
+                    context,
+                    CupertinoPageRoute(
+                      builder: (context) {
+                        return CreateOrderPage(
+                          client: client,
+                          business: widget.business,
+                        );
+                      },
+                    ),
+                  );
+                }
+              : null,
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "Продолжить",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+              )
+            ],
+          ),
+        ),
+      ),
       appBar: AppBar(
-        title: Text("Укажите клиента"),
+        title: const Text("Укажите клиента"),
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 20 * globals.scaleParam),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           child: Column(
             children: [
               Padding(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
+                padding: const EdgeInsets.symmetric(horizontal: 15),
                 child: IntlPhoneField(
                   controller: _phone_number,
                   dropdownIconPosition: IconPosition.trailing,
                   showCountryFlag: true,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Номер клиента',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(10)),
@@ -77,14 +113,14 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                   });
                 },
                 child: SizedBox(
-                  width: 450 * globals.scaleParam,
+                  width: MediaQuery.of(context).size.width * 0.4,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         "Найти",
                         style: TextStyle(
-                          fontSize: 40 * globals.scaleParam,
+                          fontSize: 20,
                           fontWeight: FontWeight.w500,
                           color: Theme.of(context).colorScheme.onPrimary,
                         ),
@@ -93,7 +129,9 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                   ),
                 ),
               ),
-              isSearchInProgress ? CircularProgressIndicator() : SizedBox(),
+              isSearchInProgress
+                  ? const CircularProgressIndicator()
+                  : const SizedBox(),
               isClientReady
                   ? Container(
                       child: Column(
@@ -101,7 +139,7 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                           Text(
                             "Клиент: ${client["name"]}. ID: ${client["user_id"]}",
                             style: TextStyle(
-                              fontSize: 40 * globals.scaleParam,
+                              fontSize: 20,
                               fontWeight: FontWeight.w500,
                               color: Theme.of(context).colorScheme.onBackground,
                             ),
@@ -109,55 +147,7 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                         ],
                       ),
                     )
-                  : SizedBox(),
-              SizedBox(
-                height: 200 * globals.scaleParam,
-              ),
-              Padding(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
-                child: ElevatedButton(
-                  onPressed: isClientReady
-                      ? () {
-                          // Navigator.push(context, CupertinoPageRoute(
-                          //   builder: (context) {
-                          //     return PickAddressPage(
-                          //       client: client,
-                          //       business: widget.business,
-                          //     );
-                          //   },
-                          // ));
-                          Navigator.push(
-                            context,
-                            CupertinoPageRoute(
-                              builder: (context) {
-                                return CreateOrderPage(
-                                  client: client,
-                                  business: widget.business,
-                                );
-                              },
-                            ),
-                          );
-                        }
-                      : null,
-                  child: SizedBox(
-                    width: 450 * globals.scaleParam,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Продолжить",
-                          style: TextStyle(
-                            fontSize: 40 * globals.scaleParam,
-                            fontWeight: FontWeight.w500,
-                            color: Theme.of(context).colorScheme.onPrimary,
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+                  : const SizedBox(),
             ],
           ),
         ),

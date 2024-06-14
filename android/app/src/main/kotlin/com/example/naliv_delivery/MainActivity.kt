@@ -1,4 +1,4 @@
-package com.naliv.delivery
+package com.example.naliv_delivery
 
 import io.flutter.embedding.android.FlutterActivity
 import androidx.annotation.NonNull

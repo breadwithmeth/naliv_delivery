@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
-import '../globals.dart' as globals;
 import 'dart:async';
 import 'package:naliv_delivery/pages/orderPage.dart';
 import 'package:flutter/cupertino.dart';
 
 class ActiveOrderButton extends StatefulWidget {
-  ActiveOrderButton({
-    super.key,
-    required this.business,
-  });
+  const ActiveOrderButton({super.key, required this.business});
 
   final Map<dynamic, dynamic> business;
 
@@ -30,27 +26,27 @@ class _ActiveOrderButtonState extends State<ActiveOrderButton> {
   // Map<String, List<dynamic>> orderStatuses = {
   //   "pending": [
   //     "в обработке",
-  //      Icon(Icons.pending_actions_rounded),
+  //     const Icon(Icons.pending_actions_rounded),
   //   ],
   //   "preparing": [
   //     "собирается в магазине",
-  //      Icon(Icons.restaurant_rounded),
+  //     const Icon(Icons.restaurant_rounded),
   //   ],
   //   "gathering": [
   //     "забирает курьер",
-  //      Icon(Icons.drive_eta_rounded),
+  //     const Icon(Icons.drive_eta_rounded),
   //   ],
   //   "in_delivery": [
   //     "в пути к вам",
-  //      Icon(Icons.delivery_dining_rounded),
+  //     const Icon(Icons.delivery_dining_rounded),
   //   ],
   //   "ready": [
   //     "готов к выдаче",
-  //      Icon(Icons.shopping_bag_rounded),
+  //     const Icon(Icons.shopping_bag_rounded),
   //   ],
   //   "completed": [
   //     "завершен",
-  //      Icon(Icons.check_circle_outline_rounded),
+  //     const Icon(Icons.check_circle_outline_rounded),
   //   ],
   // };
 
@@ -60,27 +56,27 @@ class _ActiveOrderButtonState extends State<ActiveOrderButton> {
   List<List<dynamic>> testOrderStatuses = [
     [
       "в обработке",
-      Icon(Icons.pending_actions_rounded),
+      const Icon(Icons.pending_actions_rounded),
     ],
     [
       "собирается в магазине",
-      Icon(Icons.restaurant_rounded),
+      const Icon(Icons.restaurant_rounded),
     ],
     [
       "забирает курьер",
-      Icon(Icons.drive_eta_rounded),
+      const Icon(Icons.drive_eta_rounded),
     ],
     [
       "в пути к вам",
-      Icon(Icons.delivery_dining_rounded),
+      const Icon(Icons.delivery_dining_rounded),
     ],
     [
       "готов к выдаче",
-      Icon(Icons.shopping_bag_rounded),
+      const Icon(Icons.shopping_bag_rounded),
     ],
     [
       "завершен",
-      Icon(Icons.check_circle_outline_rounded),
+      const Icon(Icons.check_circle_outline_rounded),
     ],
   ];
 
@@ -90,7 +86,7 @@ class _ActiveOrderButtonState extends State<ActiveOrderButton> {
   void initState() {
     super.initState();
     orderCurrentStatus = testOrderStatuses[index];
-    _timer = Timer.periodic(Duration(seconds: 5), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (mounted) {
         setState(() {
           orderCurrentStatus = testOrderStatuses[index];
@@ -116,7 +112,7 @@ class _ActiveOrderButtonState extends State<ActiveOrderButton> {
   Widget build(BuildContext context) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
-        padding: EdgeInsets.symmetric(vertical: 30 * globals.scaleParam),
+        padding: const EdgeInsets.symmetric(vertical: 15),
       ),
       onPressed: () {
         Navigator.push(context, CupertinoPageRoute(builder: (context) {
@@ -126,12 +122,12 @@ class _ActiveOrderButtonState extends State<ActiveOrderButton> {
         }));
       },
       child: AnimatedSwitcher(
-        duration: Duration(milliseconds: 500),
+        duration: const Duration(milliseconds: 500),
         switchInCurve: Curves.easeIn,
         switchOutCurve: Curves.easeOut,
         child: Padding(
           key: UniqueKey(),
-          padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -139,11 +135,11 @@ class _ActiveOrderButtonState extends State<ActiveOrderButton> {
               Flexible(
                 flex: 4,
                 child: Padding(
-                  padding: EdgeInsets.only(right: 10 * globals.scaleParam),
+                  padding: const EdgeInsets.only(right: 5),
                   child: Text(
                     "Заказ ${orderCurrentStatus[0]}",
                     style: TextStyle(
-                      fontSize: 28 * globals.scaleParam,
+                      fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: Theme.of(context).colorScheme.onPrimary,
                     ),

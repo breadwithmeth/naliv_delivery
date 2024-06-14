@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../globals.dart' as globals;
 import 'package:naliv_delivery/pages/cartPage.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -15,7 +14,11 @@ class CartButton extends StatefulWidget {
 class _CartButtonState extends State<CartButton> {
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final double screenWidth = MediaQuery.of(context).size.width;
+
+    return SizedBox(
+      width: 160 * (screenWidth / 720),
+      height: 160 * (screenWidth / 720),
       child: FloatingActionButton(
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(10))),

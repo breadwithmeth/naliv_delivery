@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../globals.dart' as globals;
 import 'package:naliv_delivery/pages/cartPage.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
 import 'package:naliv_delivery/shared/cartButton.dart';
@@ -130,13 +129,11 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
                   child: Column(
                     children: [
                       ItemCardMedium(
-                        itemId: items[index]["item_id"],
+                        item_id: items[index]["item_id"],
                         element: items[index],
-                        categoryId: "",
-                        categoryName: "",
+                        category_id: "",
+                        category_name: "",
                         scroll: 0,
-                        business: widget.business,
-                        index: index,
                       ),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 16),

@@ -1,10 +1,6 @@
-import 'dart:async';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/pages/productPage.dart';
-import '../globals.dart' as globals;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:naliv_delivery/misc/api.dart';
@@ -12,21 +8,21 @@ import 'package:naliv_delivery/shared/likeButton.dart';
 import 'package:intl/intl.dart';
 
 class ItemCard extends StatefulWidget {
-  const ItemCard(
+  ItemCard(
       {super.key,
-      required this.itemId,
+      required this.item_id,
       required this.element,
-      required this.categoryName,
-      required this.categoryId,
+      required this.category_name,
+      required this.category_id,
       required this.scroll});
   final Map<String, dynamic> element;
-  final String categoryName;
+  final String category_name;
 
-  final String itemId;
+  final String item_id;
 
-  final String categoryId;
+  final String category_id;
   final double scroll;
-  final int chack = 1;
+  int chack = 1;
   @override
   State<ItemCard> createState() => _ItemCardState();
 }
@@ -36,6 +32,11 @@ class _ItemCardState extends State<ItemCard> {
   List<InlineSpan> propertiesWidget = [];
   late int chack;
   bool isNumPickerActive = false;
+
+  String formatCost(String costString) {
+    int cost = int.parse(costString);
+    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
+  }
 
   @override
   void initState() {
@@ -69,7 +70,7 @@ class _ItemCardState extends State<ItemCard> {
               width: 14,
               height: 14,
             ),
-            SizedBox(
+            const SizedBox(
               width: 10,
             )
           ],
@@ -92,14 +93,14 @@ class _ItemCardState extends State<ItemCard> {
 
   @override
   Widget build(BuildContext context) {
+    double screenSize = MediaQuery.of(context).size.width;
+
     chack = widget.chack;
     return Container(
-      // margin:  EdgeInsets.all(10),
-      width: (MediaQuery.of(context).size.width * 2) *
-          (MediaQuery.sizeOf(context).width / 720),
-      height: (MediaQuery.of(context).size.height * 0.56) *
-          (MediaQuery.sizeOf(context).width / 720),
-      padding: EdgeInsets.symmetric(horizontal: 10),
+      // margin: const EdgeInsets.all(10),
+      width: (MediaQuery.of(context).size.width * 2) * (screenSize / 720),
+      height: (MediaQuery.of(context).size.height * 0.56) * (screenSize / 720),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         mainAxisSize: MainAxisSize.max,
@@ -107,7 +108,7 @@ class _ItemCardState extends State<ItemCard> {
           Flexible(
             flex: 3,
             child: Container(
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.circular(2)),
               ),
               clipBehavior: Clip.antiAlias,
@@ -119,7 +120,7 @@ class _ItemCardState extends State<ItemCard> {
                 fit: BoxFit.fitHeight,
                 cacheManager: CacheManager(Config(
                   "itemImage ${element["item_id"].toString()}",
-                  stalePeriod: Duration(days: 7),
+                  stalePeriod: const Duration(days: 7),
                   //one week cache period
                 )),
                 placeholder: (context, url) {
@@ -127,14 +128,14 @@ class _ItemCardState extends State<ItemCard> {
                     alignment: Alignment.center,
                     color: Colors.white,
                     // width: MediaQuery.of(context).size.width * 0.2,
-                    child: CircularProgressIndicator(),
+                    child: const CircularProgressIndicator(),
                   );
                 },
                 errorWidget: (context, url, error) {
                   return Container(
                     alignment: Alignment.center,
                     // width: MediaQuery.of(context).size.width * 0.2,
-                    child: Text(
+                    child: const Text(
                       "Нет изображения",
                       textAlign: TextAlign.center,
                     ),
@@ -147,7 +148,7 @@ class _ItemCardState extends State<ItemCard> {
             flex: 5,
             fit: FlexFit.tight,
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 15),
+              padding: const EdgeInsets.symmetric(horizontal: 15),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 mainAxisSize: MainAxisSize.max,
@@ -160,8 +161,7 @@ class _ItemCardState extends State<ItemCard> {
                       text: TextSpan(
                         style: TextStyle(
                           textBaseline: TextBaseline.alphabetic,
-                          fontSize:
-                              40 * (MediaQuery.sizeOf(context).width / 720),
+                          fontSize: 40 * (screenSize / 720),
                           color: Colors.black,
                         ),
                         children: [
@@ -169,11 +169,11 @@ class _ItemCardState extends State<ItemCard> {
                           element["country"] != null
                               ? WidgetSpan(
                                   child: Container(
-                                    padding: EdgeInsets.symmetric(
+                                    padding: const EdgeInsets.symmetric(
                                         horizontal: 2, vertical: 1),
                                     decoration: BoxDecoration(
                                       color: Colors.grey.shade200,
-                                      borderRadius: BorderRadius.all(
+                                      borderRadius: const BorderRadius.all(
                                         Radius.circular(3),
                                       ),
                                     ),
@@ -186,7 +186,7 @@ class _ItemCardState extends State<ItemCard> {
                                     ),
                                   ),
                                 )
-                              : TextSpan()
+                              : const TextSpan()
                         ],
                       ),
                     ),
@@ -198,41 +198,35 @@ class _ItemCardState extends State<ItemCard> {
                         Row(
                           children: [
                             Text(
-                              globals.formatCost(element['price'] ?? ""),
+                              formatCost(element['price'] ?? ""),
                               style: TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.w600,
-                                  fontSize: 56 *
-                                      (MediaQuery.sizeOf(context).width / 720)),
+                                  fontSize: 56 * (screenSize / 720)),
                             ),
                             Text(
                               "₸",
                               style: TextStyle(
                                   color: Colors.grey.shade600,
                                   fontWeight: FontWeight.w900,
-                                  fontSize: 56 *
-                                      (MediaQuery.sizeOf(context).width / 720)),
+                                  fontSize: 56 * (screenSize / 720)),
                             )
                           ],
                         ),
                         element["prev_price"] != null
                             ? Padding(
-                                padding: EdgeInsets.only(left: 5),
+                                padding: const EdgeInsets.only(left: 5),
                                 child: Row(
                                   children: [
                                     Text(
-                                      globals.formatCost(
-                                          element["prev_price"] ?? 0),
+                                      formatCost(element["prev_price"] ?? 0),
                                       style: TextStyle(
                                           decoration:
                                               TextDecoration.lineThrough,
                                           decorationColor: Colors.grey.shade500,
                                           decorationThickness: 1.85,
                                           color: Colors.grey.shade500,
-                                          fontSize: 28 *
-                                              (MediaQuery.sizeOf(context)
-                                                      .width /
-                                                  720),
+                                          fontSize: 28 * (screenSize / 720),
                                           fontWeight: FontWeight.w500),
                                     ),
                                     Text(
@@ -240,10 +234,7 @@ class _ItemCardState extends State<ItemCard> {
                                       style: TextStyle(
                                           color: Colors.grey.shade600,
                                           fontWeight: FontWeight.w900,
-                                          fontSize: 28 *
-                                              (MediaQuery.sizeOf(context)
-                                                      .width /
-                                                  720)),
+                                          fontSize: 28 * (screenSize / 720)),
                                     )
                                   ],
                                 ),
@@ -274,7 +265,7 @@ class _ItemCardState extends State<ItemCard> {
                         //       children: [
                         //         _buyButton,
                         //         isNumPickerActive
-                        //             ?  NumberPicker(amount: 50)
+                        //             ? const NumberPicker(amount: 50)
                         //             : Container(),
                         //       ],
                         //     ),
@@ -300,105 +291,33 @@ class _ItemCardState extends State<ItemCard> {
 }
 
 class ItemCardMedium extends StatefulWidget {
-  const ItemCardMedium(
+  ItemCardMedium(
       {super.key,
-      required this.itemId,
+      required this.item_id,
       required this.element,
-      required this.categoryName,
-      required this.categoryId,
-      required this.scroll,
-      required this.business,
-      required this.index,
-      this.updateCategoryPageInfo});
+      required this.category_name,
+      required this.category_id,
+      required this.scroll});
   final Map<String, dynamic> element;
-  final String categoryName;
+  final String category_name;
 
-  final String itemId;
+  final String item_id;
 
-  final String categoryId;
+  final String category_id;
   final double scroll;
-  final Map<dynamic, dynamic> business;
-  final int index;
-  final Function(String, int)? updateCategoryPageInfo;
-  final chack = 1;
+  int chack = 1;
   @override
   State<ItemCardMedium> createState() => _ItemCardMediumState();
 }
 
-class _ItemCardMediumState extends State<ItemCardMedium>
-    with
-        SingleTickerProviderStateMixin<ItemCardMedium>,
-        AutomaticKeepAliveClientMixin<ItemCardMedium> {
+class _ItemCardMediumState extends State<ItemCardMedium> {
   Map<String, dynamic> element = {};
   List<InlineSpan> propertiesWidget = [];
-  int amountInCart = 0;
-  int previousAmount = 0;
-  bool isItemAmountChanging = false;
   late int chack;
-  Timer? _debounce;
 
-  late AnimationController _controller;
-  late Animation<Offset> _offsetAnimation;
-  // late Animation<Offset> _offsetAnimationReverse;
-
-  void _updateItemCountServerCall() {
-    if (previousAmount == amountInCart) {
-      return;
-    } else {
-      setState(() {
-        isItemAmountChanging = true;
-      });
-      changeCartItem(
-              element["item_id"], amountInCart, widget.business["business_id"])
-          .then((value) {
-        if (value != null) {
-          setState(() {
-            amountInCart = int.parse(value);
-            previousAmount = amountInCart;
-          });
-          if (widget.updateCategoryPageInfo != null) {
-            widget.updateCategoryPageInfo!(
-                amountInCart.toString(), widget.index);
-          }
-          print(value);
-        } else {
-          print(
-              "Something gone wrong, can't add item to cart in ItemCardMedium _updateItemCountServerCall");
-        }
-        setState(() {
-          isItemAmountChanging = false;
-        });
-      });
-    }
-  }
-
-  void _updateItemCount() {
-    // Cancel the previous timer if it exists
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-
-    // Start a new timer
-    _debounce = Timer(Duration(seconds: 3), () {
-      // Call your server update function here
-      _updateItemCountServerCall();
-    });
-  }
-
-  void _decrementAmountInCart() {
-    if (amountInCart > 0) {
-      setState(() {
-        amountInCart--;
-      });
-      _updateItemCount();
-    }
-  }
-
-  void _incrementAmountInCart() {
-    if (amountInCart + 1 <= double.parse(element["in_stock"]).truncate()) {
-      setState(() {
-        amountInCart++;
-      });
-      _updateItemCount();
-    }
+  String formatCost(String costString) {
+    int cost = double.parse(costString).truncate().toInt();
+    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
   }
 
   @override
@@ -407,46 +326,8 @@ class _ItemCardMediumState extends State<ItemCardMedium>
     super.initState();
     setState(() {
       element = widget.element;
-      amountInCart = int.parse(element["amount"] ?? "0");
-      previousAmount = amountInCart;
     });
     getProperties();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 150),
-      vsync: this,
-    );
-
-    _offsetAnimation = Tween<Offset>(
-      begin: Offset(1, 0),
-      end: Offset(0, 0),
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.linear,
-      ),
-    );
-
-    if (amountInCart > 0) {
-      _controller.forward();
-    }
-
-    // _offsetAnimationReverse = Tween<Offset>(
-    //   begin: Offset(0, 0),
-    //   end: Offset(1, 0),
-    // ).animate(CurvedAnimation(
-    //   parent: _controller,
-    //   curve: Curves.linear,
-    // ));
-  }
-
-  @override
-  void dispose() {
-    // Trigger the debounce action immediately if the timer is active
-    if (_debounce?.isActive ?? false) {
-      _debounce?.cancel();
-      _updateItemCountServerCall();
-    }
-    super.dispose();
   }
 
   void getProperties() {
@@ -456,42 +337,31 @@ class _ItemCardMediumState extends State<ItemCardMedium>
       print(properties);
       for (var element in properties) {
         List temp = element.split(":");
-        propertiesT.add(
-          WidgetSpan(
+        propertiesT.add(WidgetSpan(
             child: Row(
-              children: [
-                Text(
-                  temp[1],
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
-                  ),
-                ),
-                Image.asset(
-                  "assets/property_icons/${temp[0]}.png",
-                  width: 14,
-                  height: 14,
-                ),
-                SizedBox(
-                  width: 10,
-                )
-              ],
+          children: [
+            Text(
+              temp[1],
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Colors.black,
+              ),
             ),
-          ),
-        );
+            Image.asset(
+              "assets/property_icons/${temp[0]}.png",
+              width: 14,
+              height: 14,
+            ),
+            const SizedBox(
+              width: 10,
+            )
+          ],
+        )));
       }
       setState(() {
         propertiesWidget = propertiesT;
       });
-    }
-  }
-
-  void _moveButton() {
-    if (_controller.status == AnimationStatus.completed) {
-      _controller.reverse();
-    } else {
-      _controller.forward();
     }
   }
 
@@ -506,13 +376,20 @@ class _ItemCardMediumState extends State<ItemCardMedium>
 
   @override
   Widget build(BuildContext context) {
+    double screenSize = MediaQuery.of(context).size.width;
+
     chack = widget.chack;
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 5 * globals.scaleParam),
-      width: double.infinity,
-      height: 300 * globals.scaleParam,
+      // margin: const EdgeInsets.all(10),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      width: (MediaQuery.of(context).size.width * 2) * (screenSize / 720),
+      height: (MediaQuery.of(context).size.height * 0.4) * (screenSize / 720),
       child: Stack(
         children: [
+          // Image.asset(
+          //   'assets/vectors/whiskey/whiskey1.png',
+          //   color: Colors.grey.shade300,
+          // ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             mainAxisSize: MainAxisSize.max,
@@ -520,57 +397,42 @@ class _ItemCardMediumState extends State<ItemCardMedium>
               Flexible(
                 flex: 2,
                 fit: FlexFit.tight,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  key: Key(widget.element["item_id"]),
-                  onTap: () {
-                    showModalBottomSheet(
-                      context: context,
-                      clipBehavior: Clip.antiAlias,
-                      useSafeArea: true,
-                      isScrollControlled: true,
-                      builder: (context) {
-                        return ProductPage(
-                          item: widget.element,
-                          index: widget.index,
-                          returnDataAmount: widget.updateCategoryPageInfo!,
-                          business: widget.business,
-                        );
-                      },
-                    );
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.all(Radius.circular(2)),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: CachedNetworkImage(
-                      height: double.infinity,
-                      imageUrl: element["thumb"],
-                      fit: BoxFit.cover,
-                      cacheManager: CacheManager(
-                        Config(
-                          "itemImage ${element["item_id"].toString()}",
-                          stalePeriod: Duration(days: 700),
-                        ),
+                child: Container(
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(2)),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: CachedNetworkImage(
+                    height: double.infinity,
+                    imageUrl: element["thumb"],
+                    // width: MediaQuery.of(context).size.width * 0.2,
+                    // height: MediaQuery.of(context).size.width * 0.7,
+                    fit: BoxFit.cover,
+                    cacheManager: CacheManager(
+                      Config(
+                        "itemImage ${element["item_id"].toString()}",
+                        stalePeriod: const Duration(days: 700),
+                        //one week cache period
                       ),
-                      placeholder: (context, url) {
-                        return Container(
-                          alignment: Alignment.center,
-                          color: Colors.white,
-                          child: CircularProgressIndicator(),
-                        );
-                      },
-                      errorWidget: (context, url, error) {
-                        return Container(
-                          alignment: Alignment.center,
-                          child: Text(
-                            "Нет изображения",
-                            textAlign: TextAlign.center,
-                          ),
-                        );
-                      },
                     ),
+                    placeholder: (context, url) {
+                      return Container(
+                        alignment: Alignment.center,
+                        color: Colors.white,
+                        // width: MediaQuery.of(context).size.width * 0.2,
+                        child: const CircularProgressIndicator(),
+                      );
+                    },
+                    errorWidget: (context, url, error) {
+                      return Container(
+                        alignment: Alignment.center,
+                        // width: MediaQuery.of(context).size.width * 0.2,
+                        child: const Text(
+                          "Нет изображения",
+                          textAlign: TextAlign.center,
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -578,126 +440,83 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                 flex: 5,
                 fit: FlexFit.tight,
                 child: Padding(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: 15 * globals.scaleParam,
-                      vertical: 5 * globals.scaleParam),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     mainAxisSize: MainAxisSize.max,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Flexible(
-                        fit: FlexFit.tight,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          key: Key(widget.element["item_id"]),
-                          onTap: () {
-                            showModalBottomSheet(
-                              context: context,
-                              clipBehavior: Clip.antiAlias,
-                              useSafeArea: true,
-                              isScrollControlled: true,
-                              builder: (context) {
-                                return ProductPage(
-                                  item: widget.element,
-                                  index: widget.index,
-                                  returnDataAmount:
-                                      widget.updateCategoryPageInfo!,
-                                  business: widget.business,
-                                );
-                              },
-                            );
-                          },
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Flexible(
-                                flex: 2,
-                                fit: FlexFit.tight,
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Flexible(
-                                      flex: 5,
-                                      fit: FlexFit.tight,
-                                      child: RichText(
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        text: TextSpan(
-                                          style: TextStyle(
-                                            textBaseline:
-                                                TextBaseline.alphabetic,
-                                            fontSize: 28 * globals.scaleParam,
-                                            color: Colors.black,
-                                          ),
-                                          children: [
-                                            TextSpan(
-                                              text: element["name"],
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.w500,
-                                                  fontSize:
-                                                      28 * globals.scaleParam),
-                                            ),
-                                            element["country"] != null
-                                                ? WidgetSpan(
-                                                    child: Container(
-                                                      padding:
-                                                          EdgeInsets.symmetric(
-                                                        horizontal: 4 *
-                                                            globals.scaleParam,
-                                                        vertical: 2 *
-                                                            globals.scaleParam,
-                                                      ),
-                                                      decoration: BoxDecoration(
-                                                        color: Colors
-                                                            .grey.shade200,
-                                                        borderRadius:
-                                                            BorderRadius.all(
-                                                          Radius.circular(10),
-                                                        ),
-                                                      ),
-                                                      child: Text(
-                                                        element["country"] ??
-                                                            "",
-                                                        style: TextStyle(
-                                                          color: Colors.black,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                          fontSize: 26 *
-                                                              globals
-                                                                  .scaleParam,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  )
-                                                : TextSpan()
-                                          ],
-                                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Flexible(
+                                  flex: 5,
+                                  child: RichText(
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    text: TextSpan(
+                                      style: TextStyle(
+                                        textBaseline: TextBaseline.alphabetic,
+                                        fontSize: 28 * (screenSize / 720),
+                                        color: Colors.black,
                                       ),
+                                      children: [
+                                        TextSpan(
+                                          text: element["name"],
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w500),
+                                        ),
+                                        element["country"] != null
+                                            ? WidgetSpan(
+                                                child: Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                    horizontal: 2,
+                                                    vertical: 1,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.grey.shade200,
+                                                    borderRadius:
+                                                        const BorderRadius.all(
+                                                      Radius.circular(3),
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    element["country"] ?? "",
+                                                    style: TextStyle(
+                                                      color: Colors.black,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ),
+                                              )
+                                            : const TextSpan()
+                                      ],
                                     ),
-                                  ],
+                                  ),
                                 ),
+                              ],
+                            ),
+                            Flexible(
+                              child: Text(
+                                "В наличии ${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт.",
+                                style: TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.secondary,
+                                    fontSize: 28 * (screenSize / 720),
+                                    fontWeight: FontWeight.w500),
                               ),
-                              Flexible(
-                                fit: FlexFit.tight,
-                                child: Text(
-                                  "В наличии ${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт.",
-                                  style: TextStyle(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .secondary,
-                                      fontSize: 28 * globals.scaleParam,
-                                      fontWeight: FontWeight.w500),
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                       Flexible(
-                        flex: 2,
-                        fit: FlexFit.tight,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.end,
@@ -705,261 +524,59 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                             Flexible(
                               flex: 5,
                               child: Column(
-                                mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  Flexible(
-                                    child: Row(
-                                      children: [
-                                        Flexible(
-                                          child: Text(
-                                            globals.formatCost(
-                                                element['price'] ?? ""),
-                                            style: TextStyle(
+                                  element["amount"] != null &&
+                                          element["amount"] != "0"
+                                      ? Row(
+                                          children: [
+                                            Flexible(
+                                              child: Text(
+                                                "В корзине ${element["amount"]} шт.",
+                                                style: TextStyle(
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .secondary,
+                                                    fontSize:
+                                                        28 * (screenSize / 720),
+                                                    fontWeight:
+                                                        FontWeight.w500),
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      : Container(),
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          formatCost(element['price'] ?? ""),
+                                          style: TextStyle(
                                               color: Colors.black,
                                               fontWeight: FontWeight.w600,
-                                              fontSize: 36 * globals.scaleParam,
-                                            ),
-                                          ),
+                                              fontSize:
+                                                  36 * (screenSize / 720)),
                                         ),
-                                        Flexible(
-                                          child: Text(
-                                            "₸",
-                                            style: TextStyle(
+                                      ),
+                                      Flexible(
+                                        child: Text(
+                                          "₸",
+                                          style: TextStyle(
                                               color: Colors.grey.shade600,
                                               fontWeight: FontWeight.w700,
-                                              fontSize: 36 * globals.scaleParam,
-                                            ),
-                                          ),
-                                        )
-                                      ],
-                                    ),
-                                  ),
-                                  Flexible(
-                                    fit: FlexFit.tight,
-                                    child: Stack(
-                                      children: [
-                                        LayoutBuilder(
-                                          builder: (context, constraints) {
-                                            return Row(
-                                              children: [
-                                                Container(
-                                                  width: constraints.maxWidth *
-                                                      0.85,
-                                                  alignment:
-                                                      Alignment.centerLeft,
-                                                  child: ClipRect(
-                                                    clipBehavior:
-                                                        Clip.antiAlias,
-                                                    child: Visibility(
-                                                      // visible: false,
-                                                      child: SlideTransition(
-                                                        position:
-                                                            _offsetAnimation,
-                                                        child: Row(
-                                                          children: [
-                                                            Flexible(
-                                                              fit:
-                                                                  FlexFit.tight,
-                                                              child: IconButton(
-                                                                padding:
-                                                                    EdgeInsets
-                                                                        .all(0),
-                                                                onPressed: () {
-                                                                  if (!isItemAmountChanging) {
-                                                                    _decrementAmountInCart();
-                                                                    if (amountInCart <=
-                                                                        0) {
-                                                                      _moveButton();
-                                                                    }
-                                                                  }
-                                                                },
-                                                                icon: Container(
-                                                                  decoration:
-                                                                      BoxDecoration(
-                                                                    border:
-                                                                        Border
-                                                                            .all(
-                                                                      color: amountInCart >
-                                                                              0
-                                                                          ? Theme.of(context)
-                                                                              .colorScheme
-                                                                              .onBackground
-                                                                          : Theme.of(context)
-                                                                              .colorScheme
-                                                                              .secondary,
-                                                                    ),
-                                                                    borderRadius:
-                                                                        BorderRadius
-                                                                            .circular(6),
-                                                                  ),
-                                                                  child: Icon(
-                                                                    Icons
-                                                                        .remove_rounded,
-                                                                    color: amountInCart >
-                                                                            0
-                                                                        ? Theme.of(context)
-                                                                            .colorScheme
-                                                                            .onBackground
-                                                                        : Theme.of(context)
-                                                                            .colorScheme
-                                                                            .secondary,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            Flexible(
-                                                              flex: 2,
-                                                              fit:
-                                                                  FlexFit.tight,
-                                                              child: Row(
-                                                                mainAxisAlignment:
-                                                                    MainAxisAlignment
-                                                                        .center,
-                                                                children: [
-                                                                  Flexible(
-                                                                    child: Text(
-                                                                      "${amountInCart.toString()} шт.", //"${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
-                                                                      textHeightBehavior:
-                                                                          TextHeightBehavior(
-                                                                        applyHeightToFirstAscent:
-                                                                            false,
-                                                                      ),
-                                                                      textAlign:
-                                                                          TextAlign
-                                                                              .center,
-                                                                      style:
-                                                                          TextStyle(
-                                                                        fontWeight:
-                                                                            FontWeight.w700,
-                                                                        fontSize:
-                                                                            36 *
-                                                                                globals.scaleParam,
-                                                                        color: amountInCart !=
-                                                                                0
-                                                                            ? Theme.of(context).colorScheme.onBackground
-                                                                            : Colors.grey.shade600,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            Flexible(
-                                                              fit:
-                                                                  FlexFit.tight,
-                                                              child: IconButton(
-                                                                padding:
-                                                                    EdgeInsets
-                                                                        .all(0),
-                                                                onPressed: () {
-                                                                  if (!isItemAmountChanging) {
-                                                                    _incrementAmountInCart();
-                                                                  }
-                                                                },
-                                                                icon: Container(
-                                                                  decoration:
-                                                                      BoxDecoration(
-                                                                    border:
-                                                                        Border
-                                                                            .all(
-                                                                      color: amountInCart <
-                                                                              double.parse(element["in_stock"])
-                                                                                  .truncate()
-                                                                          ? Theme.of(context)
-                                                                              .colorScheme
-                                                                              .onBackground
-                                                                          : Theme.of(context)
-                                                                              .colorScheme
-                                                                              .secondary,
-                                                                    ),
-                                                                    borderRadius:
-                                                                        BorderRadius
-                                                                            .circular(6),
-                                                                  ),
-                                                                  child: Icon(
-                                                                    Icons
-                                                                        .add_rounded,
-                                                                    color: amountInCart <
-                                                                            double.parse(element["in_stock"])
-                                                                                .truncate()
-                                                                        ? Theme.of(context)
-                                                                            .colorScheme
-                                                                            .onBackground
-                                                                        : Theme.of(context)
-                                                                            .colorScheme
-                                                                            .secondary,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            );
-                                          },
+                                              fontSize:
+                                                  36 * (screenSize / 720)),
                                         ),
-                                        AnimatedSwitcher(
-                                          duration: Duration(milliseconds: 150),
-                                          transitionBuilder: (Widget child,
-                                              Animation<double> animation) {
-                                            return ScaleTransition(
-                                                scale: animation, child: child);
-                                          },
-                                          child: amountInCart == 0
-                                              ? LayoutBuilder(
-                                                  builder:
-                                                      (context, constraints) {
-                                                    return SizedBox(
-                                                      width:
-                                                          constraints.maxWidth *
-                                                              0.85,
-                                                      child: Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .end,
-                                                        children: [
-                                                          IconButton(
-                                                            onPressed: () {
-                                                              if (!isItemAmountChanging) {
-                                                                if (!_controller
-                                                                    .isCompleted) {
-                                                                  _moveButton();
-                                                                }
-                                                                _incrementAmountInCart();
-                                                              }
-                                                            },
-                                                            icon: Icon(
-                                                              Icons.add_rounded,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    );
-                                                  },
-                                                )
-                                              : SizedBox(),
-                                        ),
-                                      ],
-                                    ),
+                                      )
+                                    ],
                                   ),
                                 ],
                               ),
                             ),
                             Flexible(
-                              fit: FlexFit.tight,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   Flexible(
-                                    fit: FlexFit.tight,
-                                    child: SizedBox(),
-                                  ),
-                                  Flexible(
-                                    fit: FlexFit.tight,
                                     child: LikeButton(
                                       is_liked: element["is_liked"],
                                       item_id: element["item_id"],
@@ -968,6 +585,10 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                 ],
                               ),
                             ),
+                            // Flexible(
+                            //   flex: 4,
+                            //   child: _buyButton,
+                            // ),
                           ],
                         ),
                       ),
@@ -981,27 +602,24 @@ class _ItemCardMediumState extends State<ItemCardMedium>
       ),
     );
   }
-
-  @override
-  bool get wantKeepAlive => true;
 }
 
 class ItemCardMinimal extends StatefulWidget {
-  const ItemCardMinimal(
+  ItemCardMinimal(
       {super.key,
-      required this.itemId,
+      required this.item_id,
       required this.element,
-      required this.categoryName,
-      required this.categoryId,
+      required this.category_name,
+      required this.category_id,
       required this.scroll});
   final Map<String, dynamic> element;
-  final String categoryName;
+  final String category_name;
 
-  final String itemId;
+  final String item_id;
 
-  final String categoryId;
+  final String category_id;
   final double scroll;
-  final int chack = 1;
+  int chack = 1;
   @override
   State<ItemCardMinimal> createState() => _ItemCardMinimalState();
 }
@@ -1010,6 +628,11 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
   Map<String, dynamic> element = {};
   List<InlineSpan> propertiesWidget = [];
   late int chack;
+
+  String formatCost(String costString) {
+    int cost = int.parse(costString);
+    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
+  }
 
   @override
   void initState() {
@@ -1043,7 +666,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
               width: 14,
               height: 14,
             ),
-            SizedBox(
+            const SizedBox(
               width: 10,
             )
           ],
@@ -1066,11 +689,13 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
 
   @override
   Widget build(BuildContext context) {
+    double screenSize = MediaQuery.of(context).size.width;
+
     chack = widget.chack;
     return Container(
-      // margin:  EdgeInsets.all(10),
-      width: double.infinity,
-      height: 125 * globals.scaleParam,
+      // margin: const EdgeInsets.all(10),
+      width: MediaQuery.of(context).size.width,
+      height: MediaQuery.of(context).size.height * 0.1,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         mainAxisSize: MainAxisSize.max,
@@ -1078,8 +703,8 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
           Flexible(
             flex: 2,
             child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.all(Radius.circular(10)),
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(2)),
               ),
               clipBehavior: Clip.antiAlias,
               child: CachedNetworkImage(
@@ -1091,7 +716,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                 cacheManager: CacheManager(
                   Config(
                     "itemImage ${element["item_id"].toString()}",
-                    stalePeriod: Duration(days: 7),
+                    stalePeriod: const Duration(days: 7),
                     //one week cache period
                   ),
                 ),
@@ -1100,14 +725,14 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                     alignment: Alignment.center,
                     color: Colors.white,
                     // width: MediaQuery.of(context).size.width * 0.2,
-                    child: CircularProgressIndicator(),
+                    child: const CircularProgressIndicator(),
                   );
                 },
                 errorWidget: (context, url, error) {
                   return Container(
                     alignment: Alignment.center,
                     // width: MediaQuery.of(context).size.width * 0.2,
-                    child: Text(
+                    child: const Text(
                       "Нет изображения",
                       textAlign: TextAlign.center,
                     ),
@@ -1120,14 +745,14 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
             flex: 5,
             fit: FlexFit.tight,
             child: Padding(
-              padding:
-                  EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
+              padding: const EdgeInsets.symmetric(horizontal: 15),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 mainAxisSize: MainAxisSize.max,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Flexible(
+                    flex: 2,
                     fit: FlexFit.tight,
                     child: RichText(
                       maxLines: 2,
@@ -1135,26 +760,23 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                       text: TextSpan(
                         style: TextStyle(
                           textBaseline: TextBaseline.alphabetic,
+                          fontSize: 28 * (screenSize / 720),
                           color: Colors.black,
                         ),
                         children: [
                           TextSpan(
                             text: element["name"],
-                            style: TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 38 * globals.scaleParam,
-                            ),
+                            style: TextStyle(fontWeight: FontWeight.w500),
                           ),
                           element["country"] != null
                               ? WidgetSpan(
                                   child: Container(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 4 * globals.scaleParam,
-                                        vertical: 2 * globals.scaleParam),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 2, vertical: 1),
                                     decoration: BoxDecoration(
                                       color: Colors.grey.shade200,
-                                      borderRadius: BorderRadius.all(
-                                        Radius.circular(10),
+                                      borderRadius: const BorderRadius.all(
+                                        Radius.circular(3),
                                       ),
                                     ),
                                     child: Text(
@@ -1162,30 +784,28 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                       style: TextStyle(
                                         color: Colors.black,
                                         fontWeight: FontWeight.w600,
-                                        fontSize: 32 * globals.scaleParam,
                                       ),
                                     ),
                                   ),
                                 )
-                              : TextSpan()
+                              : const TextSpan()
                         ],
                       ),
                     ),
                   ),
                   Flexible(
-                    fit: FlexFit.tight,
                     child: Row(
                       children: [
                         Flexible(
                           child: Text(
-                            "${globals.formatCost(element["price"])} ₸ за шт.",
+                            "${formatCost(element["price"])} ₸ за шт.",
                             style: TextStyle(
                               color: Theme.of(context)
                                   .colorScheme
                                   .secondary
                                   .withOpacity(0.2),
                               fontWeight: FontWeight.w600,
-                              fontSize: 28 * globals.scaleParam,
+                              fontSize: 28 * (screenSize / 720),
                             ),
                           ),
                         ),
@@ -1193,37 +813,62 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                     ),
                   ),
                   Flexible(
-                    fit: FlexFit.tight,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Flexible(
-                          fit: FlexFit.tight,
+                        Text(
+                          "${formatCost((int.parse(element['price']) * int.parse(element["amount"])).toString())} ₸",
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 32 * (screenSize / 720),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
                           child: Text(
-                            "${globals.formatCost((int.parse(element['price']) * int.parse(element["amount"])).toString())} ₸",
+                            "${element["amount"]} шт.",
                             style: TextStyle(
                               color: Colors.black,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 36 * globals.scaleParam,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 32 * (screenSize / 720),
                             ),
                           ),
                         ),
+                        // Row(
+                        //   children: [
+                        //     // element["prev_price"] != null
+                        //     //     ? Padding(
+                        //     //         padding: const EdgeInsets.only(left: 5),
+                        //     //         child: Row(
+                        //     //           children: [
+                        //     //             Text(
+                        //     //               formatCost(element["prev_price"]),
+                        //     //               style: TextStyle(
+                        //     //                   decoration:
+                        //     //                       TextDecoration.lineThrough,
+                        //     //                   decorationColor:
+                        //     //                       Colors.grey.shade500,
+                        //     //                   decorationThickness: 1.85,
+                        //     //                   color: Colors.grey.shade500,
+                        //     //                   fontSize: 12 * (screenSize / 720),
+                        //     //                   fontWeight: FontWeight.w500),
+                        //     //             ),
+                        //     //             Text(
+                        //     //               "₸",
+                        //     //               style: TextStyle(
+                        //     //                   color: Colors.grey.shade600,
+                        //     //                   fontWeight: FontWeight.w700,
+                        //     //                   fontSize: 12 * (screenSize / 720)),
+                        //     //             )
+                        //     //           ],
+                        //     //         ),
+                        //     //       )
+                        //     //     : Container(),
+                        //   ],
+                        // ),
                         Flexible(
-                          fit: FlexFit.tight,
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 8 * globals.scaleParam),
-                            child: Text(
-                              "${element["amount"]} шт.",
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 32 * globals.scaleParam,
-                              ),
-                            ),
-                          ),
-                        ),
-                        Flexible(
+                          flex: 1,
                           child: LikeButton(
                             is_liked: element["is_liked"],
                             item_id: element["item_id"],
@@ -1232,6 +877,23 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                       ],
                     ),
                   ),
+                  // Flexible(
+                  //   child: Row(
+                  //     mainAxisAlignment: MainAxisAlignment.end,
+                  //     mainAxisSize: MainAxisSize.max,
+                  //     children: [
+                  //       // Flexible(
+                  //       //   child: _buyButton,
+                  //       // ),
+                  //       Flexible(
+                  //         child: LikeButton(
+                  //           is_liked: element["is_liked"],
+                  //           item_id: element["item_id"],
+                  //         ),
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
                 ],
               ),
             ),
@@ -1243,21 +905,21 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
 }
 
 class ItemCardNoImage extends StatefulWidget {
-  const ItemCardNoImage(
+  ItemCardNoImage(
       {super.key,
-      required this.itemId,
+      required this.item_id,
       required this.element,
-      required this.categoryName,
-      required this.categoryId,
+      required this.category_name,
+      required this.category_id,
       required this.scroll});
   final Map<String, dynamic> element;
-  final String categoryName;
+  final String category_name;
 
-  final String itemId;
+  final String item_id;
 
-  final String categoryId;
+  final String category_id;
   final double scroll;
-  final int chack = 1;
+  int chack = 1;
   @override
   State<ItemCardNoImage> createState() => _ItemCardNoImageState();
 }
@@ -1266,6 +928,11 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
   Map<String, dynamic> element = {};
   List<InlineSpan> propertiesWidget = [];
   late int chack;
+
+  String formatCost(String costString) {
+    int cost = int.parse(costString);
+    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
+  }
 
   @override
   void initState() {
@@ -1299,7 +966,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
               width: 14,
               height: 14,
             ),
-            SizedBox(
+            const SizedBox(
               width: 10,
             )
           ],
@@ -1322,31 +989,31 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
 
   @override
   Widget build(BuildContext context) {
+    double screenSize = MediaQuery.of(context).size.width;
+
     chack = widget.chack;
     return Container(
-      // margin:  EdgeInsets.all(10),
-      width: double.infinity,
-      height: 100 * globals.scaleParam,
+      // margin: const EdgeInsets.all(10),
+      width: MediaQuery.of(context).size.width,
+      height: MediaQuery.of(context).size.height * 0.08,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         mainAxisSize: MainAxisSize.max,
         children: [
           Flexible(
+            flex: 2,
             fit: FlexFit.tight,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                Flexible(
-                  fit: FlexFit.tight,
-                  child: RichText(
-                    maxLines: 1,
-                    text: TextSpan(
-                      text: "x ${element["amount"]}",
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 36 * globals.scaleParam,
-                      ),
+                RichText(
+                  maxLines: 1,
+                  text: TextSpan(
+                    text: "x ${element["amount"]}",
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 32 * (screenSize / 720),
                     ),
                   ),
                 ),
@@ -1354,7 +1021,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
             ),
           ),
           Flexible(
-            flex: 5,
+            flex: 12,
             fit: FlexFit.tight,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1362,6 +1029,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Flexible(
+                  flex: 2,
                   fit: FlexFit.tight,
                   child: RichText(
                     maxLines: 2,
@@ -1369,25 +1037,23 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                     text: TextSpan(
                       style: TextStyle(
                         textBaseline: TextBaseline.alphabetic,
+                        fontSize: 28 * (screenSize / 720),
                         color: Colors.black,
                       ),
                       children: [
                         TextSpan(
                           text: element["name"],
-                          style: TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 36 * globals.scaleParam),
+                          style: TextStyle(fontWeight: FontWeight.w500),
                         ),
                         element["country"] != null
                             ? WidgetSpan(
                                 child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 4 * globals.scaleParam,
-                                      vertical: 2 * globals.scaleParam),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 2, vertical: 1),
                                   decoration: BoxDecoration(
                                     color: Colors.grey.shade200,
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(10),
+                                    borderRadius: const BorderRadius.all(
+                                      Radius.circular(3),
                                     ),
                                   ),
                                   child: Text(
@@ -1395,65 +1061,124 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                                     style: TextStyle(
                                       color: Colors.black,
                                       fontWeight: FontWeight.w600,
-                                      fontSize: 36 * globals.scaleParam,
                                     ),
                                   ),
                                 ),
                               )
-                            : TextSpan()
+                            : const TextSpan()
                       ],
                     ),
                   ),
                 ),
                 Flexible(
-                  fit: FlexFit.tight,
                   child: Row(
                     children: [
                       Flexible(
-                        fit: FlexFit.tight,
                         child: Text(
-                          "${globals.formatCost(element["price"])} ₸ за шт.",
+                          "${formatCost(element["price"])} ₸ за шт.",
                           style: TextStyle(
                             color: Theme.of(context)
                                 .colorScheme
                                 .secondary
                                 .withOpacity(0.2),
                             fontWeight: FontWeight.w600,
-                            fontSize: 30 * globals.scaleParam,
+                            fontSize: 28 * (screenSize / 720),
                           ),
                         ),
                       ),
                     ],
                   ),
                 ),
+                // Flexible(
+                //   child: Row(
+                //     mainAxisAlignment: MainAxisAlignment.end,
+                //     mainAxisSize: MainAxisSize.max,
+                //     children: [
+                //       // Flexible(
+                //       //   child: _buyButton,
+                //       // ),
+                //       Flexible(
+                //         child: LikeButton(
+                //           is_liked: element["is_liked"],
+                //           item_id: element["item_id"],
+                //         ),
+                //       ),
+                //     ],
+                //   ),
+                // ),
               ],
             ),
           ),
           Flexible(
-            flex: 2,
+            flex: 5,
             fit: FlexFit.tight,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Flexible(
-                  fit: FlexFit.tight,
-                  child: RichText(
-                    maxLines: 1,
-                    textAlign: TextAlign.end,
-                    text: TextSpan(
-                      text:
-                          "${globals.formatCost((int.parse(element['price']) * int.parse(element['amount'])).toString())} ₸",
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 36 * globals.scaleParam,
-                      ),
+                RichText(
+                  maxLines: 1,
+                  text: TextSpan(
+                    text:
+                        "${formatCost((int.parse(element['price']) * int.parse(element['amount'])).toString())} ₸",
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 32 * (screenSize / 720),
                     ),
                   ),
                 ),
               ],
             ),
           ),
+          // child: Row(
+          //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //   children: [
+          //     Row(
+          //       children: [
+          //         Text(
+          //           "${formatCost(element['price'])} ₸",
+          //           style: TextStyle(
+          //               color: Colors.black,
+          //               fontWeight: FontWeight.w600,
+          //               fontSize: 16 * (screenSize / 720)),
+          //         ),
+          //         // Text(
+          //         //   "₸",
+          //         //   style: TextStyle(
+          //         //       color: Colors.grey.shade600,
+          //         //       fontWeight: FontWeight.w700,
+          //         //       fontSize: 16 * (screenSize / 720)),
+          //         // // ),
+          //         // element["prev_price"] != null
+          //         //     ? Padding(
+          //         //         padding: const EdgeInsets.only(left: 5),
+          //         //         child: Row(
+          //         //           children: [
+          //         //             Text(
+          //         //               formatCost(element["prev_price"]),
+          //         //               style: TextStyle(
+          //         //                   decoration: TextDecoration.lineThrough,
+          //         //                   decorationColor: Colors.grey.shade500,
+          //         //                   decorationThickness: 1.85,
+          //         //                   color: Colors.grey.shade500,
+          //         //                   fontSize: 12 * (screenSize / 720),
+          //         //                   fontWeight: FontWeight.w500),
+          //         //             ),
+          //         //             Text(
+          //         //               "₸",
+          //         //               style: TextStyle(
+          //         //                   color: Colors.grey.shade600,
+          //         //                   fontWeight: FontWeight.w700,
+          //         //                   fontSize: 12 * (screenSize / 720)),
+          //         //             )
+          //         //           ],
+          //         //         ),
+          //         //       )
+          //         //     : Container(),
+          //       ],
+          //     ),
+          //   ],
+          // ),
         ],
       ),
     );

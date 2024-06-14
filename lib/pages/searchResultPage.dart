@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
@@ -133,10 +132,10 @@ class _SearchResultPageState extends State<SearchResultPage> {
           child: Column(
             children: [
               ItemCard(
-                itemId: item.data["item_id"],
+                item_id: item.data["item_id"],
                 element: item.data,
-                categoryId: "",
-                categoryName: "",
+                category_id: "",
+                category_name: "",
                 scroll: 0,
               ),
               _items.length - 1 != index

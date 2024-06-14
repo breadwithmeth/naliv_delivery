@@ -1,6 +1,5 @@
 // import 'package:flutter/material.dart';
-import '../globals.dart'
-    as globals;// import 'package:naliv_delivery/pages/cartPage.dart';
+// import 'package:naliv_delivery/pages/cartPage.dart';
 // import 'package:numberpicker/numberpicker.dart';
 // import '../misc/api.dart';
 

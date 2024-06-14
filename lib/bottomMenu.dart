@@ -4,7 +4,7 @@
 
 // import 'package:flutter/cupertino.dart';
 // import 'package:flutter/material.dart';
-import '../globals.dart' as globals;// import 'package:flutter/services.dart';
+// import 'package:flutter/services.dart';
 // import 'package:flutter/widgets.dart';
 // import 'package:geolocator/geolocator.dart';
 // import 'package:naliv_delivery/misc.dart';
