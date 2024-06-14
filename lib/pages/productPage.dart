@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 import 'package:flutter/painting.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
@@ -373,11 +375,6 @@ class _ProductPageState extends State<ProductPage> {
 
   // BUTTON VARIABLES/FUNCS END
 
-  String formatCost(String costString) {
-    int cost = double.parse(costString).truncate();
-    return NumberFormat("###,###", "en_US").format(cost).replaceAll(',', ' ');
-  }
-
   @override
   void initState() {
     // TODO: implement initState
@@ -391,26 +388,37 @@ class _ProductPageState extends State<ProductPage> {
       }
 
       bool isImageDownloaded = false;
-      _image = CachedNetworkImage(
-        fit: BoxFit.fitHeight,
-        cacheManager: CacheManager(Config(
-          "itemImage",
-          stalePeriod: const Duration(days: 7),
-          //one week cache period
-        )),
-        imageUrl: item["img"],
-        progressIndicatorBuilder: (context, url, progress) {
-          if (progress.progress == 1) isImageDownloaded = true;
-          return CircularProgressIndicator(
-            value: isImageDownloaded ? 1 : progress.progress,
-          );
-        },
-        // placeholder: ((context, url) {
-        //   return const CircularProgressIndicator();
-        // }),
-        errorWidget: ((context, url, error) {
-          return const Text("Нет изображения");
-        }),
+      _image = Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.all(Radius.circular(10)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: CachedNetworkImage(
+          fit: BoxFit.fitHeight,
+          cacheManager: CacheManager(Config(
+            "itemImage",
+            stalePeriod: const Duration(days: 7),
+            //one week cache period
+          )),
+          imageUrl: item["img"],
+          progressIndicatorBuilder: (context, url, progress) {
+            if (progress.progress == 1) isImageDownloaded = true;
+            return Padding(
+              padding: const EdgeInsets.all(2),
+              child: CircularProgressIndicator(
+                value: isImageDownloaded ? 1 : progress.progress,
+              ),
+            );
+          },
+          // placeholder: ((context, url) {
+          //   return const CircularProgressIndicator();
+          // }),
+          errorWidget: ((context, url, error) {
+            return Text(
+              "Нет изображения",
+            );
+          }),
+        ),
       );
       Future.delayed(const Duration(milliseconds: 0)).whenComplete(() async {
         await _getItem().then((value) {
@@ -453,7 +461,9 @@ class _ProductPageState extends State<ProductPage> {
       // color: Colors.white,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        padding: EdgeInsets.symmetric(
+            horizontal: 20 * globals.scaleParam,
+            vertical: 20 * globals.scaleParam),
         child: item.isNotEmpty
             ? Stack(
                 alignment: Alignment.bottomCenter,
@@ -462,9 +472,9 @@ class _ProductPageState extends State<ProductPage> {
                     style: ElevatedButton.styleFrom(
                       disabledBackgroundColor:
                           Theme.of(context).colorScheme.primary,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 14,
-                        horizontal: 20,
+                      padding: EdgeInsets.symmetric(
+                        vertical: 28 * globals.scaleParam,
+                        horizontal: 20 * globals.scaleParam,
                       ),
                     ),
                     onPressed: null,
@@ -499,15 +509,15 @@ class _ProductPageState extends State<ProductPage> {
                           fit: FlexFit.tight,
                           child: Text(
                             cacheAmount == 0
-                                ? "${formatCost(item["price"])} ₸"
-                                : "${formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
+                                ? "${globals.formatCost(item["price"])} ₸"
+                                : "${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
                             textHeightBehavior: const TextHeightBehavior(
                               applyHeightToFirstAscent: false,
                             ),
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
-                              fontSize: 26,
+                              fontSize: 52 * globals.scaleParam,
                               color: Theme.of(context).colorScheme.onPrimary,
                             ),
                           ),
@@ -524,7 +534,7 @@ class _ProductPageState extends State<ProductPage> {
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
-                                    fontSize: 20,
+                                    fontSize: 40 * globals.scaleParam,
                                     color:
                                         Theme.of(context).colorScheme.onPrimary,
                                   ),
@@ -548,7 +558,7 @@ class _ProductPageState extends State<ProductPage> {
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontWeight: FontWeight.w700,
-                                      fontSize: 20,
+                                      fontSize: 40 * globals.scaleParam,
                                       color: Theme.of(context)
                                           .colorScheme
                                           .onPrimary,
@@ -618,7 +628,7 @@ class _ProductPageState extends State<ProductPage> {
                 highlightColor: Theme.of(context).colorScheme.secondary,
                 child: Container(
                   width: MediaQuery.of(context).size.width,
-                  height: 50,
+                  height: 50 * globals.scaleParam,
                   decoration: const BoxDecoration(
                     borderRadius: BorderRadius.all(Radius.circular(10)),
                     color: Colors.white,
@@ -631,7 +641,7 @@ class _ProductPageState extends State<ProductPage> {
         controller: scrollController,
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: EdgeInsets.all(10 * globals.scaleParam),
             width: MediaQuery.of(context).size.width,
             height: MediaQuery.of(context).size.width,
             child: Stack(
@@ -696,52 +706,71 @@ class _ProductPageState extends State<ProductPage> {
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+            padding: EdgeInsets.symmetric(
+                horizontal: 30 * globals.scaleParam,
+                vertical: 10 * globals.scaleParam),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.only(right: 10),
-                      padding: const EdgeInsets.all(5),
-                      decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          borderRadius:
-                              const BorderRadius.all(Radius.circular(5))),
-                      child: const Text(
-                        "Новинка",
-                        style: TextStyle(color: Colors.black),
+                Flexible(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Container(
+                          margin:
+                              EdgeInsets.only(right: 10 * globals.scaleParam),
+                          padding: EdgeInsets.all(5 * globals.scaleParam),
+                          decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(5))),
+                          child: Text(
+                            "Новинка",
+                            style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 28 * globals.scaleParam),
+                          ),
+                        ),
                       ),
-                    ),
-                    Container(
-                      margin: const EdgeInsets.only(right: 10),
-                      padding: const EdgeInsets.all(5),
-                      decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          borderRadius:
-                              const BorderRadius.all(Radius.circular(5))),
-                      child: const Text(
-                        "Новинка",
-                        style: TextStyle(color: Colors.black),
+                      Flexible(
+                        child: Container(
+                          margin:
+                              EdgeInsets.only(right: 10 * globals.scaleParam),
+                          padding: EdgeInsets.all(5 * globals.scaleParam),
+                          decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(5))),
+                          child: Text(
+                            "Новинка",
+                            style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 28 * globals.scaleParam),
+                          ),
+                        ),
                       ),
-                    ),
-                    Container(
-                      margin: const EdgeInsets.only(right: 10),
-                      padding: const EdgeInsets.all(5),
-                      decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          borderRadius:
-                              const BorderRadius.all(Radius.circular(5))),
-                      child: const Text(
-                        "Новинка",
-                        style: TextStyle(color: Colors.black),
+                      Flexible(
+                        child: Container(
+                          margin:
+                              EdgeInsets.only(right: 10 * globals.scaleParam),
+                          padding: EdgeInsets.all(5 * globals.scaleParam),
+                          decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(5))),
+                          child: Text(
+                            "Новинка",
+                            style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 28 * globals.scaleParam),
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 Container(
-                  margin: const EdgeInsets.all(5),
+                  margin: EdgeInsets.all(5 * globals.scaleParam),
                   child: item.isNotEmpty
                       ? LikeButton(
                           item_id: item["item_id"],
@@ -754,16 +783,18 @@ class _ProductPageState extends State<ProductPage> {
           ),
           item.isNotEmpty
               ? Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: 30 * globals.scaleParam,
+                      vertical:
+                          10 * (MediaQuery.sizeOf(context).height / 1080)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       Text(
                         item["name"] ?? "",
-                        style: const TextStyle(
-                          fontSize: 20,
+                        style: TextStyle(
+                          fontSize: 40 * globals.scaleParam,
                           fontWeight: FontWeight.w700,
                           color: Colors.black,
                         ),
@@ -771,7 +802,7 @@ class _ProductPageState extends State<ProductPage> {
                       Text(
                         "${double.parse(item["in_stock"] ?? "0").truncate().toString()} шт. в наличии",
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 28 * globals.scaleParam,
                           fontWeight: FontWeight.w700,
                           color: Theme.of(context).colorScheme.secondary,
                         ),
@@ -792,14 +823,17 @@ class _ProductPageState extends State<ProductPage> {
                 ),
           Container(
             width: MediaQuery.of(context).size.width,
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+            padding: EdgeInsets.symmetric(
+                horizontal: 30 * globals.scaleParam,
+                vertical: 10 * (MediaQuery.sizeOf(context).height / 1080)),
             child: Wrap(
               children: propertiesWidget,
             ),
           ),
           item["group"] != null
               ? Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
                   height: 50,
                   width: MediaQuery.of(context).size.width,
                   child: ListView(
@@ -815,101 +849,121 @@ class _ProductPageState extends State<ProductPage> {
           ),
           Stack(
             children: [
-              Container(
-                height: 25,
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.grey.withOpacity(0.15),
-                        offset: const Offset(0, -1),
-                        blurRadius: 15,
-                        spreadRadius: 1)
-                  ],
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey.shade200, width: 3),
-                  ),
-                ),
-                child: const Row(
-                  children: [],
-                ),
-              ),
+              // Container(
+              //   height: 25,
+              //   padding: EdgeInsets.symmetric(
+              //       horizontal: 30 * scale_param),
+              //   decoration: BoxDecoration(
+              //     boxShadow: [
+              //       BoxShadow(
+              //           color: Colors.grey.withOpacity(0.15),
+              //           offset: const Offset(0, -1),
+              //           blurRadius: 15,
+              //           spreadRadius: 1)
+              //     ],
+              //     border: Border(
+              //       bottom: BorderSide(color: Colors.grey.shade200, width: 3),
+              //     ),
+              //   ),
+              //   child: const Row(
+              //     children: [],
+              //   ),
+              // ),
               Row(
-                mainAxisAlignment: MainAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  GestureDetector(
-                    child: Container(
-                      margin: const EdgeInsets.only(left: 15),
-                      decoration: BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(
-                            width: 3,
-                            color: currentTab == 0
-                                ? Colors.black
-                                : Colors.grey.shade200,
+                  Flexible(
+                    fit: FlexFit.tight,
+                    child: GestureDetector(
+                      child: Container(
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              width: 3,
+                              color: currentTab == 0
+                                  ? Colors.black
+                                  : Colors.grey.shade200,
+                            ),
                           ),
                         ),
+                        child: Text(
+                          "Описание",
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 32 * globals.scaleParam),
+                        ),
                       ),
-                      child: const Text(
-                        "Описание",
-                        style: TextStyle(color: Colors.black, fontSize: 16),
-                      ),
+                      onTap: () {
+                        setState(() {
+                          currentTab = 0;
+                        });
+                      },
                     ),
-                    onTap: () {
-                      setState(() {
-                        currentTab = 0;
-                      });
-                    },
                   ),
-                  GestureDetector(
-                    child: Container(
-                      margin: const EdgeInsets.only(left: 15),
-                      height: 25,
-                      decoration: BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(
-                            width: 3,
-                            color: currentTab == 1
-                                ? Colors.black
-                                : Colors.grey.shade200,
+                  Flexible(
+                    fit: FlexFit.tight,
+                    child: GestureDetector(
+                      child: Container(
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              width: 3,
+                              color: currentTab == 1
+                                  ? Colors.black
+                                  : Colors.grey.shade200,
+                            ),
                           ),
                         ),
+                        child: Text(
+                          "О бренде",
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 32 * globals.scaleParam),
+                        ),
                       ),
-                      child: const Text(
-                        "О бренде",
-                        style: TextStyle(color: Colors.black, fontSize: 16),
-                      ),
+                      onTap: () {
+                        setState(() {
+                          currentTab = 1;
+                        });
+                      },
                     ),
-                    onTap: () {
-                      setState(() {
-                        currentTab = 1;
-                      });
-                    },
                   ),
-                  GestureDetector(
-                    child: Container(
-                      margin: const EdgeInsets.only(left: 15),
-                      height: 25,
-                      decoration: BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(
-                            width: 3,
-                            color: currentTab == 2
-                                ? Colors.black
-                                : Colors.grey.shade200,
+                  Flexible(
+                    fit: FlexFit.tight,
+                    child: GestureDetector(
+                      child: Container(
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              width: 3,
+                              color: currentTab == 2
+                                  ? Colors.black
+                                  : Colors.grey.shade200,
+                            ),
                           ),
                         ),
+                        child: Text(
+                          "Производитель",
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 32 * globals.scaleParam),
+                        ),
                       ),
-                      child: const Text(
-                        "Производитель",
-                        style: TextStyle(color: Colors.black, fontSize: 16),
-                      ),
+                      onTap: () {
+                        setState(() {
+                          currentTab = 2;
+                        });
+                      },
                     ),
-                    onTap: () {
-                      setState(() {
-                        currentTab = 2;
-                      });
-                    },
                   ),
                 ],
               )
@@ -917,19 +971,20 @@ class _ProductPageState extends State<ProductPage> {
           ),
           isDescriptionLoaded
               ? Container(
-                  padding: const EdgeInsets.all(15),
+                  padding: EdgeInsets.all(30 * globals.scaleParam),
                   child: Text(TabText[currentTab]),
                 )
               : SizedBox(
                   child: SlideTransition(
                     position: AlwaysStoppedAnimation(
-                      Offset(0, -1),
+                      Offset(
+                          0, -2.3 * (MediaQuery.sizeOf(context).height / 1080)),
                     ),
                     child: const LinearProgressIndicator(),
                   ),
                 ),
           Container(
-            padding: const EdgeInsets.all(15),
+            padding: EdgeInsets.all(30 * globals.scaleParam),
             child: Table(
               columnWidths: const {0: FlexColumnWidth(), 1: FlexColumnWidth()},
               border: TableBorder(

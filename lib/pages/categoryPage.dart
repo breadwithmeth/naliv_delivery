@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/cartPage.dart';
@@ -62,8 +63,6 @@ class _CategoryPageState extends State<CategoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    double screenSize = MediaQuery.of(context).size.width;
-
     return DefaultTabController(
       initialIndex: initialIndexTabbar,
       length: widget.categories.length,
@@ -73,13 +72,15 @@ class _CategoryPageState extends State<CategoryPage> {
           business: widget.business,
         ),
         appBar: AppBar(
+          toolbarHeight: 90 * globals.scaleParam,
           bottom: TabBar(
             tabAlignment: TabAlignment.start,
             physics: const BouncingScrollPhysics(),
-            labelPadding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            labelPadding: EdgeInsets.symmetric(
+                horizontal: 10 * globals.scaleParam,
+                vertical: 10 * globals.scaleParam),
             labelStyle: TextStyle(
-              fontSize: 32 * (screenSize / 720),
+              fontSize: 38 * globals.scaleParam,
               fontWeight: FontWeight.w500,
               color: Theme.of(context).colorScheme.onBackground,
             ),
@@ -93,10 +94,10 @@ class _CategoryPageState extends State<CategoryPage> {
             Builder(builder: (context) => const SizedBox()),
           ], // Important: removes endDrawer button form appbar
           automaticallyImplyLeading: false,
-          // toolbarHeight: 90,
+          // toolbarHeight: 120,
           titleSpacing: 0,
           title: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+            padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -115,7 +116,7 @@ class _CategoryPageState extends State<CategoryPage> {
                       ),
                     ),
                     Flexible(
-                      flex: 2,
+                      flex: 3,
                       fit: FlexFit.tight,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,12 +124,12 @@ class _CategoryPageState extends State<CategoryPage> {
                           Text(
                             widget.business["name"],
                             maxLines: 1,
-                            style: TextStyle(fontSize: 24 * (screenSize / 720)),
+                            style: TextStyle(fontSize: 28 * globals.scaleParam),
                           ),
                           Text(
                             widget.business["address"],
                             maxLines: 1,
-                            style: TextStyle(fontSize: 24 * (screenSize / 720)),
+                            style: TextStyle(fontSize: 28 * globals.scaleParam),
                           ),
                         ],
                       ),
@@ -151,19 +152,22 @@ class _CategoryPageState extends State<CategoryPage> {
                             foregroundColor: Colors.white.withOpacity(0)),
                         child: Container(
                           decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.1),
-                              borderRadius:
-                                  const BorderRadius.all(Radius.circular(10))),
+                            color: Colors.black.withOpacity(0.1),
+                            borderRadius: const BorderRadius.all(
+                              Radius.circular(10),
+                            ),
+                          ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               const Spacer(
                                 flex: 3,
                               ),
-                              const Text(
+                              Text(
                                 "Найти",
                                 style: TextStyle(
                                   fontWeight: FontWeight.w500,
+                                  fontSize: 34 * globals.scaleParam,
                                   color: Colors.black,
                                 ),
                               ),
@@ -254,7 +258,9 @@ class _CategoryPageState extends State<CategoryPage> {
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+              padding: EdgeInsets.symmetric(
+                  horizontal: 15 * globals.scaleParam,
+                  vertical: 10 * globals.scaleParam),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -264,11 +270,11 @@ class _CategoryPageState extends State<CategoryPage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const Text(
+                        Text(
                           "Фильтры",
                           style: TextStyle(
                             color: Colors.black,
-                            fontSize: 22,
+                            fontSize: 44 * globals.scaleParam,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -280,8 +286,8 @@ class _CategoryPageState extends State<CategoryPage> {
                         )
                       ],
                     ),
-                    const SizedBox(
-                      height: 15,
+                    SizedBox(
+                      height: 15 * globals.scaleParam,
                     ),
                     // Column(
                     //   crossAxisAlignment:
@@ -289,8 +295,9 @@ class _CategoryPageState extends State<CategoryPage> {
                     //   children: propertyWidget,
                     // ),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 15),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 10 * globals.scaleParam,
+                          vertical: 15 * globals.scaleParam),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade300,
                         borderRadius: const BorderRadius.all(
@@ -306,7 +313,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                 "Бренды",
                                 style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: 32 * (screenSize / 720),
+                                  fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -320,12 +327,13 @@ class _CategoryPageState extends State<CategoryPage> {
                         ],
                       ),
                     ),
-                    const SizedBox(
-                      height: 15,
+                    SizedBox(
+                      height: 15 * globals.scaleParam,
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 15),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 10 * globals.scaleParam,
+                          vertical: 15 * globals.scaleParam),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade300,
                         borderRadius: const BorderRadius.all(
@@ -341,7 +349,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                 "Производители",
                                 style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: 32 * (screenSize / 720),
+                                  fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -355,12 +363,13 @@ class _CategoryPageState extends State<CategoryPage> {
                         ],
                       ),
                     ),
-                    const SizedBox(
-                      height: 15,
+                    SizedBox(
+                      height: 15 * globals.scaleParam,
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 15),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 10 * globals.scaleParam,
+                          vertical: 15 * globals.scaleParam),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade300,
                         borderRadius: const BorderRadius.all(
@@ -376,7 +385,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                 "Страны",
                                 style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: 32 * (screenSize / 720),
+                                  fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -390,8 +399,8 @@ class _CategoryPageState extends State<CategoryPage> {
                         ],
                       ),
                     ),
-                    const SizedBox(
-                      height: 20,
+                    SizedBox(
+                      height: 20 * globals.scaleParam,
                     ),
                     ElevatedButton(
                       onPressed: () {
@@ -405,7 +414,7 @@ class _CategoryPageState extends State<CategoryPage> {
                             child: Text(
                               "Применить",
                               style: TextStyle(
-                                fontSize: 32 * (screenSize / 720),
+                                fontSize: 32 * globals.scaleParam,
                                 fontWeight: FontWeight.w700,
                                 color: Theme.of(context).colorScheme.onPrimary,
                               ),
@@ -434,18 +443,22 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 }
 
-class Item {
-  final Map<String, dynamic> data;
+// class Item {
+//   final Map<String, dynamic> data;
 
-  Item(this.data);
-}
+//   Item(this);
+// }
 
 class CategoryPageList extends StatefulWidget {
-  const CategoryPageList(
-      {super.key, required this.categoryId, required this.business});
+  const CategoryPageList({
+    super.key,
+    required this.categoryId,
+    required this.business,
+  });
 
   final String categoryId;
   final Map<dynamic, dynamic> business;
+
   @override
   State<CategoryPageList> createState() => _CategoryPageListState();
 }
@@ -462,13 +475,13 @@ class _CategoryPageListState extends State<CategoryPageList>
   late bool _error;
   late bool _loading;
   final int _numberOfPostsPerRequest = 30;
-  late List<Item> _items;
+  late List<Map<String, dynamic>> _items;
   final int _nextPageTrigger = 3;
   late final TabController _controller;
 
   void updateDataAmount(String newDataAmount, int index) {
     setState(() {
-      _items[index].data["amount"] = newDataAmount;
+      _items[index]["amount"] = newDataAmount;
     });
   }
 
@@ -478,13 +491,14 @@ class _CategoryPageListState extends State<CategoryPageList>
       List? responseList = await getItemsMain(
           _pageNumber, widget.business["business_id"], "", widget.categoryId);
       if (responseList != null) {
-        List<Item> itemList = responseList.map((data) => Item(data)).toList();
+        List<dynamic> itemList = responseList;
+        // List<dynamic> itemList = responseList.map((data) => Item(data)).toList();
 
         setState(() {
           _isLastPage = itemList.length < _numberOfPostsPerRequest;
           _loading = false;
           _pageNumber = _pageNumber + 1;
-          _items.addAll(itemList);
+          _items.addAll(itemList.map((e) => e));
         });
         if (itemList.isEmpty) {
           setState(() {
@@ -501,7 +515,58 @@ class _CategoryPageListState extends State<CategoryPageList>
     }
   }
 
-  Widget buildPostsView() {
+  Widget errorDialog({required double size}) {
+    return SizedBox(
+      height: 180,
+      width: 200,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Произошла ошибка при загрузке позиций.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: size,
+              fontWeight: FontWeight.w500,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _loading = true;
+                _error = false;
+                _getItems();
+              });
+            },
+            child: const Text(
+              "Перезагрузить",
+              style: TextStyle(fontSize: 20, color: Colors.purpleAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TabController(length: 2, vsync: this);
+    _pageNumber = 0;
+    _items = [];
+    _isLastPage = false;
+    _loading = true;
+    _error = false;
+    _getItems();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
     if (_items.isEmpty) {
       if (_loading) {
         return const Center(
@@ -563,114 +628,41 @@ class _CategoryPageListState extends State<CategoryPageList>
                   ));
                 }
               }
-              final Item item = _items[index];
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                key: Key(item.data["item_id"]),
-                onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    clipBehavior: Clip.antiAlias,
-                    useSafeArea: true,
-                    isScrollControlled: true,
-                    builder: (context) {
-                      return ProductPage(
-                        item: item.data,
-                        index: index,
-                        returnDataAmount: updateDataAmount,
-                        business: widget.business,
-                      );
-                    },
-                  );
-                },
-                child: Column(
-                  children: [
-                    ItemCardMedium(
-                      item_id: item.data["item_id"],
-                      element: item.data,
-                      category_id: "",
-                      category_name: "",
-                      scroll: 0,
+              final Map<String, dynamic> item = _items[index];
+              return Column(
+                children: [
+                  ItemCardMedium(
+                    itemId: item["item_id"],
+                    element: item,
+                    categoryId: "",
+                    categoryName: "",
+                    scroll: 0,
+                    business: widget.business,
+                    index: index,
+                    updateCategoryPageInfo: updateDataAmount,
+                  ),
+                  _items.length != index
+                      ? Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16 * globals.scaleParam,
+                            vertical: 5 * globals.scaleParam,
+                          ),
+                          child: Divider(
+                            height: 0,
+                          ),
+                        )
+                      : Container(),
+                  if ((index == (_items.length + (_isLastPage ? 0 : 1) - 1)) &&
+                      (_isLastPage))
+                    SizedBox(
+                      height: 95 * globals.scaleParam,
                     ),
-                    _items.length != index
-                        ? const Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 5,
-                            ),
-                            child: Divider(
-                              height: 0,
-                            ),
-                          )
-                        : Container(),
-                    if ((index ==
-                            (_items.length + (_isLastPage ? 0 : 1) - 1)) &&
-                        (_isLastPage))
-                      const SizedBox(
-                        height: 95,
-                      ),
-                  ],
-                ),
+                ],
               );
             },
           ),
         ),
       ],
     );
-  }
-
-  Widget errorDialog({required double size}) {
-    return SizedBox(
-      height: 180,
-      width: 200,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'Произошла ошибка при загрузке позиций.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: size,
-              fontWeight: FontWeight.w500,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(
-            height: 10,
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _loading = true;
-                _error = false;
-                _getItems();
-              });
-            },
-            child: const Text(
-              "Перезагрузить",
-              style: TextStyle(fontSize: 20, color: Colors.purpleAccent),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TabController(length: 2, vsync: this);
-    _pageNumber = 0;
-    _items = [];
-    _isLastPage = false;
-    _loading = true;
-    _error = false;
-    _getItems();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    return buildPostsView();
   }
 }

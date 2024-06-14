@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 
 class StartLoadingPage extends StatefulWidget {
   const StartLoadingPage({super.key});

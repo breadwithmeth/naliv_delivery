@@ -1,7 +1,7 @@
 // import 'dart:io';
 
 // import 'package:flutter/material.dart';
-// import 'package:flutter/widgets.dart';
+import '../globals.dart' as globals;// import 'package:flutter/widgets.dart';
 // import 'package:geolocator/geolocator.dart';
 // import 'package:naliv_delivery/main.dart';
 // import 'package:naliv_delivery/pages/homePage.dart';

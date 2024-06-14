@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/cupertino.dart';
@@ -165,7 +166,7 @@ Future<Map<String, dynamic>?> getLastSelectedBusiness() async {
   return data;
 }
 
-Future<List?> getBusinesses() async {
+Future<List<Map>?> getBusinesses() async {
   String? token = await getToken();
   if (token == null) {
     return [];
@@ -177,7 +178,7 @@ Future<List?> getBusinesses() async {
   );
 
   // List<dynamic> list = json.decode(response.body);
-  List? data = json.decode(utf8.decode(response.bodyBytes));
+  List<Map> data = List.from(json.decode(utf8.decode(response.bodyBytes)));
   print(data);
   return data;
 }
@@ -336,8 +337,11 @@ Future<String?> changeCartItem(
   var url = Uri.https(URL_API, 'api/item/addToCart.php');
   var response = await http.post(
     url,
-    body: json.encode(
-        {'item_id': itemId, 'amount': amount, 'business_id': businessId}),
+    body: json.encode({
+      'item_id': itemId,
+      'amount': amount.toString(),
+      'business_id': businessId
+    }),
     headers: {"Content-Type": "application/json", "AUTH": token},
   );
   String? data;
@@ -789,8 +793,6 @@ Future<bool> selectAddressClient(String addressId, String user_id) async {
   }
 }
 
-
-
 Future<List<dynamic>> getCities() async {
   String? token = await getToken();
   if (token == null) {
@@ -810,4 +812,24 @@ Future<List<dynamic>> getCities() async {
   print(json.encode(response.statusCode));
   print(response.body);
   return result;
+}
+
+Future<bool> changeName(String name) async {
+  String? token = await getToken();
+  if (token == null) {
+    return false;
+  }
+  var url = Uri.https(URL_API, 'api/user/changeName.php');
+  var response = await http.post(
+    url,
+    body: json.encode({'name': name}),
+    headers: {"Content-Type": "application/json", "AUTH": token},
+  );
+  var data = jsonDecode(response.body);
+  print(response.statusCode);
+  if (data["result"] == "true") {
+    return true;
+  } else {
+    return false;
+  }
 }

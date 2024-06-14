@@ -1,5 +1,10 @@
+import 'dart:ui';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/createProfilePage.dart';
+import 'package:naliv_delivery/pages/paintLogoPage.dart';
+import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/organizationSelectPage.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
@@ -18,23 +23,25 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
   Map _currentAddress = {};
 
   Map<String, dynamic> user = {};
-  Future<void> _getAddresses() async {
+  Future<bool> _getAddresses() async {
     List addresses = await getAddresses();
     print(addresses);
     if (addresses.isEmpty) {
       setState(() {
         _currentAddress = {};
       });
+      return true;
     } else {
       setState(() {
         _addresses = addresses;
         _currentAddress = _addresses.firstWhere(
           (element) => element["is_selected"] == "1",
           orElse: () {
-            return null;
+            return false;
           },
         );
       });
+      return true;
     }
   }
 
@@ -48,8 +55,8 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
     });
   }
 
-  Future<List> _getBusinesses() async {
-    List? businesses = await getBusinesses();
+  Future<List<Map>> _getBusinesses() async {
+    List<Map>? businesses = await getBusinesses();
     if (businesses == null) {
       return [];
     } else {
@@ -61,32 +68,86 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    FlutterView view = WidgetsBinding.instance.platformDispatcher.views.first;
+    Size size = view.physicalSize;
+    double width = size.width;
+    double height = size.height;
+    if (size.aspectRatio < 1) {
+      globals.scaleParam = (height / 1920) *
+          (width / 1080) *
+          .4;
+    } else {
+      globals.scaleParam = (height / 1080) *
+          (width / 1920) *
+          1;
+    }
+
+    // globals.scaleParam = 1;
+
     _getAddresses().then((v) {
-      _getUser().then((vv) {
-        _getBusinesses().then((b) {
-          _addresses.isNotEmpty
-              ? Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
-                  builder: (context) {
-                    return OrganizationSelectPage(
-                      addresses: _addresses,
-                      currentAddress: _currentAddress,
-                      user: user,
-                      businesses: b,
-                    );
-                  },
-                ), (Route<dynamic> route) => false)
-              : Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
-                  builder: (context) {
-                    return PickAddressPage(client: user, isFirstTime: true);
-                  },
-                ), (Route<dynamic> route) => false);
+      if (v == false) {
+        Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+          builder: (context) {
+            return PickAddressPage(client: user, isFirstTime: true);
+          },
+        ), (Route<dynamic> route) => false);
+      } else {
+        _getUser().then((vv) {
+          _getBusinesses().then((b) {
+            if (user["name"].toString().isEmpty) {
+              Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+                builder: (context) {
+                  return const ProfileCreatePage();
+                },
+              ), (route) => false);
+            } else {
+              _addresses.isNotEmpty
+                  ? Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+                      builder: (context) {
+                        return OrganizationSelectPage(
+                          addresses: _addresses,
+                          currentAddress: _currentAddress,
+                          user: user,
+                          businesses: b,
+                        );
+                      },
+                    ), (Route<dynamic> route) => false)
+                  : Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+                      builder: (context) {
+                        return PickAddressPage(client: user, isFirstTime: true);
+                      },
+                    ), (Route<dynamic> route) => false);
+              _addresses.isNotEmpty
+                  ? Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+                      builder: (context) {
+                        return OrganizationSelectPage(
+                          addresses: _addresses,
+                          currentAddress: _currentAddress,
+                          user: user,
+                          businesses: b,
+                        );
+                      },
+                    ), (Route<dynamic> route) => false)
+                  : Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+                      builder: (context) {
+                        return PickAddressPage(client: user, isFirstTime: true);
+                      },
+                    ), (Route<dynamic> route) => false);
+            }
+          });
         });
-      });
+      }
     });
   }
 
   @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const LoadingScreen();
+    return const paintLogoPage();
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 import 'dart:math' as math;
 
 import 'package:google_fonts/google_fonts.dart';
@@ -13,7 +14,9 @@ class LoadingScreen extends StatelessWidget {
     return Scaffold(
       body: Stack(
         children: [
-          const MarqueeText(text: "НАЛИВ"),
+          MarqueeText(
+            text: "НАЛИВ",
+          ),
           Center(
             child: Container(
               alignment: Alignment.center,
@@ -25,14 +28,15 @@ class LoadingScreen extends StatelessWidget {
                       "Загрузка..",
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 30,
+                        fontSize: 60 * globals.scaleParam,
                         fontWeight: FontWeight.w700,
                         color: Theme.of(context).colorScheme.onBackground,
-                        shadows: const [
+                        shadows: [
                           Shadow(
                             color: Colors.black38,
-                            offset: Offset(3, 5),
-                            blurRadius: 20,
+                            offset: Offset(
+                                3 * globals.scaleParam, 5 * globals.scaleParam),
+                            blurRadius: 20 * globals.scaleParam,
                           )
                         ],
                       ),
@@ -49,7 +53,10 @@ class LoadingScreen extends StatelessWidget {
 }
 
 class MarqueeText extends StatefulWidget {
-  const MarqueeText({super.key, required this.text});
+  MarqueeText({
+    super.key,
+    required this.text,
+  });
 
   final String text;
 
@@ -58,74 +65,120 @@ class MarqueeText extends StatefulWidget {
 }
 
 class _MarqueeTextState extends State<MarqueeText>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
-  late final Animation<Offset> _animationOne;
-  late final Animation<Offset> _animationTwo;
+  List<AnimationController> _controllers = [];
+  List<Animation<Offset>> _animations = [];
+  final int numberOfText = 24;
+  final math.Random _random = math.Random();
+  // late final Animation<Offset> _animationOne;
+  // late final Animation<Offset> _animationTwo;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(seconds: 220),
-      vsync: this,
-    )..repeat(reverse: true);
 
-    _animationOne = Tween<Offset>(
-      begin: const Offset(0.35, 0),
-      end: const Offset(-0.35, 0),
-    ).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.linear),
-    );
+    for (int i = 0; i < numberOfText; i++) {
+      _controller = AnimationController(
+        duration: Duration(seconds: 50 - _random.nextInt(10)),
+        vsync: this,
+      )..repeat(reverse: true);
+    }
+    // _controller = AnimationController(
+    //   duration: Duration(seconds: 25),
+    //   vsync: this,
+    // )..repeat(reverse: true);
 
-    _animationTwo = Tween<Offset>(
-      begin: const Offset(-0.35, 0),
-      end: const Offset(0.35, 0),
-    ).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.linear),
-    );
+    for (int i = 0; i < numberOfText; i++) {
+      if (i.isOdd) {
+        setState(() {
+          _animations.add(
+            Tween<Offset>(
+              begin: Offset(-0.35 + _random.nextDouble() * 0.33, 0),
+              end: Offset(0.35 - (_random.nextDouble() * 0.33), 0),
+            ).animate(
+              CurvedAnimation(
+                parent: _controller,
+                curve: Curves.linear,
+              ),
+            ),
+          );
+        });
+      } else {
+        setState(() {
+          _animations.add(
+            Tween<Offset>(
+              begin: Offset(0.35 + ((_random.nextDouble() * 0.33) * -1), 0),
+              end: Offset(-0.35 + _random.nextDouble() * 0.33, 0),
+            ).animate(
+              CurvedAnimation(
+                parent: _controller,
+                curve: Curves.linear,
+              ),
+            ),
+          );
+        });
+      }
+    }
+
+    // _animationOne = Tween<Offset>(
+    //   begin: Offset(0.66 * globals.scaleParam, 0),
+    //   end: Offset(-0.66 * globals.scaleParam, 0),
+    // ).animate(
+    //   CurvedAnimation(parent: _controller, curve: Curves.linear),
+    // );
+
+    // _animationTwo = Tween<Offset>(
+    //   begin: Offset(-0.60 * globals.scaleParam, 0),
+    //   end: Offset(0.60 * globals.scaleParam, 0),
+    // ).animate(
+    //   CurvedAnimation(parent: _controller, curve: Curves.linear),
+    // );
   }
 
   @override
   void dispose() {
     // TODO: implement dispose
     _controller.dispose();
-    _animationOne.removeListener(() {});
-    _animationTwo.removeListener(() {});
+    // dispose all animations
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    double screenSize = MediaQuery.of(context).size.width;
-
     return Container(
-      width: double.infinity,
-      height: double.infinity,
+      width: MediaQuery.sizeOf(context).width,
+      height: MediaQuery.sizeOf(context).height,
       alignment: Alignment.center,
-      // decoration: const BoxDecoration(
-      //   color: Colors.gre,
-      // ),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+      ),
       child: OverflowBox(
         maxWidth: double.infinity,
         maxHeight: double.infinity,
         child: RotationTransition(
-          turns: const AlwaysStoppedAnimation(-30 / 360),
+          turns: AlwaysStoppedAnimation(-30 / 360),
           child: Column(
             children: [
-              for (int i = 0; i < 14; i++)
+              for (int i = 0; i < 24; i++)
                 SlideTransition(
-                  position: i.isOdd ? _animationOne : _animationTwo,
+                  position: _animations[i],
                   child: Text(
                     i.isOdd
-                        ? "  ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO "
-                        : "ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ALLCO ",
+                        ? "LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH"
+                        : "LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH LAVISH",
+                    // textScaler: MediaQuery.textScalerOf(context),
                     style: TextStyle(
-                      fontSize: 150 * (screenSize / 720),
+                      // fontSize: 55,
+                      fontSize: 150 * globals.scaleParam,
                       fontWeight: FontWeight.w900,
                       color: Colors.black12,
-                      height: 1.9 * (screenSize / 720),
-                      wordSpacing: 8,
+                      height: MediaQuery.sizeOf(context).longestSide *
+                          0.001 /
+                          globals.scaleParam /
+                          2.5,
+                      wordSpacing: 8 * globals.scaleParam,
                       fontFamily: "montserrat",
                     ),
                   ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 
 class SupportPage extends StatefulWidget {
   const SupportPage({super.key});
