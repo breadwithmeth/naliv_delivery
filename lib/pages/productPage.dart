@@ -208,7 +208,6 @@ class _ProductPageState extends State<ProductPage> {
       floatingActionButton: LayoutBuilder(
         builder: (context, constraints) {
           return Container(
-            color: Colors.amber,
             width: constraints.maxWidth * 0.95,
             height: 140 * globals.scaleParam,
             child: Stack(
@@ -226,22 +225,23 @@ class _ProductPageState extends State<ProductPage> {
                           padding: EdgeInsets.zero,
                         ),
                         onPressed: null,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            
-                          ),
-                          child: ClipRect(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Flexible(
-                                  fit: FlexFit.tight,
-                                  child: Stack(
-                                    children: [
-                                      OverflowBox(
-                                        maxWidth:
-                                            (constraints.maxWidth / 2) * (1 / 2),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.all(Radius.circular(8)),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Flexible(
+                                fit: FlexFit.tight,
+                                child: Stack(
+                                  children: [
+                                    SlideTransition(
+                                      position: AlwaysStoppedAnimation(
+                                        Offset(-0.5, 0),
+                                      ),
+                                      child: OverflowBox(
+                                        maxWidth: (constraints.maxWidth / 2) *
+                                            (1 / 2),
                                         maxHeight: 200 * globals.scaleParam,
                                         child: AspectRatio(
                                           aspectRatio: 1 / 1,
@@ -249,88 +249,132 @@ class _ProductPageState extends State<ProductPage> {
                                             width: (constraints.maxWidth / 2) *
                                                 (1 / 2),
                                             decoration: BoxDecoration(
-                                              color: Colors.red,
+                                              color: Colors.black,
                                               borderRadius: BorderRadius.all(
-                                                Radius.circular(100),
+                                                Radius.circular(25),
                                               ),
                                             ),
                                           ),
                                         ),
                                       ),
-                                      Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          IconButton(
-                                            padding: const EdgeInsets.all(0),
-                                            onPressed: () {
-                                              _removeFromCart();
-                                            },
-                                            icon: Icon(
-                                              Icons.remove_rounded,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onBackground,
+                                    ),
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        IconButton(
+                                          padding: const EdgeInsets.all(0),
+                                          onPressed: () {
+                                            _removeFromCart();
+                                          },
+                                          icon: Icon(
+                                            Icons.remove_rounded,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onPrimary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Flexible(
+                                flex: 2,
+                                fit: FlexFit.tight,
+                                child: Stack(
+                                  children: [
+                                    OverflowBox(
+                                        maxWidth: (constraints.maxWidth / 2) * 0.5,
+                                        maxHeight: 200 * globals.scaleParam,
+                                        child: AspectRatio(
+                                          aspectRatio: 1 / 1,
+                                          child: Container(
+                                            width: (constraints.maxWidth / 2) *
+                                                (1 / 2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black,
+                                              borderRadius: BorderRadius.all(
+                                                Radius.circular(25),
+                                              ),
                                             ),
                                           ),
-                                        ],
+                                        ),
                                       ),
-                                    ],
-                                  ),
-                                ),
-                                Flexible(
-                                  flex: 2,
-                                  fit: FlexFit.tight,
-                                  child: GestureDetector(
-                                    onLongPress: () {
-                                      setState(() {
-                                        isNumPickActive = true;
-                                      });
-                                    },
-                                    child: Text(
-                                      "$cacheAmount шт.",
-                                      textHeightBehavior:
-                                          const TextHeightBehavior(
-                                        applyHeightToFirstAscent: false,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 40 * globals.scaleParam,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onPrimary,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Flexible(
-                                  fit: FlexFit.tight,
-                                  child: IconButton(
-                                    padding: const EdgeInsets.all(0),
-                                    onPressed: () {
-                                      _addToCart();
-                                    },
-                                    icon: Container(
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
+                                    GestureDetector(
+                                      onLongPress: () {
+                                        setState(() {
+                                          isNumPickActive = true;
+                                        });
+                                      },
+                                      child: Text(
+                                        "$cacheAmount шт.",
+                                        textHeightBehavior:
+                                            const TextHeightBehavior(
+                                          applyHeightToFirstAscent: false,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 38 * globals.scaleParam,
                                           color: Theme.of(context)
                                               .colorScheme
                                               .onPrimary,
                                         ),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Icon(
-                                        Icons.add_rounded,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onPrimary,
                                       ),
                                     ),
-                                  ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+                              Flexible(
+                                fit: FlexFit.tight,
+                                child: Stack(
+                                  children: [
+                                    SlideTransition(
+                                      position: AlwaysStoppedAnimation(
+                                        Offset(0.5, 0),
+                                      ),
+                                      child: OverflowBox(
+                                        maxWidth: (constraints.maxWidth / 2) *
+                                            (1 / 2),
+                                        maxHeight: 200 * globals.scaleParam,
+                                        child: AspectRatio(
+                                          aspectRatio: 1 / 1,
+                                          child: Container(
+                                            width: (constraints.maxWidth / 2) *
+                                                (1 / 2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black,
+                                              borderRadius: BorderRadius.all(
+                                                Radius.circular(25),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        IconButton(
+                                          padding: const EdgeInsets.all(0),
+                                          onPressed: () {
+                                            _addToCart();
+                                          },
+                                          icon: Icon(
+                                            Icons.add_rounded,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onPrimary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
