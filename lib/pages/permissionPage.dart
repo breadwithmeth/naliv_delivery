@@ -14,12 +14,6 @@ class PermissionPage extends StatefulWidget {
 class _PermissionPageState extends State<PermissionPage>
     with WidgetsBindingObserver {
   Future<void> _requestPermission() async {
-    final camera = Permission.camera;
-
-    if (await camera.isDenied) {
-      await camera.request();
-    }
-
     final location = Permission.locationWhenInUse;
 
     if (await location.isDenied) {

@@ -32,7 +32,7 @@ import 'package:naliv_delivery/pages/searchPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
 
 class HomePage extends StatefulWidget {
-  HomePage({super.key, required this.business, required this.user});
+  const HomePage({super.key, required this.business, required this.user});
 
   final Map<dynamic, dynamic> business;
   final Map user;
@@ -189,6 +189,7 @@ class _HomePageState extends State<HomePage>
             key: _scaffoldKey,
             floatingActionButton: CartButton(
               business: widget.business,
+              user: widget.user,
             ),
             appBar: AppBar(
               automaticallyImplyLeading: false,
@@ -332,6 +333,7 @@ class _HomePageState extends State<HomePage>
                                     image: snapshot.data![index]["photo"],
                                     categories: snapshot.data!,
                                     business: widget.business,
+                                    user: widget.user,
                                   );
                           },
                         ),
@@ -351,19 +353,20 @@ class _HomePageState extends State<HomePage>
 }
 
 class CategoryItem extends StatefulWidget {
-  CategoryItem({
-    super.key,
-    required this.category_id,
-    required this.name,
-    required this.image,
-    required this.categories,
-    required this.business,
-  });
+  const CategoryItem(
+      {super.key,
+      required this.category_id,
+      required this.name,
+      required this.image,
+      required this.categories,
+      required this.business,
+      required this.user});
   final String category_id;
   final String name;
   final String? image;
   final List<dynamic> categories;
   final Map<dynamic, dynamic> business;
+  final Map user;
 
   @override
   State<CategoryItem> createState() => _CategoryItemState();
@@ -522,11 +525,11 @@ class _CategoryItemState extends State<CategoryItem> {
           context,
           CupertinoPageRoute(
             builder: (context) => CategoryPage(
-              categoryId: widget.category_id,
-              categoryName: widget.name,
-              categories: widget.categories,
-              business: widget.business,
-            ),
+                categoryId: widget.category_id,
+                categoryName: widget.name,
+                categories: widget.categories,
+                business: widget.business,
+                user: widget.user),
           ),
         );
       },

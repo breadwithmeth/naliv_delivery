@@ -4,9 +4,14 @@ import 'package:naliv_delivery/pages/cartPage.dart';
 import 'package:flutter/cupertino.dart';
 
 class CartButton extends StatefulWidget {
-  const CartButton({super.key, required this.business});
+  const CartButton({
+    super.key,
+    required this.business,
+    required this.user,
+  });
 
   final Map<dynamic, dynamic> business;
+  final Map user;
 
   @override
   State<CartButton> createState() => _CartButtonState();
@@ -30,6 +35,7 @@ class _CartButtonState extends State<CartButton> {
               builder: (context) {
                 return CartPage(
                   business: widget.business,
+                  user: widget.user,
                 );
               },
             ),

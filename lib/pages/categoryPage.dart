@@ -18,11 +18,13 @@ class CategoryPage extends StatefulWidget {
       required this.categoryId,
       required this.categoryName,
       required this.categories,
-      required this.business});
+      required this.business,
+      required this.user});
   final String categoryId;
   final String categoryName;
   final List<dynamic> categories;
   final Map<dynamic, dynamic> business;
+  final Map user;
   @override
   State<CategoryPage> createState() => _CategoryPageState();
 }
@@ -79,6 +81,7 @@ class _CategoryPageState extends State<CategoryPage> {
         key: _scaffoldKey,
         floatingActionButton: CartButton(
           business: widget.business,
+          user: widget.user,
         ),
         appBar: AppBar(
           toolbarHeight: 90 * globals.scaleParam,

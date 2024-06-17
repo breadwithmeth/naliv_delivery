@@ -18,9 +18,19 @@ import '../misc/api.dart';
 
 class CreateOrderPage extends StatefulWidget {
   const CreateOrderPage(
-      {super.key, required this.business, this.client = const {}});
+      {super.key,
+      required this.business,
+      required this.finalSum,
+      required this.user,
+      required this.items,
+      required this.deliveryInfo,
+      this.client = const {}});
 
   final Map<dynamic, dynamic> business;
+  final int finalSum;
+  final Map user;
+  final List items;
+  final Map deliveryInfo;
   final Map<dynamic, dynamic> client;
 
   @override
@@ -29,7 +39,6 @@ class CreateOrderPage extends StatefulWidget {
 
 class _CreateOrderPageState extends State<CreateOrderPage> {
   bool delivery = true;
-  List items = [];
   String cartInfo = "";
   // Widget? currentAddressWidget;
   List<Widget> addressesWidget = [];
@@ -38,33 +47,22 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
 
   bool isAddressesLoading = true;
   bool isCartLoading = true;
-  Map<String, dynamic> user = {};
 
-  List<Map<dynamic, dynamic>> wrongAmountItems = [];
+  List<Map<dynamic, dynamic>> wrongAmountitems = [];
 
-  Future<void> _getUser() async {
-    await getUser().then((value) {
-      if (value != null) {
-        setState(() {
-          user = value;
-        });
-      }
-    });
-  }
+  // Future<void> _getCart() async {
+  //   // List cart = await getCart();
+  //   // print(cart);
 
-  Future<void> _getCart() async {
-    // List cart = await getCart();
-    // print(cart);
+  //   Map<String, dynamic> cart = await getCart(widget.business["business_id"]);
+  //   // Map<String, dynamic>? cartInfoFromAPI = await getCartInfo();
 
-    Map<String, dynamic> cart = await getCart(widget.business["business_id"]);
-    // Map<String, dynamic>? cartInfoFromAPI = await getCartInfo();
-
-    setState(() {
-      // items = cart;
-      items = cart["cart"];
-      cartInfo = cart["sum"];
-    });
-  }
+  //   setState(() {
+  //     // widget.items = cart;
+  //     widget.items = cart["cart"];
+  //     cartInfo = cart["sum"];
+  //   });
+  // }
 
   Future<void> _getClientAddresses() async {
     setState(() {
@@ -214,105 +212,14 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
     });
   }
 
-  // void _getAddressPickDialog() {
-  //   showDialog(
-  //     useSafeArea: false,
-  //     context: context,
-  //     builder: (context) {
-  //       return AlertDialog(
-  //         title: Text(
-  //           "Ваши адреса",
-  //           textAlign: TextAlign.center,
-  //           style: TextStyle(
-  //             fontWeight: FontWeight.w900,
-  //             fontSize: 24,
-  //             color: Theme.of(context).colorScheme.onBackground,
-  //           ),
-  //         ),
-  //         shape:  RoundedRectangleBorder(
-  //             borderRadius: BorderRadius.all(Radius.circular(10))),
-  //         insetPadding:  EdgeInsets.all(0),
-  //         content: SizedBox(
-  //           width: MediaQuery.of(context).size.width * 0.7,
-  //           height: MediaQuery.of(context).size.height * 0.4,
-  //           child: addresses.isNotEmpty
-  //               ? ListView.builder(
-  //                   itemCount: addresses.length,
-  //                   itemBuilder: (context, index) {
-  //                     print(addresses);
-  //                     return Column(
-  //                       mainAxisSize: MainAxisSize.max,
-  //                       children: [
-  //                         ElevatedButton(
-  //                           onPressed: () {
-  //                             Future.delayed( Duration(milliseconds: 0),
-  //                                 () async {
-  //                               await selectAddress(
-  //                                   addresses[index]["address_id"]);
-  //                             });
-  //                             setState(() {
-  //                               currentAddress = addresses[index];
-  //                             });
-  //                             Navigator.pop(context);
-  //                           },
-  //                           child: Row(
-  //                             mainAxisAlignment: MainAxisAlignment.center,
-  //                             mainAxisSize: MainAxisSize.max,
-  //                             children: [
-  //                               Flexible(
-  //                                 child: Text(
-  //                                   "${addresses[index]["name"] != null ? '${addresses[index]["name"]} -' : ""} ${addresses[index]["address"]}",
-  //                                   textAlign: TextAlign.center,
-  //                                   style:  TextStyle(
-  //                                     fontSize: 14,
-  //                                     fontWeight: FontWeight.w700,
-  //                                   ),
-  //                                 ),
-  //                               ),
-  //                             ],
-  //                           ),
-  //                         ),
-  //                          SizedBox(
-  //                           height: 15,
-  //                         ),
-  //                       ],
-  //                     );
-  //                   },
-  //                 )
-  //               :  Text("У вас нет сохраненных адресов"),
-  //         ),
-  //         actions: [
-  //           ElevatedButton(
-  //             onPressed: () {
-  //               Navigator.push(context, CupertinoPageRoute(builder: (context) {
-  //                 return PickAddressPage(
-  //                   client: user,
-  //                   business: widget.business,
-  //                 );
-  //               }));
-  //             },
-  //             child:  Text(
-  //               "Добавить новый адрес",
-  //               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-  //             ),
-  //           )
-  //         ],
-  //         actionsAlignment: MainAxisAlignment.center,
-  //       );
-  //     },
-  //   );
-  // }
-
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     Future.delayed(Duration(microseconds: 0), () async {
-      await _getCart();
       // SWITCH BETWEEN getAddresses and getClientAddresses depending on Client/Operator mode
       await _getAddresses();
       // await _getClientAddresses();
-      await _getUser();
     }).whenComplete(() => isCartLoading = false);
   }
 
@@ -440,9 +347,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
             child: ListView.builder(
               primary: false,
               shrinkWrap: true,
-              itemCount: items.length,
+              itemCount: widget.items.length,
               itemBuilder: (context, index) {
-                final item = items[index];
+                final item = widget.items[index];
 
                 return Column(
                   children: [
@@ -453,7 +360,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                       categoryName: "",
                       scroll: 0,
                     ),
-                    items.length - 1 != index
+                    widget.items.length - 1 != index
                         ? Padding(
                             padding: EdgeInsets.symmetric(
                               horizontal: 32 * globals.scaleParam,
@@ -500,7 +407,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                           borderRadius: BorderRadius.all(Radius.circular(10))),
                       margin: EdgeInsets.symmetric(
                           horizontal: 20 * globals.scaleParam),
-                      // This should be null only if user doesn't have any addresses, else there will be user address
+                      // This should be null only if widget.user doesn't have any addresses, else there will be widget.user address
                       // child: currentAddressWidget ??
                       child: currentAddress.isNotEmpty
                           ? GestureDetector(
@@ -518,7 +425,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                           children: [
                                             Flexible(
                                               child: Text(
-                                                "Доставка: ${currentAddress["name"]}",
+                                                "Ваш адрес: ${currentAddress["name"]}",
                                                 style: TextStyle(
                                                   fontSize:
                                                       32 * globals.scaleParam,
@@ -560,41 +467,21 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                 ],
                               ),
                               onTap: () {
-                                if (user.isEmpty) {
-                                  _getUser().whenComplete(() {
-                                    Navigator.push(
-                                      context,
-                                      CupertinoPageRoute(
-                                        builder: (context) {
-                                          return PickAddressPage(
-                                            client: user,
-                                            business: widget.business,
-                                            isFromCreateOrder: true,
-                                          );
-                                        },
-                                      ),
-                                    ).then((value) {
-                                      _getClientAddresses();
-                                      print(_getAddresses());
-                                    });
-                                  });
-                                } else {
-                                  Navigator.push(
-                                    context,
-                                    CupertinoPageRoute(
-                                      builder: (context) {
-                                        return PickAddressPage(
-                                          client: user,
-                                          business: widget.business,
-                                          isFromCreateOrder: true,
-                                        );
-                                      },
-                                    ),
-                                  ).then((value) {
-                                    _getClientAddresses();
-                                    print(_getAddresses());
-                                  });
-                                }
+                                Navigator.push(
+                                  context,
+                                  CupertinoPageRoute(
+                                    builder: (context) {
+                                      return PickAddressPage(
+                                        client: widget.user,
+                                        business: widget.business,
+                                        isFromCreateOrder: true,
+                                      );
+                                    },
+                                  ),
+                                ).then((value) {
+                                  _getClientAddresses();
+                                  print(_getAddresses());
+                                });
                               },
                             )
                           : TextButton(
@@ -603,7 +490,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                                   context,
                                   CupertinoPageRoute(
                                     builder: (context) => PickAddressPage(
-                                      client: user,
+                                      client: widget.user,
                                       business: widget.business,
                                       isFromCreateOrder: true,
                                     ),
@@ -649,7 +536,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                           borderRadius: BorderRadius.all(Radius.circular(10))),
                       margin: EdgeInsets.symmetric(
                           horizontal: 20 * globals.scaleParam),
-                      // This should be null only if user doesn't have any addresses, else there will be user address
+                      // This should be null only if widget.user doesn't have any addresses, else there will be widget.user address
                       // child: currentAddressWidget ??
                       child: Column(
                         children: [
@@ -721,14 +608,60 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                       horizontal: 20 * globals.scaleParam,
                       vertical: 10 * globals.scaleParam),
                   padding: EdgeInsets.all(30 * globals.scaleParam),
-                  child: Text(
-                    "Детали доставки",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 32 * globals.scaleParam,
-                      color: Theme.of(context).colorScheme.secondary,
-                    ),
+                  child: Row(
+                    children: [
+                      Flexible(
+                        flex: 2,
+                        fit: FlexFit.tight,
+                        child: Text(
+                          "Доставка:",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 32 * globals.scaleParam,
+                            color: Theme.of(context).colorScheme.onBackground,
+                          ),
+                        ),
+                      ),
+                      Flexible(
+                        flex: 2,
+                        fit: FlexFit.tight,
+                        child: Text(
+                          "${widget.deliveryInfo["distance"]} м",
+                          textAlign: TextAlign.end,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 32 * globals.scaleParam,
+                            color: Theme.of(context).colorScheme.onBackground,
+                          ),
+                        ),
+                      ),
+                      Flexible(
+                        fit: FlexFit.tight,
+                        child: Text(
+                          "-",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 32 * globals.scaleParam,
+                            color: Theme.of(context).colorScheme.onBackground,
+                          ),
+                        ),
+                      ),
+                      Flexible(
+                        flex: 2,
+                        fit: FlexFit.tight,
+                        child: Text(
+                          "${widget.deliveryInfo["price"]} ₸",
+                          textAlign: TextAlign.start,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 32 * globals.scaleParam,
+                            color: Theme.of(context).colorScheme.onBackground,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 )
               : SizedBox(),
@@ -748,10 +681,10 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                   children: [
                     Flexible(
                       child: Text(
-                        user.isEmpty
+                        widget.user.isEmpty
                             ? "Счёт на каспи:"
                             : widget.client.isEmpty
-                                ? "Счёт на каспи: ${user["login"].toString()}" //! TODO: CHANGE IF NOT KASPI BUT CASH
+                                ? "Счёт на каспи: ${widget.user["login"].toString()}" //! TODO: CHANGE IF NOT KASPI BUT CASH
                                 : "Счёт на каспи: ${widget.client["login"].toString()}",
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
@@ -766,9 +699,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                   children: [
                     Flexible(
                       child: Text(
-                        cartInfo.isNotEmpty
-                            ? "Сумма к оплате: ${globals.formatCost(cartInfo).toString()} ₸"
-                            : "Сумма к оплате: 0 ₸",
+                        "Сумма к оплате: ${globals.formatCost(widget.finalSum.toString()).toString()} ₸",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
@@ -804,11 +735,12 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                             CupertinoPageRoute(
                               builder: (context) => OrderConfirmation(
                                 delivery: delivery,
-                                items: items,
+                                items: widget.items,
                                 address: currentAddress,
                                 cartInfo: cartInfo,
                                 business: widget.business,
-                                user: widget.client,
+                                user: widget.user,
+                                finalSum: widget.finalSum,
                               ),
                             ),
                           );

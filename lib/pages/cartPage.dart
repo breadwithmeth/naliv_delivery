@@ -12,9 +12,10 @@ import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:intl/intl.dart';
 
 class CartPage extends StatefulWidget {
-  CartPage({super.key, required this.business});
+  CartPage({super.key, required this.business, required this.user});
 
   final Map<dynamic, dynamic> business;
+  final Map user;
 
   @override
   State<CartPage> createState() => _CartPageState();
@@ -362,7 +363,7 @@ class _CartPageState extends State<CartPage>
                                 padding: EdgeInsets.only(
                                     left: 30 * globals.scaleParam),
                                 child: Text(
-                                  "Итого",
+                                  "Доставка",
                                   style: TextStyle(
                                     fontSize: 32 * globals.scaleParam,
                                     fontWeight: FontWeight.w700,
@@ -379,7 +380,7 @@ class _CartPageState extends State<CartPage>
                                 padding: EdgeInsets.only(
                                     left: 30 * globals.scaleParam),
                                 child: Text(
-                                  "Доставка",
+                                  "Итого",
                                   style: TextStyle(
                                     fontSize: 32 * globals.scaleParam,
                                     fontWeight: FontWeight.w700,
@@ -427,10 +428,11 @@ class _CartPageState extends State<CartPage>
                               Divider(),
                               Row(
                                 children: [
+                                  //TODO: перенести расчет цены доставки на бэк
                                   Flexible(
                                     fit: FlexFit.tight,
                                     child: Text(
-                                      "${globals.formatCost(localSum.toString())} ₸",
+                                      "${globals.formatCost(price.toString())} ₸",
                                       style: TextStyle(
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w700,
@@ -443,11 +445,10 @@ class _CartPageState extends State<CartPage>
                               Divider(),
                               Row(
                                 children: [
-                                  //TODO: перенести расчет цены доставки на бэк
                                   Flexible(
                                     fit: FlexFit.tight,
                                     child: Text(
-                                      "${distance.toString()} м - ${price.toString()} ₸",
+                                      "${globals.formatCost((int.parse(localSum) + price).toString())} ₸",
                                       style: TextStyle(
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w700,
@@ -483,10 +484,16 @@ class _CartPageState extends State<CartPage>
                         // );
                         Navigator.push(
                           context,
-                          CupertinoPageRoute(
+                          MaterialPageRoute(
                             builder: (context) {
-                              return FindCreateUserPage(
+                              return CreateOrderPage(
                                 business: widget.business,
+                                finalSum: (int.parse(localSum) + price),
+                                items: items,
+                                user: widget.user,
+                                deliveryInfo: Map.from(
+                                  {"distance": distance, "price": price},
+                                ),
                               );
                             },
                           ),
