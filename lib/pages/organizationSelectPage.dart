@@ -751,7 +751,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                   children: [
                                     Flexible(
                                       child: Text(
-                                        widget.currentAddress["city_name"] ?? "",
+                                        widget.currentAddress["city_name"] ??
+                                            "",
                                         style: TextStyle(
                                           fontWeight: FontWeight.w700,
                                           fontSize: 36 * globals.scaleParam,
@@ -774,6 +775,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                   _key.currentState!.openEndDrawer();
                                 },
                                 child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
                                     Flexible(
                                       flex: 3,

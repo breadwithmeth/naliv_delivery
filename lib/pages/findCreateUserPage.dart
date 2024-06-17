@@ -8,9 +8,11 @@ import 'package:naliv_delivery/pages/pickAddressPage.dart';
 import 'package:flutter/cupertino.dart';
 
 class FindCreateUserPage extends StatefulWidget {
-  const FindCreateUserPage({super.key, required this.business});
+  const FindCreateUserPage(
+      {super.key, required this.business, required this.user});
 
   final Map<dynamic, dynamic> business;
+  final Map user;
 
   @override
   State<FindCreateUserPage> createState() => _FindCreateUserPageState();
@@ -134,6 +136,12 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                                 return CreateOrderPage(
                                   client: client,
                                   business: widget.business,
+                                  finalSum: 0,
+                                  user: widget.user,
+                                  items: const [], // TODO: GET ITEMS FROM CART SOMWHERE BEFORE THIS PAGE, OR ON THIS PAGE LOADING SCREEN
+                                  deliveryInfo: Map.from(
+                                    {"error": 0},
+                                  ), // TODO: GET DELIVERY INFO FROM CART SOMWHERE BEFORE THIS PAGE, OR ON THIS PAGE LOADING SCREEN
                                 );
                               },
                             ),

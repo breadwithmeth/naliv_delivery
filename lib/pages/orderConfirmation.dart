@@ -19,13 +19,15 @@ class OrderConfirmation extends StatefulWidget {
     required this.items,
     required this.cartInfo,
     required this.business,
-    this.user = const {},
+    required this.finalSum,
+    required this.user,
   });
   final bool delivery;
   final Map? address;
   final List items;
   final String cartInfo;
   final Map<dynamic, dynamic> business;
+  final int finalSum;
   final Map<dynamic, dynamic> user;
   @override
   State<OrderConfirmation> createState() => _OrderConfirmationState();
@@ -495,9 +497,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                           children: [
                             Flexible(
                               child: Text(
-                                widget.user == null
-                                    ? "Счёт на каспи:"
-                                    : "Счёт на каспи: ${widget.user["login"].toString()}",
+                                "Счёт на каспи: ${widget.user["login"].toString()}",
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 32 * globals.scaleParam,
@@ -514,9 +514,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         children: [
                           Flexible(
                             child: Text(
-                              widget.cartInfo.isNotEmpty
-                                  ? "Сумма к оплате: ${globals.formatCost(widget.cartInfo).toString()} ₸"
-                                  : "Сумма к оплате: 0 ₸",
+                              "Сумма к оплате: ${globals.formatCost(widget.finalSum.toString()).toString()} ₸",
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,

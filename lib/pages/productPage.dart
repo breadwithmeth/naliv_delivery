@@ -205,182 +205,179 @@ class _ProductPageState extends State<ProductPage> {
     return Scaffold(
       // color: Colors.white,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: Padding(
-        padding: EdgeInsets.symmetric(
-            horizontal: 20 * globals.scaleParam,
-            vertical: 20 * globals.scaleParam),
-        child: item.isNotEmpty
-            ? Stack(
-                alignment: Alignment.bottomCenter,
-                children: [
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      disabledBackgroundColor:
-                          Theme.of(context).colorScheme.primary,
-                      padding: EdgeInsets.symmetric(
-                        vertical: 28 * globals.scaleParam,
-                        horizontal: 20 * globals.scaleParam,
+      floatingActionButton: LayoutBuilder(
+        builder: (context, constraints) {
+          return Container(
+            color: Colors.amber,
+            width: constraints.maxWidth * 0.95,
+            height: 140 * globals.scaleParam,
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      flex: 5,
+                      fit: FlexFit.tight,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          disabledBackgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          padding: EdgeInsets.zero,
+                        ),
+                        onPressed: null,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            
+                          ),
+                          child: ClipRect(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  fit: FlexFit.tight,
+                                  child: Stack(
+                                    children: [
+                                      OverflowBox(
+                                        maxWidth:
+                                            (constraints.maxWidth / 2) * (1 / 2),
+                                        maxHeight: 200 * globals.scaleParam,
+                                        child: AspectRatio(
+                                          aspectRatio: 1 / 1,
+                                          child: Container(
+                                            width: (constraints.maxWidth / 2) *
+                                                (1 / 2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.red,
+                                              borderRadius: BorderRadius.all(
+                                                Radius.circular(100),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          IconButton(
+                                            padding: const EdgeInsets.all(0),
+                                            onPressed: () {
+                                              _removeFromCart();
+                                            },
+                                            icon: Icon(
+                                              Icons.remove_rounded,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onBackground,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Flexible(
+                                  flex: 2,
+                                  fit: FlexFit.tight,
+                                  child: GestureDetector(
+                                    onLongPress: () {
+                                      setState(() {
+                                        isNumPickActive = true;
+                                      });
+                                    },
+                                    child: Text(
+                                      "$cacheAmount шт.",
+                                      textHeightBehavior:
+                                          const TextHeightBehavior(
+                                        applyHeightToFirstAscent: false,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 40 * globals.scaleParam,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Flexible(
+                                  fit: FlexFit.tight,
+                                  child: IconButton(
+                                    padding: const EdgeInsets.all(0),
+                                    onPressed: () {
+                                      _addToCart();
+                                    },
+                                    icon: Container(
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onPrimary,
+                                        ),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Icon(
+                                        Icons.add_rounded,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                    onPressed: null,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Flexible(
-                          fit: FlexFit.tight,
-                          child: IconButton(
-                            padding: const EdgeInsets.all(0),
-                            onPressed: () {
-                              _removeFromCart();
-                            },
-                            icon: Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color:
-                                      Theme.of(context).colorScheme.onPrimary,
-                                ),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Icon(
-                                Icons.remove_rounded,
-                                color: Theme.of(context).colorScheme.onPrimary,
-                              ),
-                            ),
-                          ),
-                        ),
-                        Flexible(
-                          flex: 3,
-                          fit: FlexFit.tight,
-                          child: Text(
-                            cacheAmount == 0
-                                ? "${globals.formatCost(item["price"])} ₸"
-                                : "${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
-                            textHeightBehavior: const TextHeightBehavior(
-                              applyHeightToFirstAscent: false,
-                            ),
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 52 * globals.scaleParam,
-                              color: Theme.of(context).colorScheme.onPrimary,
-                            ),
-                          ),
-                        ),
-                        cacheAmount == 0
-                            ? Flexible(
-                                flex: 2,
-                                fit: FlexFit.tight,
-                                child: Text(
-                                  "Купить",
-                                  textHeightBehavior: const TextHeightBehavior(
-                                    applyHeightToFirstAscent: false,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 40 * globals.scaleParam,
-                                    color:
-                                        Theme.of(context).colorScheme.onPrimary,
-                                  ),
-                                ),
-                              )
-                            : Flexible(
-                                flex: 2,
-                                fit: FlexFit.tight,
-                                child: GestureDetector(
-                                  onLongPress: () {
-                                    setState(() {
-                                      isNumPickActive = true;
-                                    });
-                                  },
-                                  child: Text(
-                                    "$cacheAmount шт.",
-                                    textHeightBehavior:
-                                        const TextHeightBehavior(
-                                      applyHeightToFirstAscent: false,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 40 * globals.scaleParam,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onPrimary,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                        Flexible(
-                          fit: FlexFit.tight,
-                          child: IconButton(
-                            padding: const EdgeInsets.all(0),
-                            onPressed: () {
-                              _addToCart();
-                            },
-                            icon: Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color:
-                                      Theme.of(context).colorScheme.onPrimary,
-                                ),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Icon(
-                                Icons.add_rounded,
-                                color: Theme.of(context).colorScheme.onPrimary,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                    Flexible(
+                      flex: 5,
+                      fit: FlexFit.tight,
+                      child: ElevatedButton(
+                        onPressed: () {},
+                        child: Text("В корзину"),
+                      ),
                     ),
-                  ),
-                  isNumPickActive
-                      ? SizedBox(
-                          width: double.infinity,
-                          child: Row(
-                            children: [
-                              const Flexible(
-                                flex: 1,
-                                fit: FlexFit.tight,
-                                child: SizedBox(),
-                              ),
-                              const Flexible(
-                                flex: 3,
-                                fit: FlexFit.tight,
-                                child: SizedBox(),
-                              ),
-                              Flexible(
-                                flex: 2,
-                                fit: FlexFit.tight,
-                                child: _numberPicker(context),
-                              ),
-                              const Flexible(
-                                flex: 1,
-                                fit: FlexFit.tight,
-                                child: SizedBox(),
-                              )
-                            ],
-                          ),
-                        )
-                      : const SizedBox()
-                ],
-              )
-            : Shimmer.fromColors(
-                baseColor:
-                    Theme.of(context).colorScheme.secondary.withOpacity(0.05),
-                highlightColor: Theme.of(context).colorScheme.secondary,
-                child: Container(
-                  width: MediaQuery.of(context).size.width,
-                  height: 50 * globals.scaleParam,
-                  decoration: const BoxDecoration(
-                    borderRadius: BorderRadius.all(Radius.circular(10)),
-                    color: Colors.white,
-                  ),
-                  child: null,
+                  ],
                 ),
-              ),
+                isNumPickActive
+                    ? SizedBox(
+                        width: double.infinity,
+                        child: Row(
+                          children: [
+                            const Flexible(
+                              flex: 1,
+                              fit: FlexFit.tight,
+                              child: SizedBox(),
+                            ),
+                            const Flexible(
+                              flex: 3,
+                              fit: FlexFit.tight,
+                              child: SizedBox(),
+                            ),
+                            Flexible(
+                              flex: 2,
+                              fit: FlexFit.tight,
+                              child: _numberPicker(context),
+                            ),
+                            const Flexible(
+                              flex: 1,
+                              fit: FlexFit.tight,
+                              child: SizedBox(),
+                            )
+                          ],
+                        ),
+                      )
+                    : const SizedBox()
+              ],
+            ),
+          );
+        },
       ),
       body: ListView(
         controller: scrollController,
