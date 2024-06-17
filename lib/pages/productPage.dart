@@ -20,12 +20,12 @@ class ProductPage extends StatefulWidget {
       {super.key,
       required this.item,
       required this.index,
-      required this.returnDataAmount,
       required this.business,
+      this.returnDataAmount,
       this.openedFromCart = false});
   final Map<String, dynamic> item;
   final int index;
-  final Function(String, int) returnDataAmount;
+  final Function(int, [int])? returnDataAmount;
   final Map<dynamic, dynamic> business;
   final bool openedFromCart;
   @override
@@ -175,12 +175,6 @@ class _ProductPageState extends State<ProductPage> {
 
   @override
   void dispose() {
-    if (isAmountChanged) {
-      Future.delayed(const Duration(microseconds: 0), () async {
-        await _finalizeCartAmount();
-        widget.returnDataAmount(cacheAmount.toString(), widget.index);
-      });
-    }
     super.dispose();
   }
 
@@ -218,163 +212,107 @@ class _ProductPageState extends State<ProductPage> {
                     Flexible(
                       flex: 5,
                       fit: FlexFit.tight,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          disabledBackgroundColor:
-                              Theme.of(context).colorScheme.primary,
-                          padding: EdgeInsets.zero,
-                        ),
-                        onPressed: null,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.all(Radius.circular(8)),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Flexible(
-                                fit: FlexFit.tight,
-                                child: Stack(
-                                  children: [
-                                    SlideTransition(
-                                      position: AlwaysStoppedAnimation(
-                                        Offset(-0.5, 0),
-                                      ),
-                                      child: OverflowBox(
-                                        maxWidth: (constraints.maxWidth / 2) *
-                                            (1 / 2),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 10 * globals.scaleParam),
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            disabledBackgroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            padding: EdgeInsets.zero,
+                          ),
+                          onPressed: null,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.all(Radius.circular(8)),
+                            clipBehavior: Clip.antiAliasWithSaveLayer,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  fit: FlexFit.tight,
+                                  child: IconButton(
+                                    padding: const EdgeInsets.all(0),
+                                    onPressed: () {
+                                      _removeFromCart();
+                                    },
+                                    icon: Icon(
+                                      Icons.remove_rounded,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimary,
+                                    ),
+                                  ),
+                                ),
+                                Flexible(
+                                  fit: FlexFit.tight,
+                                  child: Stack(
+                                    children: [
+                                      OverflowBox(
+                                        maxWidth:
+                                            (constraints.maxWidth / 2) * 0.45,
                                         maxHeight: 200 * globals.scaleParam,
                                         child: AspectRatio(
                                           aspectRatio: 1 / 1,
                                           child: Container(
-                                            width: (constraints.maxWidth / 2) *
-                                                (1 / 2),
                                             decoration: BoxDecoration(
-                                              color: Colors.black,
+                                              color: Colors.grey.shade200,
                                               borderRadius: BorderRadius.all(
-                                                Radius.circular(25),
+                                                Radius.elliptical(40, 200),
                                               ),
                                             ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                    Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        IconButton(
-                                          padding: const EdgeInsets.all(0),
-                                          onPressed: () {
-                                            _removeFromCart();
-                                          },
-                                          icon: Icon(
-                                            Icons.remove_rounded,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onPrimary,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Flexible(
-                                flex: 2,
-                                fit: FlexFit.tight,
-                                child: Stack(
-                                  children: [
-                                    OverflowBox(
-                                        maxWidth: (constraints.maxWidth / 2) * 0.5,
-                                        maxHeight: 200 * globals.scaleParam,
-                                        child: AspectRatio(
-                                          aspectRatio: 1 / 1,
-                                          child: Container(
-                                            width: (constraints.maxWidth / 2) *
-                                                (1 / 2),
-                                            decoration: BoxDecoration(
-                                              color: Colors.black,
-                                              borderRadius: BorderRadius.all(
-                                                Radius.circular(25),
+                                      Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          GestureDetector(
+                                            onLongPress: () {
+                                              setState(() {
+                                                isNumPickActive = true;
+                                              });
+                                            },
+                                            child: Text(
+                                              "$cacheAmount шт.",
+                                              textHeightBehavior:
+                                                  const TextHeightBehavior(
+                                                applyHeightToFirstAscent: false,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize:
+                                                    38 * globals.scaleParam,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onBackground,
                                               ),
                                             ),
                                           ),
-                                        ),
+                                        ],
                                       ),
-                                    GestureDetector(
-                                      onLongPress: () {
-                                        setState(() {
-                                          isNumPickActive = true;
-                                        });
-                                      },
-                                      child: Text(
-                                        "$cacheAmount шт.",
-                                        textHeightBehavior:
-                                            const TextHeightBehavior(
-                                          applyHeightToFirstAscent: false,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 38 * globals.scaleParam,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onPrimary,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              Flexible(
-                                fit: FlexFit.tight,
-                                child: Stack(
-                                  children: [
-                                    SlideTransition(
-                                      position: AlwaysStoppedAnimation(
-                                        Offset(0.5, 0),
-                                      ),
-                                      child: OverflowBox(
-                                        maxWidth: (constraints.maxWidth / 2) *
-                                            (1 / 2),
-                                        maxHeight: 200 * globals.scaleParam,
-                                        child: AspectRatio(
-                                          aspectRatio: 1 / 1,
-                                          child: Container(
-                                            width: (constraints.maxWidth / 2) *
-                                                (1 / 2),
-                                            decoration: BoxDecoration(
-                                              color: Colors.black,
-                                              borderRadius: BorderRadius.all(
-                                                Radius.circular(25),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
+                                Flexible(
+                                  fit: FlexFit.tight,
+                                  child: IconButton(
+                                    padding: const EdgeInsets.all(0),
+                                    onPressed: () {
+                                      _addToCart();
+                                    },
+                                    icon: Icon(
+                                      Icons.add_rounded,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimary,
                                     ),
-                                    Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        IconButton(
-                                          padding: const EdgeInsets.all(0),
-                                          onPressed: () {
-                                            _addToCart();
-                                          },
-                                          icon: Icon(
-                                            Icons.add_rounded,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onPrimary,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -382,9 +320,48 @@ class _ProductPageState extends State<ProductPage> {
                     Flexible(
                       flex: 5,
                       fit: FlexFit.tight,
-                      child: ElevatedButton(
-                        onPressed: () {},
-                        child: Text("В корзину"),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 10 * globals.scaleParam),
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            disabledBackgroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            padding: EdgeInsets.zero,
+                          ),
+                          onPressed: () {
+                            if (isAmountChanged) {
+                              Future.delayed(const Duration(microseconds: 0),
+                                  () async {
+                                widget.returnDataAmount!(cacheAmount);
+                                await _finalizeCartAmount();
+                              });
+                            }
+                          },
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    fit: FlexFit.tight,
+                                    child: Text(
+                                      "В корзину",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 38 * globals.scaleParam,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ],

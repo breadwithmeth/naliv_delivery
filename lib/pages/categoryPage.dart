@@ -651,7 +651,6 @@ class _CategoryPageListState extends State<CategoryPageList>
                     scroll: 0,
                     business: widget.business,
                     index: index,
-                    updateCategoryPageInfo: updateDataAmount,
                   ),
                   _items.length != index
                       ? Padding(

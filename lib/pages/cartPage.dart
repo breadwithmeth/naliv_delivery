@@ -70,7 +70,7 @@ class _CartPageState extends State<CartPage>
     animController.drive(CurveTween(curve: Curves.easeIn));
   }
 
-  void updateDataAmount(String newDataAmount, int index) {
+  void updateDataAmount(int newDataAmount, [int index = 0]) {
     setState(() {
       localSum -=
           int.parse(items[index]["price"]) * int.parse(items[index]["amount"]);
@@ -78,7 +78,7 @@ class _CartPageState extends State<CartPage>
       localSum +=
           int.parse(items[index]["price"]) * int.parse(items[index]["amount"]);
     });
-    if (newDataAmount == "0") {
+    if (newDataAmount == 0) {
       items.removeAt(index);
     }
   }

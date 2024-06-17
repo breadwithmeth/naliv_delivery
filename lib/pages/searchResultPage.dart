@@ -63,7 +63,7 @@ class _SearchResultPageState extends State<SearchResultPage> {
     }
   }
 
-  void updateDataAmount(String newDataAmount, int index) {
+  void updateDataAmount(int newDataAmount, [int index = 0]) {
     setState(() {
       _items[index].data["amount"] = newDataAmount;
     });

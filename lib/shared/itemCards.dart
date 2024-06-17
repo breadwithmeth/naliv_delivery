@@ -307,8 +307,7 @@ class ItemCardMedium extends StatefulWidget {
       required this.categoryId,
       required this.scroll,
       required this.business,
-      required this.index,
-      this.updateCategoryPageInfo});
+      required this.index});
   final Map<String, dynamic> element;
   final String categoryName;
 
@@ -318,7 +317,6 @@ class ItemCardMedium extends StatefulWidget {
   final double scroll;
   final Map<dynamic, dynamic> business;
   final int index;
-  final Function(String, int)? updateCategoryPageInfo;
   final chack = 1;
   @override
   State<ItemCardMedium> createState() => _ItemCardMediumState();
@@ -341,34 +339,40 @@ class _ItemCardMediumState extends State<ItemCardMedium>
   // late Animation<Offset> _offsetAnimationReverse;
 
   void _updateItemCountServerCall() {
-    if (previousAmount == amountInCart) {
-      return;
-    } else {
-      setState(() {
-        isItemAmountChanging = true;
-      });
-      changeCartItem(
-              element["item_id"], amountInCart, widget.business["business_id"])
-          .then((value) {
-        if (value != null) {
+    setState(() {
+      isItemAmountChanging = true;
+    });
+    changeCartItem(
+            element["item_id"], amountInCart, widget.business["business_id"])
+        .then((value) {
+      if (value == null) {
+        if (0 != amountInCart) {
+          _updateItemCountServerCall();
+        } else {
+          setState(() {
+            amountInCart = 0;
+            previousAmount = amountInCart;
+          });
+        }
+      } else {
+        if (int.parse(value) != amountInCart) {
+          _updateItemCountServerCall();
+        } else {
           setState(() {
             amountInCart = int.parse(value);
             previousAmount = amountInCart;
           });
-          if (widget.updateCategoryPageInfo != null) {
-            widget.updateCategoryPageInfo!(
-                amountInCart.toString(), widget.index);
-          }
-          print(value);
-        } else {
-          print(
-              "Something gone wrong, can't add item to cart in ItemCardMedium _updateItemCountServerCall");
         }
-        setState(() {
-          isItemAmountChanging = false;
-        });
+      }
+      // if (widget.updateCategoryPageInfo != null) {
+      //   widget.updateCategoryPageInfo!(
+      //       amountInCart.toString(), widget.index);
+      // }
+      print(value);
+      setState(() {
+        isItemAmountChanging = false;
       });
-    }
+    });
   }
 
   void _updateItemCount() {
@@ -494,6 +498,12 @@ class _ItemCardMediumState extends State<ItemCardMedium>
     }
   }
 
+  void updateCurrentItem(int amount, [int index = 0]) {
+    setState(() {
+      amountInCart = amount;
+    });
+  }
+
   Future<void> refreshItemCard() async {
     Map<String, dynamic>? element = await getItem(widget.element["item_id"]);
     print(element);
@@ -530,10 +540,11 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                       useSafeArea: true,
                       isScrollControlled: true,
                       builder: (context) {
+                        widget.element["amount"] = amountInCart.toString();
                         return ProductPage(
                           item: widget.element,
                           index: widget.index,
-                          returnDataAmount: widget.updateCategoryPageInfo!,
+                          returnDataAmount: updateCurrentItem,
                           business: widget.business,
                         );
                       },
@@ -577,37 +588,40 @@ class _ItemCardMediumState extends State<ItemCardMedium>
               Flexible(
                 flex: 5,
                 fit: FlexFit.tight,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: 15 * globals.scaleParam,
-                      vertical: 5 * globals.scaleParam),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    mainAxisSize: MainAxisSize.max,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Flexible(
-                        fit: FlexFit.tight,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          key: Key(widget.element["item_id"]),
-                          onTap: () {
-                            showModalBottomSheet(
-                              context: context,
-                              clipBehavior: Clip.antiAlias,
-                              useSafeArea: true,
-                              isScrollControlled: true,
-                              builder: (context) {
-                                return ProductPage(
-                                  item: widget.element,
-                                  index: widget.index,
-                                  returnDataAmount:
-                                      widget.updateCategoryPageInfo!,
-                                  business: widget.business,
-                                );
-                              },
-                            );
-                          },
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.max,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Flexible(
+                      flex: 2,
+                      fit: FlexFit.tight,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        key: Key(widget.element["item_id"]),
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            clipBehavior: Clip.antiAlias,
+                            useSafeArea: true,
+                            isScrollControlled: true,
+                            builder: (context) {
+                              widget.element["amount"] =
+                                  amountInCart.toString();
+                              return ProductPage(
+                                item: widget.element,
+                                index: widget.index,
+                                returnDataAmount: updateCurrentItem,
+                                business: widget.business,
+                              );
+                            },
+                          );
+                        },
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 15 * globals.scaleParam,
+                            // vertical: 5 * globals.scaleParam,
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -646,8 +660,8 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                           EdgeInsets.symmetric(
                                                         horizontal: 4 *
                                                             globals.scaleParam,
-                                                        vertical: 2 *
-                                                            globals.scaleParam,
+                                                        // vertical: 2 *
+                                                        // globals.scaleParam,
                                                       ),
                                                       decoration: BoxDecoration(
                                                         color: Colors
@@ -684,119 +698,99 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                 child: Text(
                                   "В наличии ${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт.",
                                   style: TextStyle(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .secondary,
-                                      fontSize: 28 * globals.scaleParam,
-                                      fontWeight: FontWeight.w500),
+                                    color:
+                                        Theme.of(context).colorScheme.secondary,
+                                    fontSize: 28 * globals.scaleParam,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              Flexible(
+                                fit: FlexFit.tight,
+                                child: Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        globals
+                                            .formatCost(element['price'] ?? ""),
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 36 * globals.scaleParam,
+                                        ),
+                                      ),
+                                    ),
+                                    Flexible(
+                                      child: Text(
+                                        "₸",
+                                        textAlign: TextAlign.start,
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 36 * globals.scaleParam,
+                                        ),
+                                      ),
+                                    )
+                                  ],
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ),
-                      Flexible(
-                        flex: 2,
-                        fit: FlexFit.tight,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Flexible(
-                              flex: 5,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Flexible(
-                                    child: Row(
-                                      children: [
-                                        Flexible(
-                                          child: Text(
-                                            globals.formatCost(
-                                                element['price'] ?? ""),
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 36 * globals.scaleParam,
-                                            ),
-                                          ),
-                                        ),
-                                        Flexible(
-                                          child: Text(
-                                            "₸",
-                                            style: TextStyle(
-                                              color: Colors.grey.shade600,
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 36 * globals.scaleParam,
-                                            ),
-                                          ),
-                                        )
-                                      ],
-                                    ),
-                                  ),
-                                  Flexible(
-                                    fit: FlexFit.tight,
-                                    child: Stack(
-                                      children: [
-                                        LayoutBuilder(
-                                          builder: (context, constraints) {
-                                            return Row(
-                                              children: [
-                                                Container(
-                                                  width: constraints.maxWidth *
-                                                      0.85,
-                                                  alignment:
-                                                      Alignment.centerLeft,
-                                                  child: ClipRect(
-                                                    clipBehavior:
-                                                        Clip.antiAlias,
-                                                    child: Visibility(
-                                                      visible: amountInCart > 0
-                                                          ? true
-                                                          : false,
-                                                      child: SlideTransition(
-                                                        position:
-                                                            _offsetAnimation,
-                                                        child: Row(
-                                                          children: [
-                                                            Flexible(
-                                                              fit:
-                                                                  FlexFit.tight,
-                                                              child: IconButton(
-                                                                padding:
-                                                                    EdgeInsets
-                                                                        .all(0),
-                                                                onPressed: () {
-                                                                  if (!isItemAmountChanging) {
-                                                                    _decrementAmountInCart();
-                                                                    if (amountInCart <=
-                                                                        0) {
-                                                                      _moveButton();
-                                                                    }
-                                                                  }
-                                                                },
-                                                                icon: Container(
-                                                                  decoration:
-                                                                      BoxDecoration(
-                                                                    border:
-                                                                        Border
-                                                                            .all(
-                                                                      color: amountInCart >
-                                                                              0
-                                                                          ? Theme.of(context)
-                                                                              .colorScheme
-                                                                              .onBackground
-                                                                          : Theme.of(context)
-                                                                              .colorScheme
-                                                                              .secondary,
-                                                                    ),
-                                                                    borderRadius:
-                                                                        BorderRadius
-                                                                            .circular(6),
-                                                                  ),
-                                                                  child: Icon(
-                                                                    Icons
-                                                                        .remove_rounded,
+                    ),
+                    Flexible(
+                      fit: FlexFit.tight,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Flexible(
+                            flex: 5,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Flexible(
+                                  fit: FlexFit.tight,
+                                  child: Stack(
+                                    children: [
+                                      LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          return Row(
+                                            children: [
+                                              Container(
+                                                width:
+                                                    constraints.maxWidth * 0.85,
+                                                alignment: Alignment.centerLeft,
+                                                child: ClipRect(
+                                                  clipBehavior: Clip.antiAlias,
+                                                  child: Visibility(
+                                                    visible: amountInCart > 0
+                                                        ? true
+                                                        : false,
+                                                    child: SlideTransition(
+                                                      position:
+                                                          _offsetAnimation,
+                                                      child: Row(
+                                                        children: [
+                                                          Flexible(
+                                                            fit: FlexFit.tight,
+                                                            child: IconButton(
+                                                              padding:
+                                                                  EdgeInsets
+                                                                      .all(0),
+                                                              onPressed: () {
+                                                                _decrementAmountInCart();
+                                                                if (amountInCart <=
+                                                                    0) {
+                                                                  _moveButton();
+                                                                }
+                                                              },
+                                                              icon: Container(
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  border: Border
+                                                                      .all(
                                                                     color: amountInCart >
                                                                             0
                                                                         ? Theme.of(context)
@@ -806,81 +800,83 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                                             .colorScheme
                                                                             .secondary,
                                                                   ),
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              6),
+                                                                ),
+                                                                child: Icon(
+                                                                  Icons
+                                                                      .remove_rounded,
+                                                                  color: amountInCart >
+                                                                          0
+                                                                      ? Theme.of(
+                                                                              context)
+                                                                          .colorScheme
+                                                                          .onBackground
+                                                                      : Theme.of(
+                                                                              context)
+                                                                          .colorScheme
+                                                                          .secondary,
                                                                 ),
                                                               ),
                                                             ),
-                                                            Flexible(
-                                                              flex: 2,
-                                                              fit:
-                                                                  FlexFit.tight,
-                                                              child: Row(
-                                                                mainAxisAlignment:
-                                                                    MainAxisAlignment
-                                                                        .center,
-                                                                children: [
-                                                                  Flexible(
-                                                                    child: Text(
-                                                                      "${amountInCart.toString()} шт.", //"${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
-                                                                      textHeightBehavior:
-                                                                          TextHeightBehavior(
-                                                                        applyHeightToFirstAscent:
-                                                                            false,
-                                                                      ),
-                                                                      textAlign:
-                                                                          TextAlign
-                                                                              .center,
-                                                                      style:
-                                                                          TextStyle(
-                                                                        fontWeight:
-                                                                            FontWeight.w700,
-                                                                        fontSize:
-                                                                            36 *
-                                                                                globals.scaleParam,
-                                                                        color: amountInCart !=
-                                                                                0
-                                                                            ? Theme.of(context).colorScheme.onBackground
-                                                                            : Colors.grey.shade600,
-                                                                      ),
+                                                          ),
+                                                          Flexible(
+                                                            flex: 2,
+                                                            fit: FlexFit.tight,
+                                                            child: Row(
+                                                              mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .center,
+                                                              children: [
+                                                                Flexible(
+                                                                  child: Text(
+                                                                    "${amountInCart.toString()} шт.", //"${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
+                                                                    textHeightBehavior:
+                                                                        TextHeightBehavior(
+                                                                      applyHeightToFirstAscent:
+                                                                          false,
                                                                     ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            Flexible(
-                                                              fit:
-                                                                  FlexFit.tight,
-                                                              child: IconButton(
-                                                                padding:
-                                                                    EdgeInsets
-                                                                        .all(0),
-                                                                onPressed: () {
-                                                                  if (!isItemAmountChanging) {
-                                                                    _incrementAmountInCart();
-                                                                  }
-                                                                },
-                                                                icon: Container(
-                                                                  decoration:
-                                                                      BoxDecoration(
-                                                                    border:
-                                                                        Border
-                                                                            .all(
-                                                                      color: amountInCart <
-                                                                              double.parse(element["in_stock"])
-                                                                                  .truncate()
+                                                                    textAlign:
+                                                                        TextAlign
+                                                                            .center,
+                                                                    style:
+                                                                        TextStyle(
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w700,
+                                                                      fontSize: 36 *
+                                                                          globals
+                                                                              .scaleParam,
+                                                                      color: amountInCart !=
+                                                                              0
                                                                           ? Theme.of(context)
                                                                               .colorScheme
                                                                               .onBackground
-                                                                          : Theme.of(context)
-                                                                              .colorScheme
-                                                                              .secondary,
+                                                                          : Colors
+                                                                              .grey
+                                                                              .shade600,
                                                                     ),
-                                                                    borderRadius:
-                                                                        BorderRadius
-                                                                            .circular(6),
                                                                   ),
-                                                                  child: Icon(
-                                                                    Icons
-                                                                        .add_rounded,
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          Flexible(
+                                                            fit: FlexFit.tight,
+                                                            child: IconButton(
+                                                              padding:
+                                                                  EdgeInsets
+                                                                      .all(0),
+                                                              onPressed: () {
+                                                                _incrementAmountInCart();
+                                                              },
+                                                              icon: Container(
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  border: Border
+                                                                      .all(
                                                                     color: amountInCart <
                                                                             double.parse(element["in_stock"])
                                                                                 .truncate()
@@ -891,90 +887,102 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                                             .colorScheme
                                                                             .secondary,
                                                                   ),
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              6),
+                                                                ),
+                                                                child: Icon(
+                                                                  Icons
+                                                                      .add_rounded,
+                                                                  color: amountInCart <
+                                                                          double.parse(element["in_stock"])
+                                                                              .truncate()
+                                                                      ? Theme.of(
+                                                                              context)
+                                                                          .colorScheme
+                                                                          .onBackground
+                                                                      : Theme.of(
+                                                                              context)
+                                                                          .colorScheme
+                                                                          .secondary,
                                                                 ),
                                                               ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            );
-                                          },
-                                        ),
-                                        AnimatedSwitcher(
-                                          duration: Duration(milliseconds: 150),
-                                          transitionBuilder: (Widget child,
-                                              Animation<double> animation) {
-                                            return ScaleTransition(
-                                                scale: animation, child: child);
-                                          },
-                                          child: amountInCart == 0
-                                              ? LayoutBuilder(
-                                                  builder:
-                                                      (context, constraints) {
-                                                    return SizedBox(
-                                                      width:
-                                                          constraints.maxWidth *
-                                                              0.85,
-                                                      child: Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .end,
-                                                        children: [
-                                                          IconButton(
-                                                            onPressed: () {
-                                                              if (!isItemAmountChanging) {
-                                                                if (!_controller
-                                                                    .isCompleted) {
-                                                                  _moveButton();
-                                                                }
-                                                                _incrementAmountInCart();
-                                                              }
-                                                            },
-                                                            icon: Icon(
-                                                              Icons.add_rounded,
                                                             ),
                                                           ),
                                                         ],
                                                       ),
-                                                    );
-                                                  },
-                                                )
-                                              : SizedBox(),
-                                        ),
-                                      ],
-                                    ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      ),
+                                      AnimatedSwitcher(
+                                        duration: Duration(milliseconds: 150),
+                                        transitionBuilder: (Widget child,
+                                            Animation<double> animation) {
+                                          return ScaleTransition(
+                                              scale: animation, child: child);
+                                        },
+                                        child: amountInCart == 0
+                                            ? LayoutBuilder(
+                                                builder:
+                                                    (context, constraints) {
+                                                  return SizedBox(
+                                                    width:
+                                                        constraints.maxWidth *
+                                                            0.85,
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment.end,
+                                                      children: [
+                                                        IconButton(
+                                                          onPressed: () {
+                                                            if (!_controller
+                                                                .isCompleted) {
+                                                              _moveButton();
+                                                            }
+                                                            _incrementAmountInCart();
+                                                          },
+                                                          icon: Icon(
+                                                            Icons.add_rounded,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                },
+                                              )
+                                            : SizedBox(),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Flexible(
-                                    fit: FlexFit.tight,
-                                    child: SizedBox(),
+                          ),
+                          Flexible(
+                            fit: FlexFit.tight,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  fit: FlexFit.tight,
+                                  child: LikeButton(
+                                    is_liked: element["is_liked"],
+                                    item_id: element["item_id"],
                                   ),
-                                  Flexible(
-                                    fit: FlexFit.tight,
-                                    child: LikeButton(
-                                      is_liked: element["is_liked"],
-                                      item_id: element["item_id"],
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ],

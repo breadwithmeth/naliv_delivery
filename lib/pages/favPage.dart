@@ -85,12 +85,6 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
     animController.drive(CurveTween(curve: Curves.bounceInOut));
   }
 
-  void updateDataAmount(String newDataAmount, int index) {
-    setState(() {
-      items[index]["amount"] = newDataAmount;
-    });
-  }
-
   @override
   void initState() {
     // TODO: implement initState
@@ -157,7 +151,6 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
                         return ProductPage(
                           item: items[index],
                           index: index,
-                          returnDataAmount: updateDataAmount,
                           business: widget.business,
                         );
                       },
