@@ -704,12 +704,12 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
     }).then((value) {
       if (value == true) {
         // Navigator.pushReplacement(
-        //     context, CupertinoPageRoute(builder: (context) => HomePage()));
+        //     context, MaterialPageRoute(builder: (context) => HomePage()));
         if (widget.isFromCreateOrder) {
           Navigator.pop(context);
           Navigator.pop(context);
         } else {
-          Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
             builder: (context) {
               return Main();
             },

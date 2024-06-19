@@ -20,7 +20,7 @@ class _SearchPageState extends State<SearchPage> {
   bool isSearchEverywhere = false;
 
   void _search() {
-    Navigator.pushReplacement(context, CupertinoPageRoute(
+    Navigator.pushReplacement(context, MaterialPageRoute(
       builder: (context) {
         if (isSearchEverywhere) {
           print("SEARCH EVERYWHERE");

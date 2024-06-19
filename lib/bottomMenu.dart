@@ -95,7 +95,7 @@ import '../globals.dart' as globals;// import 'package:flutter/services.dart';
 
 //           title: TextButton(
 //               onPressed: () {
-//                 Navigator.push(context, CupertinoPageRoute(
+//                 Navigator.push(context, MaterialPageRoute(
 //                   builder: (context) {
 //                     return const SearchPage();
 //                   },
@@ -177,7 +177,7 @@ import '../globals.dart' as globals;// import 'package:flutter/services.dart';
 //             if (await setCurrentStore(element["business_id"])) {
 //               Navigator.push(
 //                 context,
-//                 CupertinoPageRoute(builder: (context) => const Main()),
+//                 MaterialPageRoute(builder: (context) => const Main()),
 //               );
 //             }
 //           },
@@ -297,7 +297,7 @@ import '../globals.dart' as globals;// import 'package:flutter/services.dart';
 //       if (value == null) {
 //         Navigator.push(
 //           context,
-//           CupertinoPageRoute(
+//           MaterialPageRoute(
 //               builder: (context) => const BusinessSelectStartPage()),
 //         );
 //       }
@@ -529,7 +529,7 @@ import '../globals.dart' as globals;// import 'package:flutter/services.dart';
 //                   onPressed: () {
 //                     // Navigator.push(
 //                     //   context,
-//                     //   CupertinoPageRoute(
+//                     //   MaterialPageRoute(
 //                     //       builder: (context) => const AddressesPage()),
 //                     // );
 //                   },
@@ -585,7 +585,7 @@ import '../globals.dart' as globals;// import 'package:flutter/services.dart';
 //                   style: TextButton.styleFrom(
 //                       padding: const EdgeInsets.symmetric(horizontal: 20)),
 //                   onPressed: () {
-//                     Navigator.push(context, CupertinoPageRoute(
+//                     Navigator.push(context, MaterialPageRoute(
 //                       builder: (context) {
 //                         return const SettingsPage();
 //                       },
@@ -645,7 +645,7 @@ import '../globals.dart' as globals;// import 'package:flutter/services.dart';
 //                   onPressed: () {
 //                     print(123);
 //                     logout();
-//                     Navigator.pushReplacement(context, CupertinoPageRoute(
+//                     Navigator.pushReplacement(context, MaterialPageRoute(
 //                       builder: (context) {
 //                         return const LoginPage();
 //                       },

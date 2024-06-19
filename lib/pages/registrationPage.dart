@@ -25,7 +25,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
     if (status) {
       Navigator.push(
         context,
-        CupertinoPageRoute(
+        MaterialPageRoute(
           builder: (context) => LoginPage(
             login: _login.text,
             password: _password.text,
@@ -43,7 +43,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
             onPressed: () {
               Navigator.push(
                 context,
-                CupertinoPageRoute(builder: (context) => const StartPage()),
+                MaterialPageRoute(builder: (context) => const StartPage()),
               );
             },
             icon: const Icon(Icons.arrow_back)),
@@ -54,7 +54,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  CupertinoPageRoute(builder: (context) => const LoginPage()),
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
                 );
               },
               child: const Text(

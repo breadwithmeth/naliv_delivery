@@ -249,6 +249,11 @@ class _CartPageState extends State<CartPage>
                             ),
                             child: Column(
                               children: [
+                                index == 0
+                                    ? SizedBox(
+                                        height: 20 * globals.scaleParam,
+                                      )
+                                    : SizedBox(),
                                 GestureDetector(
                                   behavior: HitTestBehavior.opaque,
                                   key: Key(items[index]["item_id"]),
@@ -284,7 +289,8 @@ class _CartPageState extends State<CartPage>
                                 items.length - 1 != index
                                     ? Padding(
                                         padding: EdgeInsets.symmetric(
-                                            horizontal: 16),
+                                            horizontal:
+                                                16 * globals.scaleParam),
                                         child: Divider(),
                                       )
                                     : Container(),
@@ -474,7 +480,7 @@ class _CartPageState extends State<CartPage>
                       onPressed: () {
                         // Navigator.push(
                         //   context,
-                        //   CupertinoPageRoute(
+                        //   MaterialPageRoute(
                         //     builder: (context) {
                         //       return FindCreateUserPage(
                         //         business: widget.business,

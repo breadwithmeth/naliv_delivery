@@ -241,13 +241,21 @@ class _HomePageState extends State<HomePage>
                           fit: FlexFit.tight,
                           child: TextButton(
                             onPressed: () {
-                              Navigator.push(context, CupertinoPageRoute(
-                                builder: (context) {
-                                  return SearchPage(
+                              // Navigator.push(context, MaterialPageRoute(
+                              //   builder: (context) {
+                              //     return SearchPage(
+                              //       business: widget.business,
+                              //     );
+                              //   },
+                              // ));
+                              Navigator.push(
+                                context,
+                                globals.getPlatformSpecialRoute(
+                                  SearchPage(
                                     business: widget.business,
-                                  );
-                                },
-                              ));
+                                  ),
+                                ),
+                              );
                             },
                             style: TextButton.styleFrom(
                                 foregroundColor: Colors.white.withOpacity(0)),
@@ -523,7 +531,7 @@ class _CategoryItemState extends State<CategoryItem> {
         print("CATEGORY_ID IS ${widget.category_id}");
         Navigator.push(
           context,
-          CupertinoPageRoute(
+          MaterialPageRoute(
             builder: (context) => CategoryPage(
                 categoryId: widget.category_id,
                 categoryName: widget.name,
@@ -663,21 +671,26 @@ class _CategoryItemState extends State<CategoryItem> {
             padding: EdgeInsets.all(30 * globals.scaleParam),
             alignment: Alignment.topLeft,
             decoration: BoxDecoration(
-                borderRadius: BorderRadius.all(Radius.circular(5))),
+              borderRadius: BorderRadius.all(
+                Radius.circular(5),
+              ),
+            ),
             child: Container(
               decoration: BoxDecoration(
-                  color: textBG,
-                  borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(5),
-                      bottomRight: Radius.circular(5))),
+                color: textBG,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(5),
+                  bottomRight: Radius.circular(5),
+                ),
+              ),
               child: Text(
                 widget.name,
                 style: GoogleFonts.montserratAlternates(
                   textStyle: TextStyle(
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
-                      fontSize: 42 * globals.scaleParam,
-                      height: 2.4 * globals.scaleParam,
+                      fontSize: 38 * globals.scaleParam,
+                      height: 2.3 * globals.scaleParam,
                       shadows: [
                         Shadow(
                           blurRadius: 8,

@@ -85,7 +85,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
           if (isOrderCorrect == true) {
             Navigator.pushReplacement(
               context,
-              CupertinoPageRoute(
+              MaterialPageRoute(
                 builder: (context) => OrderPage(
                   business: widget.business,
                 ),

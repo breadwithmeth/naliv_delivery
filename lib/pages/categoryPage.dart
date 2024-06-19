@@ -151,7 +151,7 @@ class _CategoryPageState extends State<CategoryPage> {
                       fit: FlexFit.tight,
                       child: TextButton(
                         onPressed: () {
-                          Navigator.push(context, CupertinoPageRoute(
+                          Navigator.push(context, MaterialPageRoute(
                             builder: (context) {
                               return SearchPage(
                                 category_id: widget.categoryId,
@@ -179,7 +179,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                 "Найти",
                                 style: TextStyle(
                                   fontWeight: FontWeight.w500,
-                                  fontSize: 34 * globals.scaleParam,
+                                  fontSize: 28 * globals.scaleParam,
                                   color: Colors.black,
                                 ),
                               ),
@@ -643,6 +643,11 @@ class _CategoryPageListState extends State<CategoryPageList>
               final Map<String, dynamic> item = _items[index];
               return Column(
                 children: [
+                  index == 0
+                      ? SizedBox(
+                          height: 10 * globals.scaleParam,
+                        )
+                      : SizedBox(),
                   ItemCardMedium(
                     itemId: item["item_id"],
                     element: item,
@@ -659,7 +664,7 @@ class _CategoryPageListState extends State<CategoryPageList>
                             vertical: 5 * globals.scaleParam,
                           ),
                           child: Divider(
-                            height: 0,
+                            height: 20 * globals.scaleParam,
                           ),
                         )
                       : Container(),

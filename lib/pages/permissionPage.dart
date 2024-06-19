@@ -44,7 +44,7 @@ class _PermissionPageState extends State<PermissionPage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     print('AppLifecycleState: $state');
     // if (state == AppLifecycleState.resumed) {
-    //   Navigator.pushReplacement(context, CupertinoPageRoute(
+    //   Navigator.pushReplacement(context, MaterialPageRoute(
     //     builder: (context) {
     //       return Main();
     //     },
@@ -169,7 +169,7 @@ class _PermissionPageState extends State<PermissionPage>
                   // app. The only way to change the permission's status now is to let the
                   // user manually enables it in the system settings.
                   await openAppSettings().then((value) {
-                    Navigator.pushReplacement(context, CupertinoPageRoute(
+                    Navigator.pushReplacement(context, MaterialPageRoute(
                       builder: (context) {
                         return const Main();
                       },
@@ -177,7 +177,7 @@ class _PermissionPageState extends State<PermissionPage>
                   });
                 } else if (await Permission.storage.isPermanentlyDenied) {
                   await openAppSettings().then((value) {
-                    Navigator.pushReplacement(context, CupertinoPageRoute(
+                    Navigator.pushReplacement(context, MaterialPageRoute(
                       builder: (context) {
                         return const Main();
                       },
@@ -185,7 +185,7 @@ class _PermissionPageState extends State<PermissionPage>
                   });
                 } else if (await Permission.camera.isPermanentlyDenied) {
                   await openAppSettings().then((value) {
-                    Navigator.pushReplacement(context, CupertinoPageRoute(
+                    Navigator.pushReplacement(context, MaterialPageRoute(
                       builder: (context) {
                         return const Main();
                       },

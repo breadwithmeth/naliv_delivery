@@ -46,7 +46,7 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
     //     onTap: () {
     //       Navigator.push(
     //         context,
-    //         CupertinoPageRoute(
+    //         MaterialPageRoute(
     //           builder: (context) => ProductPage(
     //             item: element,
     //             index: items.indexOf(element),

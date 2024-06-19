@@ -61,7 +61,7 @@ import '../globals.dart' as globals;// import 'package:flutter/widgets.dart';
 //             child: ListTile(
 //               onTap: () {
 //                 Navigator.pushAndRemoveUntil(context,
-//                     CupertinoPageRoute(builder: (context) {
+//                     MaterialPageRoute(builder: (context) {
 //                   return HomePage(setCurrentBusiness: element["business_id"], business_id: "1",);
 //                 }), (route) => false);
 //               },
@@ -181,7 +181,7 @@ import '../globals.dart' as globals;// import 'package:flutter/widgets.dart';
 //                 child: ListTile(
 //                   onTap: () {
 //                     Navigator.pushAndRemoveUntil(context,
-//                         CupertinoPageRoute(builder: (context) {
+//                         MaterialPageRoute(builder: (context) {
 //                       return const HomePage();
 //                     }), (route) => false);
 //                   },

@@ -59,13 +59,11 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                             topRight: Radius.circular(50 * globals.scaleParam),
                             bottomRight:
                                 Radius.circular(50 * globals.scaleParam),
-                            topLeft:
-                                Radius.circular(50 * globals.scaleParam))),
+                            topLeft: Radius.circular(50 * globals.scaleParam))),
                     padding: EdgeInsets.all(globals.scaleParam * 40),
                     child: TextField(
-                      
                       controller: _name,
-                      style:  TextStyle(
+                      style: TextStyle(
                           fontWeight: FontWeight.w900,
                           fontSize: 50 * globals.scaleParam,
                           color: Colors.black),
@@ -73,8 +71,8 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                       maxLines: 3,
                       autofocus: true,
                       decoration: const InputDecoration.collapsed(
-                        filled: true,
-                        fillColor: Colors.white,
+                          filled: true,
+                          fillColor: Colors.white,
                           hintText: "Ваше имя "),
                     )),
               ),
@@ -87,9 +85,9 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                               onPressed: () async {
                                 await changeName(_name.text).then((v) {
                                   Navigator.pushAndRemoveUntil(context,
-                                      CupertinoPageRoute(
+                                      MaterialPageRoute(
                                     builder: (context) {
-                                      return  PreLoadDataPage();
+                                      return PreLoadDataPage();
                                     },
                                   ), (route) => false);
                                 });

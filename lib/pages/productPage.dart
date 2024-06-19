@@ -63,9 +63,16 @@ class _ProductPageState extends State<ProductPage> {
   // }
   // BUTTON VARIABLES/FUNCS START
 
-  int cacheAmount = 0;
+  int amountInCart = 0;
+  int actualCartAmount = 0;
   bool isNumPickActive = false;
-  bool isAmountChanged = false;
+  Map<String, String> buyButtonActionTextMap = {
+    "add": "В корзину",
+    "remove": "Убрать всё",
+    "update": "Обновить заказ"
+  };
+  late String buyButtonActionText;
+  late Color buyButtonActionColor;
   late int inStock;
   final ScrollController _scrollController = ScrollController();
 
@@ -77,43 +84,66 @@ class _ProductPageState extends State<ProductPage> {
     return Future(() => result!);
   }
 
-  Future<String?> _finalizeCartAmount() async {
-    if (cacheAmount == 0) {
-      _deleteFromCart(widget.item["item_id"]);
-      return "0";
-    }
-    String? finalAmount;
+  Future<void> _finalizeCartAmount() async {
     await changeCartItem(
-            item["item_id"], cacheAmount, widget.business["business_id"])
+            item["item_id"], amountInCart, widget.business["business_id"])
         .then(
       (value) {
         print(value);
-        finalAmount = value;
+        if (value != null) {
+          setState(() {
+            actualCartAmount = int.parse(value);
+          });
+        } else {
+          setState(() {
+            actualCartAmount = 0;
+          });
+        }
+        getBuyButtonCurrentActionText();
+        widget.returnDataAmount!(actualCartAmount);
       },
     ).onError(
       (error, stackTrace) {
         throw Exception("buyButton _addToCart failed");
       },
     );
-    return finalAmount;
   }
 
   void _removeFromCart() {
     setState(() {
-      isAmountChanged = true;
-      if (cacheAmount > 0) {
-        cacheAmount--;
+      if (amountInCart > 0) {
+        amountInCart--;
+        getBuyButtonCurrentActionText();
       }
     });
   }
 
   void _addToCart() {
     setState(() {
-      isAmountChanged = true;
-      if (cacheAmount < inStock) {
-        cacheAmount++;
+      if (amountInCart < inStock) {
+        amountInCart++;
+        getBuyButtonCurrentActionText();
       }
     });
+  }
+
+  void getBuyButtonCurrentActionText() {
+    if (actualCartAmount == 0) {
+      setState(() {
+        buyButtonActionText = buyButtonActionTextMap["add"]!;
+        buyButtonActionColor = Colors.black;
+      });
+    } else if (actualCartAmount == amountInCart || amountInCart == 0) {
+      setState(() {
+        buyButtonActionText = buyButtonActionTextMap["remove"]!;
+        buyButtonActionColor = Color.fromARGB(255, 167, 42, 33);
+      });
+    } else {
+      setState(() {
+        buyButtonActionText = buyButtonActionTextMap["update"]!;
+        buyButtonActionColor = Color.fromARGB(255, 49, 49, 49);
+      });
+    }
   }
 
   // BUTTON VARIABLES/FUNCS END
@@ -125,7 +155,9 @@ class _ProductPageState extends State<ProductPage> {
     // TODO: implement initState
     super.initState();
     setState(() {
-      cacheAmount = int.parse(widget.item["amount"] ?? "0");
+      amountInCart = int.parse(widget.item["amount"] ?? "0");
+      actualCartAmount = amountInCart;
+      getBuyButtonCurrentActionText();
       if (widget.item["in_stock"] != null) {
         inStock = double.parse(widget.item["in_stock"]).truncate();
       } else {
@@ -158,11 +190,20 @@ class _ProductPageState extends State<ProductPage> {
           // placeholder: ((context, url) {
           //   return const CircularProgressIndicator();
           // }),
-          errorWidget: ((context, url, error) {
-            return Text(
-              "Нет изображения",
+          errorWidget: (context, url, error) {
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                return FractionallySizedBox(
+                  heightFactor: 1,
+                  widthFactor: 2 / 4,
+                  child: Image.asset(
+                    'assets/category_icons/no_image_ico.png',
+                    opacity: AlwaysStoppedAnimation(0.5),
+                  ),
+                );
+              },
             );
-          }),
+          },
         ),
       );
       // Future.delayed(const Duration(milliseconds: 0)).whenComplete(() async {
@@ -199,72 +240,68 @@ class _ProductPageState extends State<ProductPage> {
     return Scaffold(
       // color: Colors.white,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: LayoutBuilder(
-        builder: (context, constraints) {
-          return Container(
-            width: constraints.maxWidth * 0.95,
-            height: 140 * globals.scaleParam,
-            child: Stack(
-              alignment: Alignment.bottomCenter,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      flex: 5,
-                      fit: FlexFit.tight,
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 10 * globals.scaleParam),
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            disabledBackgroundColor:
-                                Theme.of(context).colorScheme.primary,
-                            padding: EdgeInsets.zero,
-                          ),
-                          onPressed: null,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.all(Radius.circular(8)),
-                            clipBehavior: Clip.antiAliasWithSaveLayer,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Flexible(
-                                  fit: FlexFit.tight,
-                                  child: IconButton(
-                                    padding: const EdgeInsets.all(0),
-                                    onPressed: () {
-                                      _removeFromCart();
-                                    },
-                                    icon: Icon(
-                                      Icons.remove_rounded,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onPrimary,
-                                    ),
-                                  ),
-                                ),
-                                Flexible(
-                                  fit: FlexFit.tight,
-                                  child: Stack(
-                                    children: [
-                                      OverflowBox(
-                                        maxWidth:
-                                            (constraints.maxWidth / 2) * 0.45,
-                                        maxHeight: 200 * globals.scaleParam,
-                                        child: AspectRatio(
-                                          aspectRatio: 1 / 1,
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              color: Colors.grey.shade200,
-                                              borderRadius: BorderRadius.all(
-                                                Radius.elliptical(40, 200),
-                                              ),
+      floatingActionButton: SlideTransition(
+        position: AlwaysStoppedAnimation(Offset(0, -0.25)),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Container(
+              width: constraints.maxWidth * 0.95,
+              height: 125 * globals.scaleParam,
+              child: Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        flex: 5,
+                        fit: FlexFit.tight,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 10 * globals.scaleParam),
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              disabledBackgroundColor: Colors.grey.shade200,
+                              padding: EdgeInsets.zero,
+                            ),
+                            onPressed: null,
+                            child: Container(
+                              child: ClipRRect(
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(8)),
+                                clipBehavior: Clip.antiAliasWithSaveLayer,
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Flexible(
+                                      fit: FlexFit.tight,
+                                      child: IconButton(
+                                        padding: const EdgeInsets.all(0),
+                                        onPressed: () {
+                                          _removeFromCart();
+                                        },
+                                        icon: Container(
+                                          padding: EdgeInsets.all(
+                                              5 * globals.scaleParam),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.all(
+                                              Radius.circular(100),
                                             ),
+                                            color: Colors.grey.shade400,
+                                          ),
+                                          child: Icon(
+                                            Icons.remove_rounded,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onBackground,
                                           ),
                                         ),
                                       ),
-                                      Column(
+                                    ),
+                                    Flexible(
+                                      fit: FlexFit.tight,
+                                      child: Column(
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
                                         children: [
@@ -275,7 +312,7 @@ class _ProductPageState extends State<ProductPage> {
                                               });
                                             },
                                             child: Text(
-                                              "$cacheAmount шт.",
+                                              amountInCart.toString(),
                                               textHeightBehavior:
                                                   const TextHeightBehavior(
                                                 applyHeightToFirstAscent: false,
@@ -284,7 +321,7 @@ class _ProductPageState extends State<ProductPage> {
                                               style: TextStyle(
                                                 fontWeight: FontWeight.w700,
                                                 fontSize:
-                                                    38 * globals.scaleParam,
+                                                    34 * globals.scaleParam,
                                                 color: Theme.of(context)
                                                     .colorScheme
                                                     .onBackground,
@@ -293,112 +330,219 @@ class _ProductPageState extends State<ProductPage> {
                                           ),
                                         ],
                                       ),
-                                    ],
-                                  ),
-                                ),
-                                Flexible(
-                                  fit: FlexFit.tight,
-                                  child: IconButton(
-                                    padding: const EdgeInsets.all(0),
-                                    onPressed: () {
-                                      _addToCart();
-                                    },
-                                    icon: Icon(
-                                      Icons.add_rounded,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onPrimary,
                                     ),
-                                  ),
+                                    Flexible(
+                                      fit: FlexFit.tight,
+                                      child: IconButton(
+                                        padding: const EdgeInsets.all(0),
+                                        onPressed: () {
+                                          _addToCart();
+                                        },
+                                        icon: Container(
+                                          padding: EdgeInsets.all(
+                                              5 * globals.scaleParam),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.all(
+                                              Radius.circular(100),
+                                            ),
+                                            color: Colors.grey.shade400,
+                                          ),
+                                          child: Icon(
+                                            Icons.add_rounded,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onBackground,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Flexible(
+                        flex: 7,
+                        fit: FlexFit.tight,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 10 * globals.scaleParam),
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: buyButtonActionColor,
+                              padding: EdgeInsets.zero,
+                            ),
+                            onPressed: () {
+                              if (actualCartAmount == 0) {
+                                _finalizeCartAmount();
+                              } else if (actualCartAmount == amountInCart ||
+                                  amountInCart == 0) {
+                                setState(() {
+                                  amountInCart = 0;
+                                });
+                                _finalizeCartAmount();
+                              } else {
+                                _finalizeCartAmount();
+                              }
+                            },
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      fit: FlexFit.tight,
+                                      child: Text(
+                                        buyButtonActionText,
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 38 * globals.scaleParam,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    Flexible(
-                      flex: 5,
-                      fit: FlexFit.tight,
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 10 * globals.scaleParam),
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            disabledBackgroundColor:
-                                Theme.of(context).colorScheme.primary,
-                            padding: EdgeInsets.zero,
-                          ),
-                          onPressed: () {
-                            if (isAmountChanged) {
-                              Future.delayed(const Duration(microseconds: 0),
-                                  () async {
-                                widget.returnDataAmount!(cacheAmount);
-                                await _finalizeCartAmount();
-                              });
-                            }
-                          },
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Row(
-                                children: [
-                                  Flexible(
-                                    fit: FlexFit.tight,
-                                    child: Text(
-                                      "В корзину",
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 38 * globals.scaleParam,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onPrimary,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                isNumPickActive
-                    ? SizedBox(
-                        width: double.infinity,
-                        child: Row(
-                          children: [
-                            const Flexible(
-                              flex: 1,
-                              fit: FlexFit.tight,
-                              child: SizedBox(),
-                            ),
-                            const Flexible(
-                              flex: 3,
-                              fit: FlexFit.tight,
-                              child: SizedBox(),
-                            ),
-                            Flexible(
-                              flex: 2,
-                              fit: FlexFit.tight,
-                              child: _numberPicker(context),
-                            ),
-                            const Flexible(
-                              flex: 1,
-                              fit: FlexFit.tight,
-                              child: SizedBox(),
-                            )
-                          ],
-                        ),
-                      )
-                    : const SizedBox()
-              ],
-            ),
-          );
-        },
+                    ],
+                  ),
+                  // isNumPickActive
+                  //     ? SizedBox(
+                  //         width: double.infinity,
+                  //         child: Row(
+                  //           children: [
+                  //             Flexible(
+                  //               flex: 5,
+                  //               fit: FlexFit.tight,
+                  //               child: LayoutBuilder(
+                  //                 builder: (context, constraints) {
+                  //                   return OverflowBox(
+                  //                     maxHeight: constraints.maxHeight * 1.8,
+                  //                     child: Row(
+                  //                       children: [
+                  //                         Flexible(
+                  //                           child: Container(
+                  //                             // margin:
+                  //                             //     const EdgeInsets.symmetric(
+                  //                             //         horizontal: 10),
+                  //                             clipBehavior: Clip.antiAlias,
+                  //                             decoration: BoxDecoration(
+                  //                               borderRadius:
+                  //                                   const BorderRadius.all(
+                  //                                 Radius.circular(10),
+                  //                               ),
+                  //                               gradient: LinearGradient(
+                  //                                 colors: [
+                  //                                   Colors.transparent,
+                  //                                   Colors.amber,
+                  //                                   // Colors.transparent
+                  //                                 ],
+                  //                                 begin: Alignment.topCenter,
+                  //                                 end: Alignment.bottomCenter,
+                  //                               ),
+                  //                               // color: Theme.of(context)
+                  //                               //     .colorScheme
+                  //                               //     .secondary
+                  //                               //     .withOpacity(0.45),
+                  //                             ),
+                  //                             child: FractionallySizedBox(
+                  //                               widthFactor: 3 / 5,
+                  //                               child: ListView.builder(
+                  //                                 controller: _scrollController,
+                  //                                 itemCount: double.parse(
+                  //                                             item["in_stock"])
+                  //                                         .truncate() +
+                  //                                     2,
+                  //                                 itemExtent: 33.3,
+                  //                                 itemBuilder:
+                  //                                     (context, index) {
+                  //                                   if (index == 0 ||
+                  //                                       index ==
+                  //                                           double.parse(item[
+                  //                                                       "in_stock"])
+                  //                                                   .truncate() +
+                  //                                               1) {
+                  //                                     return const SizedBox(
+                  //                                       height: 15,
+                  //                                     );
+                  //                                   }
+                  //                                   return Row(
+                  //                                     mainAxisAlignment:
+                  //                                         MainAxisAlignment
+                  //                                             .center,
+                  //                                     children: [
+                  //                                       Flexible(
+                  //                                         child:
+                  //                                             GestureDetector(
+                  //                                           behavior:
+                  //                                               HitTestBehavior
+                  //                                                   .opaque,
+                  //                                           onTap: () {
+                  //                                             setState(() {
+                  //                                               cacheAmount =
+                  //                                                   index;
+                  //                                             });
+                  //                                             isNumPickActive =
+                  //                                                 false;
+                  //                                           },
+                  //                                           child: SizedBox(
+                  //                                             height: 33.3,
+                  //                                             child: Text(
+                  //                                               "${index.toString()} шт.",
+                  //                                               style:
+                  //                                                   TextStyle(
+                  //                                                 color: Theme.of(
+                  //                                                         context)
+                  //                                                     .colorScheme
+                  //                                                     .onPrimary,
+                  //                                                 fontSize: 20,
+                  //                                                 fontWeight: index ==
+                  //                                                         cacheAmount
+                  //                                                     ? FontWeight
+                  //                                                         .w900
+                  //                                                     : FontWeight
+                  //                                                         .w500,
+                  //                                               ),
+                  //                                             ),
+                  //                                           ),
+                  //                                         ),
+                  //                                       ),
+                  //                                     ],
+                  //                                   );
+                  //                                 },
+                  //                               ),
+                  //                             ),
+                  //                           ),
+                  //                         ),
+                  //                       ],
+                  //                     ),
+                  //                   );
+                  //                 },
+                  //               ),
+                  //             ),
+                  //             Flexible(
+                  //               flex: 7,
+                  //               fit: FlexFit.tight,
+                  //               child: SizedBox(),
+                  //             ),
+                  //           ],
+                  //         ),
+                  //       )
+                  //     : const SizedBox()
+                ],
+              ),
+            );
+          },
+        ),
       ),
       body: ListView(
         controller: scrollController,
@@ -421,126 +565,6 @@ class _ProductPageState extends State<ProductPage> {
                     child: _image,
                   ),
                 ),
-                SizedBox(
-                  width: MediaQuery.of(context).size.width,
-                  height: MediaQuery.of(context).size.width,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.max,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          IconButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            icon: const Icon(
-                              Icons.arrow_back_ios,
-                            ),
-                          ),
-                          // IconButton(
-                          //   onPressed: () {},
-                          //   icon: const Icon(Icons.share_outlined),
-                          // ),
-                        ],
-                      ),
-                      // Row(
-                      //   mainAxisSize: MainAxisSize.max,
-                      //   mainAxisAlignment: MainAxisAlignment.end,
-                      //   crossAxisAlignment: CrossAxisAlignment.center,
-                      //   children: [
-                      //     Container(
-                      //       margin: const EdgeInsets.all(5),
-                      //       child: item.isNotEmpty
-                      //           ? LikeButton(
-                      //               item_id: item["item_id"],
-                      //               is_liked: item["is_liked"],
-                      //             )
-                      //           : Container(),
-                      //     )
-                      //   ],
-                      // )
-                    ],
-                  ),
-                )
-              ],
-            ),
-          ),
-          Container(
-            padding: EdgeInsets.symmetric(
-                horizontal: 30 * globals.scaleParam,
-                vertical: 10 * globals.scaleParam),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(
-                  child: Row(
-                    children: [
-                      Flexible(
-                        child: Container(
-                          margin:
-                              EdgeInsets.only(right: 10 * globals.scaleParam),
-                          padding: EdgeInsets.all(5 * globals.scaleParam),
-                          decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius:
-                                  const BorderRadius.all(Radius.circular(5))),
-                          child: Text(
-                            "Новинка",
-                            style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 28 * globals.scaleParam),
-                          ),
-                        ),
-                      ),
-                      Flexible(
-                        child: Container(
-                          margin:
-                              EdgeInsets.only(right: 10 * globals.scaleParam),
-                          padding: EdgeInsets.all(5 * globals.scaleParam),
-                          decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius:
-                                  const BorderRadius.all(Radius.circular(5))),
-                          child: Text(
-                            "Новинка",
-                            style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 28 * globals.scaleParam),
-                          ),
-                        ),
-                      ),
-                      Flexible(
-                        child: Container(
-                          margin:
-                              EdgeInsets.only(right: 10 * globals.scaleParam),
-                          padding: EdgeInsets.all(5 * globals.scaleParam),
-                          decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius:
-                                  const BorderRadius.all(Radius.circular(5))),
-                          child: Text(
-                            "Новинка",
-                            style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 28 * globals.scaleParam),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  margin: EdgeInsets.all(5 * globals.scaleParam),
-                  child: item.isNotEmpty
-                      ? LikeButton(
-                          item_id: item["item_id"],
-                          is_liked: item["is_liked"],
-                        )
-                      : Container(),
-                )
               ],
             ),
           ),
@@ -751,53 +775,6 @@ class _ProductPageState extends State<ProductPage> {
             height: 100,
           )
         ],
-      ),
-    );
-  }
-
-  Container _numberPicker(BuildContext context) {
-    return Container(
-      height: 100,
-      margin: const EdgeInsets.symmetric(horizontal: 10),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        borderRadius: const BorderRadius.all(
-          Radius.circular(10),
-        ),
-        color: Theme.of(context).colorScheme.secondary.withOpacity(0.5),
-      ),
-      child: ListView.builder(
-        controller: _scrollController,
-        itemCount: double.parse(item["in_stock"]).truncate() + 2,
-        itemExtent: 33.3,
-        itemBuilder: (context, index) {
-          if (index == 0 ||
-              index == double.parse(item["in_stock"]).truncate() + 1) {
-            return const SizedBox(
-              height: 33.3,
-            );
-          }
-          return GestureDetector(
-            onTap: () {
-              setState(() {
-                cacheAmount = index;
-              });
-              isNumPickActive = false;
-            },
-            child: SizedBox(
-              height: 33.3,
-              child: Text(
-                index.toString(),
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onPrimary,
-                  fontSize: 20,
-                  fontWeight:
-                      index == cacheAmount ? FontWeight.w900 : FontWeight.w500,
-                ),
-              ),
-            ),
-          );
-        },
       ),
     );
   }
