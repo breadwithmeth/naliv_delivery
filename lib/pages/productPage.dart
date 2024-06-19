@@ -65,7 +65,9 @@ class _ProductPageState extends State<ProductPage> {
 
   int amountInCart = 0;
   int actualCartAmount = 0;
-  bool isNumPickActive = false;
+
+  bool isServerCallOnGoing = false;
+
   Map<String, String> buyButtonActionTextMap = {
     "add": "В корзину",
     "remove": "Убрать всё",
@@ -85,6 +87,9 @@ class _ProductPageState extends State<ProductPage> {
   }
 
   Future<void> _finalizeCartAmount() async {
+    setState(() {
+      isServerCallOnGoing = true;
+    });
     await changeCartItem(
             item["item_id"], amountInCart, widget.business["business_id"])
         .then(
@@ -104,9 +109,12 @@ class _ProductPageState extends State<ProductPage> {
       },
     ).onError(
       (error, stackTrace) {
-        throw Exception("buyButton _addToCart failed");
+        throw Exception("Ошибка в _finalizeCartAmount ProductPage");
       },
     );
+    setState(() {
+      isServerCallOnGoing = false;
+    });
   }
 
   void _removeFromCart() {
@@ -216,6 +224,9 @@ class _ProductPageState extends State<ProductPage> {
 
   @override
   void dispose() {
+    Future.delayed(Duration.zero, () {
+      widget.returnDataAmount!(amountInCart);
+    });
     super.dispose();
   }
 
@@ -305,27 +316,19 @@ class _ProductPageState extends State<ProductPage> {
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
                                         children: [
-                                          GestureDetector(
-                                            onLongPress: () {
-                                              setState(() {
-                                                isNumPickActive = true;
-                                              });
-                                            },
-                                            child: Text(
-                                              amountInCart.toString(),
-                                              textHeightBehavior:
-                                                  const TextHeightBehavior(
-                                                applyHeightToFirstAscent: false,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize:
-                                                    34 * globals.scaleParam,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onBackground,
-                                              ),
+                                          Text(
+                                            amountInCart.toString(),
+                                            textHeightBehavior:
+                                                const TextHeightBehavior(
+                                              applyHeightToFirstAscent: false,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 34 * globals.scaleParam,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onBackground,
                                             ),
                                           ),
                                         ],

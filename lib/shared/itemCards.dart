@@ -424,6 +424,32 @@ class _ItemCardMediumState extends State<ItemCardMedium>
     }
   }
 
+  void _moveButton() {
+    if (_controller.status == AnimationStatus.completed) {
+      _controller.reverse();
+    } else {
+      _controller.forward();
+    }
+  }
+
+  void updateCurrentItem(int amount, [int index = 0]) {
+    if (amountInCart == 0 && amount != 0) {
+      _moveButton();
+    }
+    setState(() {
+      amountInCart = amount;
+    });
+  }
+
+  Future<void> refreshItemCard() async {
+    Map<String, dynamic>? element = await getItem(widget.element["item_id"]);
+    print(element);
+    setState(() {
+      element!["name"] = "123";
+      element = element!;
+    });
+  }
+
   @override
   void initState() {
     // TODO: implement initState
@@ -508,29 +534,6 @@ class _ItemCardMediumState extends State<ItemCardMedium>
         propertiesWidget = propertiesT;
       });
     }
-  }
-
-  void _moveButton() {
-    if (_controller.status == AnimationStatus.completed) {
-      _controller.reverse();
-    } else {
-      _controller.forward();
-    }
-  }
-
-  void updateCurrentItem(int amount, [int index = 0]) {
-    setState(() {
-      amountInCart = amount;
-    });
-  }
-
-  Future<void> refreshItemCard() async {
-    Map<String, dynamic>? element = await getItem(widget.element["item_id"]);
-    print(element);
-    setState(() {
-      element!["name"] = "123";
-      element = element!;
-    });
   }
 
   @override
