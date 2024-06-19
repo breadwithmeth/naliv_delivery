@@ -350,18 +350,16 @@ class _ItemCardMediumState extends State<ItemCardMedium>
   List<InlineSpan> propertiesWidget = [];
   int amountInCart = 0;
   int previousAmount = 0;
-  bool isItemAmountChanging = false;
   late int chack;
   Timer? _debounce;
+
+  bool canButtonsBeUsed = true;
 
   late AnimationController _controller;
   late Animation<Offset> _offsetAnimation;
   // late Animation<Offset> _offsetAnimationReverse;
 
   void _updateItemCountServerCall() {
-    setState(() {
-      isItemAmountChanging = true;
-    });
     changeCartItem(
             element["item_id"], amountInCart, widget.business["business_id"])
         .then((value) {
@@ -389,9 +387,6 @@ class _ItemCardMediumState extends State<ItemCardMedium>
       //       amountInCart.toString(), widget.index);
       // }
       print(value);
-      setState(() {
-        isItemAmountChanging = false;
-      });
     });
   }
 
@@ -424,17 +419,11 @@ class _ItemCardMediumState extends State<ItemCardMedium>
     }
   }
 
-  void _moveButton() {
-    if (_controller.status == AnimationStatus.completed) {
-      _controller.reverse();
-    } else {
-      _controller.forward();
-    }
-  }
-
   void updateCurrentItem(int amount, [int index = 0]) {
     if (amountInCart == 0 && amount != 0) {
-      _moveButton();
+      _controller.forward();
+    } else if (amount == 0) {
+      _controller.reverse();
     }
     setState(() {
       amountInCart = amount;
@@ -466,8 +455,8 @@ class _ItemCardMediumState extends State<ItemCardMedium>
     );
 
     _offsetAnimation = Tween<Offset>(
-      begin: Offset(1, 0),
-      end: Offset(0, 0),
+      begin: Offset(0.70, 0),
+      end: Offset(-0.1, 0),
     ).animate(
       CurvedAnimation(
         parent: _controller,
@@ -478,7 +467,6 @@ class _ItemCardMediumState extends State<ItemCardMedium>
     if (amountInCart > 0) {
       _controller.forward();
     }
-
     // _offsetAnimationReverse = Tween<Offset>(
     //   begin: Offset(0, 0),
     //   end: Offset(1, 0),
@@ -807,10 +795,9 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                 alignment: Alignment.centerLeft,
                                                 child: ClipRect(
                                                   clipBehavior: Clip.antiAlias,
-                                                  child: Visibility(
-                                                    visible: amountInCart > 0
-                                                        ? true
-                                                        : false,
+                                                  child: OverflowBox(
+                                                    maxWidth:
+                                                        constraints.maxWidth,
                                                     child: SlideTransition(
                                                       position:
                                                           _offsetAnimation,
@@ -819,16 +806,73 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                           Flexible(
                                                             fit: FlexFit.tight,
                                                             child: IconButton(
+                                                              highlightColor:
+                                                                  canButtonsBeUsed
+                                                                      ? Colors
+                                                                          .transparent
+                                                                      : Colors
+                                                                          .transparent,
                                                               padding:
                                                                   EdgeInsets
                                                                       .all(0),
-                                                              onPressed: () {
-                                                                _decrementAmountInCart();
-                                                                if (amountInCart <=
-                                                                    0) {
-                                                                  _moveButton();
-                                                                }
-                                                              },
+                                                              onPressed:
+                                                                  canButtonsBeUsed
+                                                                      ? () {
+                                                                          _incrementAmountInCart();
+                                                                          setState(
+                                                                              () {
+                                                                            canButtonsBeUsed =
+                                                                                false;
+                                                                          });
+                                                                          _controller
+                                                                              .forward();
+                                                                          Timer(
+                                                                            Duration(milliseconds: 100),
+                                                                            () {
+                                                                              setState(() {
+                                                                                canButtonsBeUsed = true;
+                                                                              });
+                                                                            },
+                                                                          );
+                                                                        }
+                                                                      : null,
+                                                              icon: Icon(
+                                                                Icons
+                                                                    .add_rounded,
+                                                                color: Theme.of(
+                                                                        context)
+                                                                    .colorScheme
+                                                                    .onBackground,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          Flexible(
+                                                            fit: FlexFit.tight,
+                                                            child: IconButton(
+                                                              padding:
+                                                                  EdgeInsets
+                                                                      .all(0),
+                                                              onPressed:
+                                                                  canButtonsBeUsed
+                                                                      ? () {
+                                                                          _decrementAmountInCart();
+                                                                          if (amountInCart <=
+                                                                              0) {
+                                                                            setState(() {
+                                                                              canButtonsBeUsed = false;
+                                                                            });
+                                                                            _controller.reverse();
+                                                                            Timer(
+                                                                              Duration(milliseconds: 100),
+                                                                              () {
+                                                                                setState(() {
+                                                                                  canButtonsBeUsed = true;
+                                                                                });
+                                                                              },
+                                                                            );
+                                                                          }
+                                                                        }
+                                                                      : null,
                                                               icon: Container(
                                                                 decoration:
                                                                     BoxDecoration(
@@ -912,9 +956,12 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                               padding:
                                                                   EdgeInsets
                                                                       .all(0),
-                                                              onPressed: () {
-                                                                _incrementAmountInCart();
-                                                              },
+                                                              onPressed:
+                                                                  canButtonsBeUsed
+                                                                      ? () {
+                                                                          _incrementAmountInCart();
+                                                                        }
+                                                                      : null,
                                                               icon: Container(
                                                                 decoration:
                                                                     BoxDecoration(
@@ -962,44 +1009,6 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                             ],
                                           );
                                         },
-                                      ),
-                                      AnimatedSwitcher(
-                                        duration: Duration(milliseconds: 150),
-                                        transitionBuilder: (Widget child,
-                                            Animation<double> animation) {
-                                          return ScaleTransition(
-                                              scale: animation, child: child);
-                                        },
-                                        child: amountInCart == 0
-                                            ? LayoutBuilder(
-                                                builder:
-                                                    (context, constraints) {
-                                                  return SizedBox(
-                                                    width:
-                                                        constraints.maxWidth *
-                                                            0.85,
-                                                    child: Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment.end,
-                                                      children: [
-                                                        IconButton(
-                                                          onPressed: () {
-                                                            if (!_controller
-                                                                .isCompleted) {
-                                                              _moveButton();
-                                                            }
-                                                            _incrementAmountInCart();
-                                                          },
-                                                          icon: Icon(
-                                                            Icons.add_rounded,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  );
-                                                },
-                                              )
-                                            : SizedBox(),
                                       ),
                                     ],
                                   ),

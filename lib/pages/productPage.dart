@@ -65,8 +65,10 @@ class _ProductPageState extends State<ProductPage> {
 
   int amountInCart = 0;
   int actualCartAmount = 0;
+  // int lastReturnedDataAmount = 0;
 
   bool isServerCallOnGoing = false;
+  bool isLastServerCallWasSucceed = false;
 
   Map<String, String> buyButtonActionTextMap = {
     "add": "В корзину",
@@ -89,6 +91,7 @@ class _ProductPageState extends State<ProductPage> {
   Future<void> _finalizeCartAmount() async {
     setState(() {
       isServerCallOnGoing = true;
+      isLastServerCallWasSucceed = false;
     });
     await changeCartItem(
             item["item_id"], amountInCart, widget.business["business_id"])
@@ -104,8 +107,12 @@ class _ProductPageState extends State<ProductPage> {
             actualCartAmount = 0;
           });
         }
+        setState(() {
+          isLastServerCallWasSucceed = true;
+        });
         getBuyButtonCurrentActionText();
         widget.returnDataAmount!(actualCartAmount);
+        print("TRIGGERED WIDGET.RETURNDATAAMOUNT!");
       },
     ).onError(
       (error, stackTrace) {
@@ -144,12 +151,12 @@ class _ProductPageState extends State<ProductPage> {
     } else if (actualCartAmount == amountInCart || amountInCart == 0) {
       setState(() {
         buyButtonActionText = buyButtonActionTextMap["remove"]!;
-        buyButtonActionColor = Color.fromARGB(255, 167, 42, 33);
+        buyButtonActionColor = Colors.red;
       });
     } else {
       setState(() {
         buyButtonActionText = buyButtonActionTextMap["update"]!;
-        buyButtonActionColor = Color.fromARGB(255, 49, 49, 49);
+        buyButtonActionColor = Color.fromARGB(255, 0, 0, 0);
       });
     }
   }
@@ -224,9 +231,11 @@ class _ProductPageState extends State<ProductPage> {
 
   @override
   void dispose() {
-    Future.delayed(Duration.zero, () {
-      widget.returnDataAmount!(amountInCart);
-    });
+    if (isServerCallOnGoing && !isLastServerCallWasSucceed) {
+      Future.delayed(Duration.zero, () {
+        widget.returnDataAmount!(amountInCart);
+      });
+    }
     super.dispose();
   }
 
@@ -237,7 +246,7 @@ class _ProductPageState extends State<ProductPage> {
       expand: false,
       initialChildSize: 1,
       maxChildSize: 1,
-      minChildSize: 0.9,
+      minChildSize: 0.85,
       shouldCloseOnMinExtent: true,
       snapAnimationDuration: const Duration(milliseconds: 150),
       builder: ((context, scrollController) {
