@@ -448,7 +448,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
       amountInCart = int.parse(element["amount"] ?? "0");
       previousAmount = amountInCart;
     });
-    getProperties();
+    // getProperties();
     _controller = AnimationController(
       duration: const Duration(milliseconds: 150),
       vsync: this,
