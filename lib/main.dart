@@ -142,14 +142,15 @@ class _MainState extends State<Main> {
     if (view.display.size.width + view.display.size.height >= 2560 + 1600) {
       globals.scaleParam = (view.display.size.shortestSide / 720) * 0.3;
     } else if (view.display.size.width + view.display.size.height >=
-        (1560 + 720)) {
-      globals.scaleParam = (view.display.size.shortestSide / 720) * 0.4;
-    } else if (view.display.size.width + view.display.size.height >=
         1920 + 1080) {
       globals.scaleParam = (view.display.size.shortestSide / 720) * 0.45;
+    } else if (view.display.size.width + view.display.size.height >=
+        (1560 + 720)) {
+      globals.scaleParam = (view.display.size.shortestSide / 720) * 0.4;
     } else {
       globals.scaleParam = 0.5;
     }
+    print("SCALE PARAM IS: ${globals.scaleParam}");
     // globals.scaleParam = 1;
     return MaterialApp(
       theme: ThemeData(
