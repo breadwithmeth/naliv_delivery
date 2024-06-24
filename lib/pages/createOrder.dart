@@ -469,7 +469,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                               onTap: () {
                                 Navigator.push(
                                   context,
-                                  CupertinoPageRoute(
+                                  MaterialPageRoute(
                                     builder: (context) {
                                       return PickAddressPage(
                                         client: widget.user,
@@ -488,7 +488,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                               onPressed: () {
                                 Navigator.push(
                                   context,
-                                  CupertinoPageRoute(
+                                  MaterialPageRoute(
                                     builder: (context) => PickAddressPage(
                                       client: widget.user,
                                       business: widget.business,
@@ -732,7 +732,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                       : () {
                           Navigator.push(
                             context,
-                            CupertinoPageRoute(
+                            MaterialPageRoute(
                               builder: (context) => OrderConfirmation(
                                 delivery: delivery,
                                 items: widget.items,

@@ -340,7 +340,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                           widget.user["user_id"])
                                       .then((q) {
                                     Navigator.pushAndRemoveUntil(context,
-                                        CupertinoPageRoute(
+                                        MaterialPageRoute(
                                       builder: (context) {
                                         return PreLoadDataPage(
                                             // business: widget.business,
@@ -490,7 +490,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     // });
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       if (widget.user["name"].toString().isEmpty) {
-        Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
           builder: (context) {
             return const ProfileCreatePage();
           },
@@ -677,7 +677,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                           children: [
                             TextButton(
                               onPressed: () {
-                                Navigator.push(context, CupertinoPageRoute(
+                                Navigator.push(context, MaterialPageRoute(
                                   builder: (context) {
                                     return PickAddressPage(
                                       client: widget.user,
@@ -738,7 +738,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                               fit: FlexFit.tight,
                               child: TextButton(
                                 onPressed: () {
-                                  Navigator.push(context, CupertinoPageRoute(
+                                  Navigator.push(context, MaterialPageRoute(
                                     builder: (context) {
                                       return PickAddressPage(
                                         client: widget.user,
@@ -1018,7 +1018,7 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(context, CupertinoPageRoute(
+        Navigator.push(context, MaterialPageRoute(
           builder: (context) {
             return widget.route;
           },
@@ -1081,7 +1081,7 @@ class BusinessItemState extends State<BusinessItem> {
       onTap: () {
         Navigator.push(
           context,
-          CupertinoPageRoute(
+          MaterialPageRoute(
             builder: (context) {
               return HomePage(
                 business: widget.business,

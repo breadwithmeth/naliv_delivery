@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/paintLogoPage.dart';
@@ -133,6 +134,24 @@ class _MainState extends State<Main> {
     //   DeviceOrientation.portraitUp,
     //   DeviceOrientation.portraitDown,
     // ]);
+    // First get the FlutterView.
+    FlutterView view = WidgetsBinding.instance.platformDispatcher.views.first;
+    print(
+        "SCREEN WIDTH IS: ${view.display.size.width}; SCREEN HEIGHT IS: ${view.display.size.height}");
+    // 1560 + 720
+    if (view.display.size.width + view.display.size.height >= 2560 + 1600) {
+      globals.scaleParam = (view.display.size.shortestSide / 720) * 0.3;
+    } else if (view.display.size.width + view.display.size.height >=
+        1920 + 1080) {
+      globals.scaleParam = (view.display.size.shortestSide / 720) * 0.45;
+    } else if (view.display.size.width + view.display.size.height >=
+        (1560 + 720)) {
+      globals.scaleParam = (view.display.size.shortestSide / 720) * 0.4;
+    } else {
+      globals.scaleParam = 0.5;
+    }
+    print("SCALE PARAM IS: ${globals.scaleParam}");
+    // globals.scaleParam = 1;
     return MaterialApp(
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(

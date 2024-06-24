@@ -94,7 +94,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
               _getCities().then((value) {
                 _getAddresses().whenComplete(() {
                   // setState(() {});
-                  Navigator.push(context, CupertinoPageRoute(
+                  Navigator.push(context, MaterialPageRoute(
                     builder: (context) {
                       return PickOnMapPage(
                         currentPosition: _location!,
@@ -107,7 +107,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
               });
             });
           } else {
-            Navigator.push(context, CupertinoPageRoute(
+            Navigator.push(context, MaterialPageRoute(
               builder: (context) {
                 return PickOnMapPage(
                   currentPosition: _location!,
@@ -174,7 +174,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                           widget.isFromCreateOrder
                               ? Navigator.pop(context)
                               : Navigator.pushAndRemoveUntil(context,
-                                  CupertinoPageRoute(
+                                  MaterialPageRoute(
                                   builder: (context) {
                                     return Main(
                                         // business: widget.business,

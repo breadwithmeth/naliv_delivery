@@ -29,7 +29,7 @@ class _StartPageState extends State<StartPage> {
     if (token != true) {
       Navigator.push(
           context,
-          CupertinoPageRoute(
+          MaterialPageRoute(
             builder: (context) => const DealPage(),
           ));
     }
@@ -76,7 +76,7 @@ class _StartPageState extends State<StartPage> {
           onPressed: () {
             Navigator.push(
               context,
-              CupertinoPageRoute(
+              MaterialPageRoute(
                 builder: (context) {
                   return const DealPage();
                 },
@@ -145,12 +145,12 @@ class _StartPageState extends State<StartPage> {
           //           backgroundColor: Colors.black,
           //           foregroundColor: Colors.white),
           //       onPressed: () {
-          //         // Navigator.pushReplacement(context, CupertinoPageRoute(
+          //         // Navigator.pushReplacement(context, MaterialPageRoute(
           //         //   builder: (context) {
           //         //     return RegistrationPage();
           //         //   },
           //         // ));
-          //         Navigator.pushReplacement(context, CupertinoPageRoute(
+          //         Navigator.pushReplacement(context, MaterialPageRoute(
           //           builder: (context) {
           //             return const DealPage();
           //           },
@@ -185,7 +185,7 @@ class _StartPageState extends State<StartPage> {
           //               foregroundColor: Colors.black,
           //               backgroundColor: Colors.transparent),
           //           onPressed: () {
-          //             Navigator.pushReplacement(context, CupertinoPageRoute(
+          //             Navigator.pushReplacement(context, MaterialPageRoute(
           //               builder: (context) {
           //                 return LoginPage();
           //               },
@@ -223,7 +223,7 @@ class _StartPageState extends State<StartPage> {
           //             _checkAgreement();
           //             Navigator.push(
           //                 context,
-          //                 CupertinoPageRoute(
+          //                 MaterialPageRoute(
           //                   builder: (context) => LoginPage(),
           //                 ));
           //           },

@@ -225,7 +225,7 @@ class _AddressesPageState extends State<AddressesPage>
                                       child: Text("Использовать этот адрес"),
                                     ),
                                     onTap: () {
-                                      // Navigator.push(context, CupertinoPageRoute(
+                                      // Navigator.push(context, MaterialPageRoute(
                                       //   builder: (context) {
                                       //     return CreateAddressName(
                                       //         street: _adressName,

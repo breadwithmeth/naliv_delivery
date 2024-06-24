@@ -85,7 +85,7 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
 
     _getAddresses().then((v) {
       if (v == false) {
-        Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
           builder: (context) {
             return PickAddressPage(client: user, isFirstTime: true);
           },
@@ -94,14 +94,14 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
         _getUser().then((vv) {
           _getBusinesses().then((b) {
             if (user["name"].toString().isEmpty) {
-              Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+              Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
                 builder: (context) {
                   return const ProfileCreatePage();
                 },
               ), (route) => false);
             } else {
               _addresses.isNotEmpty
-                  ? Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+                  ? Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
                       builder: (context) {
                         return OrganizationSelectPage(
                           addresses: _addresses,
@@ -111,13 +111,13 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
                         );
                       },
                     ), (Route<dynamic> route) => false)
-                  : Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+                  : Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
                       builder: (context) {
                         return PickAddressPage(client: user, isFirstTime: true);
                       },
                     ), (Route<dynamic> route) => false);
               _addresses.isNotEmpty
-                  ? Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+                  ? Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
                       builder: (context) {
                         return OrganizationSelectPage(
                           addresses: _addresses,
@@ -127,7 +127,7 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
                         );
                       },
                     ), (Route<dynamic> route) => false)
-                  : Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+                  : Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
                       builder: (context) {
                         return PickAddressPage(client: user, isFirstTime: true);
                       },

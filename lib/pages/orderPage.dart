@@ -29,7 +29,7 @@ class _OrderPageState extends State<OrderPage> {
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(),
           onPressed: () {
-            Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+            Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
               builder: (context) {
                 // return HomePage(
                 //   business: widget.business,

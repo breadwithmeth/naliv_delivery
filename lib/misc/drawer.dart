@@ -71,7 +71,7 @@
 //                                     const EdgeInsets.symmetric(horizontal: 20)),
 //                             onPressed: () {
 //                               setState(() {
-//                                 Navigator.push(context, CupertinoPageRoute(
+//                                 Navigator.push(context, MaterialPageRoute(
 //                                   builder: (context) {
 //                                     return const OrderHistoryPage();
 //                                   },
@@ -127,7 +127,7 @@
 //                               });
 //                               Navigator.push(
 //                                 context,
-//                                 CupertinoPageRoute(
+//                                 MaterialPageRoute(
 //                                     builder: (context) => AddressesPage(
 //                                           addresses: _addresses,
 //                                           isExtended: true,
@@ -225,7 +225,7 @@
 //                                     const EdgeInsets.symmetric(horizontal: 20)),
 //                             onPressed: () {
 //                               setState(() {
-//                                 Navigator.push(context, CupertinoPageRoute(
+//                                 Navigator.push(context, MaterialPageRoute(
 //                                   builder: (context) {
 //                                     return const FavPage();
 //                                   },
@@ -277,7 +277,7 @@
 //                                     const EdgeInsets.symmetric(horizontal: 20)),
 //                             onPressed: () {
 //                               setState(() {
-//                                 Navigator.push(context, CupertinoPageRoute(
+//                                 Navigator.push(context, MaterialPageRoute(
 //                                   builder: (context) {
 //                                     return const SettingsPage();
 //                                   },
@@ -330,7 +330,7 @@
 //                             onPressed: () {
 //                               setState(() {
 //                                 Navigator.pushReplacement(context,
-//                                     CupertinoPageRoute(
+//                                     MaterialPageRoute(
 //                                   builder: (context) {
 //                                     return PreLoadDataPage();
 //                                   },
@@ -373,7 +373,7 @@
 //                             onPressed: () {
 //                               setState(() {
 //                                 Navigator.pushReplacement(context,
-//                                     CupertinoPageRoute(
+//                                     MaterialPageRoute(
 //                                   builder: (context) {
 //                                     return const SupportPage();
 //                                   },
@@ -459,7 +459,7 @@
 //                                                   logout();
 //                                                   Navigator.pushAndRemoveUntil(
 //                                                       context,
-//                                                       CupertinoPageRoute(
+//                                                       MaterialPageRoute(
 //                                                         builder: (context) =>
 //                                                             const LoginPage(),
 //                                                       ),
@@ -609,7 +609,7 @@
 //                           //                       logout();
 //                           //                       Navigator.pushAndRemoveUntil(
 //                           //                           context,
-//                           //                           CupertinoPageRoute(
+//                           //                           MaterialPageRoute(
 //                           //                             builder: (context) =>
 //                           //                                 const LoginPage(),
 //                           //                           ),
@@ -685,7 +685,7 @@
 //                           //   // });
 //                           //   // print(123);
 //                           //   // logout();
-//                           //   // Navigator.pushReplacement(context, CupertinoPageRoute(
+//                           //   // Navigator.pushReplacement(context, MaterialPageRoute(
 //                           //   //   builder: (context) {
 //                           //   //     return const LoginPage();
 //                           //   //   },

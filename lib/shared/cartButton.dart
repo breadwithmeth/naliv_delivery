@@ -31,7 +31,7 @@ class _CartButtonState extends State<CartButton> {
         onPressed: () {
           Navigator.push(
             context,
-            CupertinoPageRoute(
+            MaterialPageRoute(
               builder: (context) {
                 return CartPage(
                   business: widget.business,

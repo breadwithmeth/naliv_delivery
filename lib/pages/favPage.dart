@@ -46,7 +46,7 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
     //     onTap: () {
     //       Navigator.push(
     //         context,
-    //         CupertinoPageRoute(
+    //         MaterialPageRoute(
     //           builder: (context) => ProductPage(
     //             item: element,
     //             index: items.indexOf(element),
@@ -83,12 +83,6 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
     animController.duration = animDuration;
     animController.reverseDuration = const Duration(milliseconds: 450);
     animController.drive(CurveTween(curve: Curves.bounceInOut));
-  }
-
-  void updateDataAmount(String newDataAmount, int index) {
-    setState(() {
-      items[index]["amount"] = newDataAmount;
-    });
   }
 
   @override
@@ -157,7 +151,6 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
                         return ProductPage(
                           item: items[index],
                           index: index,
-                          returnDataAmount: updateDataAmount,
                           business: widget.business,
                         );
                       },

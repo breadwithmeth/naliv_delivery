@@ -70,7 +70,7 @@ class _CartPageState extends State<CartPage>
     animController.drive(CurveTween(curve: Curves.easeIn));
   }
 
-  void updateDataAmount(String newDataAmount, int index) {
+  void updateDataAmount(int newDataAmount, [int index = 0]) {
     setState(() {
       localSum -=
           int.parse(items[index]["price"]) * int.parse(items[index]["amount"]);
@@ -78,7 +78,7 @@ class _CartPageState extends State<CartPage>
       localSum +=
           int.parse(items[index]["price"]) * int.parse(items[index]["amount"]);
     });
-    if (newDataAmount == "0") {
+    if (newDataAmount == 0) {
       items.removeAt(index);
     }
   }
@@ -249,6 +249,11 @@ class _CartPageState extends State<CartPage>
                             ),
                             child: Column(
                               children: [
+                                index == 0
+                                    ? SizedBox(
+                                        height: 20 * globals.scaleParam,
+                                      )
+                                    : SizedBox(),
                                 GestureDetector(
                                   behavior: HitTestBehavior.opaque,
                                   key: Key(items[index]["item_id"]),
@@ -284,7 +289,8 @@ class _CartPageState extends State<CartPage>
                                 items.length - 1 != index
                                     ? Padding(
                                         padding: EdgeInsets.symmetric(
-                                            horizontal: 16),
+                                            horizontal:
+                                                16 * globals.scaleParam),
                                         child: Divider(),
                                       )
                                     : Container(),
@@ -474,7 +480,7 @@ class _CartPageState extends State<CartPage>
                       onPressed: () {
                         // Navigator.push(
                         //   context,
-                        //   CupertinoPageRoute(
+                        //   MaterialPageRoute(
                         //     builder: (context) {
                         //       return FindCreateUserPage(
                         //         business: widget.business,
