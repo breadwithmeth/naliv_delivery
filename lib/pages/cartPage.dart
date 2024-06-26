@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../globals.dart' as globals;
 import 'package:flutter/rendering.dart';
@@ -12,7 +13,7 @@ import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:intl/intl.dart';
 
 class CartPage extends StatefulWidget {
-  CartPage({super.key, required this.business, required this.user});
+  const CartPage({super.key, required this.business, required this.user});
 
   final Map<dynamic, dynamic> business;
   final Map user;
@@ -26,13 +27,65 @@ class _CartPageState extends State<CartPage>
   late List items = [];
   late Map<String, dynamic> cartInfo = {};
   late String sum = "0";
-  int localSum = 0;
+  int localNotFutureBuilderSum = 0;
   late AnimationController animController;
   final Duration animDuration = Duration(milliseconds: 250);
   int localDiscount = 0;
   TextEditingController _promoController = TextEditingController();
   Map<String, dynamic> client = {};
   int distance = 0;
+  int bonusSum = 0;
+
+  int price = 0;
+  int userBonusPoints = 5000;
+
+  int bonusPercent = 0;
+
+  void changeBonusPercent(int amount) {
+    if (0 <= amount && amount <= 30) {
+      switch (amount) {
+        case 0:
+          setState(() {
+            bonusPercent = amount;
+            bonusSum = (localNotFutureBuilderSum + price) * 0;
+          });
+          break;
+        case 10:
+          if (((localNotFutureBuilderSum + price) * 0.1).round() >
+              userBonusPoints) {
+            return;
+          }
+          setState(() {
+            bonusPercent = amount;
+            bonusSum = ((localNotFutureBuilderSum + price) * 0.1).round();
+          });
+          break;
+        case 20:
+          if (((localNotFutureBuilderSum + price) * 0.2).round() >
+              userBonusPoints) {
+            return;
+          }
+          setState(() {
+            bonusPercent = amount;
+            bonusSum = ((localNotFutureBuilderSum + price) * 0.2).round();
+          });
+          break;
+        case 30:
+          if (((localNotFutureBuilderSum + price) * 0.3).round() >
+              userBonusPoints) {
+            return;
+          }
+          setState(() {
+            bonusPercent = amount;
+            bonusSum = ((localNotFutureBuilderSum + price) * 0.3).round();
+          });
+          break;
+        default:
+          print("No, bonus percent can only be [0, 10, 20, 30]");
+          break;
+      }
+    }
+  }
 
   Future<Map<String, dynamic>> _getCart() async {
     Map<String, dynamic> cart = await getCart(widget.business["business_id"]);
@@ -72,10 +125,10 @@ class _CartPageState extends State<CartPage>
 
   void updateDataAmount(int newDataAmount, [int index = 0]) {
     setState(() {
-      localSum -=
+      localNotFutureBuilderSum -=
           int.parse(items[index]["price"]) * int.parse(items[index]["amount"]);
       items[index]["amount"] = newDataAmount;
-      localSum +=
+      localNotFutureBuilderSum +=
           int.parse(items[index]["price"]) * int.parse(items[index]["amount"]);
     });
     if (newDataAmount == 0) {
@@ -83,16 +136,16 @@ class _CartPageState extends State<CartPage>
     }
   }
 
-  List updatePrices(String localSum, int localDiscount) {
+  List updatePrices(String localNotFutureBuilderSum, int localDiscount) {
     for (dynamic item in items) {
-      localSum +=
+      localNotFutureBuilderSum +=
           (int.parse(item["price"]) * int.parse(item["amount"])).toString();
       if (item["previous_price"] != null) {
         localDiscount += (int.parse(item["price"]) -
             int.parse(item["previous_price"]) * int.parse(item["amount"]));
       }
     }
-    return [localSum, localDiscount];
+    return [localNotFutureBuilderSum, localDiscount];
   }
 
   // bool isCartLoading = false;
@@ -161,10 +214,10 @@ class _CartPageState extends State<CartPage>
               List items = snapshot.data!["cart"];
               print(items);
               String localSum = snapshot.data!["sum"];
+              localNotFutureBuilderSum = int.parse(snapshot.data!["sum"]);
               int distance = int.parse(snapshot.data!["distance"].toString());
               double dist = distance / 1000;
               dist = (dist * 2).round() / 2;
-              int price = 0;
               if (dist <= 1.5) {
                 price = 700;
               } else {
@@ -199,6 +252,8 @@ class _CartPageState extends State<CartPage>
                                 setState(() {
                                   items.removeAt(index);
                                   localSum = updatedData[0];
+                                  localNotFutureBuilderSum =
+                                      int.parse(updatedData[0]);
                                   localDiscount = updatedData[1];
                                   // localSum -= int.parse(item["price"]) *
                                   //     int.parse(item["amount"]);
@@ -319,155 +374,603 @@ class _CartPageState extends State<CartPage>
                     height: 40 * globals.scaleParam,
                   ),
                   Divider(),
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 40 * globals.scaleParam,
-                        vertical: 40 * globals.scaleParam),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        Flexible(
-                          flex: 5,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: EdgeInsets.only(
-                                    left: 30 * globals.scaleParam),
-                                child: Text(
-                                  "Цена без скидки",
-                                  style: TextStyle(
-                                    fontSize: 32 * globals.scaleParam,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black,
+                  SizedBox(
+                    height: 450 * globals.scaleParam,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 40 * globals.scaleParam,
+                          vertical: 40 * globals.scaleParam),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Flexible(
+                            fit: FlexFit.tight,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 20 * globals.scaleParam),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Flexible(
+                                        flex: 10,
+                                        fit: FlexFit.tight,
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  left: 4),
+                                              child: Text(
+                                                "Цена без скидки",
+                                                textAlign: TextAlign.start,
+                                                style: TextStyle(
+                                                  fontSize:
+                                                      32 * globals.scaleParam,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.black,
+                                                ),
+                                              ),
+                                            ),
+                                            Divider(
+                                              height: 1,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Flexible(
+                                        flex: 4,
+                                        fit: FlexFit.tight,
+                                        child: Padding(
+                                          padding: EdgeInsets.only(
+                                              left: 40 * globals.scaleParam),
+                                          child: Text(
+                                            "${globals.formatCost(localSum.toString())} ₸", // CHANGE THIS TO REPRESENT SUM WITHOUT DISCOUNT
+                                            style: TextStyle(
+                                              fontSize: 32 * globals.scaleParam,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
+                                ],
                               ),
-                              Padding(
-                                padding: EdgeInsets.only(
-                                    right: 40 * globals.scaleParam),
-                                child: Divider(),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(
-                                    left: 30 * globals.scaleParam),
-                                child: Text(
-                                  "Скидка",
-                                  style: TextStyle(
-                                    fontSize: 32 * globals.scaleParam,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(
-                                    right: 40 * globals.scaleParam),
-                                child: Divider(),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(
-                                    left: 30 * globals.scaleParam),
-                                child: Text(
-                                  "Доставка",
-                                  style: TextStyle(
-                                    fontSize: 32 * globals.scaleParam,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(
-                                    right: 40 * globals.scaleParam),
-                                child: Divider(),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(
-                                    left: 30 * globals.scaleParam),
-                                child: Text(
-                                  "Итого",
-                                  style: TextStyle(
-                                    fontSize: 32 * globals.scaleParam,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                        Flexible(
-                          flex: 2,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
+                          Flexible(
+                            fit: FlexFit.tight,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 20 * globals.scaleParam),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Flexible(
-                                    child: Text(
-                                      "${globals.formatCost(localSum.toString())} ₸", // CHANGE THIS TO REPRESENT SUM WITHOUT DISCOUNT
-                                      style: TextStyle(
-                                        fontSize: 32 * globals.scaleParam,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.black,
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Flexible(
+                                        flex: 10,
+                                        fit: FlexFit.tight,
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  left: 4),
+                                              child: Text(
+                                                "Скидка",
+                                                textAlign: TextAlign.start,
+                                                style: TextStyle(
+                                                  fontSize:
+                                                      32 * globals.scaleParam,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.black,
+                                                ),
+                                              ),
+                                            ),
+                                            Divider(
+                                              height: 1,
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
+                                      Flexible(
+                                        flex: 4,
+                                        fit: FlexFit.tight,
+                                        child: Padding(
+                                          padding: EdgeInsets.only(
+                                              left: 40 * globals.scaleParam),
+                                          child: Text(
+                                            "${globals.formatCost(localDiscount.toString())} ₸", // CHANGE THIS TO REPRESENT DISCOUNT
+                                            style: TextStyle(
+                                              fontSize: 32 * globals.scaleParam,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                              Divider(),
-                              Row(
+                            ),
+                          ),
+                          Flexible(
+                            fit: FlexFit.tight,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 20 * globals.scaleParam),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Flexible(
-                                    child: Text(
-                                      "${globals.formatCost(localDiscount.toString())} ₸", // CHANGE THIS TO REPRESENT DISCOUNT
-                                      style: TextStyle(
-                                        fontSize: 32 * globals.scaleParam,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.black,
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Flexible(
+                                        flex: 10,
+                                        fit: FlexFit.tight,
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  left: 4),
+                                              child: Text(
+                                                "Доставка",
+                                                textAlign: TextAlign.start,
+                                                style: TextStyle(
+                                                  fontSize:
+                                                      32 * globals.scaleParam,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.black,
+                                                ),
+                                              ),
+                                            ),
+                                            Divider(
+                                              height: 1,
+                                            ),
+                                          ],
+                                        ),
+                                      ), //TODO: перенести расчет цены доставки на бэк
+                                      Flexible(
+                                        flex: 4,
+                                        fit: FlexFit.tight,
+                                        child: Row(
+                                          children: [
+                                            Padding(
+                                              padding: EdgeInsets.only(
+                                                  left:
+                                                      40 * globals.scaleParam),
+                                              child: Text(
+                                                "${globals.formatCost(price.toString())} ₸",
+                                                style: TextStyle(
+                                                  fontSize:
+                                                      32 * globals.scaleParam,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.black,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ),
                                 ],
                               ),
-                              Divider(),
-                              Row(
+                            ),
+                          ),
+                          Flexible(
+                            fit: FlexFit.tight,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 20 * globals.scaleParam),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  //TODO: перенести расчет цены доставки на бэк
                                   Flexible(
                                     fit: FlexFit.tight,
-                                    child: Text(
-                                      "${globals.formatCost(price.toString())} ₸",
-                                      style: TextStyle(
-                                        fontSize: 32 * globals.scaleParam,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.black,
-                                      ),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Flexible(
+                                          flex: 10,
+                                          fit: FlexFit.tight,
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.end,
+                                            children: [
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                    left: 4),
+                                                child: Row(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.end,
+                                                  children: [
+                                                    Flexible(
+                                                      fit: FlexFit.tight,
+                                                      child: Text(
+                                                        "Бонусами",
+                                                        textAlign:
+                                                            TextAlign.start,
+                                                        style: TextStyle(
+                                                          fontSize: 32 *
+                                                              globals
+                                                                  .scaleParam,
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                          color: Colors.black,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              Divider(
+                                                height: 1,
+                                              ),
+                                            ],
+                                          ),
+                                        ), //TODO: перенести расчет цены доставки на бэк
+                                        Flexible(
+                                          flex: 4,
+                                          fit: FlexFit.tight,
+                                          child: Padding(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal:
+                                                  10 * globals.scaleParam,
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.end,
+                                              children: [
+                                                Flexible(
+                                                  fit: FlexFit.tight,
+                                                  child: Padding(
+                                                    padding: EdgeInsets.only(
+                                                        left: 9 *
+                                                            globals.scaleParam),
+                                                    child: ElevatedButton(
+                                                      style: ElevatedButton
+                                                          .styleFrom(
+                                                        padding: EdgeInsets
+                                                            .symmetric(
+                                                          horizontal: 5 *
+                                                              globals
+                                                                  .scaleParam,
+                                                        ),
+                                                        shape:
+                                                            RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius.all(
+                                                            Radius.circular(8),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      child: Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        children: [
+                                                          Flexible(
+                                                            child: Text(
+                                                              "${globals.formatCost(bonusSum.toString())} ₸",
+                                                              style: TextStyle(
+                                                                fontSize: 34 *
+                                                                    globals
+                                                                        .scaleParam,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      onPressed: () {
+                                                        showAdaptiveDialog(
+                                                          context: context,
+                                                          builder: (context) {
+                                                            return StatefulBuilder(
+                                                              builder:
+                                                                  (BuildContext
+                                                                          context,
+                                                                      setState) {
+                                                                return AlertDialog(
+                                                                  title: Row(
+                                                                    mainAxisAlignment:
+                                                                        MainAxisAlignment
+                                                                            .center,
+                                                                    children: [
+                                                                      Flexible(
+                                                                        child:
+                                                                            Text(
+                                                                          "Сколько оплатить бонусами?",
+                                                                          textAlign:
+                                                                              TextAlign.center,
+                                                                          style:
+                                                                              TextStyle(
+                                                                            fontSize:
+                                                                                48 * globals.scaleParam,
+                                                                            fontWeight:
+                                                                                FontWeight.w700,
+                                                                            color:
+                                                                                Colors.black,
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                  content:
+                                                                      Column(
+                                                                    mainAxisSize:
+                                                                        MainAxisSize
+                                                                            .min,
+                                                                    children: [
+                                                                      Row(
+                                                                        children: [
+                                                                          Text(
+                                                                            "Ваши бонусы: ${userBonusPoints.toString()}",
+                                                                            style:
+                                                                                TextStyle(
+                                                                              fontSize: 38 * globals.scaleParam,
+                                                                              fontWeight: FontWeight.w500,
+                                                                              color: Colors.black,
+                                                                            ),
+                                                                          ),
+                                                                        ],
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                  actions: [
+                                                                    Column(
+                                                                      children: [
+                                                                        Row(
+                                                                          mainAxisAlignment:
+                                                                              MainAxisAlignment.spaceEvenly,
+                                                                          children: [
+                                                                            Flexible(
+                                                                              child: Container(
+                                                                                decoration: bonusPercent == 0
+                                                                                    ? BoxDecoration(
+                                                                                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                                                                                        color: Colors.black12,
+                                                                                      )
+                                                                                    : null,
+                                                                                child: TextButton(
+                                                                                  onPressed: () {
+                                                                                    setState(
+                                                                                      () {},
+                                                                                    );
+                                                                                    changeBonusPercent(0);
+                                                                                  },
+                                                                                  child: Text(
+                                                                                    "0%",
+                                                                                    style: TextStyle(
+                                                                                      fontSize: 36 * globals.scaleParam,
+                                                                                      fontWeight: FontWeight.w700,
+                                                                                      color: Colors.black,
+                                                                                    ),
+                                                                                  ),
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                            Flexible(
+                                                                              child: Container(
+                                                                                decoration: bonusPercent == 10
+                                                                                    ? BoxDecoration(
+                                                                                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                                                                                        color: Colors.black12,
+                                                                                      )
+                                                                                    : null,
+                                                                                child: TextButton(
+                                                                                  onPressed: () {
+                                                                                    setState(
+                                                                                      () {},
+                                                                                    );
+                                                                                    changeBonusPercent(10);
+                                                                                  },
+                                                                                  child: Text(
+                                                                                    "10%",
+                                                                                    style: TextStyle(
+                                                                                      fontSize: 36 * globals.scaleParam,
+                                                                                      fontWeight: FontWeight.w700,
+                                                                                      color: Colors.black,
+                                                                                    ),
+                                                                                  ),
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                            Flexible(
+                                                                              child: Container(
+                                                                                decoration: bonusPercent == 20
+                                                                                    ? BoxDecoration(
+                                                                                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                                                                                        color: Colors.black12,
+                                                                                      )
+                                                                                    : null,
+                                                                                child: TextButton(
+                                                                                  onPressed: () {
+                                                                                    setState(
+                                                                                      () {},
+                                                                                    );
+                                                                                    changeBonusPercent(20);
+                                                                                  },
+                                                                                  child: Text(
+                                                                                    "20%",
+                                                                                    style: TextStyle(
+                                                                                      fontSize: 36 * globals.scaleParam,
+                                                                                      fontWeight: FontWeight.w700,
+                                                                                      color: Colors.black,
+                                                                                    ),
+                                                                                  ),
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                            Flexible(
+                                                                              child: Container(
+                                                                                decoration: bonusPercent == 30
+                                                                                    ? BoxDecoration(
+                                                                                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                                                                                        color: Colors.black12,
+                                                                                      )
+                                                                                    : null,
+                                                                                child: TextButton(
+                                                                                  onPressed: () {
+                                                                                    setState(
+                                                                                      () {},
+                                                                                    );
+                                                                                    changeBonusPercent(30);
+                                                                                  },
+                                                                                  child: Text(
+                                                                                    "30%",
+                                                                                    style: TextStyle(
+                                                                                      fontSize: 36 * globals.scaleParam,
+                                                                                      fontWeight: FontWeight.w700,
+                                                                                      color: Colors.black,
+                                                                                    ),
+                                                                                  ),
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                          ],
+                                                                        ),
+                                                                        Padding(
+                                                                          padding:
+                                                                              EdgeInsets.only(top: 20 * globals.scaleParam),
+                                                                          child:
+                                                                              Row(
+                                                                            mainAxisAlignment:
+                                                                                MainAxisAlignment.spaceBetween,
+                                                                            children: [
+                                                                              IconButton(
+                                                                                onPressed: () {
+                                                                                  Navigator.pop(context);
+                                                                                },
+                                                                                icon: Container(
+                                                                                  padding: EdgeInsets.all(35 * globals.scaleParam),
+                                                                                  decoration: BoxDecoration(
+                                                                                    color: Colors.red,
+                                                                                    borderRadius: BorderRadius.all(Radius.circular(100)),
+                                                                                  ),
+                                                                                  child: Icon(
+                                                                                    Icons.close_rounded,
+                                                                                    color: Colors.white,
+                                                                                  ),
+                                                                                ),
+                                                                              ),
+                                                                              IconButton(
+                                                                                onPressed: () {
+                                                                                  Navigator.pop(context);
+                                                                                },
+                                                                                icon: Container(
+                                                                                  padding: EdgeInsets.all(35 * globals.scaleParam),
+                                                                                  decoration: BoxDecoration(
+                                                                                    color: Colors.green,
+                                                                                    borderRadius: BorderRadius.all(Radius.circular(100)),
+                                                                                  ),
+                                                                                  child: Icon(
+                                                                                    Icons.check_rounded,
+                                                                                    color: Colors.white,
+                                                                                  ),
+                                                                                ),
+                                                                              ),
+                                                                            ],
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                    )
+                                                                  ],
+                                                                );
+                                                              },
+                                                            );
+                                                          },
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
                               ),
-                              Divider(),
-                              Row(
+                            ),
+                          ),
+                          Flexible(
+                            fit: FlexFit.tight,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 20 * globals.scaleParam,
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Flexible(
+                                    flex: 10,
                                     fit: FlexFit.tight,
-                                    child: Text(
-                                      "${globals.formatCost((int.parse(localSum) + price).toString())} ₸",
-                                      style: TextStyle(
-                                        fontSize: 32 * globals.scaleParam,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.black,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        Padding(
+                                          padding:
+                                              const EdgeInsets.only(left: 4),
+                                          child: Text(
+                                            "Итого",
+                                            textAlign: TextAlign.start,
+                                            style: TextStyle(
+                                              fontSize: 32 * globals.scaleParam,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                        ),
+                                        Divider(
+                                          height: 1,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Flexible(
+                                    flex: 4,
+                                    fit: FlexFit.tight,
+                                    child: Padding(
+                                      padding: EdgeInsets.only(
+                                          left: 40 * globals.scaleParam),
+                                      child: Text(
+                                        "${globals.formatCost((int.parse(localSum) + price).toString())} ₸",
+                                        style: TextStyle(
+                                          fontSize: 32 * globals.scaleParam,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.black,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                   SizedBox(

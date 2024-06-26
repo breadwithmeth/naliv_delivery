@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/webViewCardPayPage.dart';
 import '../globals.dart' as globals;
 import 'package:flutter/widgets.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
@@ -675,12 +676,138 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                 borderRadius: BorderRadius.all(Radius.circular(10))),
             margin: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
             padding: EdgeInsets.all(30 * globals.scaleParam),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return GestureDetector(
+                  onTap: () {
+                    showAdaptiveDialog(
+                      context: context,
+                      builder: (context) {
+                        return StatefulBuilder(
+                          builder: (BuildContext context, setState) {
+                            return AlertDialog(
+                              title: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      "Способ оплаты",
+                                      style: TextStyle(
+                                        fontSize: 48 * globals.scaleParam,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              // content: Column(
+                              //   mainAxisSize: MainAxisSize.min,
+                              //   children: [
+                              //     Row(
+                              //       children: [],
+                              //     ),
+                              //   ],
+                              // ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      globals.getPlatformSpecialRoute(
+                                        const WebViewCardPayPage(),
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    padding:
+                                        EdgeInsets.all(20 * globals.scaleParam),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(10),
+                                      ),
+                                      color: Colors.black12,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Flexible(
+                                            flex: 4,
+                                            fit: FlexFit.tight,
+                                            child: Text("Картой")),
+                                        Flexible(
+                                          flex: 2,
+                                          fit: FlexFit.tight,
+                                          child:
+                                              Icon(Icons.credit_card_rounded),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () {},
+                                  child: Container(
+                                    padding:
+                                        EdgeInsets.all(20 * globals.scaleParam),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(10),
+                                      ),
+                                      color: Colors.black12,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Flexible(
+                                            flex: 4,
+                                            fit: FlexFit.tight,
+                                            child: Text("Счёт на каспи")),
+                                        Flexible(
+                                          flex: 2,
+                                          fit: FlexFit.tight,
+                                          child: Icon(Icons.smartphone_rounded),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                  },
+                                  child: Container(
+                                    padding:
+                                        EdgeInsets.all(20 * globals.scaleParam),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(10),
+                                      ),
+                                      color: Colors.black12,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Flexible(
+                                          fit: FlexFit.tight,
+                                          child: Text(
+                                            "Назад",
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                  child: Column(
+                    children: [
+                      Text(
                         widget.user.isEmpty
                             ? "Счёт на каспи:"
                             : widget.client.isEmpty
@@ -692,13 +819,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                           color: Theme.of(context).colorScheme.onBackground,
                         ),
                       ),
-                    )
-                  ],
-                ),
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
+                      Text(
                         "Сумма к оплате: ${globals.formatCost(widget.finalSum.toString()).toString()} ₸",
                         textAlign: TextAlign.center,
                         style: TextStyle(
@@ -707,10 +828,10 @@ class _CreateOrderPageState extends State<CreateOrderPage> {
                           color: Theme.of(context).colorScheme.onBackground,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                );
+              },
             ),
           ),
           Container(
