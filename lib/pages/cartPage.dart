@@ -35,50 +35,65 @@ class _CartPageState extends State<CartPage>
   Map<String, dynamic> client = {};
   int distance = 0;
   int bonusSum = 0;
+  String localSum = "0";
+  late final TextEditingController _textFieldController;
 
   int price = 0;
   int userBonusPoints = 5000;
+  int maxBonusPointsToSpend = 0;
 
-  int bonusPercent = 0;
+  int bonusPercent = 10;
 
   void changeBonusPercent(int amount) {
+    setState(() {
+      maxBonusPointsToSpend = (localNotFutureBuilderSum * 0.3).round();
+    });
     if (0 <= amount && amount <= 30) {
       switch (amount) {
         case 0:
           setState(() {
             bonusPercent = amount;
-            bonusSum = (localNotFutureBuilderSum + price) * 0;
+            bonusSum = localNotFutureBuilderSum * 0;
           });
           break;
         case 10:
-          if (((localNotFutureBuilderSum + price) * 0.1).round() >
-              userBonusPoints) {
-            return;
+          if ((localNotFutureBuilderSum * 0.1).round() > userBonusPoints) {
+            setState(() {
+              bonusPercent = 0;
+            });
+            changeBonusPercent(0);
+          } else {
+            setState(() {
+              bonusPercent = amount;
+              bonusSum = (localNotFutureBuilderSum * 0.1).round();
+            });
           }
-          setState(() {
-            bonusPercent = amount;
-            bonusSum = ((localNotFutureBuilderSum + price) * 0.1).round();
-          });
           break;
         case 20:
-          if (((localNotFutureBuilderSum + price) * 0.2).round() >
-              userBonusPoints) {
-            return;
+          if ((localNotFutureBuilderSum * 0.2).round() > userBonusPoints) {
+            setState(() {
+              bonusPercent = 10;
+            });
+            changeBonusPercent(10);
+          } else {
+            setState(() {
+              bonusPercent = amount;
+              bonusSum = (localNotFutureBuilderSum * 0.2).round();
+            });
           }
-          setState(() {
-            bonusPercent = amount;
-            bonusSum = ((localNotFutureBuilderSum + price) * 0.2).round();
-          });
           break;
         case 30:
-          if (((localNotFutureBuilderSum + price) * 0.3).round() >
-              userBonusPoints) {
-            return;
+          if ((localNotFutureBuilderSum * 0.3).round() > userBonusPoints) {
+            setState(() {
+              bonusPercent = 20;
+            });
+            changeBonusPercent(20);
+          } else {
+            setState(() {
+              bonusPercent = amount;
+              bonusSum = (localNotFutureBuilderSum * 0.3).round();
+            });
           }
-          setState(() {
-            bonusPercent = amount;
-            bonusSum = ((localNotFutureBuilderSum + price) * 0.3).round();
-          });
           break;
         default:
           print("No, bonus percent can only be [0, 10, 20, 30]");
@@ -123,29 +138,47 @@ class _CartPageState extends State<CartPage>
     animController.drive(CurveTween(curve: Curves.easeIn));
   }
 
-  void updateDataAmount(int newDataAmount, [int index = 0]) {
-    setState(() {
-      localNotFutureBuilderSum -=
-          int.parse(items[index]["price"]) * int.parse(items[index]["amount"]);
-      items[index]["amount"] = newDataAmount;
-      localNotFutureBuilderSum +=
-          int.parse(items[index]["price"]) * int.parse(items[index]["amount"]);
-    });
+  void updateDataAmount(int index, int newDataAmount) {
     if (newDataAmount == 0) {
       items.removeAt(index);
+    } else {
+      items[index]["amount"] = newDataAmount.toString();
     }
-  }
-
-  List updatePrices(String localNotFutureBuilderSum, int localDiscount) {
+    localNotFutureBuilderSum = 0;
     for (dynamic item in items) {
       localNotFutureBuilderSum +=
-          (int.parse(item["price"]) * int.parse(item["amount"])).toString();
-      if (item["previous_price"] != null) {
-        localDiscount += (int.parse(item["price"]) -
-            int.parse(item["previous_price"]) * int.parse(item["amount"]));
-      }
+          (int.parse(item["price"]) * int.parse(item["amount"]));
     }
-    return [localNotFutureBuilderSum, localDiscount];
+    if ((localNotFutureBuilderSum * (bonusPercent / 100)).round() >
+        userBonusPoints) {
+      print(
+          "NOT ENOUGH BONUS POINTS, NEED (${(localNotFutureBuilderSum * (bonusPercent / 100)).round()}), HAVE ($userBonusPoints)");
+    } else {
+      print(
+          "ENOUGH BONUSES, NEED (${(localNotFutureBuilderSum * (bonusPercent / 100)).round()}), HAVE ($userBonusPoints)");
+    }
+    changeBonusPercent(bonusPercent);
+    setState(() {
+      localNotFutureBuilderSum;
+    });
+  }
+
+  void updatePrices(int indexUpdatePrice) {
+    items.removeAt(indexUpdatePrice);
+    if (items.isNotEmpty) {
+      for (dynamic item in items) {
+        localNotFutureBuilderSum +=
+            (int.parse(item["price"]) * int.parse(item["amount"]));
+      }
+    } else {
+      setState(() {
+        localNotFutureBuilderSum = 0;
+      });
+    }
+    setState(() {
+      localSum = localNotFutureBuilderSum.toString();
+      localDiscount;
+    });
   }
 
   // bool isCartLoading = false;
@@ -155,6 +188,7 @@ class _CartPageState extends State<CartPage>
     // TODO: implement initState
     super.initState();
     _setAnimationController();
+    _textFieldController = TextEditingController();
     // Future.delayed( Duration(milliseconds: 0), () async {
     //   setState(() {
     //     isCartLoading = true;
@@ -211,11 +245,11 @@ class _CartPageState extends State<CartPage>
                 ),
               );
             } else {
-              List items = snapshot.data!["cart"];
+              items = snapshot.data!["cart"];
               print(items);
-              String localSum = snapshot.data!["sum"];
+              localSum = snapshot.data!["sum"];
               localNotFutureBuilderSum = int.parse(snapshot.data!["sum"]);
-              int distance = int.parse(snapshot.data!["distance"].toString());
+              int distance = double.parse(snapshot.data!["distance"]).round();
               double dist = distance / 1000;
               dist = (dist * 2).round() / 2;
               if (dist <= 1.5) {
@@ -235,29 +269,19 @@ class _CartPageState extends State<CartPage>
                     shrinkWrap: true,
                     itemCount: items.length,
                     itemBuilder: (context, index) {
-                      final item = items[index];
+                      items[index];
                       return Column(
                         children: [
                           Dismissible(
                             // Each Dismissible must contain a Key. Keys allow Flutter to
                             // uniquely identify widgets.
-                            key: Key(item["item_id"]),
+                            key: Key(items[index]["item_id"]),
                             confirmDismiss: (direction) async {
-                              bool result =
-                                  await _deleteFromCart(item["item_id"]);
+                              bool result = await _deleteFromCart(
+                                  items[index]["item_id"]);
 
                               if (result) {
-                                List updatedData =
-                                    updatePrices(localSum, localDiscount);
-                                setState(() {
-                                  items.removeAt(index);
-                                  localSum = updatedData[0];
-                                  localNotFutureBuilderSum =
-                                      int.parse(updatedData[0]);
-                                  localDiscount = updatedData[1];
-                                  // localSum -= int.parse(item["price"]) *
-                                  //     int.parse(item["amount"]);
-                                });
+                                updatePrices(index);
                               }
 
                               return result;
@@ -309,37 +333,15 @@ class _CartPageState extends State<CartPage>
                                         height: 20 * globals.scaleParam,
                                       )
                                     : SizedBox(),
-                                GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  key: Key(items[index]["item_id"]),
-                                  child: ItemCardMinimal(
-                                    itemId: items[index]["item_id"],
-                                    element: items[index],
-                                    categoryId: "",
-                                    categoryName: "",
-                                    scroll: 0,
-                                  ),
-                                  onTap: () {
-                                    showModalBottomSheet(
-                                      transitionAnimationController:
-                                          animController,
-                                      context: context,
-                                      clipBehavior: Clip.antiAlias,
-                                      useSafeArea: true,
-                                      isScrollControlled: true,
-                                      builder: (context) {
-                                        return ProductPage(
-                                          item: items[index],
-                                          index: index,
-                                          returnDataAmount: updateDataAmount,
-                                          business: widget.business,
-                                          openedFromCart: true,
-                                        );
-                                      },
-                                    ).then((value) {
-                                      print("object");
-                                    });
-                                  },
+                                ItemCardMinimal(
+                                  itemId: items[index]["item_id"],
+                                  element: items[index],
+                                  updateExternalInfo: updateDataAmount,
+                                  business: widget.business,
+                                  index: index,
+                                  categoryId: "",
+                                  categoryName: "",
+                                  scroll: 0,
                                 ),
                                 items.length - 1 != index
                                     ? Padding(
@@ -375,7 +377,9 @@ class _CartPageState extends State<CartPage>
                   ),
                   Divider(),
                   SizedBox(
-                    height: 450 * globals.scaleParam,
+                    height: localDiscount != 0
+                        ? 500 * globals.scaleParam
+                        : 400 * globals.scaleParam,
                     child: Padding(
                       padding: EdgeInsets.symmetric(
                           horizontal: 40 * globals.scaleParam,
@@ -465,66 +469,6 @@ class _CartPageState extends State<CartPage>
                                               padding: const EdgeInsets.only(
                                                   left: 4),
                                               child: Text(
-                                                "Скидка",
-                                                textAlign: TextAlign.start,
-                                                style: TextStyle(
-                                                  fontSize:
-                                                      32 * globals.scaleParam,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: Colors.black,
-                                                ),
-                                              ),
-                                            ),
-                                            Divider(
-                                              height: 1,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Flexible(
-                                        flex: 4,
-                                        fit: FlexFit.tight,
-                                        child: Padding(
-                                          padding: EdgeInsets.only(
-                                              left: 40 * globals.scaleParam),
-                                          child: Text(
-                                            "${globals.formatCost(localDiscount.toString())} ₸", // CHANGE THIS TO REPRESENT DISCOUNT
-                                            style: TextStyle(
-                                              fontSize: 32 * globals.scaleParam,
-                                              fontWeight: FontWeight.w700,
-                                              color: Colors.black,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Flexible(
-                            fit: FlexFit.tight,
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 20 * globals.scaleParam),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Flexible(
-                                        flex: 10,
-                                        fit: FlexFit.tight,
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Padding(
-                                              padding: const EdgeInsets.only(
-                                                  left: 4),
-                                              child: Text(
                                                 "Доставка",
                                                 textAlign: TextAlign.start,
                                                 style: TextStyle(
@@ -569,6 +513,75 @@ class _CartPageState extends State<CartPage>
                               ),
                             ),
                           ),
+                          localDiscount != 0
+                              ? Flexible(
+                                  fit: FlexFit.tight,
+                                  child: Padding(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 20 * globals.scaleParam),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
+                                          children: [
+                                            Flexible(
+                                              flex: 10,
+                                              fit: FlexFit.tight,
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            left: 4),
+                                                    child: Text(
+                                                      "Скидка",
+                                                      textAlign:
+                                                          TextAlign.start,
+                                                      style: TextStyle(
+                                                        fontSize: 32 *
+                                                            globals.scaleParam,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        color: Colors.black,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  Divider(
+                                                    height: 1,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Flexible(
+                                              flex: 4,
+                                              fit: FlexFit.tight,
+                                              child: Padding(
+                                                padding: EdgeInsets.only(
+                                                    left: 40 *
+                                                        globals.scaleParam),
+                                                child: Text(
+                                                  "${globals.formatCost(localDiscount.toString())} ₸", // CHANGE THIS TO REPRESENT DISCOUNT
+                                                  style: TextStyle(
+                                                    fontSize:
+                                                        32 * globals.scaleParam,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: Colors.black,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              : SizedBox(),
                           Flexible(
                             fit: FlexFit.tight,
                             child: Padding(
@@ -684,10 +697,9 @@ class _CartPageState extends State<CartPage>
                                                           context: context,
                                                           builder: (context) {
                                                             return StatefulBuilder(
-                                                              builder:
-                                                                  (BuildContext
-                                                                          context,
-                                                                      setState) {
+                                                              builder: (BuildContext
+                                                                      context,
+                                                                  setStateDiallog) {
                                                                 return AlertDialog(
                                                                   title: Row(
                                                                     mainAxisAlignment:
@@ -720,6 +732,8 @@ class _CartPageState extends State<CartPage>
                                                                             .min,
                                                                     children: [
                                                                       Row(
+                                                                        mainAxisAlignment:
+                                                                            MainAxisAlignment.center,
                                                                         children: [
                                                                           Text(
                                                                             "Ваши бонусы: ${userBonusPoints.toString()}",
@@ -731,6 +745,29 @@ class _CartPageState extends State<CartPage>
                                                                             ),
                                                                           ),
                                                                         ],
+                                                                      ),
+                                                                      LayoutBuilder(
+                                                                        builder:
+                                                                            (context,
+                                                                                constraints) {
+                                                                          return SizedBox(
+                                                                            width:
+                                                                                constraints.maxWidth * 0.5,
+                                                                            height:
+                                                                                100 * globals.scaleParam,
+                                                                            child:
+                                                                                TextField(
+                                                                              keyboardType: TextInputType.number,
+                                                                              controller: _textFieldController,
+                                                                              style: TextStyle(
+                                                                                fontSize: 40 * globals.scaleParam,
+                                                                                fontWeight: FontWeight.w500,
+                                                                                color: Colors.black,
+                                                                              ),
+                                                                              textAlign: TextAlign.center,
+                                                                            ),
+                                                                          );
+                                                                        },
                                                                       ),
                                                                     ],
                                                                   ),
@@ -751,10 +788,10 @@ class _CartPageState extends State<CartPage>
                                                                                     : null,
                                                                                 child: TextButton(
                                                                                   onPressed: () {
-                                                                                    setState(
+                                                                                    setStateDiallog(
                                                                                       () {},
                                                                                     );
-                                                                                    changeBonusPercent(0);
+                                                                                    // changeBonusPercent(0);
                                                                                   },
                                                                                   child: Text(
                                                                                     "0%",
@@ -776,18 +813,20 @@ class _CartPageState extends State<CartPage>
                                                                                       )
                                                                                     : null,
                                                                                 child: TextButton(
-                                                                                  onPressed: () {
-                                                                                    setState(
-                                                                                      () {},
-                                                                                    );
-                                                                                    changeBonusPercent(10);
-                                                                                  },
+                                                                                  onPressed: (localNotFutureBuilderSum * 0.1).round() < userBonusPoints
+                                                                                      ? () {
+                                                                                          setStateDiallog(
+                                                                                            () {},
+                                                                                          );
+                                                                                          // changeBonusPercent(10);
+                                                                                        }
+                                                                                      : null,
                                                                                   child: Text(
                                                                                     "10%",
                                                                                     style: TextStyle(
                                                                                       fontSize: 36 * globals.scaleParam,
                                                                                       fontWeight: FontWeight.w700,
-                                                                                      color: Colors.black,
+                                                                                      color: (localNotFutureBuilderSum * 0.1).round() < userBonusPoints ? Colors.black : Colors.grey,
                                                                                     ),
                                                                                   ),
                                                                                 ),
@@ -802,18 +841,20 @@ class _CartPageState extends State<CartPage>
                                                                                       )
                                                                                     : null,
                                                                                 child: TextButton(
-                                                                                  onPressed: () {
-                                                                                    setState(
-                                                                                      () {},
-                                                                                    );
-                                                                                    changeBonusPercent(20);
-                                                                                  },
+                                                                                  onPressed: (localNotFutureBuilderSum * 0.2).round() < userBonusPoints
+                                                                                      ? () {
+                                                                                          setStateDiallog(
+                                                                                            () {},
+                                                                                          );
+                                                                                          // changeBonusPercent(20);
+                                                                                        }
+                                                                                      : null,
                                                                                   child: Text(
                                                                                     "20%",
                                                                                     style: TextStyle(
                                                                                       fontSize: 36 * globals.scaleParam,
                                                                                       fontWeight: FontWeight.w700,
-                                                                                      color: Colors.black,
+                                                                                      color: (localNotFutureBuilderSum * 0.2).round() < userBonusPoints ? Colors.black : Colors.grey,
                                                                                     ),
                                                                                   ),
                                                                                 ),
@@ -828,18 +869,20 @@ class _CartPageState extends State<CartPage>
                                                                                       )
                                                                                     : null,
                                                                                 child: TextButton(
-                                                                                  onPressed: () {
-                                                                                    setState(
-                                                                                      () {},
-                                                                                    );
-                                                                                    changeBonusPercent(30);
-                                                                                  },
+                                                                                  onPressed: (localNotFutureBuilderSum * 0.3).round() < userBonusPoints
+                                                                                      ? () {
+                                                                                          setStateDiallog(
+                                                                                            () {},
+                                                                                          );
+                                                                                          // changeBonusPercent(30);
+                                                                                        }
+                                                                                      : null,
                                                                                   child: Text(
                                                                                     "30%",
                                                                                     style: TextStyle(
                                                                                       fontSize: 36 * globals.scaleParam,
                                                                                       fontWeight: FontWeight.w700,
-                                                                                      color: Colors.black,
+                                                                                      color: (localNotFutureBuilderSum * 0.3).round() < userBonusPoints ? Colors.black : Colors.grey,
                                                                                     ),
                                                                                   ),
                                                                                 ),
@@ -873,7 +916,14 @@ class _CartPageState extends State<CartPage>
                                                                               ),
                                                                               IconButton(
                                                                                 onPressed: () {
-                                                                                  Navigator.pop(context);
+                                                                                  if (double.parse(_textFieldController.text).truncate() > userBonusPoints) {
+                                                                                    print("NO BONUSES!");
+                                                                                  } else {
+                                                                                    setState(() {
+                                                                                      bonusSum = double.parse(_textFieldController.text).truncate();
+                                                                                    });
+                                                                                    Navigator.pop(context);
+                                                                                  }
                                                                                 },
                                                                                 icon: Container(
                                                                                   padding: EdgeInsets.all(35 * globals.scaleParam),
@@ -956,7 +1006,7 @@ class _CartPageState extends State<CartPage>
                                       padding: EdgeInsets.only(
                                           left: 40 * globals.scaleParam),
                                       child: Text(
-                                        "${globals.formatCost((int.parse(localSum) + price).toString())} ₸",
+                                        "${globals.formatCost(((int.parse(localSum) - bonusSum) + price).toString())} ₸",
                                         style: TextStyle(
                                           fontSize: 32 * globals.scaleParam,
                                           fontWeight: FontWeight.w700,

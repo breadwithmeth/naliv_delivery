@@ -22,10 +22,12 @@ class ProductPage extends StatefulWidget {
       required this.index,
       required this.business,
       this.returnDataAmount,
+      this.cartPageExclusiveCallbackFunc,
       this.openedFromCart = false});
   final Map<String, dynamic> item;
   final int index;
-  final Function(int, [int])? returnDataAmount;
+  final Function(int, int)? returnDataAmount; // INDEX, NEWAMOUNT
+  final Function(int, int)? cartPageExclusiveCallbackFunc;
   final Map<dynamic, dynamic> business;
   final bool openedFromCart;
   @override
@@ -99,29 +101,44 @@ class _ProductPageState extends State<ProductPage> {
       (value) {
         print(value);
         if (value != null) {
-          setState(() {
+          if (mounted) {
+            setState(() {
+              actualCartAmount = int.parse(value);
+            });
+          } else {
             actualCartAmount = int.parse(value);
-          });
+          }
         } else {
-          setState(() {
+          if (mounted) {
+            setState(() {
+              actualCartAmount = 0;
+            });
+          } else {
             actualCartAmount = 0;
-          });
+          }
         }
-        setState(() {
-          isLastServerCallWasSucceed = true;
-        });
-        getBuyButtonCurrentActionText();
-        widget.returnDataAmount!(actualCartAmount);
+        if (mounted) {
+          setState(() {
+            isLastServerCallWasSucceed = true;
+          });
+          getBuyButtonCurrentActionText();
+        }
         print("TRIGGERED WIDGET.RETURNDATAAMOUNT!");
+        widget.returnDataAmount!(widget.index, actualCartAmount);
+        if (widget.cartPageExclusiveCallbackFunc != null) {
+          widget.cartPageExclusiveCallbackFunc!(widget.index, actualCartAmount);
+        }
       },
     ).onError(
       (error, stackTrace) {
         throw Exception("Ошибка в _finalizeCartAmount ProductPage");
       },
     );
-    setState(() {
-      isServerCallOnGoing = false;
-    });
+    if (mounted) {
+      setState(() {
+        isServerCallOnGoing = false;
+      });
+    }
   }
 
   void _removeFromCart() {
@@ -233,7 +250,10 @@ class _ProductPageState extends State<ProductPage> {
   void dispose() {
     if (isServerCallOnGoing && !isLastServerCallWasSucceed) {
       Future.delayed(Duration.zero, () {
-        widget.returnDataAmount!(amountInCart);
+        if (widget.cartPageExclusiveCallbackFunc != null) {
+          widget.cartPageExclusiveCallbackFunc!(widget.index, amountInCart);
+        }
+        widget.returnDataAmount!(widget.index, amountInCart);
       });
     }
     super.dispose();

@@ -1,15 +1,12 @@
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
 import '../globals.dart' as globals;
-import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/shared/likeButton.dart';
-import 'package:intl/intl.dart';
 
 class ItemCard extends StatefulWidget {
   const ItemCard(
@@ -1055,7 +1052,10 @@ class ItemCardMinimal extends StatefulWidget {
       required this.element,
       required this.categoryName,
       required this.categoryId,
-      required this.scroll});
+      required this.scroll,
+      required this.index,
+      required this.business,
+      this.updateExternalInfo});
   final Map<String, dynamic> element;
   final String categoryName;
 
@@ -1064,9 +1064,32 @@ class ItemCardMinimal extends StatefulWidget {
   final String categoryId;
   final double scroll;
   final int chack = 1;
+  final int index;
+  final Map business;
+  final Function(int, int)? updateExternalInfo; // Update CartPage sum!!!!
   @override
   State<ItemCardMinimal> createState() => _ItemCardMinimalState();
 }
+
+// showModalBottomSheet(
+//   transitionAnimationController:
+//       animController,
+//   context: context,
+//   clipBehavior: Clip.antiAlias,
+//   useSafeArea: true,
+//   isScrollControlled: true,
+//   builder: (context) {
+//     return ProductPage(
+//       item: items[index],
+//       index: index,
+//       returnDataAmount: updateDataAmount,
+//       business: widget.business,
+//       openedFromCart: true,
+//     );
+//   },
+// ).then((value) {
+//   print("object");
+// });
 
 class _ItemCardMinimalState extends State<ItemCardMinimal> {
   Map<String, dynamic> element = {};
@@ -1080,49 +1103,46 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
     setState(() {
       element = widget.element;
     });
-    getProperties();
+    // getProperties();
   }
 
-  void getProperties() {
-    if (widget.element["properties"] != null) {
-      List<InlineSpan> propertiesT = [];
-      List<String> properties = widget.element["properties"].split(",");
-      print(properties);
-      for (var element in properties) {
-        List temp = element.split(":");
-        propertiesT.add(WidgetSpan(
-            child: Row(
-          children: [
-            Text(
-              temp[1],
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black),
-            ),
-            Image.asset(
-              "assets/property_icons/${temp[0]}.png",
-              width: 14,
-              height: 14,
-            ),
-            SizedBox(
-              width: 10,
-            )
-          ],
-        )));
-      }
-      setState(() {
-        propertiesWidget = propertiesT;
-      });
-    }
-  }
+  // void getProperties() {
+  //   if (widget.element["properties"] != null) {
+  //     List<InlineSpan> propertiesT = [];
+  //     List<String> properties = widget.element["properties"].split(",");
+  //     print(properties);
+  //     for (var element in properties) {
+  //       List temp = element.split(":");
+  //       propertiesT.add(WidgetSpan(
+  //           child: Row(
+  //         children: [
+  //           Text(
+  //             temp[1],
+  //             style: TextStyle(
+  //                 fontSize: 14,
+  //                 fontWeight: FontWeight.w700,
+  //                 color: Colors.black),
+  //           ),
+  //           Image.asset(
+  //             "assets/property_icons/${temp[0]}.png",
+  //             width: 14,
+  //             height: 14,
+  //           ),
+  //           SizedBox(
+  //             width: 10,
+  //           )
+  //         ],
+  //       )));
+  //     }
+  //     setState(() {
+  //       propertiesWidget = propertiesT;
+  //     });
+  //   }
+  // }
 
-  Future<void> refreshItemCard() async {
-    Map<String, dynamic>? element = await getItem(widget.element["item_id"]);
-    print(element);
+  void updateCurrentItem(int updateIndex, int updateNewAmount) {
     setState(() {
-      element!["name"] = "123";
-      element = element!;
+      element["amount"] = updateNewAmount.toString();
     });
   }
 
@@ -1134,67 +1154,87 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
       padding: EdgeInsets.symmetric(horizontal: 5 * globals.scaleParam),
       width: double.infinity,
       height: 125 * globals.scaleParam,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        mainAxisSize: MainAxisSize.max,
-        children: [
-          Flexible(
-            flex: 3,
-            fit: FlexFit.tight,
-            child: CachedNetworkImage(
-              imageUrl: element["thumb"],
-              // width: MediaQuery.of(context).size.width * 0.2,
-              // height: MediaQuery.of(context).size.width * 0.7,
-              fit: BoxFit.fitHeight,
-              cacheManager: CacheManager(
-                Config(
-                  "itemImage ${element["item_id"].toString()}",
-                  stalePeriod: Duration(days: 7),
-                  //one week cache period
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          showModalBottomSheet(
+            context: context,
+            clipBehavior: Clip.antiAlias,
+            useSafeArea: true,
+            isScrollControlled: true,
+            builder: (context) {
+              return ProductPage(
+                item: element,
+                index: widget.index,
+                returnDataAmount: updateCurrentItem,
+                cartPageExclusiveCallbackFunc: widget.updateExternalInfo,
+                business: widget.business,
+                openedFromCart: true,
+              );
+            },
+          ).then((value) {
+            print("object");
+          });
+        },
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            Flexible(
+              flex: 3,
+              fit: FlexFit.tight,
+              child: CachedNetworkImage(
+                imageUrl: element["thumb"],
+                // width: MediaQuery.of(context).size.width * 0.2,
+                // height: MediaQuery.of(context).size.width * 0.7,
+                fit: BoxFit.fitHeight,
+                cacheManager: CacheManager(
+                  Config(
+                    "itemImage ${element["item_id"].toString()}",
+                    stalePeriod: Duration(days: 7),
+                    //one week cache period
+                  ),
                 ),
+                imageBuilder: (context, imageProvider) {
+                  return Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        fit: FlexFit.tight,
+                        child: Container(
+                          clipBehavior: Clip.antiAlias,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.all(Radius.circular(5)),
+                            color: Colors.green,
+                          ),
+                          child: Image(
+                            image: imageProvider,
+                            fit: BoxFit.fitHeight,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+                errorWidget: (context, url, error) {
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      return FractionallySizedBox(
+                        heightFactor: 1,
+                        widthFactor: 2 / 4,
+                        child: Image.asset(
+                          'assets/category_icons/no_image_ico.png',
+                          opacity: AlwaysStoppedAnimation(0.5),
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
-              imageBuilder: (context, imageProvider) {
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      fit: FlexFit.tight,
-                      child: Container(
-                        clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.all(Radius.circular(5)),
-                          color: Colors.green,
-                        ),
-                        child: Image(
-                          image: imageProvider,
-                          fit: BoxFit.fitHeight,
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-              errorWidget: (context, url, error) {
-                return LayoutBuilder(
-                  builder: (context, constraints) {
-                    return FractionallySizedBox(
-                      heightFactor: 1,
-                      widthFactor: 2 / 4,
-                      child: Image.asset(
-                        'assets/category_icons/no_image_ico.png',
-                        opacity: AlwaysStoppedAnimation(0.5),
-                      ),
-                    );
-                  },
-                );
-              },
             ),
-          ),
-          Flexible(
-            flex: 10,
-            fit: FlexFit.tight,
-            child: Padding(
-              padding: EdgeInsets.only(right: 8 * globals.scaleParam),
+            Flexible(
+              flex: 10,
+              fit: FlexFit.tight,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 mainAxisSize: MainAxisSize.max,
@@ -1308,8 +1348,8 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
