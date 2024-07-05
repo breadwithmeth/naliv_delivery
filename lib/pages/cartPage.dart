@@ -320,35 +320,37 @@ class _CartPageState extends State<CartPage>
               padding:
                   EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
               child: ElevatedButton(
-                onPressed: () {
-                  // Navigator.push(
-                  //   context,
-                  //   MaterialPageRoute(
-                  //     builder: (context) {
-                  //       return FindCreateUserPage(
-                  //         business: widget.business,
-                  //       );
-                  //     },
-                  //   ),
-                  // );
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) {
-                        return CreateOrderPage(
-                          business: widget.business,
-                          finalSum: localSum,
-                          items: items,
-                          itemsAmount: itemsAmount,
-                          user: widget.user,
-                          deliveryInfo: Map.from(
-                            {"distance": distance, "price": price},
+                onPressed: items.isNotEmpty
+                    ? () {
+                        // Navigator.push(
+                        //   context,
+                        //   MaterialPageRoute(
+                        //     builder: (context) {
+                        //       return FindCreateUserPage(
+                        //         business: widget.business,
+                        //       );
+                        //     },
+                        //   ),
+                        // );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) {
+                              return CreateOrderPage(
+                                business: widget.business,
+                                finalSum: localSum,
+                                items: items,
+                                itemsAmount: itemsAmount,
+                                user: widget.user,
+                                deliveryInfo: Map.from(
+                                  {"distance": distance, "price": price},
+                                ),
+                              );
+                            },
                           ),
                         );
-                      },
-                    ),
-                  );
-                },
+                      }
+                    : null,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,

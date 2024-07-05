@@ -18,6 +18,21 @@ import 'package:intl/intl.dart';
 
 import '../misc/api.dart';
 
+enum PaymentType { kaspi, cash, card }
+
+extension PaymentTypeExtension on PaymentType {
+  String get description {
+    switch (this) {
+      case PaymentType.kaspi:
+        return 'Счёт на номер каспи';
+      case PaymentType.cash:
+        return 'Наличными';
+      case PaymentType.card:
+        return 'Картой';
+    }
+  }
+}
+
 class CreateOrderPage extends StatefulWidget {
   const CreateOrderPage(
       {super.key,
@@ -57,6 +72,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
 
   late AnimationController _controller;
   late Animation<Offset> _deliveryChooseAnim;
+  PaymentType paymentType = PaymentType.kaspi;
 
   // Future<void> _getCart() async {
   //   // List cart = await getCart();
@@ -254,22 +270,24 @@ class _CreateOrderPageState extends State<CreateOrderPage>
       floatingActionButton: Padding(
         padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
         child: ElevatedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => OrderConfirmation(
-                  delivery: delivery,
-                  items: widget.items,
-                  address: currentAddress,
-                  cartInfo: cartInfo,
-                  business: widget.business,
-                  user: widget.user,
-                  finalSum: widget.finalSum,
-                ),
-              ),
-            );
-          },
+          onPressed: isAddressesLoading || isCartLoading
+              ? null
+              : () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => OrderConfirmation(
+                        delivery: delivery,
+                        items: widget.items,
+                        address: currentAddress,
+                        cartInfo: cartInfo,
+                        business: widget.business,
+                        user: widget.user,
+                        finalSum: widget.finalSum,
+                      ),
+                    ),
+                  );
+                },
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -386,885 +404,1404 @@ class _CreateOrderPageState extends State<CreateOrderPage>
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          return Column(
+          return ListView(
             children: [
-              // LayoutBuilder(
-              //   builder: (context, constraints) {
-              //     return Container(
-              //       alignment: Alignment.topCenter,
-              //       child: Column(
-              //         children: [
-              //           // SizedBox(
-              //           //   height: constraints.maxHeight * 0.085,
-              //           // ),
-              //           Container(
-              //             width: constraints.maxWidth,
-              //             height: constraints.maxHeight * 0.48,
-              //             decoration: BoxDecoration(
-              //               color: Colors.black12,
-              //               borderRadius: BorderRadius.only(
-              //                 bottomLeft: Radius.circular(15),
-              //                 bottomRight: Radius.circular(15),
-              //               ),
-              //             ),
-              //           ),
-              //         ],
-              //       ),
-              //     );
-              //   },
-              // ),
-              // Container(
-              //   decoration: BoxDecoration(
-              //     color: Colors.amber,
-              //     borderRadius: BorderRadius.all(Radius.circular(10)),
-              //   ),
-              //   margin: EdgeInsets.symmetric(
-              //       horizontal: 20 * globals.scaleParam,
-              //       vertical: 10 * globals.scaleParam),
-              //   padding: EdgeInsets.all(10 * globals.scaleParam),
-              //   child: LayoutBuilder(
-              //     builder: (context, constraints) {
-              //       return Stack(
-              //         children: [
-              //           Row(
-              //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              //             mainAxisSize: MainAxisSize.max,
-              //             children: [
-              //               Flexible(
-              //                 fit: FlexFit.tight,
-              //                 child: GestureDetector(
-              //                   onTap: () {
-              //                     setState(() {
-              //                       delivery = true;
-              //                     });
-              //                   },
-              //                   child: Container(
-              //                     decoration: BoxDecoration(
-              //                       borderRadius:
-              //                           BorderRadius.all(Radius.circular(10)),
-              //                       border: Border.all(
-              //                         color: Colors.transparent,
-              //                       ),
-              //                     ),
-              //                     padding:
-              //                         EdgeInsets.all(20 * globals.scaleParam),
-              //                     alignment: Alignment.center,
-              //                     child: Row(
-              //                       mainAxisAlignment: MainAxisAlignment.center,
-              //                       children: [
-              //                         Icon(
-              //                           Icons.delivery_dining,
-              //                         ),
-              //                         SizedBox(
-              //                           width: 10 * globals.scaleParam,
-              //                         ),
-              //                         Text(
-              //                           "Доставка",
-              //                           style: TextStyle(
-              //                             fontWeight: FontWeight.w700,
-              //                             fontSize: 32 * globals.scaleParam,
-              //                           ),
-              //                         )
-              //                       ],
-              //                     ),
-              //                   ),
-              //                 ),
-              //               ),
-              //               Flexible(
-              //                 fit: FlexFit.tight,
-              //                 child: GestureDetector(
-              //                   onTap: () {
-              //                     setState(() {
-              //                       delivery = false;
-              //                     });
-              //                   },
-              //                   child: Container(
-              //                     decoration: BoxDecoration(
-              //                       borderRadius:
-              //                           BorderRadius.all(Radius.circular(10)),
-              //                       border: Border.all(
-              //                         color: Colors.transparent,
-              //                       ),
-              //                     ),
-              //                     padding:
-              //                         EdgeInsets.all(20 * globals.scaleParam),
-              //                     alignment: Alignment.center,
-              //                     child: Row(
-              //                       mainAxisAlignment: MainAxisAlignment.center,
-              //                       children: [
-              //                         Icon(
-              //                           Icons.store,
-              //                         ),
-              //                         SizedBox(
-              //                           width: 10 * globals.scaleParam,
-              //                         ),
-              //                         Text(
-              //                           "Самовывоз",
-              //                           style: TextStyle(
-              //                             fontWeight: FontWeight.w700,
-              //                             fontSize: 32 * globals.scaleParam,
-              //                           ),
-              //                         )
-              //                       ],
-              //                     ),
-              //                   ),
-              //                 ),
-              //               ),
-              //             ],
-              //           ),
-              //           Row(
-              //             children: [
-              //               Flexible(
-              //                 fit: FlexFit.tight,
-              //                 child: LayoutBuilder(
-              //                     builder: (context, constraints) {
-              //                   return Container(
-              //                     width: constraints.maxWidth,
-              //                     color: Colors.black,
-              //                   );
-              //                 }),
-              //               ),
-              //               Flexible(
-              //                 fit: FlexFit.tight,
-              //                 child: SizedBox(),
-              //               ),
-              //             ],
-              //           ),
-              //         ],
-              //       );
-              //     },
-              //   ),
-              // ),
-              Container(
-                alignment: Alignment.topCenter,
-                child: Container(
-                  width: constraints.maxWidth * 0.98,
-                  height: 760 * globals.scaleParam,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.all(Radius.circular(15)),
-                    color: Colors.black,
-                  ),
-                  child: Column(
-                    children: [
-                      Stack(
-                        children: [
-                          Container(
-                            height: 100 * globals.scaleParam,
-                            margin: EdgeInsets.symmetric(
-                              horizontal: 15 * globals.scaleParam,
-                              vertical: 20 * globals.scaleParam,
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.all(
-                                Radius.circular(10),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color.fromARGB(255, 51, 51, 51),
-                                  spreadRadius: -3,
-                                ),
-                              ],
-                              // color: const Color.fromARGB(255, 51, 51, 51),
-                            ),
-                            child: Row(
-                              children: [
-                                Flexible(
-                                  flex: 30,
-                                  fit: FlexFit.tight,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      _controller.reverse();
-                                      setState(() {
-                                        delivery = true;
-                                      });
-                                    },
-                                    child: Container(
-                                      alignment: Alignment.center,
-                                      height: double.infinity,
-                                      padding: EdgeInsets.all(
-                                          15 * globals.scaleParam),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.all(
-                                          Radius.circular(10),
-                                        ),
-                                        // color: Colors.white24,
-                                      ),
-                                      child: Text(
-                                        "Доставка",
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontSize: 38 * globals.scaleParam,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.grey.shade600,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Spacer(),
-                                Flexible(
-                                  flex: 30,
-                                  fit: FlexFit.tight,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      _controller.forward();
-                                      setState(() {
-                                        delivery = false;
-                                      });
-                                    },
-                                    child: Container(
-                                      alignment: Alignment.center,
-                                      height: double.infinity,
-                                      padding: EdgeInsets.all(
-                                        15 * globals.scaleParam,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.all(
-                                          Radius.circular(10),
-                                        ),
-                                        // color: Colors.white24,
-                                      ),
-                                      child: Text(
-                                        "Самовывоз",
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontSize: 38 * globals.scaleParam,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.grey.shade600,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            height: 100 * globals.scaleParam,
-                            margin: EdgeInsets.symmetric(
-                              horizontal: 15 * globals.scaleParam,
-                              vertical: 20 * globals.scaleParam,
-                            ),
-                            child: Row(
-                              children: [
-                                Flexible(
-                                  flex: 30,
-                                  fit: FlexFit.tight,
-                                  child: SlideTransition(
-                                    position: _deliveryChooseAnim,
-                                    child: Container(
-                                      alignment: Alignment.center,
-                                      height: double.infinity,
-                                      padding: EdgeInsets.all(
-                                        15 * globals.scaleParam,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.all(
-                                          Radius.circular(10),
-                                        ),
-                                        color: Colors.white,
-                                      ),
-                                      child: AnimatedSwitcher(
-                                          duration: Duration(milliseconds: 300),
-                                          transitionBuilder:
-                                              (child, animation) {
-                                            return FadeTransition(
-                                              opacity: animation,
-                                              child: child,
-                                            );
-                                          },
-                                          child: Text(
-                                            delivery ? "Доставка" : "Самовывоз",
-                                            key: ValueKey<bool>(delivery),
-                                            textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                              fontSize: 38 * globals.scaleParam,
-                                              fontWeight: FontWeight.w600,
-                                              // shadows: [
-                                              //   Shadow(
-                                              //     color: Colors.grey.shade200,
-                                              //     blurRadius: 5,
-                                              //   ),
-                                              // ],
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .primary,
-                                            ),
-                                          )),
-                                    ),
-                                  ),
-                                ),
-                                Spacer(),
-                                Flexible(
-                                  flex: 30,
-                                  fit: FlexFit.tight,
-                                  child: SizedBox(),
-                                ),
-                              ],
-                            ),
-                          )
-                        ],
-                      ),
-                      Container(
-                        height: 520 * globals.scaleParam,
+              SizedBox(
+                width: constraints.maxWidth,
+                height: constraints.maxHeight,
+                child: Column(
+                  children: [
+                    // LayoutBuilder(
+                    //   builder: (context, constraints) {
+                    //     return Container(
+                    //       alignment: Alignment.topCenter,
+                    //       child: Column(
+                    //         children: [
+                    //           // SizedBox(
+                    //           //   height: constraints.maxHeight * 0.085,
+                    //           // ),
+                    //           Container(
+                    //             width: constraints.maxWidth,
+                    //             height: constraints.maxHeight * 0.48,
+                    //             decoration: BoxDecoration(
+                    //               color: Colors.black12,
+                    //               borderRadius: BorderRadius.only(
+                    //                 bottomLeft: Radius.circular(15),
+                    //                 bottomRight: Radius.circular(15),
+                    //               ),
+                    //             ),
+                    //           ),
+                    //         ],
+                    //       ),
+                    //     );
+                    //   },
+                    // ),
+                    // Container(
+                    //   decoration: BoxDecoration(
+                    //     color: Colors.amber,
+                    //     borderRadius: BorderRadius.all(Radius.circular(10)),
+                    //   ),
+                    //   margin: EdgeInsets.symmetric(
+                    //       horizontal: 20 * globals.scaleParam,
+                    //       vertical: 10 * globals.scaleParam),
+                    //   padding: EdgeInsets.all(10 * globals.scaleParam),
+                    //   child: LayoutBuilder(
+                    //     builder: (context, constraints) {
+                    //       return Stack(
+                    //         children: [
+                    //           Row(
+                    //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    //             mainAxisSize: MainAxisSize.max,
+                    //             children: [
+                    //               Flexible(
+                    //                 fit: FlexFit.tight,
+                    //                 child: GestureDetector(
+                    //                   onTap: () {
+                    //                     setState(() {
+                    //                       delivery = true;
+                    //                     });
+                    //                   },
+                    //                   child: Container(
+                    //                     decoration: BoxDecoration(
+                    //                       borderRadius:
+                    //                           BorderRadius.all(Radius.circular(10)),
+                    //                       border: Border.all(
+                    //                         color: Colors.transparent,
+                    //                       ),
+                    //                     ),
+                    //                     padding:
+                    //                         EdgeInsets.all(20 * globals.scaleParam),
+                    //                     alignment: Alignment.center,
+                    //                     child: Row(
+                    //                       mainAxisAlignment: MainAxisAlignment.center,
+                    //                       children: [
+                    //                         Icon(
+                    //                           Icons.delivery_dining,
+                    //                         ),
+                    //                         SizedBox(
+                    //                           width: 10 * globals.scaleParam,
+                    //                         ),
+                    //                         Text(
+                    //                           "Доставка",
+                    //                           style: TextStyle(
+                    //                             fontWeight: FontWeight.w700,
+                    //                             fontSize: 32 * globals.scaleParam,
+                    //                           ),
+                    //                         )
+                    //                       ],
+                    //                     ),
+                    //                   ),
+                    //                 ),
+                    //               ),
+                    //               Flexible(
+                    //                 fit: FlexFit.tight,
+                    //                 child: GestureDetector(
+                    //                   onTap: () {
+                    //                     setState(() {
+                    //                       delivery = false;
+                    //                     });
+                    //                   },
+                    //                   child: Container(
+                    //                     decoration: BoxDecoration(
+                    //                       borderRadius:
+                    //                           BorderRadius.all(Radius.circular(10)),
+                    //                       border: Border.all(
+                    //                         color: Colors.transparent,
+                    //                       ),
+                    //                     ),
+                    //                     padding:
+                    //                         EdgeInsets.all(20 * globals.scaleParam),
+                    //                     alignment: Alignment.center,
+                    //                     child: Row(
+                    //                       mainAxisAlignment: MainAxisAlignment.center,
+                    //                       children: [
+                    //                         Icon(
+                    //                           Icons.store,
+                    //                         ),
+                    //                         SizedBox(
+                    //                           width: 10 * globals.scaleParam,
+                    //                         ),
+                    //                         Text(
+                    //                           "Самовывоз",
+                    //                           style: TextStyle(
+                    //                             fontWeight: FontWeight.w700,
+                    //                             fontSize: 32 * globals.scaleParam,
+                    //                           ),
+                    //                         )
+                    //                       ],
+                    //                     ),
+                    //                   ),
+                    //                 ),
+                    //               ),
+                    //             ],
+                    //           ),
+                    //           Row(
+                    //             children: [
+                    //               Flexible(
+                    //                 fit: FlexFit.tight,
+                    //                 child: LayoutBuilder(
+                    //                     builder: (context, constraints) {
+                    //                   return Container(
+                    //                     width: constraints.maxWidth,
+                    //                     color: Colors.black,
+                    //                   );
+                    //                 }),
+                    //               ),
+                    //               Flexible(
+                    //                 fit: FlexFit.tight,
+                    //                 child: SizedBox(),
+                    //               ),
+                    //             ],
+                    //           ),
+                    //         ],
+                    //       );
+                    //     },
+                    //   ),
+                    // ),
+                    Container(
+                      padding: EdgeInsets.only(top: 15 * globals.scaleParam),
+                      alignment: Alignment.topCenter,
+                      child: Container(
+                        width: constraints.maxWidth * 0.955,
+                        height: 760 * globals.scaleParam,
                         decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(10))),
-                        margin: EdgeInsets.symmetric(
-                          horizontal: 15 * globals.scaleParam,
+                          borderRadius: BorderRadius.all(Radius.circular(15)),
+                          color: Colors.blue.shade50,
                         ),
-                        padding: EdgeInsets.all(10 * globals.scaleParam),
-                        child: ListView.builder(
-                          primary: false,
-                          shrinkWrap: true,
-                          itemCount: widget.items.length,
-                          itemBuilder: (context, index) {
-                            final item = widget.items[index];
-
-                            return Column(
+                        child: Column(
+                          children: [
+                            Stack(
                               children: [
-                                ItemCardNoImage(
-                                  element: item,
-                                  itemId: item["item_id"],
-                                  categoryId: "",
-                                  categoryName: "",
-                                  scroll: 0,
-                                ),
-                                widget.items.length - 1 != index
-                                    ? Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 32 * globals.scaleParam,
-                                          vertical: 10 * globals.scaleParam,
-                                        ),
-                                        child: Divider(
-                                          height: 0,
-                                        ),
-                                      )
-                                    : Container(),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-                      Container(
-                        height: 100 * globals.scaleParam,
-                        margin: EdgeInsets.symmetric(
-                          horizontal: 15 * globals.scaleParam,
-                        ),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 15 * globals.scaleParam,
-                        ),
-                        child: Row(
-                          children: [
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: Text(
-                                "x ${widget.itemsAmount}",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 38 * globals.scaleParam,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            Flexible(
-                              flex: 5,
-                              fit: FlexFit.tight,
-                              child: Text(
-                                "В заказе",
-                                style: TextStyle(
-                                  fontSize: 38 * globals.scaleParam,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            Flexible(
-                              flex: 2,
-                              fit: FlexFit.tight,
-                              child: Text(
-                                "${globals.formatCost(widget.finalSum.toString()).toString()} ₸",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 38 * globals.scaleParam,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Container(
-                padding:
-                    EdgeInsets.symmetric(vertical: 20 * globals.scaleParam),
-                decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.all(Radius.circular(10))),
-                margin:
-                    EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
-                // This should be null only if widget.user doesn't have any addresses, else there will be widget.user address
-                // child: currentAddressWidget ??
-                child: currentAddress.isNotEmpty
-                    ? GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.max,
-                          children: [
-                            Flexible(
-                              flex: 4,
-                              fit: FlexFit.tight,
-                              child: Column(
-                                children: [
-                                  Row(
+                                Container(
+                                  height: 100 * globals.scaleParam,
+                                  margin: EdgeInsets.symmetric(
+                                    horizontal: 25 * globals.scaleParam,
+                                    vertical: 20 * globals.scaleParam,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(10),
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.grey.shade300,
+                                        spreadRadius: -3,
+                                      ),
+                                    ],
+                                    // color: const Color.fromARGB(255, 51, 51, 51),
+                                  ),
+                                  child: Row(
                                     children: [
                                       Flexible(
-                                        child: Text(
-                                          "Ваш адрес: ${currentAddress["name"]}",
-                                          style: TextStyle(
-                                            fontSize: 32 * globals.scaleParam,
-                                            fontWeight: FontWeight.w600,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .primary,
+                                        flex: 30,
+                                        fit: FlexFit.tight,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            _controller.reverse();
+                                            setState(() {
+                                              delivery = true;
+                                            });
+                                          },
+                                          child: Container(
+                                            alignment: Alignment.center,
+                                            height: double.infinity,
+                                            padding: EdgeInsets.all(
+                                                15 * globals.scaleParam),
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.all(
+                                                Radius.circular(10),
+                                              ),
+                                              // color: Colors.white24,
+                                            ),
+                                            child: Text(
+                                              "Доставка",
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize:
+                                                    38 * globals.scaleParam,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.grey.shade700,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Spacer(),
+                                      Flexible(
+                                        flex: 30,
+                                        fit: FlexFit.tight,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            _controller.forward();
+                                            setState(() {
+                                              delivery = false;
+                                            });
+                                          },
+                                          child: Container(
+                                            alignment: Alignment.center,
+                                            height: double.infinity,
+                                            padding: EdgeInsets.all(
+                                              15 * globals.scaleParam,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.all(
+                                                Radius.circular(10),
+                                              ),
+                                              // color: Colors.white24,
+                                            ),
+                                            child: Text(
+                                              "Самовывоз",
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize:
+                                                    38 * globals.scaleParam,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.grey.shade700,
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ],
                                   ),
-                                  Row(
+                                ),
+                                Container(
+                                  height: 100 * globals.scaleParam,
+                                  margin: EdgeInsets.symmetric(
+                                    horizontal: 25 * globals.scaleParam,
+                                    vertical: 20 * globals.scaleParam,
+                                  ),
+                                  child: Row(
                                     children: [
                                       Flexible(
-                                        child: Text(
-                                          currentAddress["address"],
-                                          style: TextStyle(
-                                            fontSize: 32 * globals.scaleParam,
-                                            fontWeight: FontWeight.w600,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .primary,
+                                        flex: 30,
+                                        fit: FlexFit.tight,
+                                        child: SlideTransition(
+                                          position: _deliveryChooseAnim,
+                                          child: Container(
+                                            alignment: Alignment.center,
+                                            height: double.infinity,
+                                            padding: EdgeInsets.all(
+                                              15 * globals.scaleParam,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.all(
+                                                Radius.circular(10),
+                                              ),
+                                              color: Colors.black,
+                                            ),
+                                            child: AnimatedSwitcher(
+                                                duration:
+                                                    Duration(milliseconds: 300),
+                                                transitionBuilder:
+                                                    (child, animation) {
+                                                  return FadeTransition(
+                                                    opacity: animation,
+                                                    child: child,
+                                                  );
+                                                },
+                                                child: Text(
+                                                  delivery
+                                                      ? "Доставка"
+                                                      : "Самовывоз",
+                                                  key: ValueKey<bool>(delivery),
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    fontSize:
+                                                        38 * globals.scaleParam,
+                                                    fontWeight: FontWeight.w600,
+                                                    // shadows: [
+                                                    //   Shadow(
+                                                    //     color: Colors.grey.shade200,
+                                                    //     blurRadius: 5,
+                                                    //   ),
+                                                    // ],
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onPrimary,
+                                                  ),
+                                                )),
                                           ),
                                         ),
                                       ),
+                                      Spacer(),
+                                      Flexible(
+                                        flex: 30,
+                                        fit: FlexFit.tight,
+                                        child: SizedBox(),
+                                      ),
                                     ],
+                                  ),
+                                )
+                              ],
+                            ),
+                            Container(
+                              height: 85 * globals.scaleParam,
+                              margin: EdgeInsets.symmetric(
+                                vertical: 35 * globals.scaleParam,
+                              ),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 35 * globals.scaleParam,
+                              ),
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                    flex: 3,
+                                    fit: FlexFit.tight,
+                                    child: Text(
+                                      "Ваш адрес ",
+                                      style: TextStyle(
+                                        fontSize: 32 * globals.scaleParam,
+                                        fontWeight: FontWeight.w600,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                      ),
+                                    ),
+                                  ),
+                                  Flexible(
+                                    flex: 8,
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 8 * globals.scaleParam,
+                                          horizontal: 12 * globals.scaleParam,
+                                        ),
+                                        backgroundColor: Colors.transparent,
+                                        shadowColor: Colors.transparent,
+                                        foregroundColor: Colors.grey,
+                                      ),
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) {
+                                              return PickAddressPage(
+                                                client: widget.user,
+                                                business: widget.business,
+                                                isFromCreateOrder: true,
+                                              );
+                                            },
+                                          ),
+                                        ).then((value) {
+                                          _getClientAddresses();
+                                          print(_getAddresses());
+                                        });
+                                      },
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          Flexible(
+                                            flex: 7,
+                                            fit: FlexFit.tight,
+                                            child: Text(
+                                              currentAddress["address"] ??
+                                                  "Загружаю...",
+                                              style: TextStyle(
+                                                fontSize:
+                                                    32 * globals.scaleParam,
+                                                fontWeight: FontWeight.w600,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary,
+                                              ),
+                                            ),
+                                          ),
+                                          Flexible(
+                                            fit: FlexFit.tight,
+                                            child: Icon(
+                                              Icons.arrow_drop_down_rounded,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                            Flexible(
-                              child: Icon(
-                                Icons.add_box_rounded,
-                                size: 50 * globals.scaleParam,
-                              ),
-                            ),
-                          ],
-                        ),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) {
-                                return PickAddressPage(
-                                  client: widget.user,
-                                  business: widget.business,
-                                  isFromCreateOrder: true,
-                                );
-                              },
-                            ),
-                          ).then((value) {
-                            _getClientAddresses();
-                            print(_getAddresses());
-                          });
-                        },
-                      )
-                    : TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PickAddressPage(
-                                client: widget.user,
-                                business: widget.business,
-                                isFromCreateOrder: true,
-                              ),
-                            ),
-                          ).then((value) {
-                            _getClientAddresses();
-                            print(_getAddresses());
-                          });
-                        },
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            Text(
-                              "Добавьте адрес доставки",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 32 * globals.scaleParam,
-                                color: Theme.of(context).colorScheme.secondary,
-                              ),
-                            ),
-                            Icon(
-                              Icons.add_box_rounded,
-                              color: Theme.of(context).colorScheme.secondary,
-                              size: 50 * globals.scaleParam,
-                            ),
-                          ],
-                        ),
-                      ),
-              ),
-              Container(
-                height: constraints.maxHeight,
-                alignment: Alignment.bottomCenter,
-                child: Column(
-                  children: [
-                    SizedBox(
-                      height: 10 * globals.scaleParam,
-                    ),
-                    isAddressesLoading
-                        ? Shimmer.fromColors(
-                            baseColor: Theme.of(context)
-                                .colorScheme
-                                .secondary
-                                .withOpacity(0.05),
-                            highlightColor:
-                                Theme.of(context).colorScheme.secondary,
-                            child: Padding(
+                            Padding(
                               padding: EdgeInsets.symmetric(
-                                  horizontal: 20 * globals.scaleParam),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(10)),
-                                  color: Colors.white,
-                                ),
-                                width: double.infinity,
-                                height: 100 * globals.scaleParam,
+                                horizontal: 45 * globals.scaleParam,
+                              ),
+                              child: Divider(
+                                height: 5 * globals.scaleParam,
                               ),
                             ),
-                          )
-                        : delivery
-                            ? SizedBox()
-                            : Container(
+                            Container(
+                              height: 85 * globals.scaleParam,
+                              margin: EdgeInsets.only(
+                                top: 35 * globals.scaleParam,
+                              ),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 35 * globals.scaleParam,
+                              ),
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                    flex: 3,
+                                    fit: FlexFit.tight,
+                                    child: Text(
+                                      "Оплата ",
+                                      style: TextStyle(
+                                        fontSize: 32 * globals.scaleParam,
+                                        fontWeight: FontWeight.w600,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                      ),
+                                    ),
+                                  ),
+                                  Flexible(
+                                    flex: 8,
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 8 * globals.scaleParam,
+                                          horizontal: 12 * globals.scaleParam,
+                                        ),
+                                        backgroundColor: Colors.transparent,
+                                        shadowColor: Colors.transparent,
+                                        foregroundColor: Colors.grey,
+                                      ),
+                                      onPressed: () {
+                                        showAdaptiveDialog(
+                                          context: context,
+                                          builder: (context) {
+                                            return StatefulBuilder(
+                                              builder: (BuildContext context,
+                                                  setStatePayment) {
+                                                return AlertDialog(
+                                                  title: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      Flexible(
+                                                        child: Text(
+                                                          "Способ оплаты",
+                                                          style: TextStyle(
+                                                            fontSize: 48 *
+                                                                globals
+                                                                    .scaleParam,
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                            color: Colors.black,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  // content: Column(
+                                                  //   mainAxisSize: MainAxisSize.min,
+                                                  //   children: [
+                                                  //     Row(
+                                                  //       children: [],
+                                                  //     ),
+                                                  //   ],
+                                                  // ),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () {
+                                                        Navigator.push(
+                                                          context,
+                                                          globals
+                                                              .getPlatformSpecialRoute(
+                                                            const WebViewCardPayPage(),
+                                                          ),
+                                                        );
+                                                        setState(() {
+                                                          paymentType =
+                                                              PaymentType.card;
+                                                        });
+                                                      },
+                                                      child: Container(
+                                                        padding: EdgeInsets.all(
+                                                            20 *
+                                                                globals
+                                                                    .scaleParam),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          borderRadius:
+                                                              BorderRadius.all(
+                                                            Radius.circular(10),
+                                                          ),
+                                                          color: Colors.black12,
+                                                        ),
+                                                        child: Row(
+                                                          children: [
+                                                            Flexible(
+                                                              flex: 4,
+                                                              fit:
+                                                                  FlexFit.tight,
+                                                              child: Text(
+                                                                "Картой",
+                                                              ),
+                                                            ),
+                                                            Flexible(
+                                                              flex: 2,
+                                                              fit:
+                                                                  FlexFit.tight,
+                                                              child: Icon(
+                                                                Icons
+                                                                    .credit_card_rounded,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    TextButton(
+                                                      onPressed: () {
+                                                        setState(() {
+                                                          paymentType =
+                                                              PaymentType.kaspi;
+                                                        });
+                                                      },
+                                                      child: Container(
+                                                        padding: EdgeInsets.all(
+                                                          20 *
+                                                              globals
+                                                                  .scaleParam,
+                                                        ),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          borderRadius:
+                                                              BorderRadius.all(
+                                                            Radius.circular(10),
+                                                          ),
+                                                          color: Colors.black12,
+                                                        ),
+                                                        child: Row(
+                                                          children: [
+                                                            Flexible(
+                                                              flex: 4,
+                                                              fit:
+                                                                  FlexFit.tight,
+                                                              child: Text(
+                                                                "Счёт на каспи",
+                                                              ),
+                                                            ),
+                                                            Flexible(
+                                                              flex: 2,
+                                                              fit:
+                                                                  FlexFit.tight,
+                                                              child: Icon(
+                                                                Icons
+                                                                    .smartphone_rounded,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    TextButton(
+                                                      onPressed: () {
+                                                        setState(() {
+                                                          paymentType =
+                                                              PaymentType.cash;
+                                                        });
+                                                      },
+                                                      child: Container(
+                                                        padding: EdgeInsets.all(
+                                                            20 *
+                                                                globals
+                                                                    .scaleParam),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          borderRadius:
+                                                              BorderRadius.all(
+                                                            Radius.circular(10),
+                                                          ),
+                                                          color: Colors.black12,
+                                                        ),
+                                                        child: Row(
+                                                          children: [
+                                                            Flexible(
+                                                              flex: 4,
+                                                              fit:
+                                                                  FlexFit.tight,
+                                                              child: Text(
+                                                                "Наличными",
+                                                              ),
+                                                            ),
+                                                            Flexible(
+                                                              flex: 2,
+                                                              fit:
+                                                                  FlexFit.tight,
+                                                              child: Icon(
+                                                                Icons
+                                                                    .money_rounded,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    TextButton(
+                                                      onPressed: () {
+                                                        Navigator.pop(context);
+                                                      },
+                                                      child: Container(
+                                                        padding: EdgeInsets.all(
+                                                            20 *
+                                                                globals
+                                                                    .scaleParam),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          borderRadius:
+                                                              BorderRadius.all(
+                                                            Radius.circular(10),
+                                                          ),
+                                                          color: Colors.black12,
+                                                        ),
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          children: [
+                                                            Flexible(
+                                                              fit:
+                                                                  FlexFit.tight,
+                                                              child: Text(
+                                                                "Назад",
+                                                                textAlign:
+                                                                    TextAlign
+                                                                        .center,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
+                                            );
+                                          },
+                                        );
+                                      },
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          Flexible(
+                                            flex: 7,
+                                            fit: FlexFit.tight,
+                                            child: Text(
+                                              paymentType.description,
+                                              style: TextStyle(
+                                                fontSize:
+                                                    32 * globals.scaleParam,
+                                                fontWeight: FontWeight.w600,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary,
+                                              ),
+                                            ),
+                                          ),
+                                          Flexible(
+                                            fit: FlexFit.tight,
+                                            child: Icon(
+                                              Icons.arrow_drop_down_rounded,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SlideTransition(
+                              position: AlwaysStoppedAnimation(
+                                Offset(0, -0.2),
+                              ),
+                              child: Container(
+                                color: Colors.amber,
+                                height: 85 * globals.scaleParam,
                                 padding: EdgeInsets.symmetric(
-                                    vertical: 20 * globals.scaleParam),
-                                decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(10))),
-                                margin: EdgeInsets.symmetric(
-                                    horizontal: 20 * globals.scaleParam),
-                                // This should be null only if widget.user doesn't have any addresses, else there will be widget.user address
-                                // child: currentAddressWidget ??
-                                child: Column(
+                                  horizontal: 35 * globals.scaleParam,
+                                ),
+                                child: Row(
                                   children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      mainAxisSize: MainAxisSize.max,
-                                      children: [
-                                        Flexible(
-                                          flex: 4,
-                                          fit: FlexFit.tight,
-                                          child: Column(
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  Flexible(
-                                                    child: Text(
-                                                      "Самовывозом: ${widget.business["name"]}",
-                                                      style: TextStyle(
-                                                        fontSize: 32 *
-                                                            globals.scaleParam,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        color: Theme.of(context)
-                                                            .colorScheme
-                                                            .primary,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              Row(
-                                                children: [
-                                                  Flexible(
-                                                    child: Text(
-                                                      widget
-                                                          .business["address"],
-                                                      style: TextStyle(
-                                                        fontSize: 32 *
-                                                            globals.scaleParam,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        color: Theme.of(context)
-                                                            .colorScheme
-                                                            .primary,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Flexible(
-                                          child: Icon(
-                                            Icons.add_box_rounded,
-                                            size: 50 * globals.scaleParam,
-                                          ),
-                                        ),
-                                      ],
+                                    Flexible(
+                                      child: SizedBox(),
                                     ),
                                   ],
                                 ),
                               ),
-                    delivery
-                        ? Container(
-                            decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(10))),
-                            margin: EdgeInsets.symmetric(
-                                horizontal: 20 * globals.scaleParam,
-                                vertical: 10 * globals.scaleParam),
-                            padding: EdgeInsets.all(30 * globals.scaleParam),
-                            child: Row(
-                              children: [
-                                Flexible(
-                                  flex: 2,
-                                  fit: FlexFit.tight,
-                                  child: Text(
-                                    "Доставка:",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 32 * globals.scaleParam,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
-                                    ),
-                                  ),
-                                ),
-                                Flexible(
-                                  flex: 2,
-                                  fit: FlexFit.tight,
-                                  child: Text(
-                                    "${widget.deliveryInfo["distance"]} м",
-                                    textAlign: TextAlign.end,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 32 * globals.scaleParam,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
-                                    ),
-                                  ),
-                                ),
-                                Flexible(
-                                  fit: FlexFit.tight,
-                                  child: Text(
-                                    "-",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 32 * globals.scaleParam,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
-                                    ),
-                                  ),
-                                ),
-                                Flexible(
-                                  flex: 2,
-                                  fit: FlexFit.tight,
-                                  child: Text(
-                                    "${widget.deliveryInfo["price"]} ₸",
-                                    textAlign: TextAlign.start,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 32 * globals.scaleParam,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
-                                    ),
-                                  ),
-                                ),
-                              ],
                             ),
-                          )
-                        : SizedBox(),
+                            // Container(
+                            //   height: 520 * globals.scaleParam,
+                            //   decoration: BoxDecoration(
+                            //       color: Colors.white,
+                            //       borderRadius:
+                            //           BorderRadius.all(Radius.circular(10))),
+                            //   margin: EdgeInsets.symmetric(
+                            //     horizontal: 30 * globals.scaleParam,
+                            //   ),
+                            //   padding: EdgeInsets.all(10 * globals.scaleParam),
+                            //   child: ListView.builder(
+                            //     primary: false,
+                            //     shrinkWrap: true,
+                            //     itemCount: widget.items.length,
+                            //     itemBuilder: (context, index) {
+                            //       final item = widget.items[index];
+
+                            //       return Column(
+                            //         children: [
+                            //           ItemCardNoImage(
+                            //             element: item,
+                            //             itemId: item["item_id"],
+                            //             categoryId: "",
+                            //             categoryName: "",
+                            //             scroll: 0,
+                            //           ),
+                            //           widget.items.length - 1 != index
+                            //               ? Padding(
+                            //                   padding: EdgeInsets.symmetric(
+                            //                     horizontal:
+                            //                         32 * globals.scaleParam,
+                            //                     vertical:
+                            //                         10 * globals.scaleParam,
+                            //                   ),
+                            //                   child: Divider(
+                            //                     height: 0,
+                            //                   ),
+                            //                 )
+                            //               : Container(),
+                            //         ],
+                            //       );
+                            //     },
+                            //   ),
+                            // ),
+                            // Container(
+                            //   height: 100 * globals.scaleParam,
+                            //   margin: EdgeInsets.symmetric(
+                            //     horizontal: 30 * globals.scaleParam,
+                            //   ),
+                            //   padding: EdgeInsets.symmetric(
+                            //     horizontal: 15 * globals.scaleParam,
+                            //   ),
+                            //   child: Row(
+                            //     children: [
+                            //       Flexible(
+                            //         fit: FlexFit.tight,
+                            //         child: Text(
+                            //           "x ${widget.itemsAmount}",
+                            //           textAlign: TextAlign.center,
+                            //           style: TextStyle(
+                            //             fontSize: 38 * globals.scaleParam,
+                            //             fontWeight: FontWeight.w600,
+                            //             color: Colors.black,
+                            //           ),
+                            //         ),
+                            //       ),
+                            //       Flexible(
+                            //         flex: 5,
+                            //         fit: FlexFit.tight,
+                            //         child: Text(
+                            //           "В заказе",
+                            //           style: TextStyle(
+                            //             fontSize: 38 * globals.scaleParam,
+                            //             fontWeight: FontWeight.w600,
+                            //             color: Colors.black,
+                            //           ),
+                            //         ),
+                            //       ),
+                            //       Flexible(
+                            //         flex: 2,
+                            //         fit: FlexFit.tight,
+                            //         child: Text(
+                            //           "${globals.formatCost(widget.finalSum.toString()).toString()} ₸",
+                            //           textAlign: TextAlign.center,
+                            //           style: TextStyle(
+                            //             fontSize: 38 * globals.scaleParam,
+                            //             fontWeight: FontWeight.w600,
+                            //             color: Colors.black,
+                            //           ),
+                            //         ),
+                            //       )
+                            //     ],
+                            //   ),
+                            // ),
+                          ],
+                        ),
+                      ),
+                    ),
                     Container(
+                      height: 250 * globals.scaleParam,
+                      margin: EdgeInsets.symmetric(
+                        vertical: 20 * globals.scaleParam,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.all(Radius.circular(15)),
+                        color: Colors.grey.shade200,
+                      ),
+                      child: AspectRatio(
+                        aspectRatio: 6 / 3,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                "Оплата",
+                                style: TextStyle(
+                                  fontSize: 32 * globals.scaleParam,
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                          vertical: 20 * globals.scaleParam),
                       decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.all(Radius.circular(10))),
                       margin: EdgeInsets.symmetric(
                           horizontal: 20 * globals.scaleParam),
-                      padding: EdgeInsets.all(30 * globals.scaleParam),
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          return GestureDetector(
-                            onTap: () {
-                              showAdaptiveDialog(
-                                context: context,
-                                builder: (context) {
-                                  return StatefulBuilder(
-                                    builder: (BuildContext context, setState) {
-                                      return AlertDialog(
-                                        title: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
+                      // This should be null only if widget.user doesn't have any addresses, else there will be widget.user address
+                      // child: currentAddressWidget ??
+                      child: currentAddress.isNotEmpty
+                          ? GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.max,
+                                children: [
+                                  Flexible(
+                                    flex: 4,
+                                    fit: FlexFit.tight,
+                                    child: Column(
+                                      children: [
+                                        Row(
                                           children: [
                                             Flexible(
                                               child: Text(
-                                                "Способ оплаты",
+                                                "Ваш адрес: ${currentAddress["name"]}",
                                                 style: TextStyle(
                                                   fontSize:
-                                                      48 * globals.scaleParam,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: Colors.black,
+                                                      32 * globals.scaleParam,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .primary,
                                                 ),
                                               ),
                                             ),
                                           ],
                                         ),
-                                        // content: Column(
-                                        //   mainAxisSize: MainAxisSize.min,
-                                        //   children: [
-                                        //     Row(
-                                        //       children: [],
-                                        //     ),
-                                        //   ],
-                                        // ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () {
-                                              Navigator.push(
-                                                context,
-                                                globals.getPlatformSpecialRoute(
-                                                  const WebViewCardPayPage(),
+                                        Row(
+                                          children: [
+                                            Flexible(
+                                              child: Text(
+                                                currentAddress["address"],
+                                                style: TextStyle(
+                                                  fontSize:
+                                                      32 * globals.scaleParam,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .primary,
                                                 ),
-                                              );
-                                            },
-                                            child: Container(
-                                              padding: EdgeInsets.all(
-                                                  20 * globals.scaleParam),
-                                              decoration: BoxDecoration(
-                                                borderRadius: BorderRadius.all(
-                                                  Radius.circular(10),
-                                                ),
-                                                color: Colors.black12,
-                                              ),
-                                              child: Row(
-                                                children: [
-                                                  Flexible(
-                                                      flex: 4,
-                                                      fit: FlexFit.tight,
-                                                      child: Text("Картой")),
-                                                  Flexible(
-                                                    flex: 2,
-                                                    fit: FlexFit.tight,
-                                                    child: Icon(Icons
-                                                        .credit_card_rounded),
-                                                  ),
-                                                ],
                                               ),
                                             ),
-                                          ),
-                                          TextButton(
-                                            onPressed: () {},
-                                            child: Container(
-                                              padding: EdgeInsets.all(
-                                                  20 * globals.scaleParam),
-                                              decoration: BoxDecoration(
-                                                borderRadius: BorderRadius.all(
-                                                  Radius.circular(10),
-                                                ),
-                                                color: Colors.black12,
-                                              ),
-                                              child: Row(
-                                                children: [
-                                                  Flexible(
-                                                      flex: 4,
-                                                      fit: FlexFit.tight,
-                                                      child: Text(
-                                                          "Счёт на каспи")),
-                                                  Flexible(
-                                                    flex: 2,
-                                                    fit: FlexFit.tight,
-                                                    child: Icon(Icons
-                                                        .smartphone_rounded),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                          TextButton(
-                                            onPressed: () {
-                                              Navigator.pop(context);
-                                            },
-                                            child: Container(
-                                              padding: EdgeInsets.all(
-                                                  20 * globals.scaleParam),
-                                              decoration: BoxDecoration(
-                                                borderRadius: BorderRadius.all(
-                                                  Radius.circular(10),
-                                                ),
-                                                color: Colors.black12,
-                                              ),
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Flexible(
-                                                    fit: FlexFit.tight,
-                                                    child: Text(
-                                                      "Назад",
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Flexible(
+                                    child: Icon(
+                                      Icons.add_box_rounded,
+                                      size: 50 * globals.scaleParam,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) {
+                                      return PickAddressPage(
+                                        client: widget.user,
+                                        business: widget.business,
+                                        isFromCreateOrder: true,
                                       );
                                     },
-                                  );
-                                },
-                              );
-                            },
+                                  ),
+                                ).then((value) {
+                                  _getClientAddresses();
+                                  print(_getAddresses());
+                                });
+                              },
+                            )
+                          : TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => PickAddressPage(
+                                      client: widget.user,
+                                      business: widget.business,
+                                      isFromCreateOrder: true,
+                                    ),
+                                  ),
+                                ).then((value) {
+                                  _getClientAddresses();
+                                  print(_getAddresses());
+                                });
+                              },
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  Text(
+                                    "Добавьте адрес доставки",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 32 * globals.scaleParam,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .secondary,
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.add_box_rounded,
+                                    color:
+                                        Theme.of(context).colorScheme.secondary,
+                                    size: 50 * globals.scaleParam,
+                                  ),
+                                ],
+                              ),
+                            ),
+                    ),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return Container(
+                            height: constraints.maxHeight,
+                            alignment: Alignment.bottomCenter,
                             child: Column(
                               children: [
-                                Text(
-                                  widget.user.isEmpty
-                                      ? "Счёт на каспи:"
-                                      : widget.client.isEmpty
-                                          ? "Счёт на каспи: ${widget.user["login"].toString()}" //! TODO: CHANGE IF NOT KASPI BUT CASH
-                                          : "Счёт на каспи: ${widget.client["login"].toString()}",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 32 * globals.scaleParam,
-                                    color:
-                                        Theme.of(context).colorScheme.onSurface,
-                                  ),
+                                SizedBox(
+                                  height: 10 * globals.scaleParam,
                                 ),
-                                Text(
-                                  "Сумма к оплате: ${globals.formatCost((widget.finalSum + widget.deliveryInfo["price"]).toString()).toString()} ₸",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 32 * globals.scaleParam,
-                                    color:
-                                        Theme.of(context).colorScheme.onSurface,
+                                isAddressesLoading
+                                    ? Shimmer.fromColors(
+                                        baseColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondary
+                                            .withOpacity(0.05),
+                                        highlightColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondary,
+                                        child: Padding(
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal:
+                                                  20 * globals.scaleParam),
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.all(
+                                                  Radius.circular(10)),
+                                              color: Colors.white,
+                                            ),
+                                            width: double.infinity,
+                                            height: 100 * globals.scaleParam,
+                                          ),
+                                        ),
+                                      )
+                                    : delivery
+                                        ? SizedBox()
+                                        : Container(
+                                            padding: EdgeInsets.symmetric(
+                                                vertical:
+                                                    20 * globals.scaleParam),
+                                            decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.all(
+                                                    Radius.circular(10))),
+                                            margin: EdgeInsets.symmetric(
+                                                horizontal:
+                                                    20 * globals.scaleParam),
+                                            // This should be null only if widget.user doesn't have any addresses, else there will be widget.user address
+                                            // child: currentAddressWidget ??
+                                            child: Column(
+                                              children: [
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  mainAxisSize:
+                                                      MainAxisSize.max,
+                                                  children: [
+                                                    Flexible(
+                                                      flex: 4,
+                                                      fit: FlexFit.tight,
+                                                      child: Column(
+                                                        children: [
+                                                          Row(
+                                                            children: [
+                                                              Flexible(
+                                                                child: Text(
+                                                                  "Самовывозом: ${widget.business["name"]}",
+                                                                  style:
+                                                                      TextStyle(
+                                                                    fontSize: 32 *
+                                                                        globals
+                                                                            .scaleParam,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w600,
+                                                                    color: Theme.of(
+                                                                            context)
+                                                                        .colorScheme
+                                                                        .primary,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          Row(
+                                                            children: [
+                                                              Flexible(
+                                                                child: Text(
+                                                                  widget.business[
+                                                                      "address"],
+                                                                  style:
+                                                                      TextStyle(
+                                                                    fontSize: 32 *
+                                                                        globals
+                                                                            .scaleParam,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w600,
+                                                                    color: Theme.of(
+                                                                            context)
+                                                                        .colorScheme
+                                                                        .primary,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    Flexible(
+                                                      child: Icon(
+                                                        Icons.add_box_rounded,
+                                                        size: 50 *
+                                                            globals.scaleParam,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                delivery
+                                    ? Container(
+                                        decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(10))),
+                                        margin: EdgeInsets.symmetric(
+                                            horizontal: 20 * globals.scaleParam,
+                                            vertical: 10 * globals.scaleParam),
+                                        padding: EdgeInsets.all(
+                                            30 * globals.scaleParam),
+                                        child: Row(
+                                          children: [
+                                            Flexible(
+                                              flex: 2,
+                                              fit: FlexFit.tight,
+                                              child: Text(
+                                                "Доставка:",
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize:
+                                                      32 * globals.scaleParam,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface,
+                                                ),
+                                              ),
+                                            ),
+                                            Flexible(
+                                              flex: 2,
+                                              fit: FlexFit.tight,
+                                              child: Text(
+                                                "${widget.deliveryInfo["distance"]} м",
+                                                textAlign: TextAlign.end,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize:
+                                                      32 * globals.scaleParam,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface,
+                                                ),
+                                              ),
+                                            ),
+                                            Flexible(
+                                              fit: FlexFit.tight,
+                                              child: Text(
+                                                "-",
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize:
+                                                      32 * globals.scaleParam,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface,
+                                                ),
+                                              ),
+                                            ),
+                                            Flexible(
+                                              flex: 2,
+                                              fit: FlexFit.tight,
+                                              child: Text(
+                                                "${widget.deliveryInfo["price"]} ₸",
+                                                textAlign: TextAlign.start,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize:
+                                                      32 * globals.scaleParam,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    : SizedBox(),
+                                Container(
+                                  decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.all(
+                                          Radius.circular(10))),
+                                  margin: EdgeInsets.symmetric(
+                                      horizontal: 20 * globals.scaleParam),
+                                  padding:
+                                      EdgeInsets.all(30 * globals.scaleParam),
+                                  child: LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      return GestureDetector(
+                                        onTap: () {
+                                          showAdaptiveDialog(
+                                            context: context,
+                                            builder: (context) {
+                                              return StatefulBuilder(
+                                                builder: (BuildContext context,
+                                                    setState) {
+                                                  return AlertDialog(
+                                                    title: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Flexible(
+                                                          child: Text(
+                                                            "Способ оплаты",
+                                                            style: TextStyle(
+                                                              fontSize: 48 *
+                                                                  globals
+                                                                      .scaleParam,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              color:
+                                                                  Colors.black,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    // content: Column(
+                                                    //   mainAxisSize: MainAxisSize.min,
+                                                    //   children: [
+                                                    //     Row(
+                                                    //       children: [],
+                                                    //     ),
+                                                    //   ],
+                                                    // ),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () {
+                                                          Navigator.push(
+                                                            context,
+                                                            globals
+                                                                .getPlatformSpecialRoute(
+                                                              const WebViewCardPayPage(),
+                                                            ),
+                                                          );
+                                                        },
+                                                        child: Container(
+                                                          padding: EdgeInsets
+                                                              .all(20 *
+                                                                  globals
+                                                                      .scaleParam),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .all(
+                                                              Radius.circular(
+                                                                  10),
+                                                            ),
+                                                            color:
+                                                                Colors.black12,
+                                                          ),
+                                                          child: Row(
+                                                            children: [
+                                                              Flexible(
+                                                                  flex: 4,
+                                                                  fit: FlexFit
+                                                                      .tight,
+                                                                  child: Text(
+                                                                      "Картой")),
+                                                              Flexible(
+                                                                flex: 2,
+                                                                fit: FlexFit
+                                                                    .tight,
+                                                                child: Icon(Icons
+                                                                    .credit_card_rounded),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      TextButton(
+                                                        onPressed: () {},
+                                                        child: Container(
+                                                          padding: EdgeInsets
+                                                              .all(20 *
+                                                                  globals
+                                                                      .scaleParam),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .all(
+                                                              Radius.circular(
+                                                                  10),
+                                                            ),
+                                                            color:
+                                                                Colors.black12,
+                                                          ),
+                                                          child: Row(
+                                                            children: [
+                                                              Flexible(
+                                                                  flex: 4,
+                                                                  fit: FlexFit
+                                                                      .tight,
+                                                                  child: Text(
+                                                                      "Счёт на каспи")),
+                                                              Flexible(
+                                                                flex: 2,
+                                                                fit: FlexFit
+                                                                    .tight,
+                                                                child: Icon(Icons
+                                                                    .smartphone_rounded),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      TextButton(
+                                                        onPressed: () {
+                                                          Navigator.pop(
+                                                              context);
+                                                        },
+                                                        child: Container(
+                                                          padding: EdgeInsets
+                                                              .all(20 *
+                                                                  globals
+                                                                      .scaleParam),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .all(
+                                                              Radius.circular(
+                                                                  10),
+                                                            ),
+                                                            color:
+                                                                Colors.black12,
+                                                          ),
+                                                          child: Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .center,
+                                                            children: [
+                                                              Flexible(
+                                                                fit: FlexFit
+                                                                    .tight,
+                                                                child: Text(
+                                                                  "Назад",
+                                                                  textAlign:
+                                                                      TextAlign
+                                                                          .center,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  );
+                                                },
+                                              );
+                                            },
+                                          );
+                                        },
+                                        child: Column(
+                                          children: [
+                                            Text(
+                                              widget.user.isEmpty
+                                                  ? "Счёт на каспи:"
+                                                  : widget.client.isEmpty
+                                                      ? "Счёт на каспи: ${widget.user["login"].toString()}" //! TODO: CHANGE IF NOT KASPI BUT CASH
+                                                      : "Счёт на каспи: ${widget.client["login"].toString()}",
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize:
+                                                    32 * globals.scaleParam,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface,
+                                              ),
+                                            ),
+                                            Text(
+                                              "Сумма к оплате: ${globals.formatCost((widget.finalSum + widget.deliveryInfo["price"]).toString()).toString()} ₸",
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize:
+                                                    32 * globals.scaleParam,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
                               ],
