@@ -107,7 +107,7 @@ import '../globals.dart' as globals;// import 'package:flutter/widgets.dart';
 //                 style: TextStyle(
 //                   fontWeight: FontWeight.w900,
 //                   fontSize: 18,
-//                   color: Theme.of(context).colorScheme.onBackground,
+//                   color: Theme.of(context).colorScheme.onSurface,
 //                 ),
 //               ),
 //             ),
@@ -129,7 +129,7 @@ import '../globals.dart' as globals;// import 'package:flutter/widgets.dart';
 //                               borderRadius: const BorderRadius.all(
 //                                 Radius.circular(10),
 //                               ),
-//                               color: Theme.of(context).colorScheme.background,
+//                               color: Theme.of(context).colorScheme.surface,
 //                             ),
 //                           ),
 //                         ),
@@ -142,7 +142,7 @@ import '../globals.dart' as globals;// import 'package:flutter/widgets.dart';
 //                               borderRadius: const BorderRadius.all(
 //                                 Radius.circular(10),
 //                               ),
-//                               color: Theme.of(context).colorScheme.background,
+//                               color: Theme.of(context).colorScheme.surface,
 //                             ),
 //                           ),
 //                         ),
@@ -155,7 +155,7 @@ import '../globals.dart' as globals;// import 'package:flutter/widgets.dart';
 //                               borderRadius: const BorderRadius.all(
 //                                 Radius.circular(10),
 //                               ),
-//                               color: Theme.of(context).colorScheme.background,
+//                               color: Theme.of(context).colorScheme.surface,
 //                             ),
 //                           ),
 //                         ),

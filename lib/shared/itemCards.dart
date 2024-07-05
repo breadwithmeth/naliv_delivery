@@ -1,15 +1,12 @@
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
 import '../globals.dart' as globals;
-import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/shared/likeButton.dart';
-import 'package:intl/intl.dart';
 
 class ItemCard extends StatefulWidget {
   const ItemCard(
@@ -425,6 +422,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
     } else if (amount == 0) {
       _controller.reverse();
     }
+    print("AMOUNT IS $amount");
     setState(() {
       amountInCart = amount;
     });
@@ -549,6 +547,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                       context: context,
                       clipBehavior: Clip.antiAlias,
                       useSafeArea: true,
+                      showDragHandle: false,
                       isScrollControlled: true,
                       builder: (context) {
                         widget.element["amount"] = amountInCart.toString();
@@ -582,7 +581,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                               decoration: BoxDecoration(
                                 borderRadius:
                                     BorderRadius.all(Radius.circular(5)),
-                                color: Colors.green,
+                                color: Colors.white,
                               ),
                               child: Image(
                                 image: imageProvider,
@@ -630,7 +629,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                             clipBehavior: Clip.antiAlias,
                             useSafeArea: true,
                             isScrollControlled: true,
-                            showDragHandle: true,
+                            showDragHandle: false,
                             builder: (context) {
                               widget.element["amount"] =
                                   amountInCart.toString();
@@ -664,7 +663,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                       child: Container(
                                         color: Theme.of(context)
                                             .colorScheme
-                                            .background, // Чтобы текст не обрезало сверху, потому что без цвета, он сжимается до краёв текста
+                                            .surface, // Чтобы текст не обрезало сверху, потому что без цвета, он сжимается до краёв текста
                                         child: RichText(
                                           maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
@@ -842,7 +841,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                                 color: Theme.of(
                                                                         context)
                                                                     .colorScheme
-                                                                    .onBackground,
+                                                                    .onSurface,
                                                               ),
                                                             ),
                                                           ),
@@ -882,7 +881,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                                             0
                                                                         ? Theme.of(context)
                                                                             .colorScheme
-                                                                            .onBackground
+                                                                            .onSurface
                                                                         : Theme.of(context)
                                                                             .colorScheme
                                                                             .secondary,
@@ -900,7 +899,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                                       ? Theme.of(
                                                                               context)
                                                                           .colorScheme
-                                                                          .onBackground
+                                                                          .onSurface
                                                                       : Theme.of(
                                                                               context)
                                                                           .colorScheme
@@ -940,7 +939,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                                               0
                                                                           ? Theme.of(context)
                                                                               .colorScheme
-                                                                              .onBackground
+                                                                              .onSurface
                                                                           : Colors
                                                                               .grey
                                                                               .shade600,
@@ -972,7 +971,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                                                 .truncate()
                                                                         ? Theme.of(context)
                                                                             .colorScheme
-                                                                            .onBackground
+                                                                            .onSurface
                                                                         : Theme.of(context)
                                                                             .colorScheme
                                                                             .secondary,
@@ -991,7 +990,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                                       ? Theme.of(
                                                                               context)
                                                                           .colorScheme
-                                                                          .onBackground
+                                                                          .onSurface
                                                                       : Theme.of(
                                                                               context)
                                                                           .colorScheme
@@ -1055,7 +1054,10 @@ class ItemCardMinimal extends StatefulWidget {
       required this.element,
       required this.categoryName,
       required this.categoryId,
-      required this.scroll});
+      required this.scroll,
+      required this.index,
+      required this.business,
+      this.updateExternalInfo});
   final Map<String, dynamic> element;
   final String categoryName;
 
@@ -1064,9 +1066,32 @@ class ItemCardMinimal extends StatefulWidget {
   final String categoryId;
   final double scroll;
   final int chack = 1;
+  final int index;
+  final Map business;
+  final Function(int, int)? updateExternalInfo; // Update CartPage sum!!!!
   @override
   State<ItemCardMinimal> createState() => _ItemCardMinimalState();
 }
+
+// showModalBottomSheet(
+//   transitionAnimationController:
+//       animController,
+//   context: context,
+//   clipBehavior: Clip.antiAlias,
+//   useSafeArea: true,
+//   isScrollControlled: true,
+//   builder: (context) {
+//     return ProductPage(
+//       item: items[index],
+//       index: index,
+//       returnDataAmount: updateDataAmount,
+//       business: widget.business,
+//       openedFromCart: true,
+//     );
+//   },
+// ).then((value) {
+//   print("object");
+// });
 
 class _ItemCardMinimalState extends State<ItemCardMinimal> {
   Map<String, dynamic> element = {};
@@ -1080,49 +1105,46 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
     setState(() {
       element = widget.element;
     });
-    getProperties();
+    // getProperties();
   }
 
-  void getProperties() {
-    if (widget.element["properties"] != null) {
-      List<InlineSpan> propertiesT = [];
-      List<String> properties = widget.element["properties"].split(",");
-      print(properties);
-      for (var element in properties) {
-        List temp = element.split(":");
-        propertiesT.add(WidgetSpan(
-            child: Row(
-          children: [
-            Text(
-              temp[1],
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black),
-            ),
-            Image.asset(
-              "assets/property_icons/${temp[0]}.png",
-              width: 14,
-              height: 14,
-            ),
-            SizedBox(
-              width: 10,
-            )
-          ],
-        )));
-      }
-      setState(() {
-        propertiesWidget = propertiesT;
-      });
-    }
-  }
+  // void getProperties() {
+  //   if (widget.element["properties"] != null) {
+  //     List<InlineSpan> propertiesT = [];
+  //     List<String> properties = widget.element["properties"].split(",");
+  //     print(properties);
+  //     for (var element in properties) {
+  //       List temp = element.split(":");
+  //       propertiesT.add(WidgetSpan(
+  //           child: Row(
+  //         children: [
+  //           Text(
+  //             temp[1],
+  //             style: TextStyle(
+  //                 fontSize: 14,
+  //                 fontWeight: FontWeight.w700,
+  //                 color: Colors.black),
+  //           ),
+  //           Image.asset(
+  //             "assets/property_icons/${temp[0]}.png",
+  //             width: 14,
+  //             height: 14,
+  //           ),
+  //           SizedBox(
+  //             width: 10,
+  //           )
+  //         ],
+  //       )));
+  //     }
+  //     setState(() {
+  //       propertiesWidget = propertiesT;
+  //     });
+  //   }
+  // }
 
-  Future<void> refreshItemCard() async {
-    Map<String, dynamic>? element = await getItem(widget.element["item_id"]);
-    print(element);
+  void updateCurrentItem(int updateNewAmount, int updateNewIndex) {
     setState(() {
-      element!["name"] = "123";
-      element = element!;
+      element["amount"] = updateNewAmount.toString();
     });
   }
 
@@ -1134,182 +1156,206 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
       padding: EdgeInsets.symmetric(horizontal: 5 * globals.scaleParam),
       width: double.infinity,
       height: 125 * globals.scaleParam,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        mainAxisSize: MainAxisSize.max,
-        children: [
-          Flexible(
-            flex: 3,
-            fit: FlexFit.tight,
-            child: CachedNetworkImage(
-              imageUrl: element["thumb"],
-              // width: MediaQuery.of(context).size.width * 0.2,
-              // height: MediaQuery.of(context).size.width * 0.7,
-              fit: BoxFit.fitHeight,
-              cacheManager: CacheManager(
-                Config(
-                  "itemImage ${element["item_id"].toString()}",
-                  stalePeriod: Duration(days: 7),
-                  //one week cache period
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          showModalBottomSheet(
+            context: context,
+            clipBehavior: Clip.antiAlias,
+            useSafeArea: true,
+            showDragHandle: false,
+            isScrollControlled: true,
+            builder: (context) {
+              return ProductPage(
+                item: element,
+                index: widget.index,
+                returnDataAmount: updateCurrentItem,
+                cartPageExclusiveCallbackFunc: widget.updateExternalInfo,
+                business: widget.business,
+                openedFromCart: true,
+              );
+            },
+          ).then((value) {
+            print("object");
+          });
+        },
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            Flexible(
+              flex: 3,
+              fit: FlexFit.tight,
+              child: CachedNetworkImage(
+                imageUrl: element["thumb"],
+                // width: MediaQuery.of(context).size.width * 0.2,
+                // height: MediaQuery.of(context).size.width * 0.7,
+                fit: BoxFit.fitHeight,
+                cacheManager: CacheManager(
+                  Config(
+                    "itemImage ${element["item_id"].toString()}",
+                    stalePeriod: Duration(days: 7),
+                    //one week cache period
+                  ),
                 ),
+                imageBuilder: (context, imageProvider) {
+                  return Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        fit: FlexFit.tight,
+                        child: Container(
+                          clipBehavior: Clip.antiAlias,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.all(Radius.circular(5)),
+                            color: Colors.white,
+                          ),
+                          child: Image(
+                            image: imageProvider,
+                            fit: BoxFit.fitHeight,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+                errorWidget: (context, url, error) {
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      return FractionallySizedBox(
+                        heightFactor: 1,
+                        widthFactor: 2 / 4,
+                        child: Image.asset(
+                          'assets/category_icons/no_image_ico.png',
+                          opacity: AlwaysStoppedAnimation(0.5),
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
-              imageBuilder: (context, imageProvider) {
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+            ),
+            Flexible(
+              flex: 12,
+              fit: FlexFit.tight,
+              child: Padding(
+                padding: EdgeInsets.only(right: 10 * globals.scaleParam),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.max,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Flexible(
                       fit: FlexFit.tight,
-                      child: Container(
-                        clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.all(Radius.circular(5)),
-                          color: Colors.green,
-                        ),
-                        child: Image(
-                          image: imageProvider,
-                          fit: BoxFit.fitHeight,
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-              errorWidget: (context, url, error) {
-                return LayoutBuilder(
-                  builder: (context, constraints) {
-                    return FractionallySizedBox(
-                      heightFactor: 1,
-                      widthFactor: 2 / 4,
-                      child: Image.asset(
-                        'assets/category_icons/no_image_ico.png',
-                        opacity: AlwaysStoppedAnimation(0.5),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-          Flexible(
-            flex: 10,
-            fit: FlexFit.tight,
-            child: Padding(
-              padding: EdgeInsets.only(right: 8 * globals.scaleParam),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                mainAxisSize: MainAxisSize.max,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Flexible(
-                    fit: FlexFit.tight,
-                    child: RichText(
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      text: TextSpan(
-                        style: TextStyle(
-                          textBaseline: TextBaseline.alphabetic,
-                          color: Colors.black,
-                        ),
-                        children: [
-                          TextSpan(
-                            text: element["name"],
-                            style: TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 30 * globals.scaleParam,
-                            ),
+                      child: RichText(
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        text: TextSpan(
+                          style: TextStyle(
+                            textBaseline: TextBaseline.alphabetic,
+                            color: Colors.black,
                           ),
-                          element["country"] != null
-                              ? WidgetSpan(
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 4 * globals.scaleParam,
-                                        vertical: 2 * globals.scaleParam),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade200,
-                                      borderRadius: BorderRadius.all(
-                                        Radius.circular(10),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      element["country"] ?? "",
-                                      style: TextStyle(
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 28 * globals.scaleParam,
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              : TextSpan()
-                        ],
-                      ),
-                    ),
-                  ),
-                  Flexible(
-                    fit: FlexFit.tight,
-                    child: Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            "${globals.formatCost(element["price"])} ₸ за шт.",
-                            style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .secondary
-                                  .withOpacity(0.2),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 24 * globals.scaleParam,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Flexible(
-                    fit: FlexFit.tight,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Flexible(
-                          fit: FlexFit.tight,
-                          child: Text(
-                            "${globals.formatCost((int.parse(element['price']) * int.parse(element["amount"])).toString())} ₸",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 32 * globals.scaleParam,
-                            ),
-                          ),
-                        ),
-                        Flexible(
-                          fit: FlexFit.tight,
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 8 * globals.scaleParam),
-                            child: Text(
-                              "${element["amount"]} шт.",
+                          children: [
+                            TextSpan(
+                              text: element["name"],
                               style: TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 28 * globals.scaleParam,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 30 * globals.scaleParam,
+                              ),
+                            ),
+                            element["country"] != null
+                                ? WidgetSpan(
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 4 * globals.scaleParam,
+                                          vertical: 2 * globals.scaleParam),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.all(
+                                          Radius.circular(10),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        element["country"] ?? "",
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 28 * globals.scaleParam,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : TextSpan()
+                          ],
+                        ),
+                      ),
+                    ),
+                    Flexible(
+                      fit: FlexFit.tight,
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              "${globals.formatCost(element["price"])} ₸ за шт.",
+                              style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .secondary
+                                    .withOpacity(0.2),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 24 * globals.scaleParam,
                               ),
                             ),
                           ),
-                        ),
-                        Flexible(
-                          child: LikeButton(
-                            is_liked: element["is_liked"],
-                            item_id: element["item_id"],
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                    Flexible(
+                      fit: FlexFit.tight,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            fit: FlexFit.tight,
+                            child: Text(
+                              "${globals.formatCost((int.parse(element['price']) * int.parse(element["amount"])).toString())} ₸",
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 32 * globals.scaleParam,
+                              ),
+                            ),
+                          ),
+                          Flexible(
+                            fit: FlexFit.tight,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 8 * globals.scaleParam),
+                              child: Text(
+                                "${element["amount"]} шт.",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 28 * globals.scaleParam,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Flexible(
+                            child: LikeButton(
+                              is_liked: element["is_liked"],
+                              item_id: element["item_id"],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1412,9 +1458,10 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                 Flexible(
                   fit: FlexFit.tight,
                   child: Container(
-                    color: Theme.of(context).colorScheme.background,
+                    color: Theme.of(context).colorScheme.surface,
                     child: RichText(
                       maxLines: 1,
+                      textAlign: TextAlign.center,
                       text: TextSpan(
                         text: "x ${element["amount"]}",
                         style: TextStyle(
@@ -1441,7 +1488,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                   flex: 2,
                   fit: FlexFit.tight,
                   child: Container(
-                    color: Theme.of(context).colorScheme.background,
+                    color: Theme.of(context).colorScheme.surface,
                     child: RichText(
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -1519,7 +1566,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                   fit: FlexFit.tight,
                   child: RichText(
                     maxLines: 1,
-                    textAlign: TextAlign.end,
+                    textAlign: TextAlign.center,
                     text: TextSpan(
                       text:
                           "${globals.formatCost((int.parse(element['price']) * int.parse(element['amount'])).toString())} ₸",

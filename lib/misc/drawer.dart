@@ -438,7 +438,7 @@
 //                                       style: TextStyle(
 //                                         color: Theme.of(context)
 //                                             .colorScheme
-//                                             .onBackground,
+//                                             .onSurface,
 //                                         fontSize: 20,
 //                                         fontWeight: FontWeight.w700,
 //                                       ),
@@ -588,7 +588,7 @@
 //                           //           style: TextStyle(
 //                           //             color: Theme.of(context)
 //                           //                 .colorScheme
-//                           //                 .onBackground,
+//                           //                 .onSurface,
 //                           //             fontSize: 20,
 //                           //             fontWeight: FontWeight.w700,
 //                           //           ),

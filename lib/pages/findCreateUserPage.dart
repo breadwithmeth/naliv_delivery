@@ -105,7 +105,7 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                             style: TextStyle(
                               fontSize: 40 * globals.scaleParam,
                               fontWeight: FontWeight.w500,
-                              color: Theme.of(context).colorScheme.onBackground,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           )
                         ],
@@ -139,6 +139,7 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                                   finalSum: 0,
                                   user: widget.user,
                                   items: const [], // TODO: GET ITEMS FROM CART SOMWHERE BEFORE THIS PAGE, OR ON THIS PAGE LOADING SCREEN
+                                  itemsAmount: 0,
                                   deliveryInfo: Map.from(
                                     {"error": 0},
                                   ), // TODO: GET DELIVERY INFO FROM CART SOMWHERE BEFORE THIS PAGE, OR ON THIS PAGE LOADING SCREEN

@@ -16,6 +16,7 @@ import 'package:naliv_delivery/pages/startPage.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'globals.dart' as globals;
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() {
   runApp(const Main());
@@ -153,11 +154,16 @@ class _MainState extends State<Main> {
     print("SCALE PARAM IS: ${globals.scaleParam}");
     // globals.scaleParam = 1;
     return MaterialApp(
+      localizationsDelegates: [GlobalMaterialLocalizations.delegate],
+      supportedLocales: [
+        const Locale('ru'),
+        const Locale('en'),
+      ],
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.amber,
-          background: Colors.white,
-          onBackground: Colors.black,
+          surface: Colors.white,
+          onSurface: Colors.black,
           error: Colors.red,
           primary: Colors.black,
           onPrimary: Colors.white,

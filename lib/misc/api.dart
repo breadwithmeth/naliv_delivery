@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/permissionPage.dart';
 import '../globals.dart' as globals;
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,9 +23,10 @@ Future<Position> determinePosition(BuildContext ctx) async {
       // App to enable the location services.
       Navigator.push(ctx, MaterialPageRoute(
         builder: (context) {
-          return Container();
+          return PermissionPage();
         },
       ));
+
       Geolocator.openLocationSettings().whenComplete(() {
         Navigator.pop(ctx);
       });

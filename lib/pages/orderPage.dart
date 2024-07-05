@@ -68,7 +68,7 @@ class _OrderPageState extends State<OrderPage> {
                 "Ваш заказ был успешно добавлен и находится в обработке",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.onBackground,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 38 * globals.scaleParam,
                   fontWeight: FontWeight.w500,
                 ),

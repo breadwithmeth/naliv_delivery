@@ -58,6 +58,8 @@ dependencies:
   modal_bottom_sheet: ^3.0.0
   animated_path: ^0.0.2
   webview_flutter: ^4.8.0
+  flutter_localizations:
+    sdk: flutter
 
 dev_dependencies:
   flutter_test:

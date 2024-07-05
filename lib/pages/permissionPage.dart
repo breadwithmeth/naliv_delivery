@@ -192,6 +192,16 @@ class _PermissionPageState extends State<PermissionPage>
                     ));
                   });
                 }
+                Future.delayed(
+                  Duration.zero,
+                  () {
+                    Navigator.pushReplacement(context, MaterialPageRoute(
+                      builder: (context) {
+                        return const Main();
+                      },
+                    ));
+                  },
+                );
               },
               child: Row(
                 children: [

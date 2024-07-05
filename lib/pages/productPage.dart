@@ -22,10 +22,12 @@ class ProductPage extends StatefulWidget {
       required this.index,
       required this.business,
       this.returnDataAmount,
+      this.cartPageExclusiveCallbackFunc,
       this.openedFromCart = false});
   final Map<String, dynamic> item;
   final int index;
-  final Function(int, [int])? returnDataAmount;
+  final Function(int, int)? returnDataAmount; // INDEX, NEWAMOUNT
+  final Function(int, int)? cartPageExclusiveCallbackFunc;
   final Map<dynamic, dynamic> business;
   final bool openedFromCart;
   @override
@@ -99,29 +101,51 @@ class _ProductPageState extends State<ProductPage> {
       (value) {
         print(value);
         if (value != null) {
-          setState(() {
+          if (mounted) {
+            setState(() {
+              actualCartAmount = int.parse(value);
+            });
+          } else {
             actualCartAmount = int.parse(value);
-          });
+          }
         } else {
-          setState(() {
+          if (mounted) {
+            setState(() {
+              actualCartAmount = 0;
+            });
+          } else {
             actualCartAmount = 0;
-          });
+          }
         }
-        setState(() {
-          isLastServerCallWasSucceed = true;
-        });
-        getBuyButtonCurrentActionText();
-        widget.returnDataAmount!(actualCartAmount);
+        if (mounted) {
+          setState(() {
+            isLastServerCallWasSucceed = true;
+          });
+          getBuyButtonCurrentActionText();
+        }
         print("TRIGGERED WIDGET.RETURNDATAAMOUNT!");
+        widget.returnDataAmount!(actualCartAmount, widget.index);
+        if (widget.cartPageExclusiveCallbackFunc != null) {
+          widget.cartPageExclusiveCallbackFunc!(widget.index, actualCartAmount);
+        }
       },
     ).onError(
       (error, stackTrace) {
+        print(int.parse(widget.item["amount"]));
+        widget.returnDataAmount!(
+            int.parse(widget.item["amount"]), widget.index);
+        if (widget.cartPageExclusiveCallbackFunc != null) {
+          widget.cartPageExclusiveCallbackFunc!(
+              widget.index, int.parse(widget.item["amount"]));
+        }
         throw Exception("Ошибка в _finalizeCartAmount ProductPage");
       },
     );
-    setState(() {
-      isServerCallOnGoing = false;
-    });
+    if (mounted) {
+      setState(() {
+        isServerCallOnGoing = false;
+      });
+    }
   }
 
   void _removeFromCart() {
@@ -233,7 +257,10 @@ class _ProductPageState extends State<ProductPage> {
   void dispose() {
     if (isServerCallOnGoing && !isLastServerCallWasSucceed) {
       Future.delayed(Duration.zero, () {
-        widget.returnDataAmount!(amountInCart);
+        if (widget.cartPageExclusiveCallbackFunc != null) {
+          widget.cartPageExclusiveCallbackFunc!(widget.index, amountInCart);
+        }
+        widget.returnDataAmount!(actualCartAmount, widget.index);
       });
     }
     super.dispose();
@@ -250,7 +277,40 @@ class _ProductPageState extends State<ProductPage> {
       shouldCloseOnMinExtent: true,
       snapAnimationDuration: const Duration(milliseconds: 150),
       builder: ((context, scrollController) {
-        return _productPage(context, scrollController);
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.secondary,
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 80 * globals.scaleParam,
+                height: 16 * globals.scaleParam,
+                margin: EdgeInsets.symmetric(vertical: 35 * globals.scaleParam),
+                decoration: BoxDecoration(
+                  color:
+                      Colors.white, // Change this color to your desired color
+                  borderRadius: BorderRadius.circular(4.0),
+                ),
+              ),
+              // SizedBox(
+              //   height: 20 * globals.scaleParam,
+              // ),
+              Expanded(
+                child: _productPage(context, scrollController),
+              ),
+            ],
+          ),
+        );
+        // return Container(
+        //   decoration: BoxDecoration(
+        //     borderRadius: BorderRadius.only(
+        //       topLeft: Radius.circular(30),
+        //       topRight: Radius.circular(30),
+        //     ),
+        //   ),
+        // child: _productPage(context, scrollController),
+        // );
       }),
     );
   }
@@ -314,7 +374,7 @@ class _ProductPageState extends State<ProductPage> {
                                             Icons.remove_rounded,
                                             color: Theme.of(context)
                                                 .colorScheme
-                                                .onBackground,
+                                                .onSurface,
                                           ),
                                         ),
                                       ),
@@ -337,7 +397,7 @@ class _ProductPageState extends State<ProductPage> {
                                               fontSize: 34 * globals.scaleParam,
                                               color: Theme.of(context)
                                                   .colorScheme
-                                                  .onBackground,
+                                                  .onSurface,
                                             ),
                                           ),
                                         ],
@@ -363,7 +423,7 @@ class _ProductPageState extends State<ProductPage> {
                                             Icons.add_rounded,
                                             color: Theme.of(context)
                                                 .colorScheme
-                                                .onBackground,
+                                                .onSurface,
                                           ),
                                         ),
                                       ),
@@ -559,6 +619,9 @@ class _ProductPageState extends State<ProductPage> {
       body: ListView(
         controller: scrollController,
         children: [
+          SizedBox(
+            height: 10 * globals.scaleParam,
+          ),
           Container(
             padding: EdgeInsets.all(10 * globals.scaleParam),
             width: MediaQuery.of(context).size.width,
