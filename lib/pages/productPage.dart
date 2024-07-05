@@ -124,13 +124,20 @@ class _ProductPageState extends State<ProductPage> {
           getBuyButtonCurrentActionText();
         }
         print("TRIGGERED WIDGET.RETURNDATAAMOUNT!");
-        widget.returnDataAmount!(widget.index, actualCartAmount);
+        widget.returnDataAmount!(actualCartAmount, widget.index);
         if (widget.cartPageExclusiveCallbackFunc != null) {
           widget.cartPageExclusiveCallbackFunc!(widget.index, actualCartAmount);
         }
       },
     ).onError(
       (error, stackTrace) {
+        print(int.parse(widget.item["amount"]));
+        widget.returnDataAmount!(
+            int.parse(widget.item["amount"]), widget.index);
+        if (widget.cartPageExclusiveCallbackFunc != null) {
+          widget.cartPageExclusiveCallbackFunc!(
+              widget.index, int.parse(widget.item["amount"]));
+        }
         throw Exception("Ошибка в _finalizeCartAmount ProductPage");
       },
     );
@@ -253,7 +260,7 @@ class _ProductPageState extends State<ProductPage> {
         if (widget.cartPageExclusiveCallbackFunc != null) {
           widget.cartPageExclusiveCallbackFunc!(widget.index, amountInCart);
         }
-        widget.returnDataAmount!(widget.index, amountInCart);
+        widget.returnDataAmount!(actualCartAmount, widget.index);
       });
     }
     super.dispose();
@@ -270,7 +277,40 @@ class _ProductPageState extends State<ProductPage> {
       shouldCloseOnMinExtent: true,
       snapAnimationDuration: const Duration(milliseconds: 150),
       builder: ((context, scrollController) {
-        return _productPage(context, scrollController);
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.black87,
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 80 * globals.scaleParam,
+                height: 16 * globals.scaleParam,
+                margin: EdgeInsets.symmetric(vertical: 35 * globals.scaleParam),
+                decoration: BoxDecoration(
+                  color:
+                      Colors.white, // Change this color to your desired color
+                  borderRadius: BorderRadius.circular(4.0),
+                ),
+              ),
+              // SizedBox(
+              //   height: 20 * globals.scaleParam,
+              // ),
+              Expanded(
+                child: _productPage(context, scrollController),
+              ),
+            ],
+          ),
+        );
+        // return Container(
+        //   decoration: BoxDecoration(
+        //     borderRadius: BorderRadius.only(
+        //       topLeft: Radius.circular(30),
+        //       topRight: Radius.circular(30),
+        //     ),
+        //   ),
+        // child: _productPage(context, scrollController),
+        // );
       }),
     );
   }
@@ -579,6 +619,9 @@ class _ProductPageState extends State<ProductPage> {
       body: ListView(
         controller: scrollController,
         children: [
+          SizedBox(
+            height: 10 * globals.scaleParam,
+          ),
           Container(
             padding: EdgeInsets.all(10 * globals.scaleParam),
             width: MediaQuery.of(context).size.width,

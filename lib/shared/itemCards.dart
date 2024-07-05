@@ -422,6 +422,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
     } else if (amount == 0) {
       _controller.reverse();
     }
+    print("AMOUNT IS $amount");
     setState(() {
       amountInCart = amount;
     });
@@ -546,6 +547,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                       context: context,
                       clipBehavior: Clip.antiAlias,
                       useSafeArea: true,
+                      showDragHandle: false,
                       isScrollControlled: true,
                       builder: (context) {
                         widget.element["amount"] = amountInCart.toString();
@@ -579,7 +581,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                               decoration: BoxDecoration(
                                 borderRadius:
                                     BorderRadius.all(Radius.circular(5)),
-                                color: Colors.green,
+                                color: Colors.white,
                               ),
                               child: Image(
                                 image: imageProvider,
@@ -627,7 +629,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                             clipBehavior: Clip.antiAlias,
                             useSafeArea: true,
                             isScrollControlled: true,
-                            showDragHandle: true,
+                            showDragHandle: false,
                             builder: (context) {
                               widget.element["amount"] =
                                   amountInCart.toString();
@@ -1140,7 +1142,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
   //   }
   // }
 
-  void updateCurrentItem(int updateIndex, int updateNewAmount) {
+  void updateCurrentItem(int updateNewAmount, int updateNewIndex) {
     setState(() {
       element["amount"] = updateNewAmount.toString();
     });
@@ -1161,6 +1163,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
             context: context,
             clipBehavior: Clip.antiAlias,
             useSafeArea: true,
+            showDragHandle: false,
             isScrollControlled: true,
             builder: (context) {
               return ProductPage(
@@ -1205,7 +1208,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                           clipBehavior: Clip.antiAlias,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.all(Radius.circular(5)),
-                            color: Colors.green,
+                            color: Colors.white,
                           ),
                           child: Image(
                             image: imageProvider,
@@ -1233,119 +1236,122 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
               ),
             ),
             Flexible(
-              flex: 10,
+              flex: 12,
               fit: FlexFit.tight,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                mainAxisSize: MainAxisSize.max,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Flexible(
-                    fit: FlexFit.tight,
-                    child: RichText(
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      text: TextSpan(
-                        style: TextStyle(
-                          textBaseline: TextBaseline.alphabetic,
-                          color: Colors.black,
-                        ),
-                        children: [
-                          TextSpan(
-                            text: element["name"],
-                            style: TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 30 * globals.scaleParam,
-                            ),
+              child: Padding(
+                padding: EdgeInsets.only(right: 10 * globals.scaleParam),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.max,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Flexible(
+                      fit: FlexFit.tight,
+                      child: RichText(
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        text: TextSpan(
+                          style: TextStyle(
+                            textBaseline: TextBaseline.alphabetic,
+                            color: Colors.black,
                           ),
-                          element["country"] != null
-                              ? WidgetSpan(
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 4 * globals.scaleParam,
-                                        vertical: 2 * globals.scaleParam),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade200,
-                                      borderRadius: BorderRadius.all(
-                                        Radius.circular(10),
+                          children: [
+                            TextSpan(
+                              text: element["name"],
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 30 * globals.scaleParam,
+                              ),
+                            ),
+                            element["country"] != null
+                                ? WidgetSpan(
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 4 * globals.scaleParam,
+                                          vertical: 2 * globals.scaleParam),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.all(
+                                          Radius.circular(10),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        element["country"] ?? "",
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 28 * globals.scaleParam,
+                                        ),
                                       ),
                                     ),
-                                    child: Text(
-                                      element["country"] ?? "",
-                                      style: TextStyle(
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 28 * globals.scaleParam,
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              : TextSpan()
-                        ],
+                                  )
+                                : TextSpan()
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  Flexible(
-                    fit: FlexFit.tight,
-                    child: Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            "${globals.formatCost(element["price"])} ₸ за шт.",
-                            style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .secondary
-                                  .withOpacity(0.2),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 24 * globals.scaleParam,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Flexible(
-                    fit: FlexFit.tight,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Flexible(
-                          fit: FlexFit.tight,
-                          child: Text(
-                            "${globals.formatCost((int.parse(element['price']) * int.parse(element["amount"])).toString())} ₸",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 32 * globals.scaleParam,
-                            ),
-                          ),
-                        ),
-                        Flexible(
-                          fit: FlexFit.tight,
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 8 * globals.scaleParam),
+                    Flexible(
+                      fit: FlexFit.tight,
+                      child: Row(
+                        children: [
+                          Flexible(
                             child: Text(
-                              "${element["amount"]} шт.",
+                              "${globals.formatCost(element["price"])} ₸ за шт.",
                               style: TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 28 * globals.scaleParam,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .secondary
+                                    .withOpacity(0.2),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 24 * globals.scaleParam,
                               ),
                             ),
                           ),
-                        ),
-                        Flexible(
-                          child: LikeButton(
-                            is_liked: element["is_liked"],
-                            item_id: element["item_id"],
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                    Flexible(
+                      fit: FlexFit.tight,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            fit: FlexFit.tight,
+                            child: Text(
+                              "${globals.formatCost((int.parse(element['price']) * int.parse(element["amount"])).toString())} ₸",
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 32 * globals.scaleParam,
+                              ),
+                            ),
+                          ),
+                          Flexible(
+                            fit: FlexFit.tight,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 8 * globals.scaleParam),
+                              child: Text(
+                                "${element["amount"]} шт.",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 28 * globals.scaleParam,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Flexible(
+                            child: LikeButton(
+                              is_liked: element["is_liked"],
+                              item_id: element["item_id"],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -1455,6 +1461,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                     color: Theme.of(context).colorScheme.background,
                     child: RichText(
                       maxLines: 1,
+                      textAlign: TextAlign.center,
                       text: TextSpan(
                         text: "x ${element["amount"]}",
                         style: TextStyle(
@@ -1559,7 +1566,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                   fit: FlexFit.tight,
                   child: RichText(
                     maxLines: 1,
-                    textAlign: TextAlign.end,
+                    textAlign: TextAlign.center,
                     text: TextSpan(
                       text:
                           "${globals.formatCost((int.parse(element['price']) * int.parse(element['amount'])).toString())} ₸",

@@ -193,7 +193,6 @@ class _HomePageState extends State<HomePage>
             ),
             appBar: AppBar(
               automaticallyImplyLeading: false,
-              toolbarHeight: 240 * globals.scaleParam,
               titleSpacing: 0,
               title: Padding(
                 padding:
@@ -225,13 +224,13 @@ class _HomePageState extends State<HomePage>
                                 widget.business["name"],
                                 maxLines: 1,
                                 style: TextStyle(
-                                    fontSize: 28 * globals.scaleParam),
+                                    fontSize: 40 * globals.scaleParam),
                               ),
                               Text(
                                 widget.business["address"],
                                 maxLines: 1,
                                 style: TextStyle(
-                                    fontSize: 28 * globals.scaleParam),
+                                    fontSize: 32 * globals.scaleParam),
                               ),
                             ],
                           ),
@@ -274,7 +273,7 @@ class _HomePageState extends State<HomePage>
                                     "Найти",
                                     style: TextStyle(
                                       fontWeight: FontWeight.w500,
-                                      fontSize: 28 * globals.scaleParam,
+                                      fontSize: 30 * globals.scaleParam,
                                       color: Colors.black,
                                     ),
                                   ),
@@ -293,11 +292,6 @@ class _HomePageState extends State<HomePage>
                         ),
                       ],
                     ),
-                    isThereActiveOrder
-                        ? ActiveOrderButton(
-                            business: widget.business,
-                          )
-                        : Container(),
                   ],
                 ),
               ),
@@ -305,7 +299,20 @@ class _HomePageState extends State<HomePage>
             body: Column(
               children: [
                 Flexible(
-                  flex: 20,
+                  flex: 2,
+                  fit: FlexFit.tight,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 20 * globals.scaleParam),
+                    child: isThereActiveOrder
+                        ? ActiveOrderButton(
+                            business: widget.business,
+                          )
+                        : Container(),
+                  ),
+                ),
+                Flexible(
+                  flex: 28,
                   fit: FlexFit.tight,
                   child: Padding(
                     padding: EdgeInsets.all(20 * globals.scaleParam),

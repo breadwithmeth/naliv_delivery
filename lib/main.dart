@@ -157,6 +157,7 @@ class _MainState extends State<Main> {
       localizationsDelegates: [GlobalMaterialLocalizations.delegate],
       supportedLocales: [
         const Locale('ru'),
+        const Locale('en'),
       ],
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
