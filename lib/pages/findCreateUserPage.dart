@@ -105,7 +105,7 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                             style: TextStyle(
                               fontSize: 40 * globals.scaleParam,
                               fontWeight: FontWeight.w500,
-                              color: Theme.of(context).colorScheme.onBackground,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           )
                         ],

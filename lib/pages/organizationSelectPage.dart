@@ -515,13 +515,13 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     // TextStyle titleStyle = TextStyle(
     //   fontSize: 50 * globals.scaleParam,
     //   fontWeight: FontWeight.w500,
-    //   color: Theme.of(context).colorScheme.onBackground,
+    //   color: Theme.of(context).colorScheme.onSurface,
     // );
 
     // TextStyle plainStyle = TextStyle(
     //   fontSize: 32 * globals.scaleParam,
     //   fontWeight: FontWeight.w500,
-    //   color: Theme.of(context).colorScheme.onBackground,
+    //   color: Theme.of(context).colorScheme.onSurface,
     // );
 
     // final scrollController = useScrollController();

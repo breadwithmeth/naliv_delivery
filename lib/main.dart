@@ -162,8 +162,8 @@ class _MainState extends State<Main> {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.amber,
-          background: Colors.white,
-          onBackground: Colors.black,
+          surface: Colors.white,
+          onSurface: Colors.black,
           error: Colors.red,
           primary: Colors.black,
           onPrimary: Colors.white,

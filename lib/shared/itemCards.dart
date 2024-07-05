@@ -663,7 +663,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                       child: Container(
                                         color: Theme.of(context)
                                             .colorScheme
-                                            .background, // Чтобы текст не обрезало сверху, потому что без цвета, он сжимается до краёв текста
+                                            .surface, // Чтобы текст не обрезало сверху, потому что без цвета, он сжимается до краёв текста
                                         child: RichText(
                                           maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
@@ -841,7 +841,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                                 color: Theme.of(
                                                                         context)
                                                                     .colorScheme
-                                                                    .onBackground,
+                                                                    .onSurface,
                                                               ),
                                                             ),
                                                           ),
@@ -881,7 +881,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                                             0
                                                                         ? Theme.of(context)
                                                                             .colorScheme
-                                                                            .onBackground
+                                                                            .onSurface
                                                                         : Theme.of(context)
                                                                             .colorScheme
                                                                             .secondary,
@@ -899,7 +899,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                                       ? Theme.of(
                                                                               context)
                                                                           .colorScheme
-                                                                          .onBackground
+                                                                          .onSurface
                                                                       : Theme.of(
                                                                               context)
                                                                           .colorScheme
@@ -939,7 +939,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                                               0
                                                                           ? Theme.of(context)
                                                                               .colorScheme
-                                                                              .onBackground
+                                                                              .onSurface
                                                                           : Colors
                                                                               .grey
                                                                               .shade600,
@@ -971,7 +971,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                                                 .truncate()
                                                                         ? Theme.of(context)
                                                                             .colorScheme
-                                                                            .onBackground
+                                                                            .onSurface
                                                                         : Theme.of(context)
                                                                             .colorScheme
                                                                             .secondary,
@@ -990,7 +990,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                                       ? Theme.of(
                                                                               context)
                                                                           .colorScheme
-                                                                          .onBackground
+                                                                          .onSurface
                                                                       : Theme.of(
                                                                               context)
                                                                           .colorScheme
@@ -1458,7 +1458,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                 Flexible(
                   fit: FlexFit.tight,
                   child: Container(
-                    color: Theme.of(context).colorScheme.background,
+                    color: Theme.of(context).colorScheme.surface,
                     child: RichText(
                       maxLines: 1,
                       textAlign: TextAlign.center,
@@ -1488,7 +1488,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                   flex: 2,
                   fit: FlexFit.tight,
                   child: Container(
-                    color: Theme.of(context).colorScheme.background,
+                    color: Theme.of(context).colorScheme.surface,
                     child: RichText(
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,

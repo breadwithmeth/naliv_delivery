@@ -1049,7 +1049,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                       fontSize: 32 * globals.scaleParam,
                                       color: Theme.of(context)
                                           .colorScheme
-                                          .onBackground,
+                                          .onSurface,
                                     ),
                                   ),
                                 ),
@@ -1064,7 +1064,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                       fontSize: 32 * globals.scaleParam,
                                       color: Theme.of(context)
                                           .colorScheme
-                                          .onBackground,
+                                          .onSurface,
                                     ),
                                   ),
                                 ),
@@ -1078,7 +1078,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                       fontSize: 32 * globals.scaleParam,
                                       color: Theme.of(context)
                                           .colorScheme
-                                          .onBackground,
+                                          .onSurface,
                                     ),
                                   ),
                                 ),
@@ -1093,7 +1093,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                       fontSize: 32 * globals.scaleParam,
                                       color: Theme.of(context)
                                           .colorScheme
-                                          .onBackground,
+                                          .onSurface,
                                     ),
                                   ),
                                 ),
@@ -1253,9 +1253,8 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
                                     fontSize: 32 * globals.scaleParam,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onBackground,
+                                    color:
+                                        Theme.of(context).colorScheme.onSurface,
                                   ),
                                 ),
                                 Text(
@@ -1264,9 +1263,8 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
                                     fontSize: 32 * globals.scaleParam,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onBackground,
+                                    color:
+                                        Theme.of(context).colorScheme.onSurface,
                                   ),
                                 ),
                               ],

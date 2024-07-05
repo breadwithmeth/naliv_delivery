@@ -97,10 +97,10 @@ class _CategoryPageState extends State<CategoryPage> {
               labelStyle: TextStyle(
                 fontSize: 38 * globals.scaleParam,
                 fontWeight: FontWeight.w500,
-                color: Theme.of(context).colorScheme.onBackground,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
               unselectedLabelColor:
-                  Theme.of(context).colorScheme.onBackground.withOpacity(0.5),
+                  Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
               isScrollable: true,
               tabs: categoriesWidgetList
                   .map((e) => e["widget"] as Widget)
@@ -222,10 +222,10 @@ class _CategoryPageState extends State<CategoryPage> {
         //   labelStyle: TextStyle(
         //     fontSize: 38 * globals.scaleParam,
         //     fontWeight: FontWeight.w500,
-        //     color: Theme.of(context).colorScheme.onBackground,
+        //     color: Theme.of(context).colorScheme.onSurface,
         //   ),
         //   unselectedLabelColor:
-        //       Theme.of(context).colorScheme.onBackground.withOpacity(0.5),
+        //       Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
         //   isScrollable: true,
         //   tabs:
         //       categoriesWidgetList.map((e) => e["widget"] as Widget).toList(),

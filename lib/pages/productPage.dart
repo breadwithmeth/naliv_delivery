@@ -374,7 +374,7 @@ class _ProductPageState extends State<ProductPage> {
                                             Icons.remove_rounded,
                                             color: Theme.of(context)
                                                 .colorScheme
-                                                .onBackground,
+                                                .onSurface,
                                           ),
                                         ),
                                       ),
@@ -397,7 +397,7 @@ class _ProductPageState extends State<ProductPage> {
                                               fontSize: 34 * globals.scaleParam,
                                               color: Theme.of(context)
                                                   .colorScheme
-                                                  .onBackground,
+                                                  .onSurface,
                                             ),
                                           ),
                                         ],
@@ -423,7 +423,7 @@ class _ProductPageState extends State<ProductPage> {
                                             Icons.add_rounded,
                                             color: Theme.of(context)
                                                 .colorScheme
-                                                .onBackground,
+                                                .onSurface,
                                           ),
                                         ),
                                       ),

@@ -336,7 +336,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                           style: TextStyle(
                             fontSize: 32 * globals.scaleParam,
                             fontWeight: FontWeight.w700,
-                            color: Theme.of(context).colorScheme.onBackground,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ),
@@ -442,9 +442,8 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w700,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onBackground,
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
                             ),
@@ -461,9 +460,8 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                   style: TextStyle(
                                     fontSize: 32 * globals.scaleParam,
                                     fontWeight: FontWeight.w700,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onBackground,
+                                    color:
+                                        Theme.of(context).colorScheme.onSurface,
                                   ),
                                 ) ??
                                 Container(),
@@ -501,9 +499,8 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 32 * globals.scaleParam,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onBackground,
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
                             )
@@ -519,8 +516,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 32 * globals.scaleParam,
-                                color:
-                                    Theme.of(context).colorScheme.onBackground,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                           ),

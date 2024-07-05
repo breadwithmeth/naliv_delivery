@@ -86,9 +86,8 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                 child: Text(
                                   "ID: ${snapshot.data![index]["order_id"].toString()}",
                                   style: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onBackground,
+                                    color:
+                                        Theme.of(context).colorScheme.onSurface,
                                     fontSize: 32 * globals.scaleParam,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -104,7 +103,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                       style: TextStyle(
                                         color: Theme.of(context)
                                             .colorScheme
-                                            .onBackground,
+                                            .onSurface,
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -115,7 +114,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                       style: TextStyle(
                                         color: Theme.of(context)
                                             .colorScheme
-                                            .onBackground,
+                                            .onSurface,
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -134,7 +133,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                       style: TextStyle(
                                         color: Theme.of(context)
                                             .colorScheme
-                                            .onBackground,
+                                            .onSurface,
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -145,7 +144,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                       style: TextStyle(
                                         color: Theme.of(context)
                                             .colorScheme
-                                            .onBackground,
+                                            .onSurface,
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w500,
                                       ),

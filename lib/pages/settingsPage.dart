@@ -94,7 +94,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         "Вы точно хотите выйти из аккаунта?",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onBackground,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
                         ),

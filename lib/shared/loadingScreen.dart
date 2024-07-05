@@ -30,7 +30,7 @@ class LoadingScreen extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 60 * globals.scaleParam,
                         fontWeight: FontWeight.w700,
-                        color: Theme.of(context).colorScheme.onBackground,
+                        color: Theme.of(context).colorScheme.onSurface,
                         shadows: [
                           Shadow(
                             color: Colors.black38,
