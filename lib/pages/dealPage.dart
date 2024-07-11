@@ -91,29 +91,29 @@ class _DealPageState extends State<DealPage> {
                   const OfferPage(
                     path: "assets/agreements/offer.md",
                   )),
-              getAgreementString(
-                  "Политика конфиденциальности",
-                  const OfferPage(
-                    path: "assets/agreements/privacy.md",
-                  )),
-              getAgreementString(
-                  "Порядок возврата Товара Держателем Карточки Предприятию и порядок возврата денег, оплаченных за возвращенный Товар, Порядок и сроки поставки товара/услуг, Порядок замены Товара Предприятием Держателю Карточки в случае поставки некачественного и/или некомплектного Товара",
-                  const OfferPage(
-                    path: "assets/agreements/returnPolicy.md",
-                  )),
-              getAgreementString(
-                  "Стоимость товаров/услуг, включая расходы на поставку и НДС",
-                  const OfferPage(
-                    path: "assets/agreements/nds.md",
-                  )),
-              getAgreementString(
-                  "Почтовый адрес (юридический/фактический) и номера контактных телефонов Предприятия",
-                  const OfferPage(
-                    path: "assets/agreements/links.md",
-                  )),
-              const SizedBox(
-                height: 10,
-              ),
+              // getAgreementString(
+              //     "Политика конфиденциальности",
+              //     const OfferPage(
+              //       path: "assets/agreements/privacy.md",
+              //     )),
+              // getAgreementString(
+              //     "Порядок возврата Товара Держателем Карточки Предприятию и порядок возврата денег, оплаченных за возвращенный Товар, Порядок и сроки поставки товара/услуг, Порядок замены Товара Предприятием Держателю Карточки в случае поставки некачественного и/или некомплектного Товара",
+              //     const OfferPage(
+              //       path: "assets/agreements/returnPolicy.md",
+              //     )),
+              // getAgreementString(
+              //     "Стоимость товаров/услуг, включая расходы на поставку и НДС",
+              //     const OfferPage(
+              //       path: "assets/agreements/nds.md",
+              //     )),
+              // getAgreementString(
+              //     "Почтовый адрес (юридический/фактический) и номера контактных телефонов Предприятия",
+              //     const OfferPage(
+              //       path: "assets/agreements/links.md",
+              //     )),
+              // const SizedBox(
+              //   height: 10,
+              // ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
