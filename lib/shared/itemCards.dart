@@ -4,7 +4,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
 import '../globals.dart' as globals;
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/shared/likeButton.dart';
 
@@ -114,11 +113,11 @@ class _ItemCardState extends State<ItemCard> {
                 // width: MediaQuery.of(context).size.width * 0.2,
                 // height: MediaQuery.of(context).size.width * 0.7,
                 fit: BoxFit.fitHeight,
-                cacheManager: CacheManager(Config(
-                  "itemImage ${element["item_id"].toString()}",
-                  stalePeriod: Duration(days: 7),
-                  //one week cache period
-                )),
+                // cacheManager: CacheManager(Config(
+                //   "itemImage ${element["item_id"].toString()}",
+                //   stalePeriod: Duration(days: 7),
+                //   //one week cache period
+                // )),
                 imageBuilder: (context, imageProvider) {
                   return Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -340,9 +339,7 @@ class ItemCardMedium extends StatefulWidget {
 }
 
 class _ItemCardMediumState extends State<ItemCardMedium>
-    with
-        SingleTickerProviderStateMixin<ItemCardMedium>,
-        AutomaticKeepAliveClientMixin<ItemCardMedium> {
+    with SingleTickerProviderStateMixin<ItemCardMedium> {
   Map<String, dynamic> element = {};
   List<InlineSpan> propertiesWidget = [];
   int amountInCart = 0;
@@ -524,7 +521,6 @@ class _ItemCardMediumState extends State<ItemCardMedium>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
     chack = widget.chack;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 5 * globals.scaleParam),
@@ -564,12 +560,12 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                     height: double.infinity,
                     imageUrl: element["thumb"],
                     fit: BoxFit.cover,
-                    cacheManager: CacheManager(
-                      Config(
-                        "itemImage ${element["item_id"].toString()}",
-                        stalePeriod: Duration(days: 700),
-                      ),
-                    ),
+                    // cacheManager: CacheManager(
+                    //   Config(
+                    //     "itemImage ${element["item_id"].toString()}",
+                    //     stalePeriod: Duration(days: 700),
+                    //   ),
+                    // ),
                     imageBuilder: (context, imageProvider) {
                       return Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -835,13 +831,47 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                                           );
                                                                         }
                                                                       : null,
-                                                              icon: Icon(
-                                                                Icons
-                                                                    .add_rounded,
-                                                                color: Theme.of(
-                                                                        context)
-                                                                    .colorScheme
-                                                                    .onSurface,
+                                                              icon: Container(
+                                                                padding: EdgeInsets
+                                                                    .all(5 *
+                                                                        globals
+                                                                            .scaleParam),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .all(
+                                                                    Radius
+                                                                        .circular(
+                                                                            100),
+                                                                  ),
+                                                                  color: Colors
+                                                                      .white,
+                                                                  boxShadow: [
+                                                                    BoxShadow(
+                                                                      color: Color.fromARGB(
+                                                                          255,
+                                                                          180,
+                                                                          180,
+                                                                          180),
+                                                                      spreadRadius:
+                                                                          0,
+                                                                      blurRadius:
+                                                                          1,
+                                                                      offset: Offset(
+                                                                          0.2,
+                                                                          0.9),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                child: Icon(
+                                                                  Icons
+                                                                      .add_rounded,
+                                                                  color: Theme.of(
+                                                                          context)
+                                                                      .colorScheme
+                                                                      .onSurface,
+                                                                ),
                                                               ),
                                                             ),
                                                           ),
@@ -1042,9 +1072,6 @@ class _ItemCardMediumState extends State<ItemCardMedium>
       ),
     );
   }
-
-  @override
-  bool get wantKeepAlive => true;
 }
 
 class ItemCardMinimal extends StatefulWidget {
@@ -1101,10 +1128,10 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
   @override
   void initState() {
     // TODO: implement initState
-    super.initState();
     setState(() {
       element = widget.element;
     });
+    super.initState();
     // getProperties();
   }
 
@@ -1191,13 +1218,13 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                 // width: MediaQuery.of(context).size.width * 0.2,
                 // height: MediaQuery.of(context).size.width * 0.7,
                 fit: BoxFit.fitHeight,
-                cacheManager: CacheManager(
-                  Config(
-                    "itemImage ${element["item_id"].toString()}",
-                    stalePeriod: Duration(days: 7),
-                    //one week cache period
-                  ),
-                ),
+                // cacheManager: CacheManager(
+                //   Config(
+                //     "itemImage ${element["item_id"].toString()}",
+                //     stalePeriod: Duration(days: 7),
+                //     //one week cache period
+                //   ),
+                // ),
                 imageBuilder: (context, imageProvider) {
                   return Column(
                     mainAxisAlignment: MainAxisAlignment.center,

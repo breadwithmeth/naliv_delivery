@@ -321,37 +321,41 @@ class _HomePageState extends State<HomePage>
                         borderRadius: BorderRadius.all(Radius.circular(10)),
                       ),
                       clipBehavior: Clip.antiAlias,
-                      child: SingleChildScrollView(
-                        child: GridView.builder(
-                          padding: EdgeInsets.all(0),
-                          physics: NeverScrollableScrollPhysics(),
-                          shrinkWrap: true,
-                          gridDelegate:
-                              SliverGridDelegateWithMaxCrossAxisExtent(
-                                  maxCrossAxisExtent:
-                                      MediaQuery.sizeOf(context).shortestSide *
-                                          0.5,
-                                  childAspectRatio: 10 / 8,
-                                  crossAxisSpacing: 0,
-                                  mainAxisSpacing: 0),
-                          itemCount: snapshot.data!.length % 2 != 0
-                              ? snapshot.data!.length + 1
-                              : snapshot.data!.length,
-                          itemBuilder: (BuildContext ctx, index) {
-                            return snapshot.data!.length % 2 != 0 &&
-                                    index == snapshot.data!.length
-                                ? Container(color: Colors.white)
-                                : CategoryItem(
-                                    category_id: snapshot.data![index]
-                                        ["category_id"],
-                                    name: snapshot.data![index]["name"],
-                                    image: snapshot.data![index]["photo"],
-                                    categories: snapshot.data!,
-                                    business: widget.business,
-                                    user: widget.user,
-                                  );
-                          },
-                        ),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            child: GridView.builder(
+                              padding: EdgeInsets.all(0),
+                              physics: NeverScrollableScrollPhysics(),
+                              shrinkWrap: true,
+                              gridDelegate:
+                                  SliverGridDelegateWithMaxCrossAxisExtent(
+                                maxCrossAxisExtent: constraints.maxWidth * 0.5,
+                                childAspectRatio: 10 / 8,
+                                crossAxisSpacing: 0,
+                                mainAxisSpacing: 0,
+                                mainAxisExtent: 350 * globals.scaleParam,
+                              ),
+                              itemCount: snapshot.data!.length % 2 != 0
+                                  ? snapshot.data!.length + 1
+                                  : snapshot.data!.length,
+                              itemBuilder: (BuildContext ctx, index) {
+                                return snapshot.data!.length % 2 != 0 &&
+                                        index == snapshot.data!.length
+                                    ? Container(color: Colors.white)
+                                    : CategoryItem(
+                                        category_id: snapshot.data![index]
+                                            ["category_id"],
+                                        name: snapshot.data![index]["name"],
+                                        image: snapshot.data![index]["photo"],
+                                        categories: snapshot.data!,
+                                        business: widget.business,
+                                        user: widget.user,
+                                      );
+                              },
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ),
