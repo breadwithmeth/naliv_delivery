@@ -4,18 +4,12 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/paintLogoPage.dart';
 import '../globals.dart' as globals;
-import 'package:flutter/services.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/misc/colors.dart';
-import 'package:naliv_delivery/pages/homePage.dart';
-import 'package:naliv_delivery/pages/organizationSelectPage.dart';
 import 'package:naliv_delivery/pages/permissionPage.dart';
 import 'package:naliv_delivery/pages/preLoadDataPage.dart';
-import 'package:naliv_delivery/pages/startLoadingPage.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'globals.dart' as globals;
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() {
@@ -131,6 +125,7 @@ class _MainState extends State<Main> {
 
   @override
   Widget build(BuildContext context) {
+    //! UNCOMMENT IN PRODUCTION
     // SystemChrome.setPreferredOrientations([
     //   DeviceOrientation.portraitUp,
     //   DeviceOrientation.portraitDown,

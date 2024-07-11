@@ -392,183 +392,183 @@ class _CategoryPageState extends State<CategoryPage> {
         //     ),
         //   ),
         // ),
-        endDrawer: Drawer(
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(10)),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                  horizontal: 15 * globals.scaleParam,
-                  vertical: 10 * globals.scaleParam),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Фильтры",
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 44 * globals.scaleParam,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () {
-                            toggleDrawer();
-                          },
-                          icon: const Icon(Icons.close),
-                        )
-                      ],
-                    ),
-                    SizedBox(
-                      height: 15 * globals.scaleParam,
-                    ),
-                    // Column(
-                    //   crossAxisAlignment:
-                    //       CrossAxisAlignment.start,
-                    //   children: propertyWidget,
-                    // ),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 10 * globals.scaleParam,
-                          vertical: 15 * globals.scaleParam),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(10),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Бренды",
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 32 * globals.scaleParam,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              //!!!!!!!!!!!!!!!!!!
-                              // Wrap(
-                              //   spacing: 5,
-                              //   children: brandsWidget,
-                              // )
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(
-                      height: 15 * globals.scaleParam,
-                    ),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 10 * globals.scaleParam,
-                          vertical: 15 * globals.scaleParam),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(10),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Производители",
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 32 * globals.scaleParam,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              //!!!!!!!!!!!!!!!!!!
-                              // Wrap(
-                              //   spacing: 5,
-                              //   children: brandsWidget,
-                              // )
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(
-                      height: 15 * globals.scaleParam,
-                    ),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 10 * globals.scaleParam,
-                          vertical: 15 * globals.scaleParam),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(10),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Страны",
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 32 * globals.scaleParam,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              //!!!!!!!!!!!!!!!!!!
-                              // Wrap(
-                              //   spacing: 5,
-                              //   children: brandsWidget,
-                              // )
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(
-                      height: 20 * globals.scaleParam,
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        //!!!!! _applyFilters();
-                      },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(5),
-                            child: Text(
-                              "Применить",
-                              style: TextStyle(
-                                fontSize: 32 * globals.scaleParam,
-                                fontWeight: FontWeight.w700,
-                                color: Theme.of(context).colorScheme.onPrimary,
-                              ),
-                            ),
-                          )
-                        ],
-                      ),
-                    )
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
+        // endDrawer: Drawer(
+        //   shape: const RoundedRectangleBorder(
+        //     borderRadius: BorderRadius.all(Radius.circular(10)),
+        //   ),
+        //   child: SafeArea(
+        //     child: Padding(
+        //       padding: EdgeInsets.symmetric(
+        //           horizontal: 15 * globals.scaleParam,
+        //           vertical: 10 * globals.scaleParam),
+        //       child: SingleChildScrollView(
+        //         child: Column(
+        //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        //           crossAxisAlignment: CrossAxisAlignment.start,
+        //           children: [
+        //             Row(
+        //               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        //               crossAxisAlignment: CrossAxisAlignment.center,
+        //               children: [
+        //                 Text(
+        //                   "Фильтры",
+        //                   style: TextStyle(
+        //                     color: Colors.black,
+        //                     fontSize: 44 * globals.scaleParam,
+        //                     fontWeight: FontWeight.w700,
+        //                   ),
+        //                 ),
+        //                 IconButton(
+        //                   onPressed: () {
+        //                     toggleDrawer();
+        //                   },
+        //                   icon: const Icon(Icons.close),
+        //                 )
+        //               ],
+        //             ),
+        //             SizedBox(
+        //               height: 15 * globals.scaleParam,
+        //             ),
+        //             // Column(
+        //             //   crossAxisAlignment:
+        //             //       CrossAxisAlignment.start,
+        //             //   children: propertyWidget,
+        //             // ),
+        //             Container(
+        //               padding: EdgeInsets.symmetric(
+        //                   horizontal: 10 * globals.scaleParam,
+        //                   vertical: 15 * globals.scaleParam),
+        //               decoration: BoxDecoration(
+        //                 color: Colors.grey.shade300,
+        //                 borderRadius: const BorderRadius.all(
+        //                   Radius.circular(10),
+        //                 ),
+        //               ),
+        //               child: Row(
+        //                 children: [
+        //                   Column(
+        //                     crossAxisAlignment: CrossAxisAlignment.start,
+        //                     children: [
+        //                       Text(
+        //                         "Бренды",
+        //                         style: TextStyle(
+        //                           color: Colors.black,
+        //                           fontSize: 32 * globals.scaleParam,
+        //                           fontWeight: FontWeight.w700,
+        //                         ),
+        //                       ),
+        //                       //!!!!!!!!!!!!!!!!!!
+        //                       // Wrap(
+        //                       //   spacing: 5,
+        //                       //   children: brandsWidget,
+        //                       // )
+        //                     ],
+        //                   ),
+        //                 ],
+        //               ),
+        //             ),
+        //             SizedBox(
+        //               height: 15 * globals.scaleParam,
+        //             ),
+        //             Container(
+        //               padding: EdgeInsets.symmetric(
+        //                   horizontal: 10 * globals.scaleParam,
+        //                   vertical: 15 * globals.scaleParam),
+        //               decoration: BoxDecoration(
+        //                 color: Colors.grey.shade300,
+        //                 borderRadius: const BorderRadius.all(
+        //                   Radius.circular(10),
+        //                 ),
+        //               ),
+        //               child: Row(
+        //                 children: [
+        //                   Column(
+        //                     crossAxisAlignment: CrossAxisAlignment.start,
+        //                     children: [
+        //                       Text(
+        //                         "Производители",
+        //                         style: TextStyle(
+        //                           color: Colors.black,
+        //                           fontSize: 32 * globals.scaleParam,
+        //                           fontWeight: FontWeight.w700,
+        //                         ),
+        //                       ),
+        //                       //!!!!!!!!!!!!!!!!!!
+        //                       // Wrap(
+        //                       //   spacing: 5,
+        //                       //   children: brandsWidget,
+        //                       // )
+        //                     ],
+        //                   ),
+        //                 ],
+        //               ),
+        //             ),
+        //             SizedBox(
+        //               height: 15 * globals.scaleParam,
+        //             ),
+        //             Container(
+        //               padding: EdgeInsets.symmetric(
+        //                   horizontal: 10 * globals.scaleParam,
+        //                   vertical: 15 * globals.scaleParam),
+        //               decoration: BoxDecoration(
+        //                 color: Colors.grey.shade300,
+        //                 borderRadius: const BorderRadius.all(
+        //                   Radius.circular(10),
+        //                 ),
+        //               ),
+        //               child: Row(
+        //                 children: [
+        //                   Column(
+        //                     crossAxisAlignment: CrossAxisAlignment.start,
+        //                     children: [
+        //                       Text(
+        //                         "Страны",
+        //                         style: TextStyle(
+        //                           color: Colors.black,
+        //                           fontSize: 32 * globals.scaleParam,
+        //                           fontWeight: FontWeight.w700,
+        //                         ),
+        //                       ),
+        //                       //!!!!!!!!!!!!!!!!!!
+        //                       // Wrap(
+        //                       //   spacing: 5,
+        //                       //   children: brandsWidget,
+        //                       // )
+        //                     ],
+        //                   ),
+        //                 ],
+        //               ),
+        //             ),
+        //             SizedBox(
+        //               height: 20 * globals.scaleParam,
+        //             ),
+        //             ElevatedButton(
+        //               onPressed: () {
+        //                 //!!!!! _applyFilters();
+        //               },
+        //               child: Row(
+        //                 mainAxisAlignment: MainAxisAlignment.center,
+        //                 children: [
+        //                   Container(
+        //                     padding: const EdgeInsets.all(5),
+        //                     child: Text(
+        //                       "Применить",
+        //                       style: TextStyle(
+        //                         fontSize: 32 * globals.scaleParam,
+        //                         fontWeight: FontWeight.w700,
+        //                         color: Theme.of(context).colorScheme.onPrimary,
+        //                       ),
+        //                     ),
+        //                   )
+        //                 ],
+        //               ),
+        //             )
+        //           ],
+        //         ),
+        //       ),
+        //     ),
+        //   ),
+        // ),
         body: TabBarView(
           children: [
             for (int j = 0; j < widget.categories.length; j++)
