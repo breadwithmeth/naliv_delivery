@@ -10,7 +10,7 @@ import 'package:http/http.dart' as http;
 //var URL_API = '10.8.0.3';
 
 // var URL_API = '192.168.0.164:8080';
-var URL_API = 'naliv.kz';
+var URL_API = 'chorenn.naliv.kz';
 
 Future<Position> determinePosition(BuildContext ctx) async {
   LocationPermission permission;
