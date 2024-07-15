@@ -128,6 +128,9 @@ flutter:
     - assets/category_icons/wine_ico.png
     - assets/category_icons/alcohol_hard_ico.png
     - assets/category_icons/no_image_ico.png
+    - assets/mc.png
+    - assets/visa.png
+
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

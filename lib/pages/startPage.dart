@@ -70,33 +70,7 @@ class _StartPageState extends State<StartPage> {
         toolbarHeight: 0,
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 30),
-        child: ElevatedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) {
-                  return const DealPage();
-                },
-              ),
-            );
-          },
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                "Войти",
-                style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: Theme.of(context).colorScheme.onPrimary),
-              )
-            ],
-          ),
-        ),
-      ),
+      // floatingActionButton:
       body: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
@@ -115,6 +89,54 @@ class _StartPageState extends State<StartPage> {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 30),
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) {
+                      return const DealPage();
+                    },
+                  ),
+                );
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Войти",
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).colorScheme.onPrimary),
+                  )
+                ],
+              ),
+            ),
+          ),
+          Center(
+              child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: MediaQuery.of(context).size.width * 0.1,
+                height: MediaQuery.of(context).size.height * 0.1,
+                alignment: Alignment.center,
+                child: Image.asset("assets/visa.png"),
+              ),
+              SizedBox(
+                width: 20,
+              ),
+              Container(
+                width: MediaQuery.of(context).size.width * 0.1,
+                height: MediaQuery.of(context).size.height * 0.1,
+                alignment: Alignment.center,
+                child: Image.asset("assets/mc.png"),
+              ),
+            ],
+          )),
           // Flexible(
           //     flex: 16,
           //     child: PageView.builder(
@@ -130,11 +152,11 @@ class _StartPageState extends State<StartPage> {
           //             fit: BoxFit.cover,
           //           ));
           //         })),
-          const Spacer(),
-          const Flexible(
-            flex: 2,
-            child: SizedBox(),
-          ),
+          // const Spacer(),
+          // const Flexible(
+          //   flex: 2,
+          //   child: SizedBox(),
+          // ),
           // Flexible(
           //   flex: 2,
           //   child: Container(
