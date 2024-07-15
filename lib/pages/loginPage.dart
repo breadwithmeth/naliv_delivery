@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import '../globals.dart' as globals;
 import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
-import 'package:flutter/cupertino.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, this.login = "", this.password = ""});

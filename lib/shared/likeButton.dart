@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 
 class LikeButton extends StatefulWidget {

@@ -1,35 +1,15 @@
 // ignore_for_file: file_names
 
 import 'dart:async';
-import 'dart:ui';
-
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/paintLogoPage.dart';
 import '../globals.dart' as globals;
-import 'package:flutter/widgets.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:naliv_delivery/pages/categoryPage.dart';
-import 'package:naliv_delivery/pages/orderHistoryPage.dart';
-import 'package:naliv_delivery/pages/organizationSelectPage.dart';
-import 'package:naliv_delivery/pages/preLoadDataPage.dart';
-import 'package:naliv_delivery/pages/supportPage.dart';
 import 'package:naliv_delivery/shared/activeOrderButton.dart';
 import 'package:naliv_delivery/shared/cartButton.dart';
-import 'package:naliv_delivery/shared/loadingScreen.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/misc/colors.dart';
-import 'package:naliv_delivery/pages/addressesPage.dart';
-import 'package:naliv_delivery/pages/businessSelectStartPage.dart';
-import 'package:naliv_delivery/pages/cartPage.dart';
-import 'package:naliv_delivery/pages/favPage.dart';
-import 'package:naliv_delivery/pages/loginPage.dart';
 import 'package:naliv_delivery/pages/searchPage.dart';
-import 'package:naliv_delivery/pages/settingsPage.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key, required this.business, required this.user});
@@ -44,8 +24,6 @@ class _HomePageState extends State<HomePage>
     with AutomaticKeepAliveClientMixin<HomePage> {
   @override
   bool get wantKeepAlive => true;
-  final PageController _pageController =
-      PageController(viewportFraction: 0.7, initialPage: 0);
 
   GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -81,7 +59,8 @@ class _HomePageState extends State<HomePage>
           width: 5,
           height: 5,
           decoration: BoxDecoration(
-              color: currentIndex == index ? gray1 : Colors.black12,
+              color:
+                  currentIndex == index ? Colors.grey.shade200 : Colors.black12,
               shape: BoxShape.circle),
         );
       },
@@ -89,10 +68,6 @@ class _HomePageState extends State<HomePage>
   }
 
   int activePage = 0;
-
-  List _addresses = [];
-
-  Map _currentAddress = {};
 
   bool categoryIsLoading = true;
 
@@ -104,7 +79,6 @@ class _HomePageState extends State<HomePage>
   List<dynamic> businesses = [];
 
   Map<String, dynamic>? user;
-  late Position _location;
 
   bool isLogoPainted = false;
 
@@ -112,8 +86,6 @@ class _HomePageState extends State<HomePage>
     List cats = await getCategories(widget.business["business_id"]);
     return cats;
   }
-
-  Map<String, dynamic>? _business = {};
 
   void toggleDrawer() async {
     if (_scaffoldKey.currentState!.isDrawerOpen) {

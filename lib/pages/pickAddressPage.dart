@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/pages/createOrder.dart';
 import 'package:naliv_delivery/pages/pickOnMap.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter/cupertino.dart';
 
 class PickAddressPage extends StatefulWidget {
   PickAddressPage(
@@ -53,9 +51,9 @@ class _PickAddressPageState extends State<PickAddressPage> {
 
   Future<void> _getCities() async {
     await getCities().then((v) {
-      if (this.mounted) {
+      if (mounted) {
         setState(() {
-          if (v == null) {
+          if (v.isEmpty) {
             _cities = [];
           } else {
             _cities = v;

@@ -1,16 +1,8 @@
-import 'dart:ui';
-
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../globals.dart' as globals;
-import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:naliv_delivery/pages/createAddressPage.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 
 class AddressesPage extends StatefulWidget {
@@ -46,31 +38,16 @@ class _AddressesPageState extends State<AddressesPage>
   //     },
   //   );
   // }
-  double _cHeight = 100;
 
   bool _isExtended = false;
   bool? _isAddressPicked = null;
   TextEditingController _search = TextEditingController();
-  String _adressName = "";
+
   MapController _mapController = MapController();
 
   LatLng _selectedAddress = LatLng(0, 0);
 
   List<Marker> _markers = [];
-
-  void _initcHeight() {
-    if (widget.isExtended) {
-      setState(() {
-        _cHeight = MediaQuery.of(context).size.height * 0.8;
-        _isExtended = widget.isExtended;
-      });
-    } else {
-      setState(() {
-        _cHeight = MediaQuery.of(context).size.height * 0.2;
-        _isExtended = widget.isExtended;
-      });
-    }
-  }
 
   @override
   void initState() {
@@ -79,8 +56,6 @@ class _AddressesPageState extends State<AddressesPage>
     super.initState();
     // _showBottomSheet();
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      _initcHeight();
-
       _determinePosition().then((value) {
         setState(() {
           _selectedAddress = LatLng(value.latitude, value.longitude);
@@ -405,7 +380,6 @@ class _AddressesPageState extends State<AddressesPage>
                             onPressed: () {
                               setState(() {
                                 _isExtended = false;
-                                _cHeight = 500;
                               });
                             },
                             child: Icon(Icons.add)),
@@ -463,8 +437,6 @@ class _AddressesPageState extends State<AddressesPage>
                                       setState(() {
                                         _selectedAddress = LatLng(lat, lon);
                                         _isAddressPicked = true;
-                                        _adressName =
-                                            objects.first["GeoObject"]["name"];
                                       });
                                       _mapController.move(LatLng(lat, lon), 20);
                                     });

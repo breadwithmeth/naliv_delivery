@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import '../globals.dart' as globals;
 import 'package:naliv_delivery/main.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter/cupertino.dart';
 
 class PermissionPage extends StatefulWidget {
   const PermissionPage({super.key});

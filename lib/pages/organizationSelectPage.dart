@@ -1,25 +1,13 @@
-import 'dart:math';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/pages/createProfilePage.dart';
 import 'package:naliv_delivery/pages/pickOnMap.dart';
 import 'package:naliv_delivery/pages/preLoadDataPage.dart';
 import '../globals.dart' as globals;
-
-import 'package:flutter/painting.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/pages/addressesPage.dart';
-import 'package:naliv_delivery/pages/favPage.dart';
 import 'package:naliv_delivery/pages/homePage.dart';
-import 'package:naliv_delivery/pages/loginPage.dart';
 import 'package:naliv_delivery/pages/orderHistoryPage.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
@@ -27,7 +15,7 @@ import 'package:naliv_delivery/pages/supportPage.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class OrganizationSelectPage extends StatefulWidget {
-  OrganizationSelectPage(
+  const OrganizationSelectPage(
       {super.key,
       required this.addresses,
       required this.currentAddress,

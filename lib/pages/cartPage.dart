@@ -1,19 +1,10 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../globals.dart' as globals;
-import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
-import 'package:naliv_delivery/pages/findCreateUserPage.dart';
-import 'package:naliv_delivery/pages/productPage.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
-import 'package:intl/intl.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key, required this.business, required this.user});
@@ -32,7 +23,7 @@ class _CartPageState extends State<CartPage>
   late Map<String, dynamic> cartInfo = {};
   late AnimationController animController;
   final Duration animDuration = Duration(milliseconds: 250);
-  TextEditingController _promoController = TextEditingController();
+
   Map<String, dynamic> client = {};
   int localSum = 0;
   int localDiscount = 0;
@@ -40,7 +31,6 @@ class _CartPageState extends State<CartPage>
   int bonusSum = 0;
   int price = 0;
   bool isCartLoading = true;
-  late final TextEditingController _textFieldController;
 
   // int userBonusPoints = 50000;
   // int maxBonusPointsToSpend = 0;
@@ -222,7 +212,7 @@ class _CartPageState extends State<CartPage>
     // TODO: implement initState
     super.initState();
     _setAnimationController();
-    _textFieldController = TextEditingController();
+
     _getCart();
     // Future.delayed( Duration(milliseconds: 0), () async {
     //   setState(() {

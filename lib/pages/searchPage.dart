@@ -1,7 +1,5 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../globals.dart' as globals;
-import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/pages/searchResultPage.dart';
 
 class SearchPage extends StatefulWidget {

@@ -1,13 +1,9 @@
 import 'dart:async';
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../globals.dart' as globals;
-import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/orderPage.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
-import 'package:intl/intl.dart';
 
 // import 'createOrder.dart';
 
@@ -454,17 +450,15 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         children: [
                           Flexible(
                             child: Text(
-                                  widget.delivery
-                                      ? widget.address!["address"] ?? ""
-                                      : widget.business["address"],
-                                  style: TextStyle(
-                                    fontSize: 32 * globals.scaleParam,
-                                    fontWeight: FontWeight.w700,
-                                    color:
-                                        Theme.of(context).colorScheme.onSurface,
-                                  ),
-                                ) ??
-                                Container(),
+                              widget.delivery
+                                  ? widget.address!["address"] ?? ""
+                                  : widget.business["address"],
+                              style: TextStyle(
+                                fontSize: 32 * globals.scaleParam,
+                                fontWeight: FontWeight.w700,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
                           ),
                         ],
                       ),
