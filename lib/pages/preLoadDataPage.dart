@@ -1,6 +1,5 @@
 import 'dart:ui';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/createProfilePage.dart';
 import 'package:naliv_delivery/pages/paintLogoPage.dart';
@@ -8,7 +7,6 @@ import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/organizationSelectPage.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
-import 'package:naliv_delivery/shared/loadingScreen.dart';
 
 class PreLoadDataPage extends StatefulWidget {
   const PreLoadDataPage({super.key});
@@ -71,8 +69,6 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
     FlutterView view = WidgetsBinding.instance.platformDispatcher.views.first;
     Size size = view.physicalSize / view.devicePixelRatio;
     // MediaQuery.textScalerOf(context).scale(fontSize)
-    double width = size.width;
-    double height = size.height;
     if (size.aspectRatio < 1) {
       // globals.scaleParam = (height / 1920) * (width / 1080) * .4;
       globals.scaleParam = 0.4;

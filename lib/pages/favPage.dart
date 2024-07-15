@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import '../globals.dart' as globals;
-import 'package:naliv_delivery/pages/cartPage.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
 import 'package:naliv_delivery/shared/cartButton.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';

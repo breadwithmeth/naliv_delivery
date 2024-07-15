@@ -455,7 +455,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
     ).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: Curves.linear,
+        curve: Curves.easeOut,
       ),
     );
 

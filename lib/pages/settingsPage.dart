@@ -1,8 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import '../globals.dart' as globals;
 import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/loginPage.dart';
@@ -39,8 +37,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           TextButton(
                               onPressed: () {
                                 logout();
-                                Timer timer =
-                                    Timer(const Duration(seconds: 5), () {
+                                Timer(const Duration(seconds: 5), () {
                                   Navigator.pushReplacement(context,
                                       MaterialPageRoute(
                                     builder: (context) {

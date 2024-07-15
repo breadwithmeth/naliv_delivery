@@ -1,10 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/permissionPage.dart';
-import '../globals.dart' as globals;
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 
 //var URL_API = '10.8.0.3';
@@ -104,7 +102,7 @@ Future<bool> register(String login, String password, String name) async {
     body: json.encode({'login': login, 'password': password, 'name': name}),
     headers: {"Content-Type": "application/json"},
   );
-  var data = jsonDecode(response.body);
+  jsonDecode(response.body);
   print(response.statusCode);
   if (response.statusCode == 201) {
     return true;
@@ -122,7 +120,7 @@ Future<bool> login(String login, String password) async {
   );
   var data = jsonDecode(response.body);
   if (response.statusCode == 202) {
-    final prefs = await SharedPreferences.getInstance();
+    await SharedPreferences.getInstance();
     setToken(data);
     print(data['token']);
 
@@ -143,7 +141,7 @@ Future<bool> setCityAuto(double lat, double lon) async {
     body: json.encode({'lat': lat, 'lon': lon}),
     headers: {"Content-Type": "application/json", "AUTH": token},
   );
-  var data = jsonDecode(response.body);
+  jsonDecode(response.body);
   print(response.statusCode);
   if (response.statusCode == 201) {
     return true;
@@ -198,7 +196,7 @@ Future<bool> setCurrentStore(String businessId) async {
   );
   var data = jsonDecode(response.body);
   print(response.statusCode);
-  if (data = true) {
+  if (data == true) {
     return true;
   } else {
     return false;

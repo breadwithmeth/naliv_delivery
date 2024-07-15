@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../globals.dart' as globals;
 import 'dart:async';
 import 'package:naliv_delivery/pages/orderPage.dart';
-import 'package:flutter/cupertino.dart';
 
 class ActiveOrderButton extends StatefulWidget {
   ActiveOrderButton({

@@ -1,16 +1,9 @@
-import 'dart:ui';
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../globals.dart' as globals;
-import 'package:flutter/widgets.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/pages/cartPage.dart';
-import 'package:naliv_delivery/pages/productPage.dart';
 import 'package:naliv_delivery/pages/searchPage.dart';
 import 'package:naliv_delivery/shared/cartButton.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
-import 'package:shimmer/shimmer.dart';
 
 class CategoryPage extends StatefulWidget {
   const CategoryPage(
@@ -617,7 +610,6 @@ class _CategoryPageListState extends State<CategoryPageList>
   final int _numberOfPostsPerRequest = 30;
   late List<Map<String, dynamic>> _items;
   final int _nextPageTrigger = 3;
-  late final TabController _controller;
 
   void updateDataAmount(String newDataAmount, int index) {
     setState(() {
@@ -695,7 +687,6 @@ class _CategoryPageListState extends State<CategoryPageList>
   @override
   void initState() {
     super.initState();
-    _controller = TabController(length: 2, vsync: this);
     _pageNumber = 0;
     _items = [];
     _isLastPage = false;

@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/misc/colors.dart';
 import 'package:naliv_delivery/pages/loginPage.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
-import 'package:flutter/cupertino.dart';
 
 class RegistrationPage extends StatefulWidget {
   const RegistrationPage({super.key});
@@ -96,7 +93,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                       TextFormField(
                         controller: _name,
                         decoration: const InputDecoration(
-                            labelStyle: TextStyle(color: gray1, fontSize: 16),
+                            labelStyle: TextStyle(color: Colors.grey, fontSize: 16),
                             label: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -125,7 +122,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                       TextFormField(
                         controller: _login,
                         decoration: const InputDecoration(
-                            labelStyle: TextStyle(color: gray1, fontSize: 16),
+                            labelStyle: TextStyle(color: Colors.grey, fontSize: 16),
                             label: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -155,7 +152,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         controller: _password,
                         obscureText: true,
                         decoration: const InputDecoration(
-                            labelStyle: TextStyle(color: gray1, fontSize: 16),
+                            labelStyle: TextStyle(color: Colors.grey, fontSize: 16),
                             label: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [

@@ -1,19 +1,11 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../globals.dart' as globals;
-import 'package:flutter/painting.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/pages/cartPage.dart';
-import 'package:naliv_delivery/shared/likeButton.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:numberpicker/numberpicker.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:intl/intl.dart';
 
 class ProductPage extends StatefulWidget {
   const ProductPage(
@@ -80,7 +72,6 @@ class _ProductPageState extends State<ProductPage> {
   late String buyButtonActionText;
   late Color buyButtonActionColor;
   late int inStock;
-  final ScrollController _scrollController = ScrollController();
 
   Future<bool> _deleteFromCart(String itemId) async {
     bool? result = await deleteFromCart(itemId);

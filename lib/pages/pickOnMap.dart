@@ -3,17 +3,12 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../globals.dart' as globals;
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/pages/pickAddressPage.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 
 class PickOnMapPage extends StatefulWidget {
   const PickOnMapPage(
@@ -35,7 +30,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
   bool isMapSetteled = false;
 
   String _currentCity = "";
-  String _currentCityId = "";
+
   double _lat = 0;
   double _lon = 0;
   void setCurrentCity() {
@@ -49,7 +44,6 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
           double.parse(city["y2"]) > widget.currentPosition.longitude) {
         setState(() {
           _currentCity = city["name"];
-          _currentCityId = city["city_id"];
         });
         print("========================================================");
       } else {
@@ -180,8 +174,6 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                 onPressed: () {
                                   setState(() {
                                     _currentCity = widget.cities[index]["name"];
-                                    _currentCityId =
-                                        widget.cities[index]["city_id"];
                                   });
                                   _mapController.move(
                                       LatLng(

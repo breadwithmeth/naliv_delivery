@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import '../globals.dart' as globals;
 import 'package:intl_phone_field/intl_phone_field.dart';
-import 'package:intl_phone_number_input/intl_phone_number_input_test.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
-import 'package:naliv_delivery/pages/pickAddressPage.dart';
-import 'package:flutter/cupertino.dart';
 
 class FindCreateUserPage extends StatefulWidget {
   const FindCreateUserPage(

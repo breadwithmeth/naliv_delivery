@@ -1,20 +1,11 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:naliv_delivery/pages/webViewCardPayPage.dart';
 import '../globals.dart' as globals;
-import 'package:flutter/widgets.dart';
-import 'package:intl_phone_field/intl_phone_field.dart';
-import 'package:naliv_delivery/main.dart';
-import 'package:naliv_delivery/pages/addressesPage.dart';
-import 'package:naliv_delivery/pages/createAddressPage.dart';
+
 import 'package:naliv_delivery/pages/orderConfirmation.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
-import 'package:naliv_delivery/shared/itemCards.dart';
-import 'package:shimmer/shimmer.dart';
-import 'package:intl/intl.dart';
 
 import '../misc/api.dart';
 
