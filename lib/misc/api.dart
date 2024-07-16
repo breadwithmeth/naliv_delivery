@@ -8,7 +8,8 @@ import 'package:http/http.dart' as http;
 //var URL_API = '10.8.0.3';
 
 // var URL_API = '192.168.0.164:8080';
-var URL_API = 'chorenn.naliv.kz';
+String URL_API = 'chorenn.naliv.kz';
+String PAYMENT_URL = "chorenn.naliv.kz";
 
 Future<Position> determinePosition(BuildContext ctx) async {
   LocationPermission permission;
@@ -832,4 +833,20 @@ Future<bool> changeName(String name) async {
   } else {
     return false;
   }
+}
+
+Future<String> getPaymentHTML() async {
+  String? token = await getToken();
+  if (token == null) {
+    return "";
+  }
+  var url = Uri.https(PAYMENT_URL, '/api/payment/getPaymentPage.php');
+  var response = await http.post(
+    url,
+    // body: json.encode({'business_id': businessId}),
+    headers: {"Content-Type": "application/json", "AUTH": token},
+  );
+  // var data = json.decode(utf8.decode(response.bodyBytes));
+  print(response.statusCode);
+  return utf8.decode(response.bodyBytes);
 }
