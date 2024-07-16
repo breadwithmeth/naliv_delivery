@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/cartPage.dart';
+import 'package:naliv_delivery/pages/webViewCardPayPage.dart';
 
 class CartButton extends StatefulWidget {
   const CartButton({
@@ -38,6 +39,14 @@ class _CartButtonState extends State<CartButton> {
               },
             ),
           );
+          // Navigator.push(
+          //   context,
+          //   MaterialPageRoute(
+          //     builder: (context) {
+          //       return const WebViewCardPayPage();
+          //     },
+          //   ),
+          // );
         },
       ),
     );
