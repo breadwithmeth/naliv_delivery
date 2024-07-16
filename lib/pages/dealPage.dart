@@ -169,7 +169,8 @@ class _DealPageState extends State<DealPage> {
                     ],
                   ),
                 ),
-              )
+              ),
+              // Spacer(),
             ],
           ),
         ),
