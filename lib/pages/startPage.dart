@@ -122,7 +122,7 @@ class _StartPageState extends State<StartPage> {
                 width: MediaQuery.of(context).size.width * 0.1,
                 height: MediaQuery.of(context).size.height * 0.1,
                 alignment: Alignment.center,
-                child: Image.asset("assets/visa.png"),
+                child: Image.asset("assets/s/visa.png"),
               ),
               SizedBox(
                 width: 20,
@@ -131,7 +131,7 @@ class _StartPageState extends State<StartPage> {
                 width: MediaQuery.of(context).size.width * 0.1,
                 height: MediaQuery.of(context).size.height * 0.1,
                 alignment: Alignment.center,
-                child: Image.asset("assets/mc.png"),
+                child: Image.asset("assets/s/mc.png"),
               ),
             ],
           )),
