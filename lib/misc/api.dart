@@ -234,7 +234,7 @@ Future<List?> getItemsMain(int page, String business_id,
 
   Map<String, String> queryBody = {};
 
-  if (search != null) {
+  if (search!.isNotEmpty) {
     queryBody.addAll({'search': search, 'business_id': business_id});
   }
   if (categoryId != null) {
@@ -260,6 +260,7 @@ Future<List?> getItemsMain(int page, String business_id,
   }
 
   print(jsonBody);
+  print(queryBody);
 
   // List<dynamic> list = json.decode(response.body);
   print(utf8.decode(response.bodyBytes));

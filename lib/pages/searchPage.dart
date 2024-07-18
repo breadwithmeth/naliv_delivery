@@ -13,11 +13,13 @@ class SearchPage extends StatefulWidget {
 }
 
 class _SearchPageState extends State<SearchPage> {
-  TextEditingController _keyword = TextEditingController();
+  final TextEditingController _keyword = TextEditingController();
   bool isTextInField = false;
   bool isSearchEverywhere = false;
 
   void _search() {
+    print("=====================================");
+    print(_keyword.text);
     Navigator.pushReplacement(context, MaterialPageRoute(
       builder: (context) {
         if (isSearchEverywhere) {
@@ -158,11 +160,7 @@ class _SearchPageState extends State<SearchPage> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      onPressed: isTextInField
-                          ? () {
-                              _search();
-                            }
-                          : null,
+                      onPressed: _search,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         mainAxisSize: MainAxisSize.max,

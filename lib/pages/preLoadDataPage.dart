@@ -89,7 +89,7 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
       } else {
         _getUser().then((vv) {
           _getBusinesses().then((b) {
-            if (user["name"].toString().isEmpty) {
+            if (user["name"] == null) {
               Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
                 builder: (context) {
                   return const ProfileCreatePage();

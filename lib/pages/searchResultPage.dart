@@ -33,10 +33,11 @@ class _SearchResultPageState extends State<SearchResultPage> {
   Future<void> _getItems() async {
     try {
       if (widget.category_id == "") {
-        responseList = await getItemsMain(_pageNumber, widget.search);
+        responseList = await getItemsMain(
+            _pageNumber, widget.business["business_id"], widget.search);
       } else {
-        responseList =
-            await getItemsMain(_pageNumber, widget.search, widget.category_id);
+        responseList = await getItemsMain(_pageNumber,
+            widget.business["business_id"], widget.search, widget.category_id);
       }
       if (responseList != null) {
         List<Item> itemList = responseList!.map((data) => Item(data)).toList();
