@@ -557,7 +557,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
-                        "НАЗВАНИЕ",
+                        "НАЛИВ/ГРАДУСЫ24",
                         style: GoogleFonts.montserratAlternates(
                           textStyle: TextStyle(
                               fontWeight: FontWeight.w900,

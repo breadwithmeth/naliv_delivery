@@ -607,9 +607,7 @@ class _CategoryPageListState extends State<CategoryPageList>
   final int _nextPageTrigger = 3;
 
   void updateDataAmount(String newDataAmount, int index) {
-    setState(() {
-      _items[index]["amount"] = newDataAmount;
-    });
+    _items[index]["amount"] = newDataAmount;
   }
 
   Future<void> _getItems() async {
@@ -770,6 +768,7 @@ class _CategoryPageListState extends State<CategoryPageList>
                           scroll: 0,
                           business: widget.business,
                           index: index,
+                          categoryPageUpdateData: updateDataAmount,
                         ),
                         _items.length != index
                             ? Padding(
