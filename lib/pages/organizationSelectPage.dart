@@ -772,7 +772,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                           horizontal: 5,
                                         ),
                                         child: Text(
-                                          widget.user["name"],
+                                          widget.user["name"] ?? "",
                                           textAlign: TextAlign.right,
                                           style: TextStyle(
                                             fontSize: 30 * globals.scaleParam,

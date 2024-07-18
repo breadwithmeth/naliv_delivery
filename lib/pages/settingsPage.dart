@@ -107,14 +107,18 @@ class _SettingsPageState extends State<SettingsPage> {
                                     const EdgeInsets.symmetric(horizontal: 5),
                                 child: ElevatedButton(
                                   onPressed: () {
-                                    logout();
-                                    Navigator.pushAndRemoveUntil(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const LoginPage(),
-                                        ),
-                                        (route) => false);
+                                    logout().whenComplete(
+                                      () {
+                                        Navigator.pushAndRemoveUntil(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const LoginPage(),
+                                          ),
+                                          (route) => false,
+                                        );
+                                      },
+                                    );
                                   },
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
@@ -172,14 +176,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     );
                   },
                 );
-                setState(() {});
-                print(123);
-                logout();
-                Navigator.pushReplacement(context, MaterialPageRoute(
-                  builder: (context) {
-                    return const LoginPage();
-                  },
-                ));
+                // setState(() {});
+                // print(123);
+                // logout();
+                // Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+                //   builder: (context) {
+                //     return const LoginPage();
+                //   },
+                // ));
               },
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.start,
