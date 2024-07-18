@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/agreements/offer.dart';
 import 'package:naliv_delivery/pages/createProfilePage.dart';
 import 'package:naliv_delivery/pages/pickOnMap.dart';
 import 'package:naliv_delivery/pages/preLoadDataPage.dart';
@@ -600,6 +601,13 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                       name: "Поддержка",
                       icon: Icons.support_agent_rounded,
                       route: const SupportPage(),
+                    ),
+                    DrawerMenuItem(
+                      name: "Оферта",
+                      icon: Icons.list_alt,
+                      route: OfferPage(
+                    path: "assets/agreements/offer.md",
+                  ),
                     ),
                     DrawerMenuItem(
                       name: "Настройки",
