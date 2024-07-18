@@ -323,7 +323,8 @@ class ItemCardMedium extends StatefulWidget {
       required this.categoryId,
       required this.scroll,
       required this.business,
-      required this.index});
+      required this.index,
+      this.categoryPageUpdateData});
   final Map<String, dynamic> element;
   final String categoryName;
 
@@ -334,6 +335,7 @@ class ItemCardMedium extends StatefulWidget {
   final Map<dynamic, dynamic> business;
   final int index;
   final chack = 1;
+  final Function(String, int)? categoryPageUpdateData;
   @override
   State<ItemCardMedium> createState() => _ItemCardMediumState();
 }
@@ -380,6 +382,9 @@ class _ItemCardMediumState extends State<ItemCardMedium>
       //   widget.updateCategoryPageInfo!(
       //       amountInCart.toString(), widget.index);
       // }
+      if (widget.categoryPageUpdateData != null) {
+        widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
+      }
       print(value);
     });
   }
@@ -474,6 +479,9 @@ class _ItemCardMediumState extends State<ItemCardMedium>
   @override
   void dispose() {
     // Trigger the debounce action immediately if the timer is active
+    if (widget.categoryPageUpdateData != null) {
+      widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
+    }
     if (_debounce?.isActive ?? false) {
       _debounce?.cancel();
       _updateItemCountServerCall();

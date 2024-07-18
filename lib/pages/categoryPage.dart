@@ -240,12 +240,7 @@ class CategoryPageList extends StatefulWidget {
 }
 
 class _CategoryPageListState extends State<CategoryPageList>
-    with
-        AutomaticKeepAliveClientMixin<CategoryPageList>,
-        SingleTickerProviderStateMixin<CategoryPageList> {
-  @override
-  bool get wantKeepAlive => true;
-
+    with SingleTickerProviderStateMixin<CategoryPageList> {
   late bool _isLastPage;
   late int _pageNumber;
   late bool _error;
@@ -255,9 +250,7 @@ class _CategoryPageListState extends State<CategoryPageList>
   final int _nextPageTrigger = 3;
 
   void updateDataAmount(String newDataAmount, int index) {
-    setState(() {
-      _items[index]["amount"] = newDataAmount;
-    });
+    _items[index]["amount"] = newDataAmount;
   }
 
   Future<void> _getItems() async {
@@ -340,7 +333,6 @@ class _CategoryPageListState extends State<CategoryPageList>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
     if (_items.isEmpty) {
       if (_loading) {
         return const Center(
@@ -356,6 +348,7 @@ class _CategoryPageListState extends State<CategoryPageList>
       children: [
        
         Expanded(
+<<<<<<< HEAD
           child: ListView.builder(
             addAutomaticKeepAlives: false,
             itemCount: _items.length + (_isLastPage ? 0 : 1),
@@ -397,21 +390,78 @@ class _CategoryPageListState extends State<CategoryPageList>
                           padding: EdgeInsets.symmetric(
                             horizontal: 16 * globals.scaleParam,
                             vertical: 5 * globals.scaleParam,
+=======
+          child: _items.length > 1
+              ? ListView.builder(
+                  itemCount: _items.length + (_isLastPage ? 0 : 1),
+                  itemBuilder: (context, index) {
+                    if ((index == _items.length - _nextPageTrigger) &&
+                        (!_isLastPage)) {
+                      _getItems();
+                    }
+                    if (index == _items.length) {
+                      if (_error) {
+                        return Center(child: errorDialog(size: 15));
+                      } else {
+                        return const Center(
+                            child: Padding(
+                          padding: EdgeInsets.all(8),
+                          child: CircularProgressIndicator(),
+                        ));
+                      }
+                    }
+                    final Map<String, dynamic> item = _items[index];
+                    return Column(
+                      children: [
+                        index == 0
+                            ? SizedBox(
+                                height: 10 * globals.scaleParam,
+                              )
+                            : SizedBox(),
+                        ItemCardMedium(
+                          itemId: item["item_id"],
+                          element: item,
+                          categoryId: "",
+                          categoryName: "",
+                          scroll: 0,
+                          business: widget.business,
+                          index: index,
+                          categoryPageUpdateData: updateDataAmount,
+                        ),
+                        _items.length != index
+                            ? Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 16 * globals.scaleParam,
+                                  vertical: 5 * globals.scaleParam,
+                                ),
+                                child: Divider(
+                                  height: 20 * globals.scaleParam,
+                                ),
+                              )
+                            : Container(),
+                        if ((index ==
+                                (_items.length + (_isLastPage ? 0 : 1) - 1)) &&
+                            (_isLastPage))
+                          SizedBox(
+                            height: 95 * globals.scaleParam,
+>>>>>>> c5105bf579c3f581e63d3a724d508a63dd214aea
                           ),
-                          child: Divider(
-                            height: 20 * globals.scaleParam,
-                          ),
-                        )
-                      : Container(),
-                  if ((index == (_items.length + (_isLastPage ? 0 : 1) - 1)) &&
-                      (_isLastPage))
-                    SizedBox(
-                      height: 95 * globals.scaleParam,
+                      ],
+                    );
+                  },
+                )
+              : Container(
+                  alignment: Alignment.center,
+                  child: Text(
+                    "Категория пуста",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 52 * globals.scaleParam,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade400,
                     ),
-                ],
-              );
-            },
-          ),
+                  ),
+                ),
         ),
       ],
     );

@@ -381,7 +381,7 @@ Future<Map<String, dynamic>> getCart(String businessId) async {
   if (token == null) {
     return {};
   }
-  var url = Uri.https("naliv.kz", 'api/item/getCart.php');
+  var url = Uri.https(URL_API, 'api/item/getCart.php');
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},

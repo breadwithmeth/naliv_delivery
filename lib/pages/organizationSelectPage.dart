@@ -557,7 +557,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
-                        "НАЗВАНИЕ",
+                        "НАЛИВ/ГРАДУСЫ24",
                         style: GoogleFonts.montserratAlternates(
                           textStyle: TextStyle(
                               fontWeight: FontWeight.w900,
@@ -772,7 +772,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                           horizontal: 5,
                                         ),
                                         child: Text(
-                                          widget.user["name"],
+                                          widget.user["name"] ?? "",
                                           textAlign: TextAlign.right,
                                           style: TextStyle(
                                             fontSize: 30 * globals.scaleParam,
