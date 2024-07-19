@@ -507,10 +507,10 @@ Future<List> getAddresses() async {
   return data;
 }
 
-Future<bool> createAddress(Map address) async {
+Future<List> createAddress(Map address) async {
   String? token = await getToken();
   if (token == null) {
-    return false;
+    return [];
   }
   var url = Uri.https(URL_API, 'api/user/createAddress.php');
   var response = await http.post(
@@ -518,15 +518,11 @@ Future<bool> createAddress(Map address) async {
     body: json.encode(address),
     headers: {"Content-Type": "application/json", "AUTH": token},
   );
-  Map<String, dynamic>? data = json.decode(utf8.decode(response.bodyBytes));
+  List? data = json.decode(utf8.decode(response.bodyBytes));
   if (data == null) {
-    return false;
+    return [];
   } else {
-    if (data["result"] == true) {
-      return true;
-    } else {
-      return false;
-    }
+    return data!;
   }
 }
 
