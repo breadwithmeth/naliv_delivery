@@ -270,7 +270,7 @@ class _ProductPageState extends State<ProductPage> {
       builder: ((context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.secondary,
+            color: Colors.grey.shade300,
           ),
           child: Column(
             children: [

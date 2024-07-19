@@ -31,6 +31,7 @@ class _CartPageState extends State<CartPage>
   int bonusSum = 0;
   int price = 0;
   bool isCartLoading = true;
+  bool dismissingItem = false;
 
   // int userBonusPoints = 50000;
   // int maxBonusPointsToSpend = 0;
@@ -310,70 +311,152 @@ class _CartPageState extends State<CartPage>
           ? Padding(
               padding:
                   EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
-              child: ElevatedButton(
-                onPressed: items.isNotEmpty
-                    ? () {
-                        // Navigator.push(
-                        //   context,
-                        //   MaterialPageRoute(
-                        //     builder: (context) {
-                        //       return FindCreateUserPage(
-                        //         business: widget.business,
-                        //       );
-                        //     },
-                        //   ),
-                        // );
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) {
-                              return CreateOrderPage(
-                                business: widget.business,
-                                finalSum: localSum,
-                                items: items,
-                                itemsAmount: itemsAmount,
-                                user: widget.user,
-                                deliveryInfo: Map.from(
-                                  {"distance": distance, "price": price},
+              child: Row(
+                children: [
+                  MediaQuery.sizeOf(context).width >
+                          MediaQuery.sizeOf(context).height
+                      ? Flexible(
+                          flex: 2,
+                          fit: FlexFit.tight,
+                          child: SizedBox(),
+                        )
+                      : SizedBox(),
+                  Flexible(
+                    fit: FlexFit.tight,
+                    child: ElevatedButton(
+                      onPressed: items.isNotEmpty && !dismissingItem
+                          ? () {
+                              // Navigator.push(
+                              //   context,
+                              //   MaterialPageRoute(
+                              //     builder: (context) {
+                              //       return FindCreateUserPage(
+                              //         business: widget.business,
+                              //       );
+                              //     },
+                              //   ),
+                              // );
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) {
+                                    return CreateOrderPage(
+                                      business: widget.business,
+                                      finalSum: localSum,
+                                      items: items,
+                                      itemsAmount: itemsAmount,
+                                      user: widget.user,
+                                      deliveryInfo: Map.from(
+                                        {"distance": distance, "price": price},
+                                      ),
+                                    );
+                                  },
                                 ),
                               );
-                            },
+                            }
+                          : null,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            flex: 2,
+                            fit: FlexFit.tight,
+                            child: Text(
+                              "Оформить заказ",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 42 * globals.scaleParam,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
+                            ),
                           ),
-                        );
-                      }
-                    : null,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      flex: 2,
-                      fit: FlexFit.tight,
-                      child: Text(
-                        "Оформить заказ",
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 42 * globals.scaleParam,
-                          color: Theme.of(context).colorScheme.onPrimary,
-                        ),
+                          Flexible(
+                            fit: FlexFit.tight,
+                            child: Text(
+                              "${globals.formatCost(localSum.toString())} ₸",
+                              textAlign: TextAlign.justify,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 44 * globals.scaleParam,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    Flexible(
-                      fit: FlexFit.tight,
-                      child: Text(
-                        "${globals.formatCost(localSum.toString())} ₸",
-                        textAlign: TextAlign.justify,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 44 * globals.scaleParam,
-                          color: Theme.of(context).colorScheme.onPrimary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             )
+          // ? Padding(
+          //     padding:
+          //         EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
+          //     child: ElevatedButton(
+          // onPressed: items.isNotEmpty && !dismissingItem
+          //     ? () {
+          //         // Navigator.push(
+          //         //   context,
+          //         //   MaterialPageRoute(
+          //         //     builder: (context) {
+          //         //       return FindCreateUserPage(
+          //         //         business: widget.business,
+          //         //       );
+          //         //     },
+          //         //   ),
+          //         // );
+          //         Navigator.push(
+          //           context,
+          //           MaterialPageRoute(
+          //             builder: (context) {
+          //               return CreateOrderPage(
+          //                 business: widget.business,
+          //                 finalSum: localSum,
+          //                 items: items,
+          //                 itemsAmount: itemsAmount,
+          //                 user: widget.user,
+          //                 deliveryInfo: Map.from(
+          //                   {"distance": distance, "price": price},
+          //                 ),
+          //               );
+          //             },
+          //           ),
+          //         );
+          //       }
+          //     : null,
+          // child: Row(
+          //   mainAxisAlignment: MainAxisAlignment.center,
+          //   crossAxisAlignment: CrossAxisAlignment.center,
+          //   children: [
+          //     Flexible(
+          //       flex: 2,
+          //       fit: FlexFit.tight,
+          //       child: Text(
+          //         "Оформить заказ",
+          //         style: TextStyle(
+          //           fontWeight: FontWeight.w900,
+          //           fontSize: 42 * globals.scaleParam,
+          //           color: Theme.of(context).colorScheme.onPrimary,
+          //         ),
+          //       ),
+          //     ),
+          //     Flexible(
+          //       fit: FlexFit.tight,
+          //       child: Text(
+          //         "${globals.formatCost(localSum.toString())} ₸",
+          //         textAlign: TextAlign.justify,
+          //         style: TextStyle(
+          //           fontWeight: FontWeight.w900,
+          //           fontSize: 44 * globals.scaleParam,
+          //           color: Theme.of(context).colorScheme.onPrimary,
+          //         ),
+          //       ),
+          //     ),
+          //   ],
+          // ),
+          //     ),
+          //   )
           : SizedBox(),
       body: isCartLoading == false
           ? items.isEmpty
@@ -402,6 +485,9 @@ class _CartPageState extends State<CartPage>
                               // uniquely identify widgets.
                               key: Key(items[index]["item_id"]),
                               confirmDismiss: (direction) async {
+                                setState(() {
+                                  dismissingItem = true;
+                                });
                                 bool result = await _deleteFromCart(
                                     items[index]["item_id"]);
 
@@ -409,6 +495,9 @@ class _CartPageState extends State<CartPage>
                                   updatePrices(index);
                                 }
 
+                                setState(() {
+                                  dismissingItem = false;
+                                });
                                 return result;
                               },
                               onDismissed: ((direction) {

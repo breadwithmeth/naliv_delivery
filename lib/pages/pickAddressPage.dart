@@ -84,45 +84,49 @@ class _PickAddressPageState extends State<PickAddressPage> {
       appBar: AppBar(
         title: Text("Адреса"),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          if (_location == null) {
-            print("LOCATION WAS NULL, SO GETGEOLOCATION IS STARTED");
-            _getGeolocation().whenComplete(() {
-              _getCities().then((value) {
-                _getAddresses().whenComplete(() {
-                  // setState(() {});
-                  Navigator.push(context, MaterialPageRoute(
-                    builder: (context) {
-                      return PickOnMapPage(
-                        currentPosition: _location!,
-                        cities: _cities,
-                        isFromCreateOrder: true,
-                      );
-                    },
-                  ));
+      floatingActionButton: SizedBox(
+        width: 110 * globals.scaleParam,
+        height: 110 * globals.scaleParam,
+        child: FloatingActionButton(
+          onPressed: () {
+            if (_location == null) {
+              print("LOCATION WAS NULL, SO GETGEOLOCATION IS STARTED");
+              _getGeolocation().whenComplete(() {
+                _getCities().then((value) {
+                  _getAddresses().whenComplete(() {
+                    // setState(() {});
+                    Navigator.push(context, MaterialPageRoute(
+                      builder: (context) {
+                        return PickOnMapPage(
+                          currentPosition: _location!,
+                          cities: _cities,
+                          isFromCreateOrder: true,
+                        );
+                      },
+                    ));
+                  });
                 });
               });
-            });
-          } else {
-            Navigator.push(context, MaterialPageRoute(
-              builder: (context) {
-                return PickOnMapPage(
-                  currentPosition: _location!,
-                  cities: _cities,
-                  isFromCreateOrder: true,
-                );
-              },
-            )).whenComplete(() {
-              _getAddresses().whenComplete(() {
-                setState(() {});
+            } else {
+              Navigator.push(context, MaterialPageRoute(
+                builder: (context) {
+                  return PickOnMapPage(
+                    currentPosition: _location!,
+                    cities: _cities,
+                    isFromCreateOrder: true,
+                  );
+                },
+              )).whenComplete(() {
+                _getAddresses().whenComplete(() {
+                  setState(() {});
+                });
               });
-            });
-          }
-        },
-        child: Icon(
-          Icons.add,
-          color: Colors.white,
+            }
+          },
+          child: Icon(
+            Icons.add,
+            color: Colors.white,
+          ),
         ),
       ),
       body: SingleChildScrollView(

@@ -1,16 +1,15 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
-import 'package:animated_path/animated_path.dart';
 
-class paintLogoPage extends StatefulWidget {
-  const paintLogoPage({super.key});
+class PaintLogoPage extends StatefulWidget {
+  const PaintLogoPage({super.key, required this.city});
+
+  final String city;
 
   @override
-  State<paintLogoPage> createState() => _paintLogoPageState();
+  State<PaintLogoPage> createState() => _PaintLogoPageState();
 }
 
-class _paintLogoPageState extends State<paintLogoPage>
+class _PaintLogoPageState extends State<PaintLogoPage>
     with SingleTickerProviderStateMixin {
   @override
   void initState() {
@@ -39,9 +38,12 @@ class _paintLogoPageState extends State<paintLogoPage>
                       children: [
                         Flexible(
                           child: SizedBox(
-                            width: constraints.maxWidth * 0.5,
-                            height: constraints.maxHeight * 0.5,
-                            child: Image.asset("./assets/naliv_logo.png"),
+                            width: constraints.maxWidth,
+                            height: constraints.maxHeight,
+                            child: widget.city == "Павлодар"
+                                ? Image.asset("./assets/naliv_logo_loading.png")
+                                : Image.asset(
+                                    "./assets/gradusy_logo_loading.png"),
                           ),
                         ),
                       ],

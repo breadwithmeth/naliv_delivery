@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../globals.dart' as globals;
 
 class SupportPage extends StatefulWidget {
   const SupportPage({super.key});
@@ -29,8 +30,8 @@ class _SupportPageState extends State<SupportPage> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.secondary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 48 * globals.scaleParam,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   // Text(

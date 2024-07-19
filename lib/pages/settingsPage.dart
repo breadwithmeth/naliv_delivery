@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/loginPage.dart';
+import '../globals.dart' as globals;
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -32,7 +33,13 @@ class _SettingsPageState extends State<SettingsPage> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        title: const Text("Удалить аккаунт?"),
+                        title: Text(
+                          "Удалить аккаунт?",
+                          style: TextStyle(
+                            fontSize: 38 * globals.scaleParam,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                         actions: [
                           TextButton(
                               onPressed: () {
@@ -58,12 +65,24 @@ class _SettingsPageState extends State<SettingsPage> {
                                   },
                                 ));
                               },
-                              child: const Text("Да")),
+                              child: Text(
+                                "Да",
+                                style: TextStyle(
+                                  fontSize: 32 * globals.scaleParam,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              )),
                           TextButton(
                               onPressed: () {
                                 Navigator.pop(context);
                               },
-                              child: const Text("Нет"))
+                              child: Text(
+                                "Нет",
+                                style: TextStyle(
+                                  fontSize: 32 * globals.scaleParam,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ))
                         ],
                       );
                     });
@@ -73,7 +92,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 children: [
                   Text(
                     "Удалить аккаунт",
-                    style: TextStyle(),
+                    style: TextStyle(
+                      fontSize: 38 * globals.scaleParam,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
@@ -92,7 +114,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface,
-                          fontSize: 20,
+                          fontSize: 38 * globals.scaleParam,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -131,7 +153,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                             color: Theme.of(context)
                                                 .colorScheme
                                                 .onPrimary,
-                                            fontSize: 16,
+                                            fontSize: 32 * globals.scaleParam,
                                             fontWeight: FontWeight.w700,
                                           ),
                                         ),
@@ -160,7 +182,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                             color: Theme.of(context)
                                                 .colorScheme
                                                 .onPrimary,
-                                            fontSize: 16,
+                                            fontSize: 32 * globals.scaleParam,
                                             fontWeight: FontWeight.w700,
                                           ),
                                         ),
@@ -190,7 +212,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 children: [
                   Text(
                     "Выйти",
-                    style: TextStyle(),
+                    style: TextStyle(
+                      fontSize: 38 * globals.scaleParam,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),

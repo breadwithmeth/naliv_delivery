@@ -131,6 +131,8 @@ flutter:
     - assets/category_icons/no_image_ico.png
     - assets/s/mc.png
     - assets/s/visa.png
+    - assets/naliv_logo_loading.png
+    - assets/gradusy_logo_loading.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
