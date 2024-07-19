@@ -139,7 +139,7 @@ class _MainState extends State<Main> {
       globals.scaleParam = (view.display.size.shortestSide / 720) * 0.3;
     } else if (view.display.size.width + view.display.size.height >=
         1920 + 1080) {
-      globals.scaleParam = (view.display.size.shortestSide / 720) * 0.45;
+      globals.scaleParam = (view.display.size.shortestSide / 720) * 0.4;
     } else if (view.display.size.width + view.display.size.height >=
         (1560 + 720)) {
       globals.scaleParam = (view.display.size.shortestSide / 720) * 0.4;
