@@ -159,8 +159,10 @@ class _CategoryPageState extends State<CategoryPage> {
                             context,
                             globals.getPlatformSpecialRoute(
                               SearchPage(
-                                business: widget.business,
-                              ),
+                                  business: widget.business,
+                                  category_id:
+                                      categoriesWidgetList[1]
+                                          ["category_id"]),
                             ),
                           );
                         },

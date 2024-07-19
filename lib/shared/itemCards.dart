@@ -730,7 +730,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                               Flexible(
                                 fit: FlexFit.tight,
                                 child: Text(
-                                  "В наличии ${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт.",
+                                  "В наличии ${double.parse(element["in_stock"] ?? "0").toString()} шт.",
                                   style: TextStyle(
                                     color:
                                         Theme.of(context).colorScheme.secondary,

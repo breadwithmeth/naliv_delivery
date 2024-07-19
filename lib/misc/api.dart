@@ -237,7 +237,7 @@ Future<List?> getItemsMain(int page, String business_id,
   if (search!.isNotEmpty) {
     queryBody.addAll({'search': search, 'business_id': business_id});
   }
-  if (categoryId != null) {
+  if (categoryId != null && categoryId.isNotEmpty) {
     queryBody.addAll({'category_id': categoryId, 'business_id': business_id});
   }
   queryBody.addAll({'page': page.toString()});

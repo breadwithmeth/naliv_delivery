@@ -33,8 +33,8 @@ class _SearchResultPageState extends State<SearchResultPage> {
   Future<void> _getItems() async {
     try {
       if (widget.category_id == "") {
-        responseList = await getItemsMain(
-            _pageNumber, widget.business["business_id"], widget.search);
+        responseList = await getItemsMain(_pageNumber,
+            widget.business["business_id"], widget.search, widget.category_id);
       } else {
         responseList = await getItemsMain(_pageNumber,
             widget.business["business_id"], widget.search, widget.category_id);
