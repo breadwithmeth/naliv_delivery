@@ -66,16 +66,16 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    FlutterView view = WidgetsBinding.instance.platformDispatcher.views.first;
-    Size size = view.physicalSize / view.devicePixelRatio;
+    // FlutterView view = WidgetsBinding.instance.platformDispatcher.views.first;
+    // Size size = view.physicalSize / view.devicePixelRatio;
     // MediaQuery.textScalerOf(context).scale(fontSize)
-    if (size.aspectRatio < 1) {
-      // globals.scaleParam = (height / 1920) * (width / 1080) * .4;
-      globals.scaleParam = 0.4;
-    } else {
-      globals.scaleParam = 0.4;
-      // globals.scaleParam = (height / 1080) * (width / 1920) * 1;
-    }
+    // if (size.aspectRatio < 1) {
+    //   // globals.scaleParam = (height / 1920) * (width / 1080) * .4;
+    //   globals.scaleParam = 0.4;
+    // } else {
+    //   globals.scaleParam = 0.4;
+    //   // globals.scaleParam = (height / 1080) * (width / 1920) * 1;
+    // }
 
     // globals.scaleParam = 1;
 
