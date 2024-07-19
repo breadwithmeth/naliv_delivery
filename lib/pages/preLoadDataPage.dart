@@ -66,73 +66,88 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    FlutterView view = WidgetsBinding.instance.platformDispatcher.views.first;
-    Size size = view.physicalSize / view.devicePixelRatio;
+    // FlutterView view = WidgetsBinding.instance.platformDispatcher.views.first;
+    // Size size = view.physicalSize / view.devicePixelRatio;
     // MediaQuery.textScalerOf(context).scale(fontSize)
-    if (size.aspectRatio < 1) {
-      // globals.scaleParam = (height / 1920) * (width / 1080) * .4;
-      globals.scaleParam = 0.4;
-    } else {
-      globals.scaleParam = 0.4;
-      // globals.scaleParam = (height / 1080) * (width / 1920) * 1;
-    }
+    // if (size.aspectRatio < 1) {
+    //   // globals.scaleParam = (height / 1920) * (width / 1080) * .4;
+    //   globals.scaleParam = 0.4;
+    // } else {
+    //   globals.scaleParam = 0.4;
+    //   // globals.scaleParam = (height / 1080) * (width / 1920) * 1;
+    // }
 
     // globals.scaleParam = 1;
 
-    _getAddresses().then((v) {
-      if (v == false) {
-        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
-          builder: (context) {
-            return PickAddressPage(client: user, isFirstTime: true);
-          },
-        ), (Route<dynamic> route) => false);
-      } else {
-        _getUser().then((vv) {
-          _getBusinesses().then((b) {
-            if (user["name"].toString().isEmpty) {
-              Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
-                builder: (context) {
-                  return const ProfileCreatePage();
+    _getAddresses().then(
+      (v) {
+        if (v == false) {
+          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+            builder: (context) {
+              return PickAddressPage(client: user, isFirstTime: true);
+            },
+          ), (Route<dynamic> route) => false);
+        } else {
+          _getUser().then(
+            (vv) {
+              _getBusinesses().then(
+                (b) {
+                  if (user["name"].toString().isEmpty) {
+                    Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+                      builder: (context) {
+                        return const ProfileCreatePage();
+                      },
+                    ), (route) => false);
+                  } else {
+                    _addresses.isNotEmpty
+                        ? Navigator.pushAndRemoveUntil(context,
+                            MaterialPageRoute(
+                            builder: (context) {
+                              return OrganizationSelectPage(
+                                addresses: _addresses,
+                                currentAddress: _currentAddress,
+                                user: user,
+                                businesses: b,
+                              );
+                            },
+                          ), (Route<dynamic> route) => false)
+                        : Navigator.pushAndRemoveUntil(context,
+                            MaterialPageRoute(
+                            builder: (context) {
+                              return PickAddressPage(
+                                  client: user, isFirstTime: true);
+                            },
+                          ), (Route<dynamic> route) => false);
+                    _addresses.isNotEmpty
+                        ? Navigator.pushAndRemoveUntil(context,
+                            MaterialPageRoute(
+                            builder: (context) {
+                              return OrganizationSelectPage(
+                                addresses: _addresses,
+                                currentAddress: _currentAddress,
+                                user: user,
+                                businesses: b,
+                              );
+                            },
+                          ), (Route<dynamic> route) => false)
+                        : Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) {
+                                return PickAddressPage(
+                                    client: user, isFirstTime: true);
+                              },
+                            ),
+                            (Route<dynamic> route) => false,
+                          );
+                  }
                 },
-              ), (route) => false);
-            } else {
-              _addresses.isNotEmpty
-                  ? Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
-                      builder: (context) {
-                        return OrganizationSelectPage(
-                          addresses: _addresses,
-                          currentAddress: _currentAddress,
-                          user: user,
-                          businesses: b,
-                        );
-                      },
-                    ), (Route<dynamic> route) => false)
-                  : Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
-                      builder: (context) {
-                        return PickAddressPage(client: user, isFirstTime: true);
-                      },
-                    ), (Route<dynamic> route) => false);
-              _addresses.isNotEmpty
-                  ? Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
-                      builder: (context) {
-                        return OrganizationSelectPage(
-                          addresses: _addresses,
-                          currentAddress: _currentAddress,
-                          user: user,
-                          businesses: b,
-                        );
-                      },
-                    ), (Route<dynamic> route) => false)
-                  : Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
-                      builder: (context) {
-                        return PickAddressPage(client: user, isFirstTime: true);
-                      },
-                    ), (Route<dynamic> route) => false);
-            }
-          });
-        });
-      }
-    });
+              );
+            },
+          );
+        }
+      },
+    );
   }
 
   @override

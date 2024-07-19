@@ -669,7 +669,7 @@ class _CategoryPageListState extends State<CategoryPageList>
             },
             child: const Text(
               "Перезагрузить",
-              style: TextStyle(fontSize: 20, color: Colors.purpleAccent),
+              style: TextStyle(fontSize: 20, color: Colors.white),
             ),
           ),
         ],
