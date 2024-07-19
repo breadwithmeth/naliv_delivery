@@ -106,6 +106,16 @@ class _CartPageState extends State<CartPage>
     //   return;
     // }
 
+    setState(() {
+      items = cart["cart"] ?? [];
+      itemsAmount = 0;
+      localSum = int.parse(cart["sum"] ?? "0");
+      distance = double.parse(cart["distance"].toString()).round();
+      price = (price / 100).round() * 100;
+      isCartLoading = false;
+      itemsAmount;
+    });
+
     double dist = distance / 1000;
     dist = (dist * 2).round() / 2;
     if (dist <= 1.5) {
@@ -118,21 +128,12 @@ class _CartPageState extends State<CartPage>
       }
     }
 
-    setState(() {
-      items = cart["cart"] ?? [];
-      itemsAmount = 0;
-      localSum = int.parse(cart["sum"] ?? "0");
-      distance = double.parse(cart["distance"].toString()).round();
-      price = (price / 100).round() * 100;
-      isCartLoading = false;
-      itemsAmount;
-    });
-
     for (dynamic item in items) {
       itemsAmount += int.parse(item["amount"]);
     }
     setState(() {
       itemsAmount;
+      price = (price / 100).round() * 100;
     });
   }
 

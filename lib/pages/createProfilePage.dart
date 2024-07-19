@@ -156,21 +156,42 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                               return StatefulBuilder(
                                 builder: (context, setState) {
                                   return AlertDialog(
-                                    title: Text("Дата рождения"),
-                                    content: TextButton(
-                                      onPressed: () {
-                                        _selectDate(context, setState);
-                                      },
-                                      child: Text(
-                                          "${selectedDate.day}.${selectedDate.month}.${selectedDate.year}"),
+                                    contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 30 * globals.scaleParam, ),
+                                    titlePadding: EdgeInsets.symmetric(
+                                        horizontal: 30 * globals.scaleParam, vertical: 30 * globals.scaleParam),
+                                    actionsPadding: EdgeInsets.symmetric(
+                                        horizontal: 30 * globals.scaleParam, vertical: 15 * globals.scaleParam),
+                                    title: Text(
+                                      "Дата рождения",
+                                      style: TextStyle(
+                                          fontSize: 48 * globals.scaleParam,
+                                          fontWeight: FontWeight.w700),
+                                    ),
+                                    content: Row(
+                                      children: [
+                                        TextButton(
+                                          onPressed: () {
+                                            _selectDate(context, setState);
+                                          },
+                                          child: Text(
+                                            "${selectedDate.day}.${selectedDate.month}.${selectedDate.year}",
+                                            style: TextStyle(
+                                                fontSize:
+                                                    36 * globals.scaleParam,
+                                                color: Colors.grey.shade700,
+                                                fontWeight: FontWeight.w700),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                     actions: [
                                       Padding(
                                         padding: EdgeInsets.only(
-                                            top: 20 * globals.scaleParam),
+                                            top: 5 * globals.scaleParam),
                                         child: Row(
                                           mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
+                                              MainAxisAlignment.start,
                                           children: [
                                             TextButton(
                                               onPressed: () async {
@@ -185,7 +206,15 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                                   ), (route) => false);
                                                 });
                                               },
-                                              child: Text("Продолжить"),
+                                              child: Text(
+                                                "Продолжить",
+                                                style: TextStyle(
+                                                    fontSize:
+                                                        36 * globals.scaleParam,
+                                                    color: Colors.black,
+                                                    fontWeight:
+                                                        FontWeight.w700),
+                                              ),
                                             ),
                                           ],
                                         ),

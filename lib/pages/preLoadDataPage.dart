@@ -79,75 +79,60 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
 
     // globals.scaleParam = 1;
 
-    _getAddresses().then(
-      (v) {
-        if (v == false) {
-          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
-            builder: (context) {
-              return PickAddressPage(client: user, isFirstTime: true);
-            },
-          ), (Route<dynamic> route) => false);
-        } else {
-          _getUser().then(
-            (vv) {
-              _getBusinesses().then(
-                (b) {
-                  if (user["name"].toString().isEmpty) {
-                    Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
-                      builder: (context) {
-                        return const ProfileCreatePage();
-                      },
-                    ), (route) => false);
-                  } else {
-                    _addresses.isNotEmpty
-                        ? Navigator.pushAndRemoveUntil(context,
-                            MaterialPageRoute(
-                            builder: (context) {
-                              return OrganizationSelectPage(
-                                addresses: _addresses,
-                                currentAddress: _currentAddress,
-                                user: user,
-                                businesses: b,
-                              );
-                            },
-                          ), (Route<dynamic> route) => false)
-                        : Navigator.pushAndRemoveUntil(context,
-                            MaterialPageRoute(
-                            builder: (context) {
-                              return PickAddressPage(
-                                  client: user, isFirstTime: true);
-                            },
-                          ), (Route<dynamic> route) => false);
-                    _addresses.isNotEmpty
-                        ? Navigator.pushAndRemoveUntil(context,
-                            MaterialPageRoute(
-                            builder: (context) {
-                              return OrganizationSelectPage(
-                                addresses: _addresses,
-                                currentAddress: _currentAddress,
-                                user: user,
-                                businesses: b,
-                              );
-                            },
-                          ), (Route<dynamic> route) => false)
-                        : Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) {
-                                return PickAddressPage(
-                                    client: user, isFirstTime: true);
-                              },
-                            ),
-                            (Route<dynamic> route) => false,
-                          );
-                  }
+    _getAddresses().then((v) {
+      if (v == false) {
+        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+          builder: (context) {
+            return PickAddressPage(client: user, isFirstTime: true);
+          },
+        ), (Route<dynamic> route) => false);
+      } else {
+        _getUser().then((vv) {
+          _getBusinesses().then((b) {
+            if (user["name"] == null) {
+              Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+                builder: (context) {
+                  return const ProfileCreatePage();
                 },
-              );
-            },
-          );
-        }
-      },
-    );
+              ), (route) => false);
+            } else {
+              _addresses.isNotEmpty
+                  ? Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+                      builder: (context) {
+                        return OrganizationSelectPage(
+                          addresses: _addresses,
+                          currentAddress: _currentAddress,
+                          user: user,
+                          businesses: b,
+                        );
+                      },
+                    ), (Route<dynamic> route) => false)
+                  : Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+                      builder: (context) {
+                        return PickAddressPage(client: user, isFirstTime: true);
+                      },
+                    ), (Route<dynamic> route) => false);
+              _addresses.isNotEmpty
+                  ? Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+                      builder: (context) {
+                        return OrganizationSelectPage(
+                          addresses: _addresses,
+                          currentAddress: _currentAddress,
+                          user: user,
+                          businesses: b,
+                        );
+                      },
+                    ), (Route<dynamic> route) => false)
+                  : Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+                      builder: (context) {
+                        return PickAddressPage(client: user, isFirstTime: true);
+                      },
+                    ), (Route<dynamic> route) => false);
+            }
+          });
+        });
+      }
+    });
   }
 
   @override
