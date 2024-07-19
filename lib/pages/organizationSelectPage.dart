@@ -606,8 +606,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                       name: "Оферта",
                       icon: Icons.list_alt,
                       route: OfferPage(
-                    path: "assets/agreements/offer.md",
-                  ),
+                        path: "assets/agreements/offer.md",
+                      ),
                     ),
                     DrawerMenuItem(
                       name: "Настройки",

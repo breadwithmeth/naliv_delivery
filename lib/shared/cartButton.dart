@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/cartPage.dart';
-import 'package:naliv_delivery/pages/webViewCardPayPage.dart';
+import '../globals.dart' as globals;
 
 class CartButton extends StatefulWidget {
   const CartButton({
@@ -19,7 +19,9 @@ class CartButton extends StatefulWidget {
 class _CartButtonState extends State<CartButton> {
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
+      width: MediaQuery.sizeOf(context).shortestSide * 0.2,
+      height: MediaQuery.sizeOf(context).shortestSide * 0.2,
       child: FloatingActionButton(
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(10))),

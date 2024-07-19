@@ -88,51 +88,55 @@ class _PickAddressPageState extends State<PickAddressPage> {
       appBar: AppBar(
         title: Text("Адреса"),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          if (_location == null) {
-            print("LOCATION WAS NULL, SO GETGEOLOCATION IS STARTED");
-            _getGeolocation().whenComplete(() {
-              _getCities().then((value) {
-                _getAddresses().whenComplete(() {
-                  // setState(() {});
-                  Navigator.push(context, MaterialPageRoute(
-                    builder: (context) {
-                      return PickOnMapPage(
-                        currentPosition: _location!,
-                        cities: _cities,
-                        isFromCreateOrder: true,
-                      );
-                    },
-                  )).then((v) {
-                    setState(() {
-                      List addresses = v;
-                      _addresses = addresses;
+      floatingActionButton: SizedBox(
+        width: 110 * globals.scaleParam,
+        height: 110 * globals.scaleParam,
+        child: FloatingActionButton(
+          onPressed: () {
+            if (_location == null) {
+              print("LOCATION WAS NULL, SO GETGEOLOCATION IS STARTED");
+              _getGeolocation().whenComplete(() {
+                _getCities().then((value) {
+                  _getAddresses().whenComplete(() {
+                    // setState(() {});
+                    Navigator.push(context, MaterialPageRoute(
+                      builder: (context) {
+                        return PickOnMapPage(
+                          currentPosition: _location!,
+                          cities: _cities,
+                          isFromCreateOrder: true,
+                        );
+                      },
+                    )).then((v) {
+                      setState(() {
+                        List addresses = v;
+                        _addresses = addresses;
+                      });
                     });
                   });
                 });
               });
-            });
-          } else {
-            Navigator.push(context, MaterialPageRoute(
-              builder: (context) {
-                return PickOnMapPage(
-                  currentPosition: _location!,
-                  cities: _cities,
-                  isFromCreateOrder: true,
-                );
-              },
-            )).then((v) {
-              setState(() {
-                List<dynamic> addresses = v;
-                _addresses = addresses;
+            } else {
+              Navigator.push(context, MaterialPageRoute(
+                builder: (context) {
+                  return PickOnMapPage(
+                    currentPosition: _location!,
+                    cities: _cities,
+                    isFromCreateOrder: true,
+                  );
+                },
+              )).then((v) {
+                setState(() {
+                  List<dynamic> addresses = v;
+                  _addresses = addresses;
+                });
               });
-            });
-          }
-        },
-        child: Icon(
-          Icons.add,
-          color: Colors.white,
+            }
+          },
+          child: Icon(
+            Icons.add,
+            color: Colors.white,
+          ),
         ),
       ),
       body: SingleChildScrollView(

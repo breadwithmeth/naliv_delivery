@@ -164,6 +164,7 @@ class _HomePageState extends State<HomePage>
               user: widget.user,
             ),
             appBar: AppBar(
+              // toolbarHeight: 80 * globals.scaleParam,
               automaticallyImplyLeading: false,
               titleSpacing: 0,
               title: Padding(
@@ -270,9 +271,11 @@ class _HomePageState extends State<HomePage>
             ),
             body: Column(
               children: [
-                Flexible(
-                  flex: 2,
-                  fit: FlexFit.tight,
+                SizedBox(
+                  height: 10 * globals.scaleParam,
+                ),
+                SizedBox(
+                  height: 115 * globals.scaleParam,
                   child: Padding(
                     padding: EdgeInsets.symmetric(
                         horizontal: 20 * globals.scaleParam),
@@ -283,11 +286,12 @@ class _HomePageState extends State<HomePage>
                         : Container(),
                   ),
                 ),
-                Flexible(
-                  flex: 28,
-                  fit: FlexFit.tight,
+                Expanded(
                   child: Padding(
-                    padding: EdgeInsets.all(20 * globals.scaleParam),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 20 * globals.scaleParam,
+                      vertical: 10 * globals.scaleParam,
+                    ),
                     child: Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.all(Radius.circular(10)),
@@ -302,7 +306,7 @@ class _HomePageState extends State<HomePage>
                               shrinkWrap: true,
                               gridDelegate:
                                   SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: constraints.maxWidth * 0.5,
+                                maxCrossAxisExtent: 650 * globals.scaleParam,
                                 childAspectRatio: 10 / 8,
                                 crossAxisSpacing: 0,
                                 mainAxisSpacing: 0,
@@ -336,7 +340,9 @@ class _HomePageState extends State<HomePage>
             ),
           );
         } else {
-          return paintLogoPage();
+          return PaintLogoPage(
+            city: widget.user["city_name"],
+          );
         }
       },
     );

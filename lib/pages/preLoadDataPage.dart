@@ -1,9 +1,6 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/createProfilePage.dart';
 import 'package:naliv_delivery/pages/paintLogoPage.dart';
-import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/organizationSelectPage.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
@@ -88,6 +85,7 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
         ), (Route<dynamic> route) => false);
       } else {
         _getUser().then((vv) {
+          user["city_name"] = _currentAddress["city_name"];
           _getBusinesses().then((b) {
             if (user["name"] == null) {
               Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
@@ -143,6 +141,10 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
 
   @override
   Widget build(BuildContext context) {
-    return const paintLogoPage();
+    if (_currentAddress.isEmpty) {
+      return PaintLogoPage(city: "Павлодар");
+    } else {
+      return PaintLogoPage(city: _currentAddress["city_name"]);
+    }
   }
 }

@@ -28,7 +28,7 @@ class _MainState extends State<Main> {
   // int _tick = 0;
 
   // Widget _redirect = const StartLoadingPage();
-  Widget _redirect = paintLogoPage();
+  Widget _redirect = PaintLogoPage(city: "Караганда");
 
   Future<bool> _requestPermission() async {
     bool isGranted = true;
