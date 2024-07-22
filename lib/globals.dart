@@ -21,6 +21,9 @@ bool isLoggedIn = false;
 double scaleParam = 1;
 Color mainColor = Colors.deepOrangeAccent;
 
+
+bool addressSelectPopUpDone  = false;
+
 // Navigator.push(
 //   context,
 //   MaterialPageRoute(builder: (context) => const StartPage()),
@@ -60,3 +63,6 @@ String formatCost(String costString) {
   int cost = int.parse(costString);
   return NumberFormat("###,###", "en_US").format(cost);
 }
+
+
+

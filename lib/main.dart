@@ -11,8 +11,11 @@ import 'package:naliv_delivery/pages/startPage.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 void main() {
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   runApp(const Main());
 }
 
@@ -88,6 +91,7 @@ class _MainState extends State<Main> {
     setState(() {
       _redirect = PermissionPage();
     });
+    FlutterNativeSplash.remove();
   }
 
   Future<void> _checkAuth() async {

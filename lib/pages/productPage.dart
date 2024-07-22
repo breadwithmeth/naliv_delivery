@@ -65,7 +65,7 @@ class _ProductPageState extends State<ProductPage> {
   bool isLastServerCallWasSucceed = false;
 
   Map<String, String> buyButtonActionTextMap = {
-    "add": "В корзину",
+    "add": "Добавить",
     "remove": "Убрать всё",
     "update": "Обновить заказ"
   };
@@ -270,7 +270,7 @@ class _ProductPageState extends State<ProductPage> {
       builder: ((context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: Colors.grey.shade300,
+            color: Colors.white,
           ),
           child: Column(
             children: [
@@ -280,7 +280,7 @@ class _ProductPageState extends State<ProductPage> {
                 margin: EdgeInsets.symmetric(vertical: 35 * globals.scaleParam),
                 decoration: BoxDecoration(
                   color:
-                      Colors.white, // Change this color to your desired color
+                      Colors.black, // Change this color to your desired color
                   borderRadius: BorderRadius.circular(4.0),
                 ),
               ),

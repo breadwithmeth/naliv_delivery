@@ -1,4 +1,5 @@
 # This is a generated file; do not edit or check into version control.
+flutter_native_splash=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\flutter_native_splash-2.4.1\\
 geolocator=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\geolocator-12.0.0\\
 geolocator_android=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\geolocator_android-4.6.0\\
 geolocator_apple=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\geolocator_apple-2.3.7\\
@@ -8,11 +9,11 @@ libphonenumber_plugin=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub
 libphonenumber_web=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\libphonenumber_web-0.3.1\\
 location=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\location-5.0.3\\
 location_web=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\location_web-4.2.0\\
-path_provider=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\path_provider-2.0.15\\
-path_provider_android=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\path_provider_android-2.0.27\\
-path_provider_foundation=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\path_provider_foundation-2.2.4\\
-path_provider_linux=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\path_provider_linux-2.1.11\\
-path_provider_windows=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\path_provider_windows-2.1.6\\
+path_provider=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\path_provider-2.1.3\\
+path_provider_android=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\path_provider_android-2.2.7\\
+path_provider_foundation=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\path_provider_foundation-2.4.0\\
+path_provider_linux=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\path_provider_linux-2.2.1\\
+path_provider_windows=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\path_provider_windows-2.3.0\\
 permission_handler=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\permission_handler-11.3.0\\
 permission_handler_android=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\permission_handler_android-12.0.5\\
 permission_handler_apple=C:\\Users\\shrvse\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\permission_handler_apple-9.4.1\\

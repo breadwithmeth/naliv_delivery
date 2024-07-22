@@ -97,7 +97,7 @@ Future<bool> getAgreement() async {
 }
 
 Future<bool> register(String login, String password, String name) async {
-  var url = Uri.https(URL_API, 'api/user/register.php');
+  var url = Uri.https(URL_API, 'api/user/register');
   var response = await http.post(
     url,
     body: json.encode({'login': login, 'password': password, 'name': name}),
@@ -113,7 +113,7 @@ Future<bool> register(String login, String password, String name) async {
 }
 
 Future<bool> login(String login, String password) async {
-  var url = Uri.https(URL_API, 'api/user/login.php');
+  var url = Uri.https(URL_API, 'api/user/login');
   var response = await http.post(
     url,
     body: json.encode({'login': login, 'password': password}),
@@ -136,7 +136,7 @@ Future<bool> setCityAuto(double lat, double lon) async {
   if (token == null) {
     return false;
   }
-  var url = Uri.https(URL_API, 'api/user/setCityAuto.php');
+  var url = Uri.https(URL_API, 'api/user/setCityAuto');
   var response = await http.post(
     url,
     body: json.encode({'lat': lat, 'lon': lon}),
@@ -156,7 +156,7 @@ Future<Map<String, dynamic>?> getLastSelectedBusiness() async {
   if (token == null) {
     return {};
   }
-  var url = Uri.https(URL_API, 'api/business/getLastSelectedBusiness.php');
+  var url = Uri.https(URL_API, 'api/business/getLastSelectedBusiness');
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -172,7 +172,7 @@ Future<List<Map>?> getBusinesses() async {
   if (token == null) {
     return [];
   }
-  var url = Uri.https(URL_API, 'api/business/get.php');
+  var url = Uri.https(URL_API, 'api/business/get');
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -189,7 +189,7 @@ Future<bool> setCurrentStore(String businessId) async {
   if (token == null) {
     return false;
   }
-  var url = Uri.https(URL_API, 'api/business/setCurrentBusiness.php');
+  var url = Uri.https(URL_API, 'api/business/setCurrentBusiness');
   var response = await http.post(
     url,
     body: json.encode({'business_id': businessId}),
@@ -210,7 +210,7 @@ Future<List> getCategories(String business_id,
   if (token == null) {
     return [];
   }
-  var url = Uri.https(URL_API, 'api/category/get.php');
+  var url = Uri.https(URL_API, 'api/category/get');
   var response = await http.post(url,
       headers: {"Content-Type": "application/json", "AUTH": token},
       body: parent_category
@@ -230,7 +230,7 @@ Future<List?> getItemsMain(int page, String business_id,
     return [];
   }
   http.Response response;
-  var url = Uri.https(URL_API, 'api/item/get.php');
+  var url = Uri.https(URL_API, 'api/item/get');
 
   Map<String, String> queryBody = {};
 
@@ -273,7 +273,7 @@ Future<List> getItems(String categoryId, int page, {Map? filters}) async {
   if (token == null) {
     return [];
   }
-  var url = Uri.https(URL_API, 'api/item/get.php');
+  var url = Uri.https(URL_API, 'api/item/get');
   var response = await http.post(
     url,
     encoding: Encoding.getByName('utf-8'),
@@ -296,7 +296,7 @@ Future<Map> getFilters(String categoryId) async {
   if (token == null) {
     return {};
   }
-  var url = Uri.https(URL_API, 'api/item/getFilters.php');
+  var url = Uri.https(URL_API, 'api/item/getFilters');
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -313,7 +313,7 @@ Future<Map<String, dynamic>> getItem(String itemId, {List? filter}) async {
   if (token == null) {
     return {};
   }
-  var url = Uri.https(URL_API, 'api/item/get.php');
+  var url = Uri.https(URL_API, 'api/item/get');
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -336,7 +336,7 @@ Future<String?> changeCartItem(
   if (token == null) {
     return null;
   }
-  var url = Uri.https(URL_API, 'api/item/addToCart.php');
+  var url = Uri.https(URL_API, 'api/item/addToCart');
   var response = await http.post(
     url,
     body: json.encode({
@@ -360,7 +360,7 @@ Future<String?> removeFromCart(String itemId) async {
   if (token == null) {
     return null;
   }
-  var url = Uri.https(URL_API, 'api/item/removeFromCart.php');
+  var url = Uri.https(URL_API, 'api/item/removeFromCart');
   var response = await http.post(
     url,
     body: json.encode({'item_id': itemId}),
@@ -381,7 +381,7 @@ Future<Map<String, dynamic>> getCart(String businessId) async {
   if (token == null) {
     return {};
   }
-  var url = Uri.https(URL_API, 'api/item/getCart.php');
+  var url = Uri.https(URL_API, 'api/item/getCart');
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -401,7 +401,7 @@ Future<Map<String, dynamic>?> getCartInfo() async {
   if (token == null) {
     return {};
   }
-  var url = Uri.https(URL_API, 'api/item/getCartInfo.php');
+  var url = Uri.https(URL_API, 'api/item/getCartInfo');
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -418,7 +418,7 @@ Future<String?> dislikeItem(String itemId) async {
   if (token == null) {
     return null;
   }
-  var url = Uri.https(URL_API, 'api/item/dislikeItem.php');
+  var url = Uri.https(URL_API, 'api/item/dislikeItem');
   var response = await http.post(
     url,
     body: json.encode({'item_id': itemId}),
@@ -439,7 +439,7 @@ Future<String?> likeItem(String itemId) async {
   if (token == null) {
     return null;
   }
-  var url = Uri.https(URL_API, 'api/item/likeItem.php');
+  var url = Uri.https(URL_API, 'api/item/likeItem');
   var response = await http.post(
     url,
     body: json.encode({'item_id': itemId}),
@@ -460,7 +460,7 @@ Future<List> getLiked() async {
   if (token == null) {
     return [];
   }
-  var url = Uri.https(URL_API, 'api/item/getLiked.php');
+  var url = Uri.https(URL_API, 'api/item/getLiked');
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -478,7 +478,7 @@ Future<Map<String, dynamic>?> getUser() async {
   if (token == null) {
     return {};
   }
-  var url = Uri.https(URL_API, 'api/user/get.php');
+  var url = Uri.https(URL_API, 'api/user/get');
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -495,7 +495,7 @@ Future<List> getAddresses() async {
   if (token == null) {
     return [];
   }
-  var url = Uri.https(URL_API, 'api/user/getAddresses.php');
+  var url = Uri.https(URL_API, 'api/user/getAddresses');
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -512,7 +512,7 @@ Future<List> createAddress(Map address) async {
   if (token == null) {
     return [];
   }
-  var url = Uri.https(URL_API, 'api/user/createAddress.php');
+  var url = Uri.https(URL_API, 'api/user/createAddress');
   var response = await http.post(
     url,
     body: json.encode(address),
@@ -531,7 +531,7 @@ Future<bool> selectAddress(String addressId) async {
   if (token == null) {
     return false;
   }
-  var url = Uri.https(URL_API, 'api/user/selectAddress.php');
+  var url = Uri.https(URL_API, 'api/user/selectAddress');
   var response = await http.post(
     url,
     body: json.encode({"address_id": addressId}),
@@ -554,7 +554,7 @@ Future<Map<String, dynamic>?> getCity() async {
   if (token == null) {
     return {};
   }
-  var url = Uri.https(URL_API, 'api/business/getCity.php');
+  var url = Uri.https(URL_API, 'api/business/getCity');
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -573,7 +573,7 @@ Future<Map<String, dynamic>> createOrder(String businessId,
   if (token == null) {
     return {"status": null};
   }
-  var url = Uri.https(URL_API, 'api/item/createOrder.php');
+  var url = Uri.https(URL_API, 'api/item/createOrder');
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -603,7 +603,7 @@ Future<List<dynamic>> getOrders() async {
   if (token == null) {
     return [];
   }
-  var url = Uri.https(URL_API, 'api/item/getOrder.php');
+  var url = Uri.https(URL_API, 'api/item/getOrder');
   var response = await http.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -627,7 +627,7 @@ Future<bool?> deleteFromCart(String itemId) async {
   if (token == null) {
     return null;
   }
-  var url = Uri.https(URL_API, 'api/item/deleteFromCart.php');
+  var url = Uri.https(URL_API, 'api/item/deleteFromCart');
   var response = await http.post(
     url,
     body: json.encode({'item_id': itemId}),
@@ -651,7 +651,7 @@ Future<bool?> deleteAccount() async {
   if (token == null) {
     return null;
   }
-  var url = Uri.https(URL_API, 'api/user/deleteAccount.php');
+  var url = Uri.https(URL_API, 'api/user/deleteAccount');
   var response = await http.post(
     url,
     body: json.encode({}),
@@ -667,7 +667,7 @@ Future<bool> getOneTimeCode(String phoneNumber) async {
   // if (token == null) {
   //   return false;
   // }
-  var url = Uri.https(URL_API, 'api/user/sendOneTimeCode.php');
+  var url = Uri.https(URL_API, 'api/user/sendOneTimeCode');
   var response = await http.post(
     url,
     body: json.encode({"phone_number": phoneNumber}),
@@ -691,7 +691,7 @@ Future<bool> verify(String phoneNumber, String code) async {
   // if (token == null) {
   //   return false;
   // }
-  var url = Uri.https(URL_API, 'api/user/verify.php');
+  var url = Uri.https(URL_API, 'api/user/verify');
   var response = await http.post(
     url,
     body: json.encode({"phone_number": phoneNumber, "code": code}),
@@ -714,7 +714,7 @@ Future<Map?> getGeoData(String search) async {
   if (token == null) {
     return null;
   }
-  var url = Uri.https(URL_API, 'api/user/getAddressGeoData.php');
+  var url = Uri.https(URL_API, 'api/user/getAddressGeoData');
   var response = await http.post(
     url,
     body: json.encode({"search": search}),
@@ -731,7 +731,7 @@ Future<Map<String, dynamic>> getCreateUser(String phoneNumber) async {
   if (token == null) {
     return {};
   }
-  var url = Uri.https(URL_API, 'api/user/getClient.php');
+  var url = Uri.https(URL_API, 'api/user/getClient');
   var response = await http.post(
     url,
     headers: {
@@ -752,7 +752,7 @@ Future<List<dynamic>> getUserAddresses(String userID) async {
   if (token == null) {
     return [];
   }
-  var url = Uri.https(URL_API, 'api/user/getAddressesPerUser.php');
+  var url = Uri.https(URL_API, 'api/user/getAddressesPerUser');
   var response = await http.post(
     url,
     headers: {
@@ -773,7 +773,7 @@ Future<bool> selectAddressClient(String addressId, String user_id) async {
   if (token == null) {
     return false;
   }
-  var url = Uri.https(URL_API, 'api/user/selectAddress.php');
+  var url = Uri.https(URL_API, 'api/user/selectAddress');
   var response = await http.post(
     url,
     body: json.encode({"address_id": addressId, "user_id": user_id}),
@@ -796,7 +796,7 @@ Future<List<dynamic>> getCities() async {
   if (token == null) {
     return [];
   }
-  var url = Uri.https(URL_API, 'api/user/getCities.php');
+  var url = Uri.https(URL_API, 'api/user/getCities');
   var response = await http.post(
     url,
     headers: {
@@ -817,7 +817,7 @@ Future<bool> changeName(String name) async {
   if (token == null) {
     return false;
   }
-  var url = Uri.https(URL_API, 'api/user/changeName.php');
+  var url = Uri.https(URL_API, 'api/user/changeName');
   var response = await http.post(
     url,
     body: json.encode({'name': name}),
@@ -837,7 +837,7 @@ Future<String> getPaymentHTML() async {
   if (token == null) {
     return "";
   }
-  var url = Uri.https(PAYMENT_URL, '/api/payment/getPaymentPage.php');
+  var url = Uri.https(PAYMENT_URL, '/api/payment/getPaymentPage');
   var response = await http.post(
     url,
     // body: json.encode({'business_id': businessId}),

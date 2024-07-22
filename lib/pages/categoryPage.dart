@@ -161,7 +161,7 @@ class _CategoryPageState extends State<CategoryPage> {
                               SearchPage(
                                   business: widget.business,
                                   category_id:
-                                      categoriesWidgetList[1]
+                                      categoriesWidgetList[initialIndexTabbar]
                                           ["category_id"]),
                             ),
                           );
@@ -737,6 +737,7 @@ class _CategoryPageListState extends State<CategoryPageList>
         Expanded(
           child: _items.length > 1
               ? ListView.builder(
+                  addAutomaticKeepAlives: false,
                   itemCount: _items.length + (_isLastPage ? 0 : 1),
                   itemBuilder: (context, index) {
                     if ((index == _items.length - _nextPageTrigger) &&

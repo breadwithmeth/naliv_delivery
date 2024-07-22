@@ -6,6 +6,7 @@ import 'package:naliv_delivery/pages/productPage.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/shared/likeButton.dart';
+import 'package:extended_image/extended_image.dart';
 
 class ItemCard extends StatefulWidget {
   const ItemCard(
@@ -564,9 +565,16 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                       },
                     );
                   },
-                  child: CachedNetworkImage(
+                  // как будто бы картинки быстрее грузятся, я хз я не тестил чисто на глаз посмотрел
+                  // ну и кэш чистится
+                  // это я тоже не тестил
+                  child: ExtendedImage.network(
+                    element["thumb"],
                     height: double.infinity,
-                    imageUrl: element["thumb"],
+                    clearMemoryCacheWhenDispose: true,
+                    
+                    enableMemoryCache: true, 
+                    enableLoadState: false,
                     fit: BoxFit.cover,
                     // cacheManager: CacheManager(
                     //   Config(
@@ -574,42 +582,42 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                     //     stalePeriod: Duration(days: 700),
                     //   ),
                     // ),
-                    imageBuilder: (context, imageProvider) {
-                      return Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Flexible(
-                            fit: FlexFit.tight,
-                            child: Container(
-                              clipBehavior: Clip.antiAlias,
-                              decoration: BoxDecoration(
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(5)),
-                                color: Colors.white,
-                              ),
-                              child: Image(
-                                image: imageProvider,
-                                fit: BoxFit.fitHeight,
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                    errorWidget: (context, url, error) {
-                      return LayoutBuilder(
-                        builder: (context, constraints) {
-                          return FractionallySizedBox(
-                            heightFactor: 1,
-                            widthFactor: 2 / 4,
-                            child: Image.asset(
-                              'assets/category_icons/no_image_ico.png',
-                              opacity: AlwaysStoppedAnimation(0.5),
-                            ),
-                          );
-                        },
-                      );
-                    },
+                    // imageBuilder: (context, imageProvider) {
+                    //   return Column(
+                    //     mainAxisAlignment: MainAxisAlignment.center,
+                    //     children: [
+                    //       Flexible(
+                    //         fit: FlexFit.tight,
+                    //         child: Container(
+                    //           clipBehavior: Clip.antiAlias,
+                    //           decoration: BoxDecoration(
+                    //             borderRadius:
+                    //                 BorderRadius.all(Radius.circular(5)),
+                    //             color: Colors.white,
+                    //           ),
+                    //           child: Image(
+                    //             image: imageProvider,
+                    //             fit: BoxFit.fitHeight,
+                    //           ),
+                    //         ),
+                    //       ),
+                    //     ],
+                    //   );
+                    // },
+                    // errorWidget: (context, url, error) {
+                    //   return LayoutBuilder(
+                    //     builder: (context, constraints) {
+                    //       return FractionallySizedBox(
+                    //         heightFactor: 1,
+                    //         widthFactor: 2 / 4,
+                    //         child: Image.asset(
+                    //           'assets/category_icons/no_image_ico.png',
+                    //           opacity: AlwaysStoppedAnimation(0.5),
+                    //         ),
+                    //       );
+                    //     },
+                    //   );
+                    // },
                   ),
                 ),
               ),
@@ -730,7 +738,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                               Flexible(
                                 fit: FlexFit.tight,
                                 child: Text(
-                                  "В наличии ${double.parse(element["in_stock"] ?? "0").toString()} шт.",
+                                  "В наличии ${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт.",
                                   style: TextStyle(
                                     color:
                                         Theme.of(context).colorScheme.secondary,
