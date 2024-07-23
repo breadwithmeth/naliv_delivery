@@ -15,7 +15,7 @@ class ItemCard extends StatefulWidget {
       required this.element,
       required this.categoryName,
       required this.categoryId,
-      required this.scroll});
+      required this.scroll, required this.business_id});
   final Map<String, dynamic> element;
   final String categoryName;
 
@@ -23,6 +23,7 @@ class ItemCard extends StatefulWidget {
 
   final String categoryId;
   final double scroll;
+  final String business_id;
   final int chack = 1;
   @override
   State<ItemCard> createState() => _ItemCardState();
@@ -79,7 +80,8 @@ class _ItemCardState extends State<ItemCard> {
   }
 
   Future<void> refreshItemCard() async {
-    Map<String, dynamic>? element = await getItem(widget.element["item_id"]);
+    Map<String, dynamic>? element = await getItem(
+        widget.element["item_id"], widget.business_id);
     print(element);
     setState(() {
       element!["name"] = "123";
@@ -432,7 +434,8 @@ class _ItemCardMediumState extends State<ItemCardMedium>
   }
 
   Future<void> refreshItemCard() async {
-    Map<String, dynamic>? element = await getItem(widget.element["item_id"]);
+    Map<String, dynamic>? element = await getItem(
+        widget.element["item_id"], widget.business["business_id"]);
     print(element);
     setState(() {
       element!["name"] = "123";
@@ -572,8 +575,8 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                     element["thumb"],
                     height: double.infinity,
                     clearMemoryCacheWhenDispose: true,
-                    
-                    enableMemoryCache: true, 
+
+                    enableMemoryCache: true,
                     enableLoadState: false,
                     fit: BoxFit.cover,
                     // cacheManager: CacheManager(
@@ -1411,6 +1414,7 @@ class ItemCardNoImage extends StatefulWidget {
       required this.element,
       required this.categoryName,
       required this.categoryId,
+      required this.business_id,
       required this.scroll});
   final Map<String, dynamic> element;
   final String categoryName;
@@ -1419,6 +1423,7 @@ class ItemCardNoImage extends StatefulWidget {
 
   final String categoryId;
   final double scroll;
+  final String business_id;
   final int chack = 1;
   @override
   State<ItemCardNoImage> createState() => _ItemCardNoImageState();
@@ -1474,7 +1479,8 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
   }
 
   Future<void> refreshItemCard() async {
-    Map<String, dynamic>? element = await getItem(widget.element["item_id"]);
+    Map<String, dynamic>? element =
+        await getItem(widget.element["item_id"], widget.business_id);
     print(element);
     setState(() {
       element!["name"] = "123";

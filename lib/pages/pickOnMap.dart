@@ -28,7 +28,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
   MapController _mapController = MapController();
   String? _currentAddressName;
   bool isMapSetteled = false;
-
+String styleUrl = "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png";
+String apiKey = "YOUR-API-KEY";
   String _currentCity = "";
 
   double _lat = 0;

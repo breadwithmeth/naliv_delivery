@@ -31,30 +31,27 @@ class _ProductPageState extends State<ProductPage> {
   late Map<String, dynamic> item = widget.item;
   List<Widget> groupItems = [];
   List<TableRow> properties = [];
-
+  bool isRequired = true;
   List<Widget> propertiesWidget = [];
 
   int currentTab = 0;
   String? amount;
   List<String> TabText = ["", "", ""];
+  List options = [];
   // bool isDescriptionLoaded = false;
 
-  // Future<void> _getItem() async {
-  //   await getItem(widget.item["item_id"]).then((value) {
-  //     print(value);
-  //     if (value.isNotEmpty) {
-  //       if (value["description"] != null) {
-  //         if (mounted) {
-  //           setState(() {
-  //             TabText[0] = value["description"];
-
-  //             isDescriptionLoaded = true;
-  //           });
-  //         }
-  //       }
-  //     }
-  //   });
-  // }
+  Future<void> _getItem() async {
+    await getItem(widget.item["item_id"], widget.business["business_id"])
+        .then((value) {
+      print(value);
+      if (value.isNotEmpty) {
+        setState(() {
+          options = value["options"] ?? [];
+          TabText[0] = value["description"];
+        });
+      }
+    });
+  }
   // BUTTON VARIABLES/FUNCS START
 
   int amountInCart = 0;
@@ -73,12 +70,29 @@ class _ProductPageState extends State<ProductPage> {
   late Color buyButtonActionColor;
   late int inStock;
 
+  Widget optionSelector = Container();
+
   Future<bool> _deleteFromCart(String itemId) async {
     bool? result = await deleteFromCart(itemId);
     result ??= false;
 
     print(result);
     return Future(() => result!);
+  }
+
+  initOptionSelector() {
+    if (options.length == 0) {
+      setState(() {
+        isRequired = false;
+      });
+    }
+    for (var i = 0; i < options.length; i++) {
+      setState(() {
+        setState(() {
+          options[i]["selescted_relation_id"] = null;
+        });
+      });
+    }
   }
 
   Future<void> _finalizeCartAmount() async {
@@ -180,10 +194,14 @@ class _ProductPageState extends State<ProductPage> {
 
   @override
   void initState() {
-    TabText[0] = widget.item["description"];
-
     // TODO: implement initState
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _getItem().then((value) {
+        initOptionSelector();
+      });
+    });
+
     setState(() {
       amountInCart = int.parse(widget.item["amount"] ?? "0");
       actualCartAmount = amountInCart;
@@ -315,295 +333,327 @@ class _ProductPageState extends State<ProductPage> {
         position: AlwaysStoppedAnimation(Offset(0, -0.25)),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            return Container(
-              width: constraints.maxWidth * 0.95,
-              height: 125 * globals.scaleParam,
-              child: Stack(
-                alignment: Alignment.bottomCenter,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        flex: 5,
-                        fit: FlexFit.tight,
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 10 * globals.scaleParam),
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              disabledBackgroundColor: Colors.grey.shade200,
-                              padding: EdgeInsets.zero,
-                            ),
-                            onPressed: null,
-                            child: Container(
-                              child: ClipRRect(
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(8)),
-                                clipBehavior: Clip.antiAliasWithSaveLayer,
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Flexible(
-                                      fit: FlexFit.tight,
-                                      child: IconButton(
-                                        padding: const EdgeInsets.all(0),
-                                        onPressed: () {
-                                          _removeFromCart();
-                                        },
-                                        icon: Container(
-                                          padding: EdgeInsets.all(
-                                              5 * globals.scaleParam),
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.all(
-                                              Radius.circular(100),
-                                            ),
-                                            color: Colors.grey.shade400,
-                                          ),
-                                          child: Icon(
-                                            Icons.remove_rounded,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Flexible(
-                                      fit: FlexFit.tight,
-                                      child: Column(
+            return isRequired
+                ? Container(
+                    decoration: BoxDecoration(
+                        color: Colors.black,
+                        boxShadow: [
+                          BoxShadow(
+                            offset: Offset(3, 5),
+                            color: Colors.black38,
+                            blurRadius: 5,
+                          )
+                        ],
+                        borderRadius: BorderRadius.all(
+                            Radius.circular(30 * globals.scaleParam))),
+                    alignment: Alignment.center,
+                    width: constraints.maxWidth * 0.95,
+                    height: 125 * globals.scaleParam,
+                    child: Text(
+                      "Выберите опцию",
+                      style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          fontSize: 48 * globals.scaleParam),
+                    ),
+                  )
+                : Container(
+                    width: constraints.maxWidth * 0.95,
+                    height: 125 * globals.scaleParam,
+                    child: Stack(
+                      alignment: Alignment.bottomCenter,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              flex: 5,
+                              fit: FlexFit.tight,
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 10 * globals.scaleParam),
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    disabledBackgroundColor:
+                                        Colors.grey.shade200,
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                  onPressed: null,
+                                  child: Container(
+                                    child: ClipRRect(
+                                      borderRadius:
+                                          BorderRadius.all(Radius.circular(8)),
+                                      clipBehavior: Clip.antiAliasWithSaveLayer,
+                                      child: Row(
                                         mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                            MainAxisAlignment.spaceBetween,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
                                         children: [
-                                          Text(
-                                            amountInCart.toString(),
-                                            textHeightBehavior:
-                                                const TextHeightBehavior(
-                                              applyHeightToFirstAscent: false,
+                                          Flexible(
+                                            fit: FlexFit.tight,
+                                            child: IconButton(
+                                              padding: const EdgeInsets.all(0),
+                                              onPressed: () {
+                                                _removeFromCart();
+                                              },
+                                              icon: Container(
+                                                padding: EdgeInsets.all(
+                                                    5 * globals.scaleParam),
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.all(
+                                                    Radius.circular(100),
+                                                  ),
+                                                  color: Colors.grey.shade400,
+                                                ),
+                                                child: Icon(
+                                                  Icons.remove_rounded,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface,
+                                                ),
+                                              ),
                                             ),
-                                            textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 34 * globals.scaleParam,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface,
+                                          ),
+                                          Flexible(
+                                            fit: FlexFit.tight,
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  amountInCart.toString(),
+                                                  textHeightBehavior:
+                                                      const TextHeightBehavior(
+                                                    applyHeightToFirstAscent:
+                                                        false,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize:
+                                                        34 * globals.scaleParam,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurface,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Flexible(
+                                            fit: FlexFit.tight,
+                                            child: IconButton(
+                                              padding: const EdgeInsets.all(0),
+                                              onPressed: () {
+                                                _addToCart();
+                                              },
+                                              icon: Container(
+                                                padding: EdgeInsets.all(
+                                                    5 * globals.scaleParam),
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.all(
+                                                    Radius.circular(100),
+                                                  ),
+                                                  color: Colors.grey.shade400,
+                                                ),
+                                                child: Icon(
+                                                  Icons.add_rounded,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface,
+                                                ),
+                                              ),
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                    Flexible(
-                                      fit: FlexFit.tight,
-                                      child: IconButton(
-                                        padding: const EdgeInsets.all(0),
-                                        onPressed: () {
-                                          _addToCart();
-                                        },
-                                        icon: Container(
-                                          padding: EdgeInsets.all(
-                                              5 * globals.scaleParam),
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.all(
-                                              Radius.circular(100),
-                                            ),
-                                            color: Colors.grey.shade400,
-                                          ),
-                                          child: Icon(
-                                            Icons.add_rounded,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
-                      ),
-                      Flexible(
-                        flex: 7,
-                        fit: FlexFit.tight,
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 10 * globals.scaleParam),
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: buyButtonActionColor,
-                              padding: EdgeInsets.zero,
-                            ),
-                            onPressed: () {
-                              if (actualCartAmount == 0) {
-                                _finalizeCartAmount();
-                              } else if (actualCartAmount == amountInCart ||
-                                  amountInCart == 0) {
-                                setState(() {
-                                  amountInCart = 0;
-                                });
-                                _finalizeCartAmount();
-                              } else {
-                                _finalizeCartAmount();
-                              }
-                            },
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      fit: FlexFit.tight,
-                                      child: Text(
-                                        buyButtonActionText,
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 38 * globals.scaleParam,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onPrimary,
-                                        ),
+                            Flexible(
+                              flex: 7,
+                              fit: FlexFit.tight,
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 10 * globals.scaleParam),
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: buyButtonActionColor,
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                  onPressed: () {
+                                    if (actualCartAmount == 0) {
+                                      _finalizeCartAmount();
+                                    } else if (actualCartAmount ==
+                                            amountInCart ||
+                                        amountInCart == 0) {
+                                      setState(() {
+                                        amountInCart = 0;
+                                      });
+                                      _finalizeCartAmount();
+                                    } else {
+                                      _finalizeCartAmount();
+                                    }
+                                  },
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Flexible(
+                                            fit: FlexFit.tight,
+                                            child: Text(
+                                              buyButtonActionText,
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize:
+                                                    38 * globals.scaleParam,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onPrimary,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                  // isNumPickActive
-                  //     ? SizedBox(
-                  //         width: double.infinity,
-                  //         child: Row(
-                  //           children: [
-                  //             Flexible(
-                  //               flex: 5,
-                  //               fit: FlexFit.tight,
-                  //               child: LayoutBuilder(
-                  //                 builder: (context, constraints) {
-                  //                   return OverflowBox(
-                  //                     maxHeight: constraints.maxHeight * 1.8,
-                  //                     child: Row(
-                  //                       children: [
-                  //                         Flexible(
-                  //                           child: Container(
-                  //                             // margin:
-                  //                             //     const EdgeInsets.symmetric(
-                  //                             //         horizontal: 10),
-                  //                             clipBehavior: Clip.antiAlias,
-                  //                             decoration: BoxDecoration(
-                  //                               borderRadius:
-                  //                                   const BorderRadius.all(
-                  //                                 Radius.circular(10),
-                  //                               ),
-                  //                               gradient: LinearGradient(
-                  //                                 colors: [
-                  //                                   Colors.transparent,
-                  //                                   Colors.amber,
-                  //                                   // Colors.transparent
-                  //                                 ],
-                  //                                 begin: Alignment.topCenter,
-                  //                                 end: Alignment.bottomCenter,
-                  //                               ),
-                  //                               // color: Theme.of(context)
-                  //                               //     .colorScheme
-                  //                               //     .secondary
-                  //                               //     .withOpacity(0.45),
-                  //                             ),
-                  //                             child: FractionallySizedBox(
-                  //                               widthFactor: 3 / 5,
-                  //                               child: ListView.builder(
-                  //                                 controller: _scrollController,
-                  //                                 itemCount: double.parse(
-                  //                                             item["in_stock"])
-                  //                                         .truncate() +
-                  //                                     2,
-                  //                                 itemExtent: 33.3,
-                  //                                 itemBuilder:
-                  //                                     (context, index) {
-                  //                                   if (index == 0 ||
-                  //                                       index ==
-                  //                                           double.parse(item[
-                  //                                                       "in_stock"])
-                  //                                                   .truncate() +
-                  //                                               1) {
-                  //                                     return const SizedBox(
-                  //                                       height: 15,
-                  //                                     );
-                  //                                   }
-                  //                                   return Row(
-                  //                                     mainAxisAlignment:
-                  //                                         MainAxisAlignment
-                  //                                             .center,
-                  //                                     children: [
-                  //                                       Flexible(
-                  //                                         child:
-                  //                                             GestureDetector(
-                  //                                           behavior:
-                  //                                               HitTestBehavior
-                  //                                                   .opaque,
-                  //                                           onTap: () {
-                  //                                             setState(() {
-                  //                                               cacheAmount =
-                  //                                                   index;
-                  //                                             });
-                  //                                             isNumPickActive =
-                  //                                                 false;
-                  //                                           },
-                  //                                           child: SizedBox(
-                  //                                             height: 33.3,
-                  //                                             child: Text(
-                  //                                               "${index.toString()} шт.",
-                  //                                               style:
-                  //                                                   TextStyle(
-                  //                                                 color: Theme.of(
-                  //                                                         context)
-                  //                                                     .colorScheme
-                  //                                                     .onPrimary,
-                  //                                                 fontSize: 20,
-                  //                                                 fontWeight: index ==
-                  //                                                         cacheAmount
-                  //                                                     ? FontWeight
-                  //                                                         .w900
-                  //                                                     : FontWeight
-                  //                                                         .w500,
-                  //                                               ),
-                  //                                             ),
-                  //                                           ),
-                  //                                         ),
-                  //                                       ),
-                  //                                     ],
-                  //                                   );
-                  //                                 },
-                  //                               ),
-                  //                             ),
-                  //                           ),
-                  //                         ),
-                  //                       ],
-                  //                     ),
-                  //                   );
-                  //                 },
-                  //               ),
-                  //             ),
-                  //             Flexible(
-                  //               flex: 7,
-                  //               fit: FlexFit.tight,
-                  //               child: SizedBox(),
-                  //             ),
-                  //           ],
-                  //         ),
-                  //       )
-                  //     : const SizedBox()
-                ],
-              ),
-            );
+                        // isNumPickActive
+                        //     ? SizedBox(
+                        //         width: double.infinity,
+                        //         child: Row(
+                        //           children: [
+                        //             Flexible(
+                        //               flex: 5,
+                        //               fit: FlexFit.tight,
+                        //               child: LayoutBuilder(
+                        //                 builder: (context, constraints) {
+                        //                   return OverflowBox(
+                        //                     maxHeight: constraints.maxHeight * 1.8,
+                        //                     child: Row(
+                        //                       children: [
+                        //                         Flexible(
+                        //                           child: Container(
+                        //                             // margin:
+                        //                             //     const EdgeInsets.symmetric(
+                        //                             //         horizontal: 10),
+                        //                             clipBehavior: Clip.antiAlias,
+                        //                             decoration: BoxDecoration(
+                        //                               borderRadius:
+                        //                                   const BorderRadius.all(
+                        //                                 Radius.circular(10),
+                        //                               ),
+                        //                               gradient: LinearGradient(
+                        //                                 colors: [
+                        //                                   Colors.transparent,
+                        //                                   Colors.amber,
+                        //                                   // Colors.transparent
+                        //                                 ],
+                        //                                 begin: Alignment.topCenter,
+                        //                                 end: Alignment.bottomCenter,
+                        //                               ),
+                        //                               // color: Theme.of(context)
+                        //                               //     .colorScheme
+                        //                               //     .secondary
+                        //                               //     .withOpacity(0.45),
+                        //                             ),
+                        //                             child: FractionallySizedBox(
+                        //                               widthFactor: 3 / 5,
+                        //                               child: ListView.builder(
+                        //                                 controller: _scrollController,
+                        //                                 itemCount: double.parse(
+                        //                                             item["in_stock"])
+                        //                                         .truncate() +
+                        //                                     2,
+                        //                                 itemExtent: 33.3,
+                        //                                 itemBuilder:
+                        //                                     (context, index) {
+                        //                                   if (index == 0 ||
+                        //                                       index ==
+                        //                                           double.parse(item[
+                        //                                                       "in_stock"])
+                        //                                                   .truncate() +
+                        //                                               1) {
+                        //                                     return const SizedBox(
+                        //                                       height: 15,
+                        //                                     );
+                        //                                   }
+                        //                                   return Row(
+                        //                                     mainAxisAlignment:
+                        //                                         MainAxisAlignment
+                        //                                             .center,
+                        //                                     children: [
+                        //                                       Flexible(
+                        //                                         child:
+                        //                                             GestureDetector(
+                        //                                           behavior:
+                        //                                               HitTestBehavior
+                        //                                                   .opaque,
+                        //                                           onTap: () {
+                        //                                             setState(() {
+                        //                                               cacheAmount =
+                        //                                                   index;
+                        //                                             });
+                        //                                             isNumPickActive =
+                        //                                                 false;
+                        //                                           },
+                        //                                           child: SizedBox(
+                        //                                             height: 33.3,
+                        //                                             child: Text(
+                        //                                               "${index.toString()} шт.",
+                        //                                               style:
+                        //                                                   TextStyle(
+                        //                                                 color: Theme.of(
+                        //                                                         context)
+                        //                                                     .colorScheme
+                        //                                                     .onPrimary,
+                        //                                                 fontSize: 20,
+                        //                                                 fontWeight: index ==
+                        //                                                         cacheAmount
+                        //                                                     ? FontWeight
+                        //                                                         .w900
+                        //                                                     : FontWeight
+                        //                                                         .w500,
+                        //                                               ),
+                        //                                             ),
+                        //                                           ),
+                        //                                         ),
+                        //                                       ),
+                        //                                     ],
+                        //                                   );
+                        //                                 },
+                        //                               ),
+                        //                             ),
+                        //                           ),
+                        //                         ),
+                        //                       ],
+                        //                     ),
+                        //                   );
+                        //                 },
+                        //               ),
+                        //             ),
+                        //             Flexible(
+                        //               flex: 7,
+                        //               fit: FlexFit.tight,
+                        //               child: SizedBox(),
+                        //             ),
+                        //           ],
+                        //         ),
+                        //       )
+                        //     : const SizedBox()
+                      ],
+                    ),
+                  );
           },
         ),
       ),
@@ -674,14 +724,91 @@ class _ProductPageState extends State<ProductPage> {
                     color: Colors.white,
                   ),
                 ),
-          Container(
-            width: MediaQuery.of(context).size.width,
-            padding: EdgeInsets.symmetric(
-                horizontal: 30 * globals.scaleParam,
-                vertical: 10 * (MediaQuery.sizeOf(context).height / 1080)),
-            child: Wrap(
-              children: propertiesWidget,
-            ),
+          // Container(
+          //   width: MediaQuery.of(context).size.width,
+          //   padding: EdgeInsets.symmetric(
+          //       horizontal: 30 * globals.scaleParam,
+          //       vertical: 10 * (MediaQuery.sizeOf(context).height / 1080)),
+          //   child: Wrap(
+          //     children: propertiesWidget,
+          //   ),
+          // ),
+          ListView.builder(
+            primary: false,
+            shrinkWrap: true,
+            itemCount: options.length,
+            itemBuilder: (context, index_option) {
+              return Container(
+                  padding: EdgeInsets.all(30 * globals.scaleParam),
+                  margin: EdgeInsets.all(15 * globals.scaleParam),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            options[index_option]["name"],
+                            style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 48 * globals.scaleParam),
+                          ),
+                          int.parse(options[index_option]["required"]) == 1
+                              ? Container(
+                                  color: Colors.white,
+                                  child: Text(
+                                    "Обязательно",
+                                    style: TextStyle(
+                                        color: Colors.red,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 36 * globals.scaleParam),
+                                  ),
+                                )
+                              : Container(),
+                        ],
+                      ),
+                      ListView.builder(
+                        primary: false,
+                        shrinkWrap: true,
+                        itemCount: options[index_option]["option_items"].length,
+                        itemBuilder: (context, index) {
+                          return Container(
+                              alignment: Alignment.centerLeft,
+                              decoration: BoxDecoration(
+                                  // boxShadow: [
+                                  //   BoxShadow(
+                                  //       offset: Offset(2, 2),
+                                  //       blurRadius: 5,
+                                  //       color: Colors.grey.shade400)
+                                  // ],
+                                  // color: Colors.white,
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(15))),
+                              // margin: EdgeInsets.all(10 * globals.scaleParam),
+                              child: RadioListTile(
+                                dense: true,
+                                onChanged: (v) {
+                                  setState(() {
+                                    options[index_option]
+                                        ["selescted_relation_id"] = v;
+                                  });
+                                },
+                                groupValue: options[index_option]
+                                    ["selescted_relation_id"],
+                                value: options[index_option]["option_items"]
+                                    [index]["relation_id"],
+                                title: Text(
+                                  options[index_option]["option_items"][index]
+                                      ["name"],
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                              ));
+                        },
+                      )
+                    ],
+                  ));
+            },
           ),
           item["group"] != null
               ? Container(
@@ -697,9 +824,10 @@ class _ProductPageState extends State<ProductPage> {
                   ),
                 )
               : Container(),
-          const SizedBox(
-            height: 5,
-          ),
+          // const SizedBox(
+          //   height: 5,
+          // ),
+
           Stack(
             children: [
               // Container(

@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 // var URL_API = '192.168.0.164:8080';
 String URL_API = 'chorenn.naliv.kz';
 String PAYMENT_URL = "chorenn.naliv.kz";
+var client = http.Client();
 
 Future<Position> determinePosition(BuildContext ctx) async {
   LocationPermission permission;
@@ -98,7 +99,7 @@ Future<bool> getAgreement() async {
 
 Future<bool> register(String login, String password, String name) async {
   var url = Uri.https(URL_API, 'api/user/register');
-  var response = await http.post(
+  var response = await client.post(
     url,
     body: json.encode({'login': login, 'password': password, 'name': name}),
     headers: {"Content-Type": "application/json"},
@@ -114,7 +115,7 @@ Future<bool> register(String login, String password, String name) async {
 
 Future<bool> login(String login, String password) async {
   var url = Uri.https(URL_API, 'api/user/login');
-  var response = await http.post(
+  var response = await client.post(
     url,
     body: json.encode({'login': login, 'password': password}),
     headers: {"Content-Type": "application/json"},
@@ -137,7 +138,7 @@ Future<bool> setCityAuto(double lat, double lon) async {
     return false;
   }
   var url = Uri.https(URL_API, 'api/user/setCityAuto');
-  var response = await http.post(
+  var response = await client.post(
     url,
     body: json.encode({'lat': lat, 'lon': lon}),
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -157,7 +158,7 @@ Future<Map<String, dynamic>?> getLastSelectedBusiness() async {
     return {};
   }
   var url = Uri.https(URL_API, 'api/business/getLastSelectedBusiness');
-  var response = await http.post(
+  var response = await client.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
   );
@@ -173,7 +174,7 @@ Future<List<Map>?> getBusinesses() async {
     return [];
   }
   var url = Uri.https(URL_API, 'api/business/get');
-  var response = await http.post(
+  var response = await client.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
   );
@@ -190,7 +191,7 @@ Future<bool> setCurrentStore(String businessId) async {
     return false;
   }
   var url = Uri.https(URL_API, 'api/business/setCurrentBusiness');
-  var response = await http.post(
+  var response = await client.post(
     url,
     body: json.encode({'business_id': businessId}),
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -211,7 +212,7 @@ Future<List> getCategories(String business_id,
     return [];
   }
   var url = Uri.https(URL_API, 'api/category/get');
-  var response = await http.post(url,
+  var response = await client.post(url,
       headers: {"Content-Type": "application/json", "AUTH": token},
       body: parent_category
           ? json.encode({'parent_category_only': "1"})
@@ -244,14 +245,14 @@ Future<List?> getItemsMain(int page, String business_id,
   var jsonBody = jsonEncode(queryBody);
 
   if (categoryId != "") {
-    response = await http.post(
+    response = await client.post(
       url,
       encoding: Encoding.getByName('utf-8'),
       headers: {"Content-Type": "application/json", "AUTH": token},
       body: jsonBody,
     );
   } else {
-    response = await http.post(
+    response = await client.post(
       url,
       encoding: Encoding.getByName('utf-8'),
       headers: {"Content-Type": "application/json", "AUTH": token},
@@ -274,7 +275,7 @@ Future<List> getItems(String categoryId, int page, {Map? filters}) async {
     return [];
   }
   var url = Uri.https(URL_API, 'api/item/get');
-  var response = await http.post(
+  var response = await client.post(
     url,
     encoding: Encoding.getByName('utf-8'),
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -297,7 +298,7 @@ Future<Map> getFilters(String categoryId) async {
     return {};
   }
   var url = Uri.https(URL_API, 'api/item/getFilters');
-  var response = await http.post(
+  var response = await client.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
     body: json.encode({'category_id': categoryId}),
@@ -308,16 +309,18 @@ Future<Map> getFilters(String categoryId) async {
   return data;
 }
 
-Future<Map<String, dynamic>> getItem(String itemId, {List? filter}) async {
+Future<Map<String, dynamic>> getItem(String itemId, String business_id,
+    {List? filter}) async {
   String? token = await getToken();
   if (token == null) {
     return {};
   }
   var url = Uri.https(URL_API, 'api/item/get');
-  var response = await http.post(
+  var response = await client.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
-    body: json.encode({'item_id': itemId, 'filter': filter}),
+    body: json.encode(
+        {'item_id': itemId, 'business_id': business_id, 'filter': filter}),
   );
   // List<dynamic> list = json.decode(response.body);
   Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
@@ -329,23 +332,39 @@ Future<Map<String, dynamic>> getItem(String itemId, {List? filter}) async {
   }
 }
 
-Future<String?> changeCartItem(
-    String itemId, int amount, String businessId) async {
+Future<String?> changeCartItem(String itemId, int amount, String businessId,
+    {List options = const []}) async {
   String? token = await getToken();
   print("ADD TO CARD");
   if (token == null) {
     return null;
   }
   var url = Uri.https(URL_API, 'api/item/addToCart');
-  var response = await http.post(
-    url,
-    body: json.encode({
-      'item_id': itemId,
-      'amount': amount.toString(),
-      'business_id': businessId
-    }),
-    headers: {"Content-Type": "application/json", "AUTH": token},
-  );
+
+  late var response;
+  if (options.length == 0) {
+    response = await client.post(
+      url,
+      body: json.encode({
+        'item_id': itemId,
+        'amount': amount.toString(),
+        'business_id': businessId
+      }),
+      headers: {"Content-Type": "application/json", "AUTH": token},
+    );
+  } else {
+    response = await client.post(
+      url,
+      body: json.encode({
+        'item_id': itemId,
+        'amount': amount.toString(),
+        'business_id': businessId,
+        'options': options
+      }),
+      headers: {"Content-Type": "application/json", "AUTH": token},
+    );
+  }
+
   String? data;
   if (jsonDecode(response.body) != null) {
     data = jsonDecode(response.body)["amount"];
@@ -361,7 +380,7 @@ Future<String?> removeFromCart(String itemId) async {
     return null;
   }
   var url = Uri.https(URL_API, 'api/item/removeFromCart');
-  var response = await http.post(
+  var response = await client.post(
     url,
     body: json.encode({'item_id': itemId}),
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -382,7 +401,7 @@ Future<Map<String, dynamic>> getCart(String businessId) async {
     return {};
   }
   var url = Uri.https(URL_API, 'api/item/getCart');
-  var response = await http.post(
+  var response = await client.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
     body: json.encode({'business_id': businessId}),
@@ -402,7 +421,7 @@ Future<Map<String, dynamic>?> getCartInfo() async {
     return {};
   }
   var url = Uri.https(URL_API, 'api/item/getCartInfo');
-  var response = await http.post(
+  var response = await client.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
     body: json.encode({}),
@@ -419,7 +438,7 @@ Future<String?> dislikeItem(String itemId) async {
     return null;
   }
   var url = Uri.https(URL_API, 'api/item/dislikeItem');
-  var response = await http.post(
+  var response = await client.post(
     url,
     body: json.encode({'item_id': itemId}),
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -440,7 +459,7 @@ Future<String?> likeItem(String itemId) async {
     return null;
   }
   var url = Uri.https(URL_API, 'api/item/likeItem');
-  var response = await http.post(
+  var response = await client.post(
     url,
     body: json.encode({'item_id': itemId}),
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -461,7 +480,7 @@ Future<List> getLiked() async {
     return [];
   }
   var url = Uri.https(URL_API, 'api/item/getLiked');
-  var response = await http.post(
+  var response = await client.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
     body: json.encode({}),
@@ -479,7 +498,7 @@ Future<Map<String, dynamic>?> getUser() async {
     return {};
   }
   var url = Uri.https(URL_API, 'api/user/get');
-  var response = await http.post(
+  var response = await client.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
   );
@@ -496,7 +515,7 @@ Future<List> getAddresses() async {
     return [];
   }
   var url = Uri.https(URL_API, 'api/user/getAddresses');
-  var response = await http.post(
+  var response = await client.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
     body: json.encode({}),
@@ -513,7 +532,7 @@ Future<List> createAddress(Map address) async {
     return [];
   }
   var url = Uri.https(URL_API, 'api/user/createAddress');
-  var response = await http.post(
+  var response = await client.post(
     url,
     body: json.encode(address),
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -532,7 +551,7 @@ Future<bool> selectAddress(String addressId) async {
     return false;
   }
   var url = Uri.https(URL_API, 'api/user/selectAddress');
-  var response = await http.post(
+  var response = await client.post(
     url,
     body: json.encode({"address_id": addressId}),
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -555,7 +574,7 @@ Future<Map<String, dynamic>?> getCity() async {
     return {};
   }
   var url = Uri.https(URL_API, 'api/business/getCity');
-  var response = await http.post(
+  var response = await client.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
     body: json.encode({}),
@@ -574,7 +593,7 @@ Future<Map<String, dynamic>> createOrder(String businessId,
     return {"status": null};
   }
   var url = Uri.https(URL_API, 'api/item/createOrder');
-  var response = await http.post(
+  var response = await client.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
     body: user_id.isNotEmpty
@@ -604,7 +623,7 @@ Future<List<dynamic>> getOrders() async {
     return [];
   }
   var url = Uri.https(URL_API, 'api/item/getOrder');
-  var response = await http.post(
+  var response = await client.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
   );
@@ -628,7 +647,7 @@ Future<bool?> deleteFromCart(String itemId) async {
     return null;
   }
   var url = Uri.https(URL_API, 'api/item/deleteFromCart');
-  var response = await http.post(
+  var response = await client.post(
     url,
     body: json.encode({'item_id': itemId}),
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -652,7 +671,7 @@ Future<bool?> deleteAccount() async {
     return null;
   }
   var url = Uri.https(URL_API, 'api/user/deleteAccount');
-  var response = await http.post(
+  var response = await client.post(
     url,
     body: json.encode({}),
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -668,7 +687,7 @@ Future<bool> getOneTimeCode(String phoneNumber) async {
   //   return false;
   // }
   var url = Uri.https(URL_API, 'api/user/sendOneTimeCode');
-  var response = await http.post(
+  var response = await client.post(
     url,
     body: json.encode({"phone_number": phoneNumber}),
     headers: {"Content-Type": "application/json"},
@@ -692,7 +711,7 @@ Future<bool> verify(String phoneNumber, String code) async {
   //   return false;
   // }
   var url = Uri.https(URL_API, 'api/user/verify');
-  var response = await http.post(
+  var response = await client.post(
     url,
     body: json.encode({"phone_number": phoneNumber, "code": code}),
     headers: {"Content-Type": "application/json"},
@@ -715,7 +734,7 @@ Future<Map?> getGeoData(String search) async {
     return null;
   }
   var url = Uri.https(URL_API, 'api/user/getAddressGeoData');
-  var response = await http.post(
+  var response = await client.post(
     url,
     body: json.encode({"search": search}),
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -732,7 +751,7 @@ Future<Map<String, dynamic>> getCreateUser(String phoneNumber) async {
     return {};
   }
   var url = Uri.https(URL_API, 'api/user/getClient');
-  var response = await http.post(
+  var response = await client.post(
     url,
     headers: {
       "Content-Type": "application/json",
@@ -753,7 +772,7 @@ Future<List<dynamic>> getUserAddresses(String userID) async {
     return [];
   }
   var url = Uri.https(URL_API, 'api/user/getAddressesPerUser');
-  var response = await http.post(
+  var response = await client.post(
     url,
     headers: {
       "Content-Type": "application/json",
@@ -774,7 +793,7 @@ Future<bool> selectAddressClient(String addressId, String user_id) async {
     return false;
   }
   var url = Uri.https(URL_API, 'api/user/selectAddress');
-  var response = await http.post(
+  var response = await client.post(
     url,
     body: json.encode({"address_id": addressId, "user_id": user_id}),
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -797,7 +816,7 @@ Future<List<dynamic>> getCities() async {
     return [];
   }
   var url = Uri.https(URL_API, 'api/user/getCities');
-  var response = await http.post(
+  var response = await client.post(
     url,
     headers: {
       "Content-Type": "application/json",
@@ -818,7 +837,7 @@ Future<bool> changeName(String name) async {
     return false;
   }
   var url = Uri.https(URL_API, 'api/user/changeName');
-  var response = await http.post(
+  var response = await client.post(
     url,
     body: json.encode({'name': name}),
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -838,7 +857,7 @@ Future<String> getPaymentHTML() async {
     return "";
   }
   var url = Uri.https(PAYMENT_URL, '/api/payment/getPaymentPage');
-  var response = await http.post(
+  var response = await client.post(
     url,
     // body: json.encode({'business_id': businessId}),
     headers: {"Content-Type": "application/json", "AUTH": token},

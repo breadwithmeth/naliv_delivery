@@ -138,6 +138,7 @@ class _SearchResultPageState extends State<SearchResultPage> {
                 categoryId: "",
                 categoryName: "",
                 scroll: 0,
+                business_id: widget.business["business_id"],
               ),
               _items.length - 1 != index
                   ? const Padding(

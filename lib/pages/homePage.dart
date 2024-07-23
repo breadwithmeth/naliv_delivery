@@ -305,12 +305,12 @@ class _HomePageState extends State<HomePage>
                               physics: NeverScrollableScrollPhysics(),
                               shrinkWrap: true,
                               gridDelegate:
-                                  SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 650 * globals.scaleParam,
-                                childAspectRatio: 10 / 8,
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                // maxCrossAxisExtent: 650 * globals.scaleParam,
+                                crossAxisCount: MediaQuery.of(context).size.aspectRatio > 1 ? 3 : 2,
+                                childAspectRatio: 1,
                                 crossAxisSpacing: 0,
                                 mainAxisSpacing: 0,
-                                mainAxisExtent: 350 * globals.scaleParam,
                               ),
                               itemCount: snapshot.data!.length % 2 != 0
                                   ? snapshot.data!.length + 1

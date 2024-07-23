@@ -391,6 +391,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                             categoryId: "",
                             categoryName: "",
                             scroll: 0,
+                            business_id: widget.business["business_id"],
                           ),
                           widget.items.length - 1 != index
                               ? Padding(
