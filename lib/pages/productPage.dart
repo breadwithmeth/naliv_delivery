@@ -86,12 +86,19 @@ class _ProductPageState extends State<ProductPage> {
         isRequired = false;
       });
     }
+
     for (var i = 0; i < options.length; i++) {
-      setState(() {
+      if (options[i]["selection"] == "SINGLE") {
         setState(() {
-          options[i]["selescted_relation_id"] = null;
+          setState(() {
+            options[i]["selescted_relation_id"] = null;
+          });
         });
-      });
+      } else {
+        setState(() {
+          options[i]["selescted_relation_id"] = [];
+        });
+      }
     }
   }
 
@@ -773,37 +780,114 @@ class _ProductPageState extends State<ProductPage> {
                         shrinkWrap: true,
                         itemCount: options[index_option]["option_items"].length,
                         itemBuilder: (context, index) {
-                          return Container(
-                              alignment: Alignment.centerLeft,
-                              decoration: BoxDecoration(
-                                  // boxShadow: [
-                                  //   BoxShadow(
-                                  //       offset: Offset(2, 2),
-                                  //       blurRadius: 5,
-                                  //       color: Colors.grey.shade400)
-                                  // ],
-                                  // color: Colors.white,
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(15))),
-                              // margin: EdgeInsets.all(10 * globals.scaleParam),
-                              child: RadioListTile(
-                                dense: true,
-                                onChanged: (v) {
-                                  setState(() {
-                                    options[index_option]
-                                        ["selescted_relation_id"] = v;
-                                  });
-                                },
-                                groupValue: options[index_option]
-                                    ["selescted_relation_id"],
-                                value: options[index_option]["option_items"]
-                                    [index]["relation_id"],
-                                title: Text(
-                                  options[index_option]["option_items"][index]
-                                      ["name"],
-                                  style: TextStyle(fontWeight: FontWeight.w700),
-                                ),
-                              ));
+                          bool isCheckBoxSelected = false;
+                          return options[index_option]["selection"] == "SINGLE"
+                              ? Row(
+                                  children: [
+                                    ChoiceChip(
+                                        selectedColor:
+                                            Colors.amberAccent.shade200,
+                                        disabledColor: Colors.white,
+                                        backgroundColor: Colors.white,
+                                        label: Text(
+                                          options[index_option]["option_items"]
+                                              [index]["name"],
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w700),
+                                        ),
+                                        selected: options[index_option]
+                                                ["selescted_relation_id"] ==
+                                            options[index_option]
+                                                    ["option_items"][index]
+                                                ["relation_id"],
+                                        onSelected: (v) {
+                                          print(v);
+                                          if (v) {
+                                            setState(() {
+                                              options[index_option][
+                                                      "selescted_relation_id"] =
+                                                  options[index_option]
+                                                          ["option_items"]
+                                                      [index]["relation_id"];
+                                            });
+                                          } else {
+                                            setState(() {
+                                              options[index_option][
+                                                      "selescted_relation_id"] =
+                                                  null;
+                                            });
+                                          }
+                                        }
+                                        // dense: true,
+                                        //   onChanged: (v) {
+
+                                        //   },
+                                        //   groupValue: options[index_option]
+                                        //       ["selescted_relation_id"],
+                                        //   value: options[index_option]
+                                        //           ["option_items"][index]
+                                        //       ["relation_id"],
+                                        //
+                                        )
+                                  ],
+                                )
+                              : Container(
+                                  alignment: Alignment.centerLeft,
+                                  decoration: BoxDecoration(
+                                      // boxShadow: [
+                                      //   BoxShadow(
+                                      //       offset: Offset(2, 2),
+                                      //       blurRadius: 5,
+                                      //       color: Colors.grey.shade400)
+                                      // ],
+                                      // color: Colors.white,
+                                      borderRadius: BorderRadius.all(
+                                          Radius.circular(15))),
+                                  // margin: EdgeInsets.all(10 * globals.scaleParam),
+                                  child: Row(
+                                    children: [
+                                      FilterChip(
+                                        deleteIcon: Container(),
+                                        deleteIconBoxConstraints: BoxConstraints(),
+                                        label: Text(
+                                          options[index_option]["option_items"]
+                                              [index]["name"],
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w700),
+                                        ),
+                                        selected: List.castFrom(
+                                                options[index_option]
+                                                    ["selescted_relation_id"])
+                                            .contains(options[index_option]
+                                                    ["option_items"][index]
+                                                ["relation_id"]),
+                                        onSelected: (v) {
+                                          if (v) {
+                                            setState(() {
+                                              options[index_option]
+                                                      ["selescted_relation_id"]
+                                                  .add(options[index_option]
+                                                          ["option_items"]
+                                                      [index]["relation_id"]);
+                                            });
+                                          } else {
+                                            setState(() {
+                                              options[index_option]
+                                                      ["selescted_relation_id"]
+                                                  .removeWhere((item) =>
+                                                      item ==
+                                                      options[index_option]
+                                                              ["option_items"][
+                                                          index]["relation_id"]);
+                                            });
+                                          }
+                                        },
+                                        onDeleted: () {},
+                                        // value: isCheckBoxSelected,
+                                        // onChanged: (v) {}
+                                      ),
+                                    ],
+                                  ));
                         },
                       )
                     ],

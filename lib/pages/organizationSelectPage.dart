@@ -375,7 +375,6 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
             }
             if (!isAddressAlreadyExist) {
               showModalBottomSheet(
-                
                 backgroundColor: Colors.white,
                 context: context,
                 builder: (context) {
@@ -856,9 +855,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                               style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w500,
-                                  color: 
-                                  !isCollapsed ?
-                                  Colors.black : Colors.transparent),
+                                  color: !isCollapsed
+                                      ? Colors.black
+                                      : Colors.transparent),
                             ),
                           ),
                           SizedBox(
@@ -984,19 +983,11 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                 ),
               ),
             ),
-            SliverToBoxAdapter(
-                child: Column(
-              children: [
-                SizedBox(
-                  height: 500 * globals.scaleParam,
-                  child: BusinessSelectCarousel(
-                    businesses: widget.businesses,
-                    user: widget.user,
-                    currentAddress: widget.currentAddress,
-                  ),
-                )
-              ],
-            )),
+            BusinessSelectCarousel(
+              businesses: widget.businesses,
+              user: widget.user,
+              currentAddress: widget.currentAddress,
+            ),
             SliverToBoxAdapter(
               child: Container(
                 height: 5000,
@@ -1101,8 +1092,9 @@ class BusinessItemState extends State<BusinessItem> {
         aspectRatio: 1,
         child: Container(
           margin: EdgeInsets.all(10 * globals.scaleParam),
-          width: 650 * globals.scaleParam,
+          // width: 650 * globals.scaleParam,
           // height: 600 * globals.scaleParam,
+
           clipBehavior: Clip.antiAlias,
           decoration: const BoxDecoration(
             color: Colors.white,
@@ -1253,13 +1245,18 @@ class _BusinessSelectCarouselState extends State<BusinessSelectCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: EdgeInsets.all(10),
-      shrinkWrap: true,
-      primary: false,
-      scrollDirection: Axis.horizontal,
-      // itemExtent: 650 * globals.scaleParam,
-      physics: PageScrollPhysics(),
+    return SliverGrid.builder(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        crossAxisCount: 3,
+      ),
+      // padding: EdgeInsets.all(10),
+      // shrinkWrap: true,
+      // primary: false,
+      // scrollDirection: Axis.horizontal,
+      // // itemExtent: 650 * globals.scaleParam,
+      // physics: PageScrollPhysics(),
       // controller: PageController(viewportFraction: .6),
       itemCount: widget.businesses.length,
       itemBuilder: (context, index) {

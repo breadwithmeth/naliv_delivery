@@ -872,6 +872,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                 },
                 child: Container(
                   padding: EdgeInsets.all(30 * globals.scaleParam),
+                  margin:EdgeInsets.only(bottom:30),
                   decoration: BoxDecoration(
                     color: globals.mainColor,
                     borderRadius: BorderRadius.all(Radius.circular(10)),
