@@ -847,6 +847,7 @@ class _ProductPageState extends State<ProductPage> {
                                   child: Row(
                                     children: [
                                       FilterChip(
+                                        backgroundColor: Colors.white,
                                         deleteIcon: Container(),
                                         deleteIconBoxConstraints: BoxConstraints(),
                                         label: Text(
