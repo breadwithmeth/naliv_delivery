@@ -1895,7 +1895,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
         child: Column(
           children: [
             Flexible(
-              flex: 3,
+              flex: 2,
               child: ExtendedImage.network(
                 element["img"],
                 height: double.infinity,

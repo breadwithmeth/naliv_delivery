@@ -744,8 +744,12 @@ class _CategoryPageListState extends State<CategoryPageList>
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisSpacing: globals.scaleParam * 30,
                         mainAxisSpacing: globals.scaleParam * 30,
-                        crossAxisCount: 3,
-                        childAspectRatio: 0.7),
+                        crossAxisCount:
+                            MediaQuery.of(context).size.aspectRatio > 1 ? 3 : 2,
+                        childAspectRatio:
+                            MediaQuery.of(context).size.aspectRatio > 1
+                                ? 0.7
+                                : 1),
                     addAutomaticKeepAlives: false,
                     itemCount: _items.length + (_isLastPage ? 0 : 1),
                     itemBuilder: (context, index) {
