@@ -710,6 +710,14 @@ class _ProductPageState extends State<ProductPage> {
                         ),
                       ),
                       Text(
+                        "${item['price'] ?? ''}",
+                        style: TextStyle(
+                          fontSize: 40 * globals.scaleParam,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black,
+                        ),
+                      ),
+                      Text(
                         "${double.parse(item["in_stock"] ?? "0").truncate().toString()} шт. в наличии",
                         style: TextStyle(
                           fontSize: 28 * globals.scaleParam,
@@ -849,7 +857,8 @@ class _ProductPageState extends State<ProductPage> {
                                       FilterChip(
                                         backgroundColor: Colors.white,
                                         deleteIcon: Container(),
-                                        deleteIconBoxConstraints: BoxConstraints(),
+                                        deleteIconBoxConstraints:
+                                            BoxConstraints(),
                                         label: Text(
                                           options[index_option]["option_items"]
                                               [index]["name"],

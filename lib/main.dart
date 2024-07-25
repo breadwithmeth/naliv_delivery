@@ -27,7 +27,7 @@ class Main extends StatefulWidget {
 }
 
 class _MainState extends State<Main> {
-  late Timer _timer;
+  // late Timer _timer;
   // int _tick = 0;
 
   // Widget _redirect = const StartLoadingPage();
@@ -124,7 +124,7 @@ class _MainState extends State<Main> {
   void dispose() {
     // TODO: implement dispose
     super.dispose();
-    _timer.cancel();
+    // _timer.cancel();
   }
 
   @override
