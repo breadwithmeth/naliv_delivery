@@ -64,6 +64,8 @@ dependencies:
   extended_image: ^8.2.1
   flutter_native_splash: ^2.2.16
   vector_map_tiles: ^7.3.1
+  drawing_animation: ^1.0.0
+
 
 
 dev_dependencies:
@@ -137,6 +139,7 @@ flutter:
     - assets/s/visa.png
     - assets/naliv_logo_loading.png
     - assets/gradusy_logo_loading.png
+    - assets/txt.svg
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

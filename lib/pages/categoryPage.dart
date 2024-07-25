@@ -737,18 +737,18 @@ class _CategoryPageListState extends State<CategoryPageList>
         Expanded(
           child: _items.length > 1
               ? Padding(
-                  padding: EdgeInsets.all(30 * globals.scaleParam),
+                  padding: EdgeInsets.all(0),
                   child: GridView.builder(
                     primary: false,
                     shrinkWrap: true,
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisSpacing: globals.scaleParam * 30,
-                        mainAxisSpacing: globals.scaleParam * 30,
+                        // crossAxisSpacing: globals.scaleParam * 5,
+                        // mainAxisSpacing: globals.scaleParam * 5,
                         crossAxisCount:
                             MediaQuery.of(context).size.aspectRatio > 1 ? 3 : 2,
                         childAspectRatio:
                             MediaQuery.of(context).size.aspectRatio > 1
-                                ? 0.7
+                                ? 1.5
                                 : 1),
                     addAutomaticKeepAlives: false,
                     itemCount: _items.length + (_isLastPage ? 0 : 1),

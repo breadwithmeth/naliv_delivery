@@ -1883,6 +1883,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
       // height: 300 * globals.scaleParam,
       child: Container(
         padding: EdgeInsets.all(10),
+        margin: EdgeInsets.all(10),
         height: widget.constraints.minHeight,
         width: widget.constraints.maxWidth,
         decoration: BoxDecoration(
@@ -1890,19 +1891,177 @@ class _ItemCardSquareState extends State<ItemCardSquare>
             color: Colors.white,
             boxShadow: [
               BoxShadow(
-                  blurRadius: 7, offset: Offset(2, 2), color: Colors.black12)
+                  blurRadius: 7,
+                  offset: Offset(2, 2),
+                  color: Colors.blueGrey.shade50)
             ]),
         child: Column(
           children: [
             Flexible(
               flex: 2,
-              child: ExtendedImage.network(
-                element["img"],
-                height: double.infinity,
-                clearMemoryCacheWhenDispose: true,
-                enableMemoryCache: true,
-                enableLoadState: false,
-                fit: BoxFit.cover,
+              child: Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  Container(
+                    width: widget.constraints.minWidth,
+                    child: ExtendedImage.network(
+                      element["img"],
+                      height: double.infinity,
+                      clearMemoryCacheWhenDispose: true,
+                      enableMemoryCache: true,
+                      enableLoadState: false,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.all(Radius.circular(30)),
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.blueGrey.shade100, blurRadius: 5)
+                        ]),
+                    child: AnimatedCrossFade(
+                      alignment: Alignment.topRight,
+                      duration: Durations.medium1,
+                      crossFadeState: amountInCart == 0
+                          ? CrossFadeState.showFirst
+                          : CrossFadeState.showSecond,
+                      firstChild: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          int.parse(widget.element["option"]) == 1
+                              ? IconButton(
+                                  highlightColor: canButtonsBeUsed
+                                      ? Colors.transparent
+                                      : Colors.transparent,
+                                  padding: EdgeInsets.all(0),
+                                  onPressed: canButtonsBeUsed
+                                      ? () {
+                                          _incrementAmountInCart();
+                                          setState(() {
+                                            canButtonsBeUsed = false;
+                                          });
+                                          _controller.forward();
+                                          Timer(
+                                            Duration(milliseconds: 100),
+                                            () {
+                                              setState(() {
+                                                canButtonsBeUsed = true;
+                                              });
+                                            },
+                                          );
+                                        }
+                                      : null,
+                                  icon: Container(
+                                    padding:
+                                        EdgeInsets.all(5 * globals.scaleParam),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(100),
+                                      ),
+                                      color: Colors.white,
+                                    ),
+                                    child: Icon(
+                                      Icons.add_rounded,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
+                                    ),
+                                  ),
+                                )
+                              : Container()
+                        ],
+                      ),
+                      secondChild: Row(
+                        children: [
+                          Flexible(
+                            fit: FlexFit.tight,
+                            child: IconButton(
+                              padding: EdgeInsets.all(0),
+                              onPressed: canButtonsBeUsed
+                                  ? () {
+                                      _decrementAmountInCart();
+                                      if (amountInCart <= 0) {
+                                        setState(() {
+                                          canButtonsBeUsed = false;
+                                        });
+                                        _controller.reverse();
+                                        Timer(
+                                          Duration(milliseconds: 100),
+                                          () {
+                                            setState(() {
+                                              canButtonsBeUsed = true;
+                                            });
+                                          },
+                                        );
+                                      }
+                                    }
+                                  : null,
+                              icon: Container(
+                                child: Icon(
+                                  Icons.remove_rounded,
+                                  color: amountInCart > 0
+                                      ? Theme.of(context).colorScheme.onSurface
+                                      : Theme.of(context).colorScheme.secondary,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Flexible(
+                            flex: 2,
+                            fit: FlexFit.tight,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    "${amountInCart.toString()} шт.", //"${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
+                                    textHeightBehavior: TextHeightBehavior(
+                                      applyHeightToFirstAscent: false,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 36 * globals.scaleParam,
+                                      color: amountInCart != 0
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                          : Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Flexible(
+                            fit: FlexFit.tight,
+                            child: IconButton(
+                              padding: EdgeInsets.all(0),
+                              onPressed: canButtonsBeUsed
+                                  ? () {
+                                      _incrementAmountInCart();
+                                    }
+                                  : null,
+                              icon: Container(
+                                child: Icon(
+                                  Icons.add_rounded,
+                                  color: amountInCart <
+                                          double.parse(element["in_stock"])
+                                              .truncate()
+                                      ? Theme.of(context).colorScheme.onSurface
+                                      : Theme.of(context).colorScheme.secondary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                ],
               ),
             ),
             Flexible(
@@ -2028,341 +2187,41 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                 ),
                               ),
                             ),
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      globals
-                                          .formatCost(element['price'] ?? ""),
-                                      style: TextStyle(
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 36 * globals.scaleParam,
-                                      ),
-                                    ),
-                                  ),
-                                  Flexible(
-                                    child: Text(
-                                      "₸",
-                                      textAlign: TextAlign.start,
-                                      style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 36 * globals.scaleParam,
-                                      ),
-                                    ),
-                                  )
-                                ],
-                              ),
-                            ),
                           ],
                         ),
                       ),
                     ),
                   ),
                   Flexible(
-                    fit: FlexFit.tight,
+                      child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 15 * globals.scaleParam,
+                      // vertical: 5 * globals.scaleParam,
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Flexible(
-                          fit: FlexFit.tight,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Flexible(
-                                fit: FlexFit.tight,
-                                child: LikeButton(
-                                  is_liked: element["is_liked"],
-                                  item_id: element["item_id"],
-                                ),
-                              ),
-                            ],
+                        Text(
+                          globals.formatCost(element['price'] ?? ""),
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 36 * globals.scaleParam,
                           ),
                         ),
-                        Flexible(
-                          flex: 5,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Flexible(
-                                fit: FlexFit.tight,
-                                child: Stack(
-                                  children: [
-                                    LayoutBuilder(
-                                      builder: (context, constraints) {
-                                        return Row(
-                                          children: [
-                                            Container(
-                                              width:
-                                                  constraints.maxWidth * 0.85,
-                                              alignment: Alignment.centerLeft,
-                                              child: ClipRect(
-                                                clipBehavior: Clip.antiAlias,
-                                                child: OverflowBox(
-                                                  maxWidth:
-                                                      constraints.maxWidth,
-                                                  child: SlideTransition(
-                                                    position: _offsetAnimation,
-                                                    child: Row(
-                                                      children: [
-                                                        Flexible(
-                                                            fit: FlexFit.tight,
-                                                            child: int.parse(widget
-                                                                            .element[
-                                                                        "option"]) ==
-                                                                    1
-                                                                ? IconButton(
-                                                                    highlightColor: canButtonsBeUsed
-                                                                        ? Colors
-                                                                            .transparent
-                                                                        : Colors
-                                                                            .transparent,
-                                                                    padding:
-                                                                        EdgeInsets
-                                                                            .all(0),
-                                                                    onPressed:
-                                                                        canButtonsBeUsed
-                                                                            ? () {
-                                                                                _incrementAmountInCart();
-                                                                                setState(() {
-                                                                                  canButtonsBeUsed = false;
-                                                                                });
-                                                                                _controller.forward();
-                                                                                Timer(
-                                                                                  Duration(milliseconds: 100),
-                                                                                  () {
-                                                                                    setState(() {
-                                                                                      canButtonsBeUsed = true;
-                                                                                    });
-                                                                                  },
-                                                                                );
-                                                                              }
-                                                                            : null,
-                                                                    icon:
-                                                                        Container(
-                                                                      padding: EdgeInsets.all(5 *
-                                                                          globals
-                                                                              .scaleParam),
-                                                                      decoration:
-                                                                          BoxDecoration(
-                                                                        borderRadius:
-                                                                            BorderRadius.all(
-                                                                          Radius.circular(
-                                                                              100),
-                                                                        ),
-                                                                        color: Colors
-                                                                            .white,
-                                                                        boxShadow: [
-                                                                          BoxShadow(
-                                                                            color: Color.fromARGB(
-                                                                                255,
-                                                                                180,
-                                                                                180,
-                                                                                180),
-                                                                            spreadRadius:
-                                                                                0,
-                                                                            blurRadius:
-                                                                                1,
-                                                                            offset:
-                                                                                Offset(0.2, 0.9),
-                                                                          ),
-                                                                        ],
-                                                                      ),
-                                                                      child:
-                                                                          Icon(
-                                                                        Icons
-                                                                            .add_rounded,
-                                                                        color: Theme.of(context)
-                                                                            .colorScheme
-                                                                            .onSurface,
-                                                                      ),
-                                                                    ),
-                                                                  )
-                                                                : Container()),
-                                                        Flexible(
-                                                          fit: FlexFit.tight,
-                                                          child: IconButton(
-                                                            padding:
-                                                                EdgeInsets.all(
-                                                                    0),
-                                                            onPressed:
-                                                                canButtonsBeUsed
-                                                                    ? () {
-                                                                        _decrementAmountInCart();
-                                                                        if (amountInCart <=
-                                                                            0) {
-                                                                          setState(
-                                                                              () {
-                                                                            canButtonsBeUsed =
-                                                                                false;
-                                                                          });
-                                                                          _controller
-                                                                              .reverse();
-                                                                          Timer(
-                                                                            Duration(milliseconds: 100),
-                                                                            () {
-                                                                              setState(() {
-                                                                                canButtonsBeUsed = true;
-                                                                              });
-                                                                            },
-                                                                          );
-                                                                        }
-                                                                      }
-                                                                    : null,
-                                                            icon: Container(
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                border:
-                                                                    Border.all(
-                                                                  color: amountInCart >
-                                                                          0
-                                                                      ? Theme.of(
-                                                                              context)
-                                                                          .colorScheme
-                                                                          .onSurface
-                                                                      : Theme.of(
-                                                                              context)
-                                                                          .colorScheme
-                                                                          .secondary,
-                                                                ),
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            6),
-                                                              ),
-                                                              child: Icon(
-                                                                Icons
-                                                                    .remove_rounded,
-                                                                color: amountInCart >
-                                                                        0
-                                                                    ? Theme.of(
-                                                                            context)
-                                                                        .colorScheme
-                                                                        .onSurface
-                                                                    : Theme.of(
-                                                                            context)
-                                                                        .colorScheme
-                                                                        .secondary,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                        Flexible(
-                                                          flex: 2,
-                                                          fit: FlexFit.tight,
-                                                          child: Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .center,
-                                                            children: [
-                                                              Flexible(
-                                                                child: Text(
-                                                                  "${amountInCart.toString()} шт.", //"${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
-                                                                  textHeightBehavior:
-                                                                      TextHeightBehavior(
-                                                                    applyHeightToFirstAscent:
-                                                                        false,
-                                                                  ),
-                                                                  textAlign:
-                                                                      TextAlign
-                                                                          .center,
-                                                                  style:
-                                                                      TextStyle(
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w700,
-                                                                    fontSize: 36 *
-                                                                        globals
-                                                                            .scaleParam,
-                                                                    color: amountInCart !=
-                                                                            0
-                                                                        ? Theme.of(context)
-                                                                            .colorScheme
-                                                                            .onSurface
-                                                                        : Colors
-                                                                            .grey
-                                                                            .shade600,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                        Flexible(
-                                                          fit: FlexFit.tight,
-                                                          child: IconButton(
-                                                            padding:
-                                                                EdgeInsets.all(
-                                                                    0),
-                                                            onPressed:
-                                                                canButtonsBeUsed
-                                                                    ? () {
-                                                                        _incrementAmountInCart();
-                                                                      }
-                                                                    : null,
-                                                            icon: Container(
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                border:
-                                                                    Border.all(
-                                                                  color: amountInCart <
-                                                                          double.parse(element["in_stock"])
-                                                                              .truncate()
-                                                                      ? Theme.of(
-                                                                              context)
-                                                                          .colorScheme
-                                                                          .onSurface
-                                                                      : Theme.of(
-                                                                              context)
-                                                                          .colorScheme
-                                                                          .secondary,
-                                                                ),
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            6),
-                                                              ),
-                                                              child: Icon(
-                                                                Icons
-                                                                    .add_rounded,
-                                                                color: amountInCart <
-                                                                        double.parse(element["in_stock"])
-                                                                            .truncate()
-                                                                    ? Theme.of(
-                                                                            context)
-                                                                        .colorScheme
-                                                                        .onSurface
-                                                                    : Theme.of(
-                                                                            context)
-                                                                        .colorScheme
-                                                                        .secondary,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                        Text(
+                          "₸",
+                          textAlign: TextAlign.start,
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 36 * globals.scaleParam,
                           ),
                         ),
                       ],
                     ),
-                  ),
+                  ))
                 ],
               ),
             ),

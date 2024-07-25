@@ -1249,7 +1249,7 @@ class _BusinessSelectCarouselState extends State<BusinessSelectCarousel> {
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         mainAxisSpacing: 10,
         crossAxisSpacing: 10,
-        crossAxisCount: 3,
+        crossAxisCount: 2,
       ),
       // padding: EdgeInsets.all(10),
       // shrinkWrap: true,

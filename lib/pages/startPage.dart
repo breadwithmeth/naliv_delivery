@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../misc/api.dart';
 import 'DealPage.dart';
 
@@ -135,139 +136,6 @@ class _StartPageState extends State<StartPage> {
               ),
             ],
           )),
-          // Flexible(
-          //     flex: 16,
-          //     child: PageView.builder(
-          //         padEnds: false,
-          //         controller: p_controller,
-          //         clipBehavior: Clip.none,
-          //         itemCount: 3,
-          //         pageSnapping: true,
-          //         itemBuilder: (context, pagePosition) {
-          //           return Container(
-          //               child: Image.asset(
-          //             images[pagePosition],
-          //             fit: BoxFit.cover,
-          //           ));
-          //         })),
-          // const Spacer(),
-          // const Flexible(
-          //   flex: 2,
-          //   child: SizedBox(),
-          // ),
-          // Flexible(
-          //   flex: 2,
-          //   child: Container(
-          //     padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-          //     child: TextButton(
-          //       style: ElevatedButton.styleFrom(
-          //           shape: RoundedRectangleBorder(),
-          //           backgroundColor: Colors.black,
-          //           foregroundColor: Colors.white),
-          //       onPressed: () {
-          //         // Navigator.pushReplacement(context, MaterialPageRoute(
-          //         //   builder: (context) {
-          //         //     return RegistrationPage();
-          //         //   },
-          //         // ));
-          //         Navigator.pushReplacement(context, MaterialPageRoute(
-          //           builder: (context) {
-          //             return const DealPage();
-          //           },
-          //         ));
-          //       },
-          //       child: Container(
-          //         padding:
-          //             const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-          //         child: Row(
-          //           mainAxisSize: MainAxisSize.max,
-          //           mainAxisAlignment: MainAxisAlignment.center,
-          //           children: [
-          //             Text(
-          //               "Продолжить",
-          //               style: TextStyle(
-          //                 fontSize: 16,
-          //                 fontWeight: FontWeight.w700,
-          //                 color: Theme.of(context).colorScheme.onPrimary,
-          //               ),
-          //             ),
-          //           ],
-          //         ),
-          //       ),
-          //     ),
-          //   ),
-          // ),
-          // Flexible(
-          //     flex: 2,
-          //     child: Container(
-          //       child: TextButton(
-          //           style: TextButton.styleFrom(
-          //               foregroundColor: Colors.black,
-          //               backgroundColor: Colors.transparent),
-          //           onPressed: () {
-          //             Navigator.pushReplacement(context, MaterialPageRoute(
-          //               builder: (context) {
-          //                 return LoginPage();
-          //               },
-          //             ));
-          //           },
-          //           child: Row(
-          //             mainAxisAlignment: MainAxisAlignment.center,
-          //             children: [
-          //               Text(
-          //                 "Уже есть аккаунт?  ",
-          //                 style: TextStyle(
-          //                     fontWeight: FontWeight.w300,
-          //                     fontSize: 16,
-          //                     color: Colors.grey.shade600),
-          //               ),
-          //               Text("Войти",
-          //                   style: TextStyle(
-          //                       fontWeight: FontWeight.w600,
-          //                       fontSize: 16,
-          //                       color: Color(0xFFFFCA3C)))
-          //             ],
-          //           )),
-          //     )),
-          // SizedBox(
-          //   height: 5,
-          // ),
-
-          // Flexible(
-          //   child: Row(
-          //     mainAxisAlignment: MainAxisAlignment.center,
-          //     children: [
-          //       TextButton(
-          //           style: TextButton.styleFrom(primary: Colors.black),
-          //           onPressed: () {
-          //             _checkAgreement();
-          //             Navigator.push(
-          //                 context,
-          //                 MaterialPageRoute(
-          //                   builder: (context) => LoginPage(),
-          //                 ));
-          //           },
-          //           child: Row(
-          //             children: [
-          //               Text(
-          //                 "Уже есть аккаунт? ",
-          //                 style: TextStyle(
-          //                     fontWeight: FontWeight.w400,
-          //                     color: gray1,
-          //                     fontSize: 16),
-          //               ),
-          //               Text(
-          //                 "Войти",
-          //                 style: TextStyle(
-          //                     color: Colors.black,
-          //                     fontWeight: FontWeight.w600,
-          //                     fontSize: 16),
-          //               )
-          //             ],
-          //           ))
-          //     ],
-          //   ),
-          // )
         ],
       ),
     );
