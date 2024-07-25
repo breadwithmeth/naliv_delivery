@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
 import '../globals.dart' as globals;
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -33,7 +34,7 @@ class _ProductPageState extends State<ProductPage> {
   List<TableRow> properties = [];
   bool isRequired = true;
   List<Widget> propertiesWidget = [];
-
+  bool isLoading = false;
   int currentTab = 0;
   String? amount;
   List<String> TabText = ["", "", ""];
@@ -48,6 +49,7 @@ class _ProductPageState extends State<ProductPage> {
         setState(() {
           options = value["options"] ?? [];
           TabText[0] = value["description"];
+          isLoading = true;
         });
       }
     });
@@ -674,24 +676,37 @@ class _ProductPageState extends State<ProductPage> {
             padding: EdgeInsets.all(10 * globals.scaleParam),
             width: MediaQuery.of(context).size.width,
             height: MediaQuery.of(context).size.width,
+            alignment: Alignment.center,
             child: Stack(
               children: [
-                Container(
+                ExtendedImage.network(
+                  widget.item["img"],
                   alignment: Alignment.center,
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      borderRadius: BorderRadius.all(
-                        Radius.circular(10),
-                      ),
-                    ),
-                    clipBehavior: Clip.none,
-                    child: _image,
-                  ),
+                  height: double.infinity,
+                  clearMemoryCacheWhenDispose: true,
+                  heroBuilderForSlidingPage: (widget) {
+                    return LinearProgressIndicator();
+                  },
+                  enableMemoryCache: true,
+                  enableLoadState: false,
+                  fit: BoxFit.cover,
                 ),
+                // Container(
+                //   alignment: Alignment.center,
+                //   child: Container(
+                //     decoration: const BoxDecoration(
+                //       borderRadius: BorderRadius.all(
+                //         Radius.circular(10),
+                //       ),
+                //     ),
+                //     clipBehavior: Clip.none,
+                //     child: _image,
+                //   ),
+                // ),
               ],
             ),
           ),
-          item.isNotEmpty
+          isLoading
               ? Container(
                   padding: EdgeInsets.symmetric(
                       horizontal: 30 * globals.scaleParam,
@@ -849,7 +864,8 @@ class _ProductPageState extends State<ProductPage> {
                                       FilterChip(
                                         backgroundColor: Colors.white,
                                         deleteIcon: Container(),
-                                        deleteIconBoxConstraints: BoxConstraints(),
+                                        deleteIconBoxConstraints:
+                                            BoxConstraints(),
                                         label: Text(
                                           options[index_option]["option_items"]
                                               [index]["name"],
