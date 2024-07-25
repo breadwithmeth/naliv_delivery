@@ -15,7 +15,8 @@ class ItemCard extends StatefulWidget {
       required this.element,
       required this.categoryName,
       required this.categoryId,
-      required this.scroll, required this.business_id});
+      required this.scroll,
+      required this.business_id});
   final Map<String, dynamic> element;
   final String categoryName;
 
@@ -80,8 +81,8 @@ class _ItemCardState extends State<ItemCard> {
   }
 
   Future<void> refreshItemCard() async {
-    Map<String, dynamic>? element = await getItem(
-        widget.element["item_id"], widget.business_id);
+    Map<String, dynamic>? element =
+        await getItem(widget.element["item_id"], widget.business_id);
     print(element);
     setState(() {
       element!["name"] = "123";
@@ -572,7 +573,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                   // ну и кэш чистится
                   // это я тоже не тестил
                   child: ExtendedImage.network(
-                    element["thumb"],
+                    element["img"],
                     height: double.infinity,
                     clearMemoryCacheWhenDispose: true,
 
@@ -818,82 +819,71 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                       child: Row(
                                                         children: [
                                                           Flexible(
-                                                            fit: FlexFit.tight,
-                                                            child: IconButton(
-                                                              highlightColor:
-                                                                  canButtonsBeUsed
-                                                                      ? Colors
-                                                                          .transparent
-                                                                      : Colors
-                                                                          .transparent,
-                                                              padding:
-                                                                  EdgeInsets
-                                                                      .all(0),
-                                                              onPressed:
-                                                                  canButtonsBeUsed
-                                                                      ? () {
-                                                                          _incrementAmountInCart();
-                                                                          setState(
-                                                                              () {
-                                                                            canButtonsBeUsed =
-                                                                                false;
-                                                                          });
-                                                                          _controller
-                                                                              .forward();
-                                                                          Timer(
-                                                                            Duration(milliseconds: 100),
-                                                                            () {
+                                                              fit:
+                                                                  FlexFit.tight,
+                                                              child: int.parse(widget
+                                                                              .element[
+                                                                          "option"]) ==
+                                                                      1
+                                                                  ? IconButton(
+                                                                      highlightColor: canButtonsBeUsed
+                                                                          ? Colors
+                                                                              .transparent
+                                                                          : Colors
+                                                                              .transparent,
+                                                                      padding:
+                                                                          EdgeInsets.all(
+                                                                              0),
+                                                                      onPressed: canButtonsBeUsed
+                                                                          ? () {
+                                                                              _incrementAmountInCart();
                                                                               setState(() {
-                                                                                canButtonsBeUsed = true;
+                                                                                canButtonsBeUsed = false;
                                                                               });
-                                                                            },
-                                                                          );
-                                                                        }
-                                                                      : null,
-                                                              icon: Container(
-                                                                padding: EdgeInsets
-                                                                    .all(5 *
-                                                                        globals
-                                                                            .scaleParam),
-                                                                decoration:
-                                                                    BoxDecoration(
-                                                                  borderRadius:
-                                                                      BorderRadius
-                                                                          .all(
-                                                                    Radius
-                                                                        .circular(
-                                                                            100),
-                                                                  ),
-                                                                  color: Colors
-                                                                      .white,
-                                                                  boxShadow: [
-                                                                    BoxShadow(
-                                                                      color: Color.fromARGB(
-                                                                          255,
-                                                                          180,
-                                                                          180,
-                                                                          180),
-                                                                      spreadRadius:
-                                                                          0,
-                                                                      blurRadius:
-                                                                          1,
-                                                                      offset: Offset(
-                                                                          0.2,
-                                                                          0.9),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                                child: Icon(
-                                                                  Icons
-                                                                      .add_rounded,
-                                                                  color: Theme.of(
-                                                                          context)
-                                                                      .colorScheme
-                                                                      .onSurface,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ),
+                                                                              _controller.forward();
+                                                                              Timer(
+                                                                                Duration(milliseconds: 100),
+                                                                                () {
+                                                                                  setState(() {
+                                                                                    canButtonsBeUsed = true;
+                                                                                  });
+                                                                                },
+                                                                              );
+                                                                            }
+                                                                          : null,
+                                                                      icon:
+                                                                          Container(
+                                                                        padding:
+                                                                            EdgeInsets.all(5 *
+                                                                                globals.scaleParam),
+                                                                        decoration:
+                                                                            BoxDecoration(
+                                                                          borderRadius:
+                                                                              BorderRadius.all(
+                                                                            Radius.circular(100),
+                                                                          ),
+                                                                          color:
+                                                                              Colors.white,
+                                                                          boxShadow: [
+                                                                            BoxShadow(
+                                                                              color: Color.fromARGB(255, 180, 180, 180),
+                                                                              spreadRadius: 0,
+                                                                              blurRadius: 1,
+                                                                              offset: Offset(0.2, 0.9),
+                                                                            ),
+                                                                          ],
+                                                                        ),
+                                                                        child:
+                                                                            Icon(
+                                                                          Icons
+                                                                              .add_rounded,
+                                                                          color: Theme.of(context)
+                                                                              .colorScheme
+                                                                              .onSurface,
+                                                                        ),
+                                                                      ),
+                                                                    )
+                                                                  : Container()),
                                                           Flexible(
                                                             fit: FlexFit.tight,
                                                             child: IconButton(
