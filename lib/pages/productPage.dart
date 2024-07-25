@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
 import '../globals.dart' as globals;
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -34,7 +33,7 @@ class _ProductPageState extends State<ProductPage> {
   List<TableRow> properties = [];
   bool isRequired = true;
   List<Widget> propertiesWidget = [];
-  bool isLoading = false;
+
   int currentTab = 0;
   String? amount;
   List<String> TabText = ["", "", ""];
@@ -49,7 +48,6 @@ class _ProductPageState extends State<ProductPage> {
         setState(() {
           options = value["options"] ?? [];
           TabText[0] = value["description"];
-          isLoading = true;
         });
       }
     });
@@ -93,12 +91,12 @@ class _ProductPageState extends State<ProductPage> {
       if (options[i]["selection"] == "SINGLE") {
         setState(() {
           setState(() {
-            options[i]["selescted_relation_id"] = null;
+            options[i]["selected_relation_id"] = null;
           });
         });
       } else {
         setState(() {
-          options[i]["selescted_relation_id"] = [];
+          options[i]["selected_relation_id"] = [];
         });
       }
     }
@@ -676,37 +674,24 @@ class _ProductPageState extends State<ProductPage> {
             padding: EdgeInsets.all(10 * globals.scaleParam),
             width: MediaQuery.of(context).size.width,
             height: MediaQuery.of(context).size.width,
-            alignment: Alignment.center,
             child: Stack(
               children: [
-                ExtendedImage.network(
-                  widget.item["img"],
+                Container(
                   alignment: Alignment.center,
-                  height: double.infinity,
-                  clearMemoryCacheWhenDispose: true,
-                  heroBuilderForSlidingPage: (widget) {
-                    return LinearProgressIndicator();
-                  },
-                  enableMemoryCache: true,
-                  enableLoadState: false,
-                  fit: BoxFit.cover,
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.all(
+                        Radius.circular(10),
+                      ),
+                    ),
+                    clipBehavior: Clip.none,
+                    child: _image,
+                  ),
                 ),
-                // Container(
-                //   alignment: Alignment.center,
-                //   child: Container(
-                //     decoration: const BoxDecoration(
-                //       borderRadius: BorderRadius.all(
-                //         Radius.circular(10),
-                //       ),
-                //     ),
-                //     clipBehavior: Clip.none,
-                //     child: _image,
-                //   ),
-                // ),
               ],
             ),
           ),
-          isLoading
+          item.isNotEmpty
               ? Container(
                   padding: EdgeInsets.symmetric(
                       horizontal: 30 * globals.scaleParam,
@@ -763,160 +748,162 @@ class _ProductPageState extends State<ProductPage> {
           //     children: propertiesWidget,
           //   ),
           // ),
+
+          //! Options
           ListView.builder(
             primary: false,
             shrinkWrap: true,
             itemCount: options.length,
-            itemBuilder: (context, index_option) {
+            itemBuilder: (context, indexOption) {
               return Container(
-                  padding: EdgeInsets.all(30 * globals.scaleParam),
-                  margin: EdgeInsets.all(15 * globals.scaleParam),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            options[index_option]["name"],
-                            style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 48 * globals.scaleParam),
-                          ),
-                          int.parse(options[index_option]["required"]) == 1
-                              ? Container(
-                                  color: Colors.white,
-                                  child: Text(
-                                    "Обязательно",
-                                    style: TextStyle(
-                                        color: Colors.red,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 36 * globals.scaleParam),
-                                  ),
-                                )
-                              : Container(),
-                        ],
-                      ),
-                      ListView.builder(
-                        primary: false,
-                        shrinkWrap: true,
-                        itemCount: options[index_option]["option_items"].length,
-                        itemBuilder: (context, index) {
-                          bool isCheckBoxSelected = false;
-                          return options[index_option]["selection"] == "SINGLE"
-                              ? Row(
-                                  children: [
-                                    ChoiceChip(
-                                        selectedColor:
-                                            Colors.amberAccent.shade200,
-                                        disabledColor: Colors.white,
-                                        backgroundColor: Colors.white,
-                                        label: Text(
-                                          options[index_option]["option_items"]
-                                              [index]["name"],
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w700),
-                                        ),
-                                        selected: options[index_option]
-                                                ["selescted_relation_id"] ==
-                                            options[index_option]
-                                                    ["option_items"][index]
-                                                ["relation_id"],
-                                        onSelected: (v) {
-                                          print(v);
-                                          if (v) {
-                                            setState(() {
-                                              options[index_option][
-                                                      "selescted_relation_id"] =
-                                                  options[index_option]
-                                                          ["option_items"]
-                                                      [index]["relation_id"];
-                                            });
-                                          } else {
-                                            setState(() {
-                                              options[index_option][
-                                                      "selescted_relation_id"] =
-                                                  null;
-                                            });
-                                          }
-                                        }
-                                        // dense: true,
-                                        //   onChanged: (v) {
-
-                                        //   },
-                                        //   groupValue: options[index_option]
-                                        //       ["selescted_relation_id"],
-                                        //   value: options[index_option]
-                                        //           ["option_items"][index]
-                                        //       ["relation_id"],
-                                        //
-                                        )
-                                  ],
-                                )
-                              : Container(
-                                  alignment: Alignment.centerLeft,
-                                  decoration: BoxDecoration(
-                                      // boxShadow: [
-                                      //   BoxShadow(
-                                      //       offset: Offset(2, 2),
-                                      //       blurRadius: 5,
-                                      //       color: Colors.grey.shade400)
-                                      // ],
-                                      // color: Colors.white,
-                                      borderRadius: BorderRadius.all(
-                                          Radius.circular(15))),
-                                  // margin: EdgeInsets.all(10 * globals.scaleParam),
-                                  child: Row(
-                                    children: [
-                                      FilterChip(
-                                        backgroundColor: Colors.white,
-                                        deleteIcon: Container(),
-                                        deleteIconBoxConstraints:
-                                            BoxConstraints(),
-                                        label: Text(
-                                          options[index_option]["option_items"]
-                                              [index]["name"],
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w700),
-                                        ),
-                                        selected: List.castFrom(
-                                                options[index_option]
-                                                    ["selescted_relation_id"])
-                                            .contains(options[index_option]
-                                                    ["option_items"][index]
-                                                ["relation_id"]),
-                                        onSelected: (v) {
-                                          if (v) {
-                                            setState(() {
-                                              options[index_option]
-                                                      ["selescted_relation_id"]
-                                                  .add(options[index_option]
-                                                          ["option_items"]
-                                                      [index]["relation_id"]);
-                                            });
-                                          } else {
-                                            setState(() {
-                                              options[index_option]
-                                                      ["selescted_relation_id"]
-                                                  .removeWhere((item) =>
-                                                      item ==
-                                                      options[index_option]
-                                                              ["option_items"][
-                                                          index]["relation_id"]);
-                                            });
-                                          }
-                                        },
-                                        onDeleted: () {},
-                                        // value: isCheckBoxSelected,
-                                        // onChanged: (v) {}
+                padding: EdgeInsets.all(30 * globals.scaleParam),
+                margin: EdgeInsets.all(15 * globals.scaleParam),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          options[indexOption]["name"],
+                          style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 48 * globals.scaleParam),
+                        ),
+                        int.parse(options[indexOption]["required"]) == 1
+                            ? Container(
+                                color: Colors.white,
+                                child: Text(
+                                  "Обязательно",
+                                  style: TextStyle(
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 36 * globals.scaleParam),
+                                ),
+                              )
+                            : Container(),
+                      ],
+                    ),
+                    ListView.builder(
+                      primary: false,
+                      shrinkWrap: true,
+                      itemCount: options[indexOption]["option_items"].length,
+                      itemBuilder: (context, index) {
+                        bool isCheckBoxSelected = false;
+                        return options[indexOption]["selection"] == "SINGLE"
+                            ? Row(
+                                children: [
+                                  ChoiceChip(
+                                      selectedColor:
+                                          Colors.amberAccent.shade200,
+                                      disabledColor: Colors.white,
+                                      backgroundColor: Colors.white,
+                                      label: Text(
+                                        options[indexOption]["option_items"]
+                                            [index]["name"],
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w700),
                                       ),
-                                    ],
-                                  ));
-                        },
-                      )
-                    ],
-                  ));
+                                      selected: options[indexOption]
+                                              ["selected_relation_id"] ==
+                                          options[indexOption]["option_items"]
+                                              [index]["relation_id"],
+                                      onSelected: (v) {
+                                        print(v);
+                                        if (v) {
+                                          setState(() {
+                                            options[indexOption]
+                                                    ["selected_relation_id"] =
+                                                options[indexOption]
+                                                        ["option_items"][index]
+                                                    ["relation_id"];
+                                          });
+                                        } else {
+                                          setState(() {
+                                            options[indexOption]
+                                                ["selected_relation_id"] = null;
+                                          });
+                                        }
+                                      }
+                                      // dense: true,
+                                      //   onChanged: (v) {
+
+                                      //   },
+                                      //   groupValue: options[index_option]
+                                      //       ["selected_relation_id"],
+                                      //   value: options[index_option]
+                                      //           ["option_items"][index]
+                                      //       ["relation_id"],
+                                      //
+                                      )
+                                ],
+                              )
+                            : Container(
+                                alignment: Alignment.centerLeft,
+                                decoration: BoxDecoration(
+                                    // boxShadow: [
+                                    //   BoxShadow(
+                                    //       offset: Offset(2, 2),
+                                    //       blurRadius: 5,
+                                    //       color: Colors.grey.shade400)
+                                    // ],
+                                    // color: Colors.white,
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(15))),
+                                // margin: EdgeInsets.all(10 * globals.scaleParam),
+                                child: Row(
+                                  children: [
+                                    FilterChip(
+                                      backgroundColor: Colors.white,
+                                      deleteIcon: Container(),
+                                      deleteIconBoxConstraints:
+                                          BoxConstraints(),
+                                      label: Text(
+                                        options[indexOption]["option_items"]
+                                            [index]["name"],
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w700),
+                                      ),
+                                      selected: List.castFrom(
+                                              options[indexOption]
+                                                  ["selected_relation_id"])
+                                          .contains(options[indexOption]
+                                                  ["option_items"][index]
+                                              ["relation_id"]),
+                                      onSelected: (v) {
+                                        if (v) {
+                                          setState(() {
+                                            options[indexOption]
+                                                    ["selected_relation_id"]
+                                                .add(options[indexOption]
+                                                        ["option_items"][index]
+                                                    ["relation_id"]);
+                                          });
+                                        } else {
+                                          setState(() {
+                                            options[indexOption]
+                                                    ["selected_relation_id"]
+                                                .removeWhere((item) =>
+                                                    item ==
+                                                    options[indexOption]
+                                                            ["option_items"]
+                                                        [index]["relation_id"]);
+                                          });
+                                        }
+                                      },
+                                      onDeleted: () {},
+                                      // value: isCheckBoxSelected,
+                                      // onChanged: (v) {}
+                                    ),
+                                  ],
+                                ),
+                              );
+                      },
+                    )
+                  ],
+                ),
+              );
             },
           ),
           item["group"] != null
