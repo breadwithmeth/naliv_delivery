@@ -572,57 +572,71 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                   // как будто бы картинки быстрее грузятся, я хз я не тестил чисто на глаз посмотрел
                   // ну и кэш чистится
                   // это я тоже не тестил
-                  child: ExtendedImage.network(
-                    element["img"],
-                    height: double.infinity,
-                    clearMemoryCacheWhenDispose: true,
-
-                    enableMemoryCache: true,
-                    enableLoadState: false,
-                    fit: BoxFit.cover,
-                    // cacheManager: CacheManager(
-                    //   Config(
-                    //     "itemImage ${element["item_id"].toString()}",
-                    //     stalePeriod: Duration(days: 700),
-                    //   ),
-                    // ),
-                    // imageBuilder: (context, imageProvider) {
-                    //   return Column(
-                    //     mainAxisAlignment: MainAxisAlignment.center,
-                    //     children: [
-                    //       Flexible(
-                    //         fit: FlexFit.tight,
-                    //         child: Container(
-                    //           clipBehavior: Clip.antiAlias,
-                    //           decoration: BoxDecoration(
-                    //             borderRadius:
-                    //                 BorderRadius.all(Radius.circular(5)),
-                    //             color: Colors.white,
-                    //           ),
-                    //           child: Image(
-                    //             image: imageProvider,
-                    //             fit: BoxFit.fitHeight,
-                    //           ),
-                    //         ),
-                    //       ),
-                    //     ],
-                    //   );
-                    // },
-                    // errorWidget: (context, url, error) {
-                    //   return LayoutBuilder(
-                    //     builder: (context, constraints) {
-                    //       return FractionallySizedBox(
-                    //         heightFactor: 1,
-                    //         widthFactor: 2 / 4,
-                    //         child: Image.asset(
-                    //           'assets/category_icons/no_image_ico.png',
-                    //           opacity: AlwaysStoppedAnimation(0.5),
-                    //         ),
-                    //       );
-                    //     },
-                    //   );
-                    // },
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        fit: FlexFit.tight,
+                        child: Container(
+                          clipBehavior: Clip.antiAlias,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.all(Radius.circular(5)),
+                            color: Colors.white,
+                          ),
+                          child: ExtendedImage.network(
+                            element["img"],
+                            height: double.infinity,
+                            clearMemoryCacheWhenDispose: true,
+                            enableMemoryCache: true,
+                            enableLoadState: false,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+                  //   fit: BoxFit.cover,
+                  // cacheManager: CacheManager(
+                  //   Config(
+                  //     "itemImage ${element["item_id"].toString()}",
+                  //     stalePeriod: Duration(days: 700),
+                  //   ),
+                  // ),
+                  // imageBuilder: (context, imageProvider) {
+                  // return Column(
+                  //   mainAxisAlignment: MainAxisAlignment.center,
+                  //   children: [
+                  //     Flexible(
+                  //       fit: FlexFit.tight,
+                  //       child: Container(
+                  //         clipBehavior: Clip.antiAlias,
+                  //         decoration: BoxDecoration(
+                  //           borderRadius:
+                  //               BorderRadius.all(Radius.circular(5)),
+                  //           color: Colors.white,
+                  //         ),
+                  //         child: Image(
+                  //           image: imageProvider,
+                  //           fit: BoxFit.fitHeight,
+                  //         ),
+                  //       ),
+                  //     ),
+                  //   ],
+                  // );
+                  // },
+                  // errorWidget: (context, url, error) {
+                  //   return LayoutBuilder(
+                  //     builder: (context, constraints) {
+                  //       return FractionallySizedBox(
+                  //         heightFactor: 1,
+                  //         widthFactor: 2 / 4,
+                  //         child: Image.asset(
+                  //           'assets/category_icons/no_image_ico.png',
+                  //           opacity: AlwaysStoppedAnimation(0.5),
+                  //         ),
+                  //       );
+                  //     },
+                  //   );
+                  // },
                 ),
               ),
               Flexible(
