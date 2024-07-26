@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
 import '../globals.dart' as globals;
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -259,46 +260,49 @@ class _ProductPageState extends State<ProductPage> {
 
       bool isImageDownloaded = false;
       _image = Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.all(Radius.circular(10)),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: CachedNetworkImage(
-          fit: BoxFit.fitHeight,
-          cacheManager: CacheManager(Config(
-            "itemImage",
-            stalePeriod: const Duration(days: 7),
-            //one week cache period
-          )),
-          imageUrl: item["img"],
-          progressIndicatorBuilder: (context, url, progress) {
-            if (progress.progress == 1) isImageDownloaded = true;
-            return Padding(
-              padding: const EdgeInsets.all(2),
-              child: CircularProgressIndicator(
-                value: isImageDownloaded ? 1 : progress.progress,
-              ),
-            );
-          },
-          // placeholder: ((context, url) {
-          //   return const CircularProgressIndicator();
-          // }),
-          errorWidget: (context, url, error) {
-            return LayoutBuilder(
-              builder: (context, constraints) {
-                return FractionallySizedBox(
-                  heightFactor: 1,
-                  widthFactor: 2 / 4,
-                  child: Image.asset(
-                    'assets/category_icons/no_image_ico.png',
-                    opacity: AlwaysStoppedAnimation(0.5),
-                  ),
-                );
-              },
-            );
-          },
-        ),
-      );
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: ExtendedImage.network(
+            item["img"],
+          )
+          // child: CachedNetworkImage(
+          //   fit: BoxFit.fitHeight,
+          //   cacheManager: CacheManager(Config(
+          //     "itemImage",
+          //     stalePeriod: const Duration(days: 7),
+          //     //one week cache period
+          //   )),
+          //   imageUrl: item["img"],
+          //   progressIndicatorBuilder: (context, url, progress) {
+          //     if (progress.progress == 1) isImageDownloaded = true;
+          //     return Padding(
+          //       padding: const EdgeInsets.all(2),
+          //       child: CircularProgressIndicator(
+          //         value: isImageDownloaded ? 1 : progress.progress,
+          //       ),
+          //     );
+          //   },
+          //   // placeholder: ((context, url) {
+          //   //   return const CircularProgressIndicator();
+          //   // }),
+          //   errorWidget: (context, url, error) {
+          //     return LayoutBuilder(
+          //       builder: (context, constraints) {
+          //         return FractionallySizedBox(
+          //           heightFactor: 1,
+          //           widthFactor: 2 / 4,
+          //           child: Image.asset(
+          //             'assets/category_icons/no_image_ico.png',
+          //             opacity: AlwaysStoppedAnimation(0.5),
+          //           ),
+          //         );
+          //       },
+          //     );
+          //   },
+          // ),
+          );
       // Future.delayed(const Duration(milliseconds: 0)).whenComplete(() async {
       //   await _getItem().then((value) {
       //     print("DATA RECIEVED!");

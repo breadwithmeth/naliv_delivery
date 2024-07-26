@@ -1676,12 +1676,26 @@ class _ItemCardSquareState extends State<ItemCardSquare>
   int previousAmount = 0;
   late int chack;
   Timer? _debounce;
+  Timer? _hideButtonsTimer;
 
   bool canButtonsBeUsed = true;
+  bool hideButtons = true;
 
   late AnimationController _controller;
   late Animation<Offset> _offsetAnimation;
   // late Animation<Offset> _offsetAnimationReverse;
+
+  void _hideButtonsAfterTime() {
+    // Cancel the previous timer if it exists
+    if (_hideButtonsTimer?.isActive ?? false) _hideButtonsTimer!.cancel();
+
+    // Start a new timer
+    _hideButtonsTimer = Timer(Duration(milliseconds: 1500), () {
+      setState(() {
+        hideButtons = true;
+      });
+    });
+  }
 
   void _updateItemCountServerCall() {
     changeCartItem(
@@ -1910,7 +1924,8 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                       child: AnimatedCrossFade(
                         alignment: Alignment.topRight,
                         duration: Durations.medium1,
-                        crossFadeState: amountInCart == 0
+                        crossFadeState: amountInCart == 0 ||
+                                (amountInCart > 0 && hideButtons)
                             ? CrossFadeState.showFirst
                             : CrossFadeState.showSecond,
                         firstChild: Row(
@@ -1925,12 +1940,32 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                       child: AspectRatio(
                                         aspectRatio: 1,
                                         child: IconButton(
+                                          style: IconButton.styleFrom(
+                                            backgroundColor: amountInCart > 0
+                                                ? Colors.amberAccent.shade200
+                                                : Colors.white,
+                                          ),
                                           highlightColor: canButtonsBeUsed
                                               ? Colors.transparent
                                               : Colors.transparent,
                                           padding: EdgeInsets.all(0),
                                           onPressed: canButtonsBeUsed
                                               ? () {
+                                                  if (hideButtons &&
+                                                      amountInCart > 0) {
+                                                    setState(() {
+                                                      hideButtons = false;
+                                                    });
+                                                    return;
+                                                  } else if (hideButtons &&
+                                                      amountInCart == 0) {
+                                                    setState(() {
+                                                      hideButtons = false;
+                                                    });
+                                                    _hideButtonsAfterTime();
+                                                  } else {
+                                                    _hideButtonsAfterTime();
+                                                  }
                                                   _incrementAmountInCart();
                                                   setState(() {
                                                     canButtonsBeUsed = false;
@@ -1954,14 +1989,27 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                               borderRadius: BorderRadius.all(
                                                 Radius.circular(100),
                                               ),
-                                              color: Colors.white,
+                                              // color: Colors.white,
                                             ),
-                                            child: Icon(
-                                              Icons.add_rounded,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface,
-                                            ),
+                                            child: amountInCart == 0
+                                                ? Icon(
+                                                    Icons.add_rounded,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurface,
+                                                  )
+                                                : Text(
+                                                    amountInCart.toString(),
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      fontSize: 32 *
+                                                          globals.scaleParam,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface,
+                                                    ),
+                                                  ),
                                           ),
                                         ),
                                       ),
@@ -1981,6 +2029,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                   padding: EdgeInsets.all(0),
                                   onPressed: canButtonsBeUsed
                                       ? () {
+                                          _hideButtonsAfterTime();
                                           _decrementAmountInCart();
                                           if (amountInCart <= 0) {
                                             setState(() {
@@ -2046,6 +2095,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                   onPressed: canButtonsBeUsed
                                       ? () {
                                           _incrementAmountInCart();
+                                          _hideButtonsAfterTime();
                                         }
                                       : null,
                                   icon: Container(
