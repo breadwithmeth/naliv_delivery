@@ -671,24 +671,17 @@ class _ProductPageState extends State<ProductPage> {
             height: 10 * globals.scaleParam,
           ),
           Container(
-            padding: EdgeInsets.all(10 * globals.scaleParam),
-            width: MediaQuery.of(context).size.width,
-            height: MediaQuery.of(context).size.width,
-            child: Stack(
-              children: [
-                Container(
-                  alignment: Alignment.center,
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      borderRadius: BorderRadius.all(
-                        Radius.circular(10),
-                      ),
-                    ),
-                    clipBehavior: Clip.none,
-                    child: _image,
-                  ),
+            width: MediaQuery.sizeOf(context).width * 0.5,
+            height: MediaQuery.sizeOf(context).height * 0.5,
+            alignment: Alignment.center,
+            child: Container(
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.all(
+                  Radius.circular(10),
                 ),
-              ],
+              ),
+              clipBehavior: Clip.none,
+              child: _image,
             ),
           ),
           item.isNotEmpty

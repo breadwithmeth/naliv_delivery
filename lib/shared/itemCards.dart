@@ -585,7 +585,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                           ),
                           child: ExtendedImage.network(
                             element["img"],
-                            height: double.infinity,
+                            fit: BoxFit.fitHeight,
                             clearMemoryCacheWhenDispose: true,
                             enableMemoryCache: true,
                             enableLoadState: false,
