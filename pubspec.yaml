@@ -64,7 +64,7 @@ dependencies:
   extended_image: ^8.2.1
   flutter_native_splash: ^2.2.16
   vector_map_tiles: ^7.3.1
-  drawing_animation: ^1.0.0
+  # drawing_animation: ^1.0.0
 
 
 
