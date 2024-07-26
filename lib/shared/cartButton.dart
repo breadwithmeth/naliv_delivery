@@ -24,8 +24,12 @@ class _CartButtonState extends State<CartButton> {
       height: MediaQuery.sizeOf(context).shortestSide * 0.2,
       child: FloatingActionButton(
         shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(10))),
+          borderRadius: BorderRadius.all(
+            Radius.circular(10),
+          ),
+        ),
         child: Icon(
+          size: MediaQuery.sizeOf(context).shortestSide * 0.088,
           Icons.shopping_basket_rounded,
           color: Theme.of(context).colorScheme.onPrimary,
         ),
