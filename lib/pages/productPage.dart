@@ -61,6 +61,7 @@ class _ProductPageState extends State<ProductPage> {
   bool isServerCallOnGoing = false;
   bool isLastServerCallWasSucceed = false;
   bool isOptionsLoaded = false;
+  bool isRequiredSelected = false;
 
   Map<String, String> buyButtonActionTextMap = {
     "add": "Добавить",
@@ -79,6 +80,32 @@ class _ProductPageState extends State<ProductPage> {
 
     print(result);
     return Future(() => result!);
+  }
+
+  void _checkOptions() {
+    for (var i = 0; i < options.length; i++) {
+      if (options[i]["selection"] == "SINGLE") {
+        if (options[i]["selected_relation_id"] != null) {
+          setState(() {
+            isRequiredSelected = true;
+          });
+          return;
+        }
+        // setState(() {
+        //   setState(() {
+        //     options[i]["selected_relation_id"] = null;
+        //   });
+        // });
+      } else {
+        // setState(() {
+        //   options[i]["selected_relation_id"] = [];
+        // });
+      }
+    }
+    setState(() {
+      isRequiredSelected = false;
+    });
+    return;
   }
 
   initOptionSelector() {
@@ -351,264 +378,252 @@ class _ProductPageState extends State<ProductPage> {
         position: AlwaysStoppedAnimation(Offset(0, -0.25)),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            return isOptionsLoaded
-                ? isRequired
-                    ? Container(
-                        decoration: BoxDecoration(
-                            color: Colors.black,
-                            boxShadow: [
-                              BoxShadow(
-                                offset: Offset(3, 5),
-                                color: Colors.black38,
-                                blurRadius: 5,
-                              )
-                            ],
-                            borderRadius: BorderRadius.all(
-                                Radius.circular(30 * globals.scaleParam))),
-                        alignment: Alignment.center,
-                        width: constraints.maxWidth * 0.95,
-                        height: 125 * globals.scaleParam,
-                        child: Text(
-                          "Выберите опцию",
-                          style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              fontSize: 48 * globals.scaleParam),
-                        ),
-                      )
-                    : Container(
-                        width: constraints.maxWidth * 0.95,
-                        height: 125 * globals.scaleParam,
-                        child: Stack(
-                          alignment: Alignment.bottomCenter,
-                          children: [
-                            Row(
-                              children: [
-                                Flexible(
-                                  flex: 5,
-                                  fit: FlexFit.tight,
-                                  child: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 10 * globals.scaleParam),
-                                    child: ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        disabledBackgroundColor:
-                                            Colors.grey.shade200,
-                                        padding: EdgeInsets.zero,
-                                      ),
-                                      onPressed: null,
-                                      child: Container(
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.all(
-                                              Radius.circular(8)),
-                                          clipBehavior:
-                                              Clip.antiAliasWithSaveLayer,
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.center,
-                                            children: [
-                                              Flexible(
-                                                fit: FlexFit.tight,
-                                                child: IconButton(
-                                                  padding:
-                                                      const EdgeInsets.all(0),
-                                                  onPressed: () {
-                                                    _removeFromCart();
-                                                  },
-                                                  icon: Container(
-                                                    padding: EdgeInsets.all(
-                                                        5 * globals.scaleParam),
-                                                    decoration: BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.all(
-                                                        Radius.circular(100),
-                                                      ),
-                                                      color:
-                                                          Colors.grey.shade400,
-                                                    ),
-                                                    child: Icon(
-                                                      Icons.remove_rounded,
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .onSurface,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                              Flexible(
-                                                fit: FlexFit.tight,
-                                                child: Column(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    Text(
-                                                      amountInCart.toString(),
-                                                      textHeightBehavior:
-                                                          const TextHeightBehavior(
-                                                        applyHeightToFirstAscent:
-                                                            false,
-                                                      ),
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                      style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                        fontSize: 34 *
-                                                            globals.scaleParam,
-                                                        color: Theme.of(context)
-                                                            .colorScheme
-                                                            .onSurface,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              Flexible(
-                                                fit: FlexFit.tight,
-                                                child: IconButton(
-                                                  padding:
-                                                      const EdgeInsets.all(0),
-                                                  onPressed: () {
-                                                    _addToCart();
-                                                  },
-                                                  icon: Container(
-                                                    padding: EdgeInsets.all(
-                                                        5 * globals.scaleParam),
-                                                    decoration: BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.all(
-                                                        Radius.circular(100),
-                                                      ),
-                                                      color:
-                                                          Colors.grey.shade400,
-                                                    ),
-                                                    child: Icon(
-                                                      Icons.add_rounded,
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .onSurface,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
+            if (!isOptionsLoaded) {
+              return Container(
+                width: constraints.maxWidth * 0.95,
+                height: 125 * globals.scaleParam,
+                child: Stack(
+                  alignment: Alignment.bottomCenter,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          fit: FlexFit.tight,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 10 * globals.scaleParam),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: buyButtonActionColor,
+                                padding: EdgeInsets.zero,
+                              ),
+                              onPressed: null,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        fit: FlexFit.tight,
+                                        child: Text(
+                                          "Загружаю...",
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 38 * globals.scaleParam,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onPrimary,
                                           ),
                                         ),
                                       ),
-                                    ),
+                                    ],
                                   ),
-                                ),
-                                Flexible(
-                                  flex: 7,
-                                  fit: FlexFit.tight,
-                                  child: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 10 * globals.scaleParam),
-                                    child: ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: buyButtonActionColor,
-                                        padding: EdgeInsets.zero,
-                                      ),
-                                      onPressed: () {
-                                        if (actualCartAmount == 0) {
-                                          _finalizeCartAmount();
-                                        } else if (actualCartAmount ==
-                                                amountInCart ||
-                                            amountInCart == 0) {
-                                          setState(() {
-                                            amountInCart = 0;
-                                          });
-                                          _finalizeCartAmount();
-                                        } else {
-                                          _finalizeCartAmount();
-                                        }
-                                      },
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Flexible(
-                                                fit: FlexFit.tight,
-                                                child: Text(
-                                                  buyButtonActionText,
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.w700,
-                                                    fontSize:
-                                                        38 * globals.scaleParam,
-                                                    color: Theme.of(context)
-                                                        .colorScheme
-                                                        .onPrimary,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ],
+                          ),
                         ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }
+            if (isRequired && !isRequiredSelected) {
+              return Container(
+                decoration: BoxDecoration(
+                    color: Colors.black,
+                    boxShadow: [
+                      BoxShadow(
+                        offset: Offset(3, 5),
+                        color: Colors.black38,
+                        blurRadius: 5,
                       )
-                : Container(
-                    width: constraints.maxWidth * 0.95,
-                    height: 125 * globals.scaleParam,
-                    child: Stack(
-                      alignment: Alignment.bottomCenter,
+                    ],
+                    borderRadius: BorderRadius.all(
+                        Radius.circular(30 * globals.scaleParam))),
+                alignment: Alignment.center,
+                width: constraints.maxWidth * 0.95,
+                height: 125 * globals.scaleParam,
+                child: Text(
+                  "Выберите опцию",
+                  style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      fontSize: 48 * globals.scaleParam),
+                ),
+              );
+            } else {
+              return Container(
+                width: constraints.maxWidth * 0.95,
+                height: 125 * globals.scaleParam,
+                child: Stack(
+                  alignment: Alignment.bottomCenter,
+                  children: [
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 10 * globals.scaleParam),
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: buyButtonActionColor,
-                                    padding: EdgeInsets.zero,
-                                  ),
-                                  onPressed: null,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                        Flexible(
+                          flex: 5,
+                          fit: FlexFit.tight,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 10 * globals.scaleParam),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                disabledBackgroundColor: Colors.grey.shade200,
+                                padding: EdgeInsets.zero,
+                              ),
+                              onPressed: null,
+                              child: Container(
+                                child: ClipRRect(
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(8)),
+                                  clipBehavior: Clip.antiAliasWithSaveLayer,
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
                                     children: [
-                                      Row(
-                                        children: [
-                                          Flexible(
-                                            fit: FlexFit.tight,
-                                            child: Text(
-                                              "Загружаю...",
+                                      Flexible(
+                                        fit: FlexFit.tight,
+                                        child: IconButton(
+                                          padding: const EdgeInsets.all(0),
+                                          onPressed: () {
+                                            _removeFromCart();
+                                          },
+                                          icon: Container(
+                                            padding: EdgeInsets.all(
+                                                5 * globals.scaleParam),
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.all(
+                                                Radius.circular(100),
+                                              ),
+                                              color: Colors.grey.shade400,
+                                            ),
+                                            child: Icon(
+                                              Icons.remove_rounded,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Flexible(
+                                        fit: FlexFit.tight,
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              amountInCart.toString(),
+                                              textHeightBehavior:
+                                                  const TextHeightBehavior(
+                                                applyHeightToFirstAscent: false,
+                                              ),
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
                                                 fontWeight: FontWeight.w700,
                                                 fontSize:
-                                                    38 * globals.scaleParam,
+                                                    34 * globals.scaleParam,
                                                 color: Theme.of(context)
                                                     .colorScheme
-                                                    .onPrimary,
+                                                    .onSurface,
                                               ),
                                             ),
+                                          ],
+                                        ),
+                                      ),
+                                      Flexible(
+                                        fit: FlexFit.tight,
+                                        child: IconButton(
+                                          padding: const EdgeInsets.all(0),
+                                          onPressed: () {
+                                            _addToCart();
+                                          },
+                                          icon: Container(
+                                            padding: EdgeInsets.all(
+                                                5 * globals.scaleParam),
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.all(
+                                                Radius.circular(100),
+                                              ),
+                                              color: Colors.grey.shade400,
+                                            ),
+                                            child: Icon(
+                                              Icons.add_rounded,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface,
+                                            ),
                                           ),
-                                        ],
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ),
                               ),
                             ),
-                          ],
+                          ),
+                        ),
+                        Flexible(
+                          flex: 7,
+                          fit: FlexFit.tight,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 10 * globals.scaleParam),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: buyButtonActionColor,
+                                padding: EdgeInsets.zero,
+                              ),
+                              onPressed: () {
+                                if (actualCartAmount == 0) {
+                                  _finalizeCartAmount();
+                                } else if (actualCartAmount == amountInCart ||
+                                    amountInCart == 0) {
+                                  setState(() {
+                                    amountInCart = 0;
+                                  });
+                                  _finalizeCartAmount();
+                                } else {
+                                  _finalizeCartAmount();
+                                }
+                              },
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        fit: FlexFit.tight,
+                                        child: Text(
+                                          buyButtonActionText,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 38 * globals.scaleParam,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onPrimary,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                  );
+                  ],
+                ),
+              );
+            }
           },
         ),
       ),
@@ -646,7 +661,7 @@ class _ProductPageState extends State<ProductPage> {
                       Text(
                         item["name"] ?? "",
                         style: TextStyle(
-                          fontSize: 40 * globals.scaleParam,
+                          fontSize: 42 * globals.scaleParam,
                           fontWeight: FontWeight.w700,
                           color: Colors.black,
                         ),
@@ -655,7 +670,7 @@ class _ProductPageState extends State<ProductPage> {
                         height: 20 * globals.scaleParam,
                       ),
                       Padding(
-                        padding: EdgeInsets.only(left: 10 * globals.scaleParam),
+                        padding: EdgeInsets.only(left: 15 * globals.scaleParam),
                         child: Column(
                           children: [
                             Row(
@@ -767,7 +782,6 @@ class _ProductPageState extends State<ProductPage> {
                       shrinkWrap: true,
                       itemCount: options[indexOption]["option_items"].length,
                       itemBuilder: (context, index) {
-                        bool isCheckBoxSelected = false;
                         return options[indexOption]["selection"] == "SINGLE"
                             ? Row(
                                 children: [
@@ -802,6 +816,7 @@ class _ProductPageState extends State<ProductPage> {
                                                 ["selected_relation_id"] = null;
                                           });
                                         }
+                                        _checkOptions();
                                       }
                                       // dense: true,
                                       //   onChanged: (v) {
@@ -868,6 +883,7 @@ class _ProductPageState extends State<ProductPage> {
                                                         [index]["relation_id"]);
                                           });
                                         }
+                                        _checkOptions();
                                       },
                                       onDeleted: () {},
                                       // value: isCheckBoxSelected,

@@ -1898,7 +1898,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                     ),
                     Container(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.all(Radius.circular(30)),
+                        borderRadius: BorderRadius.all(Radius.circular(100)),
                         color: Colors.white,
                         boxShadow: [
                           BoxShadow(
@@ -1918,46 +1918,50 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             int.parse(widget.element["option"]) == 1
-                                ? SizedBox(
-                                    height: widget.constraints.maxHeight * 0.2,
-                                    child: AspectRatio(
-                                      aspectRatio: 1,
-                                      child: IconButton(
-                                        highlightColor: canButtonsBeUsed
-                                            ? Colors.transparent
-                                            : Colors.transparent,
-                                        padding: EdgeInsets.all(0),
-                                        onPressed: canButtonsBeUsed
-                                            ? () {
-                                                _incrementAmountInCart();
-                                                setState(() {
-                                                  canButtonsBeUsed = false;
-                                                });
-                                                _controller.forward();
-                                                Timer(
-                                                  Duration(milliseconds: 300),
-                                                  () {
-                                                    setState(() {
-                                                      canButtonsBeUsed = true;
-                                                    });
-                                                  },
-                                                );
-                                              }
-                                            : null,
-                                        icon: Container(
-                                          padding: EdgeInsets.all(
-                                              5 * globals.scaleParam),
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.all(
-                                              Radius.circular(100),
+                                ? Flexible(
+                                    child: SizedBox(
+                                      height:
+                                          widget.constraints.maxHeight * 0.2,
+                                      child: AspectRatio(
+                                        aspectRatio: 1,
+                                        child: IconButton(
+                                          highlightColor: canButtonsBeUsed
+                                              ? Colors.transparent
+                                              : Colors.transparent,
+                                          padding: EdgeInsets.all(0),
+                                          onPressed: canButtonsBeUsed
+                                              ? () {
+                                                  _incrementAmountInCart();
+                                                  setState(() {
+                                                    canButtonsBeUsed = false;
+                                                  });
+                                                  _controller.forward();
+                                                  Timer(
+                                                    Duration(milliseconds: 300),
+                                                    () {
+                                                      setState(() {
+                                                        canButtonsBeUsed = true;
+                                                      });
+                                                    },
+                                                  );
+                                                }
+                                              : null,
+                                          icon: Container(
+                                            // alignment: Alignment.center,
+                                            padding: EdgeInsets.all(
+                                                5 * globals.scaleParam),
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.all(
+                                                Radius.circular(100),
+                                              ),
+                                              color: Colors.white,
                                             ),
-                                            color: Colors.white,
-                                          ),
-                                          child: Icon(
-                                            Icons.add_rounded,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface,
+                                            child: Icon(
+                                              Icons.add_rounded,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface,
+                                            ),
                                           ),
                                         ),
                                       ),
