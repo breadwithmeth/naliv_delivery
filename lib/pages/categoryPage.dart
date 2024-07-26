@@ -614,7 +614,6 @@ class _CategoryPageListState extends State<CategoryPageList>
 
   Future<void> _getItems() async {
     try {
-      //! TODO: SEND SEARCH PARAMETER TO API
       List? responseList = await getItemsMain(
           _pageNumber, widget.business["business_id"], "", widget.categoryId);
       if (responseList != null) {
