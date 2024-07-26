@@ -1956,6 +1956,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                                     setState(() {
                                                       hideButtons = false;
                                                     });
+                                                    _hideButtonsAfterTime();
                                                     return;
                                                   } else if (hideButtons &&
                                                       amountInCart == 0) {
@@ -2019,7 +2020,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                           ],
                         ),
                         secondChild: SizedBox(
-                          width: widget.constraints.maxWidth * 0.8,
+                          width: widget.constraints.maxWidth * 0.7,
                           height: widget.constraints.maxHeight * 0.2,
                           child: Row(
                             children: [

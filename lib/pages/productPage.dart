@@ -819,6 +819,10 @@ class _ProductPageState extends State<ProductPage> {
                                             options[indexOption]
                                                 ["selected_relation_id"] = null;
                                           });
+                                          setState(() {
+                                            amountInCart = 0;
+                                          });
+                                          _finalizeCartAmount();
                                         }
                                         _checkOptions();
                                       }
