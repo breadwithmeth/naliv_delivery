@@ -1639,3 +1639,595 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
     );
   }
 }
+
+class ItemCardSquare extends StatefulWidget {
+  const ItemCardSquare(
+      {super.key,
+      required this.itemId,
+      required this.element,
+      required this.categoryName,
+      required this.categoryId,
+      required this.scroll,
+      required this.business,
+      required this.index,
+      this.categoryPageUpdateData,
+      required this.constraints});
+  final Map<String, dynamic> element;
+  final String categoryName;
+  final BoxConstraints constraints;
+
+  final String itemId;
+
+  final String categoryId;
+  final double scroll;
+  final Map<dynamic, dynamic> business;
+  final int index;
+  final chack = 1;
+  final Function(String, int)? categoryPageUpdateData;
+  @override
+  State<ItemCardSquare> createState() => _ItemCardSquareState();
+}
+
+class _ItemCardSquareState extends State<ItemCardSquare>
+    with SingleTickerProviderStateMixin<ItemCardSquare> {
+  Map<String, dynamic> element = {};
+  List<InlineSpan> propertiesWidget = [];
+  int amountInCart = 0;
+  int previousAmount = 0;
+  late int chack;
+  Timer? _debounce;
+
+  bool canButtonsBeUsed = true;
+
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnimation;
+  // late Animation<Offset> _offsetAnimationReverse;
+
+  void _updateItemCountServerCall() {
+    changeCartItem(
+            element["item_id"], amountInCart, widget.business["business_id"])
+        .then((value) {
+      if (value == null) {
+        if (0 != amountInCart) {
+          _updateItemCountServerCall();
+        } else {
+          setState(() {
+            amountInCart = 0;
+            previousAmount = amountInCart;
+          });
+        }
+      } else {
+        if (int.parse(value) != amountInCart) {
+          _updateItemCountServerCall();
+        } else {
+          setState(() {
+            amountInCart = int.parse(value);
+            previousAmount = amountInCart;
+          });
+        }
+      }
+      // if (widget.updateCategoryPageInfo != null) {
+      //   widget.updateCategoryPageInfo!(
+      //       amountInCart.toString(), widget.index);
+      // }
+      if (widget.categoryPageUpdateData != null) {
+        widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
+      }
+      print(value);
+    });
+  }
+
+  void _updateItemCount() {
+    // Cancel the previous timer if it exists
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    // Start a new timer
+    _debounce = Timer(Duration(milliseconds: 750), () {
+      // Call your server update function here
+      _updateItemCountServerCall();
+    });
+  }
+
+  void _decrementAmountInCart() {
+    if (amountInCart > 0) {
+      setState(() {
+        amountInCart--;
+      });
+      _updateItemCount();
+    }
+  }
+
+  void _incrementAmountInCart() {
+    if (amountInCart + 1 <= double.parse(element["in_stock"]).truncate()) {
+      setState(() {
+        amountInCart++;
+      });
+      _updateItemCount();
+    }
+  }
+
+  void updateCurrentItem(int amount, [int index = 0]) {
+    if (amountInCart == 0 && amount != 0) {
+      _controller.forward();
+    } else if (amount == 0) {
+      _controller.reverse();
+    }
+    print("AMOUNT IS $amount");
+    setState(() {
+      amountInCart = amount;
+    });
+  }
+
+  Future<void> refreshItemCard() async {
+    Map<String, dynamic>? element = await getItem(
+        widget.element["item_id"], widget.business["business_id"]);
+    print(element);
+    setState(() {
+      element!["name"] = "123";
+      element = element!;
+    });
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    setState(() {
+      element = widget.element;
+      amountInCart = int.parse(element["amount"] ?? "0");
+      previousAmount = amountInCart;
+    });
+    // getProperties();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+
+    _offsetAnimation = Tween<Offset>(
+      begin: Offset(0.70, 0),
+      end: Offset(-0.1, 0),
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    if (amountInCart > 0) {
+      _controller.forward();
+    }
+    // _offsetAnimationReverse = Tween<Offset>(
+    //   begin: Offset(0, 0),
+    //   end: Offset(1, 0),
+    // ).animate(CurvedAnimation(
+    //   parent: _controller,
+    //   curve: Curves.linear,
+    // ));
+  }
+
+  @override
+  void dispose() {
+    // Trigger the debounce action immediately if the timer is active
+    if (widget.categoryPageUpdateData != null) {
+      widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
+    }
+    if (_debounce?.isActive ?? false) {
+      _debounce?.cancel();
+      _updateItemCountServerCall();
+    }
+    super.dispose();
+  }
+
+  void getProperties() {
+    if (widget.element["properties"] != null) {
+      List<InlineSpan> propertiesT = [];
+      List<String> properties = widget.element["properties"].split(",");
+      print(properties);
+      for (var element in properties) {
+        List temp = element.split(":");
+        propertiesT.add(
+          WidgetSpan(
+            child: Row(
+              children: [
+                Text(
+                  temp[1],
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                ),
+                Image.asset(
+                  "assets/property_icons/${temp[0]}.png",
+                  width: 14,
+                  height: 14,
+                ),
+                SizedBox(
+                  width: 10,
+                )
+              ],
+            ),
+          ),
+        );
+      }
+      setState(() {
+        propertiesWidget = propertiesT;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    chack = widget.chack;
+    return GestureDetector(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          clipBehavior: Clip.antiAlias,
+          useSafeArea: true,
+          isScrollControlled: true,
+          showDragHandle: false,
+          builder: (context) {
+            widget.element["amount"] = amountInCart.toString();
+            return ProductPage(
+              item: widget.element,
+              index: widget.index,
+              returnDataAmount: updateCurrentItem,
+              business: widget.business,
+            );
+          },
+        );
+      },
+      // padding: EdgeInsets.symmetric(horizontal: 5 * globals.scaleParam),
+      // width: double.infinity,
+      // height: 300 * globals.scaleParam,
+      child: Container(
+        padding: EdgeInsets.all(10),
+        margin: EdgeInsets.all(10),
+        height: widget.constraints.minHeight,
+        width: widget.constraints.maxWidth,
+        decoration: BoxDecoration(
+            borderRadius: BorderRadius.all(Radius.circular(20)),
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                  blurRadius: 7,
+                  offset: Offset(2, 2),
+                  color: Colors.blueGrey.shade50)
+            ]),
+        child: Column(
+          children: [
+            Flexible(
+              flex: 2,
+              child: Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  Container(
+                    width: widget.constraints.minWidth,
+                    child: ExtendedImage.network(
+                      element["img"],
+                      height: double.infinity,
+                      clearMemoryCacheWhenDispose: true,
+                      enableMemoryCache: true,
+                      enableLoadState: false,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.all(Radius.circular(30)),
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.blueGrey.shade100, blurRadius: 5)
+                        ]),
+                    child: AnimatedCrossFade(
+                      alignment: Alignment.topRight,
+                      duration: Durations.medium1,
+                      crossFadeState: amountInCart == 0
+                          ? CrossFadeState.showFirst
+                          : CrossFadeState.showSecond,
+                      firstChild: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          int.parse(widget.element["option"]) == 1
+                              ? IconButton(
+                                  highlightColor: canButtonsBeUsed
+                                      ? Colors.transparent
+                                      : Colors.transparent,
+                                  padding: EdgeInsets.all(0),
+                                  onPressed: canButtonsBeUsed
+                                      ? () {
+                                          _incrementAmountInCart();
+                                          setState(() {
+                                            canButtonsBeUsed = false;
+                                          });
+                                          _controller.forward();
+                                          Timer(
+                                            Duration(milliseconds: 100),
+                                            () {
+                                              setState(() {
+                                                canButtonsBeUsed = true;
+                                              });
+                                            },
+                                          );
+                                        }
+                                      : null,
+                                  icon: Container(
+                                    padding:
+                                        EdgeInsets.all(5 * globals.scaleParam),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(100),
+                                      ),
+                                      color: Colors.white,
+                                    ),
+                                    child: Icon(
+                                      Icons.add_rounded,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
+                                    ),
+                                  ),
+                                )
+                              : Container()
+                        ],
+                      ),
+                      secondChild: Row(
+                        children: [
+                          Flexible(
+                            fit: FlexFit.tight,
+                            child: IconButton(
+                              padding: EdgeInsets.all(0),
+                              onPressed: canButtonsBeUsed
+                                  ? () {
+                                      _decrementAmountInCart();
+                                      if (amountInCart <= 0) {
+                                        setState(() {
+                                          canButtonsBeUsed = false;
+                                        });
+                                        _controller.reverse();
+                                        Timer(
+                                          Duration(milliseconds: 100),
+                                          () {
+                                            setState(() {
+                                              canButtonsBeUsed = true;
+                                            });
+                                          },
+                                        );
+                                      }
+                                    }
+                                  : null,
+                              icon: Container(
+                                child: Icon(
+                                  Icons.remove_rounded,
+                                  color: amountInCart > 0
+                                      ? Theme.of(context).colorScheme.onSurface
+                                      : Theme.of(context).colorScheme.secondary,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Flexible(
+                            flex: 2,
+                            fit: FlexFit.tight,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    "${amountInCart.toString()} шт.", //"${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
+                                    textHeightBehavior: TextHeightBehavior(
+                                      applyHeightToFirstAscent: false,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 36 * globals.scaleParam,
+                                      color: amountInCart != 0
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                          : Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Flexible(
+                            fit: FlexFit.tight,
+                            child: IconButton(
+                              padding: EdgeInsets.all(0),
+                              onPressed: canButtonsBeUsed
+                                  ? () {
+                                      _incrementAmountInCart();
+                                    }
+                                  : null,
+                              icon: Container(
+                                child: Icon(
+                                  Icons.add_rounded,
+                                  color: amountInCart <
+                                          double.parse(element["in_stock"])
+                                              .truncate()
+                                      ? Theme.of(context).colorScheme.onSurface
+                                      : Theme.of(context).colorScheme.secondary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                ],
+              ),
+            ),
+            Flexible(
+              flex: 2,
+              fit: FlexFit.tight,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisSize: MainAxisSize.max,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Flexible(
+                    flex: 2,
+                    fit: FlexFit.tight,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      key: Key(widget.element["item_id"]),
+                      onTap: () {
+                        showModalBottomSheet(
+                          context: context,
+                          clipBehavior: Clip.antiAlias,
+                          useSafeArea: true,
+                          isScrollControlled: true,
+                          showDragHandle: false,
+                          builder: (context) {
+                            widget.element["amount"] = amountInCart.toString();
+                            return ProductPage(
+                              item: widget.element,
+                              index: widget.index,
+                              returnDataAmount: updateCurrentItem,
+                              business: widget.business,
+                            );
+                          },
+                        );
+                      },
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 15 * globals.scaleParam,
+                          // vertical: 5 * globals.scaleParam,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Flexible(
+                              flex: 2,
+                              fit: FlexFit.tight,
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Flexible(
+                                    flex: 5,
+                                    fit: FlexFit.tight,
+                                    child: Container(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .surface, // Чтобы текст не обрезало сверху, потому что без цвета, он сжимается до краёв текста
+                                      child: RichText(
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        text: TextSpan(
+                                          style: TextStyle(
+                                            textBaseline:
+                                                TextBaseline.alphabetic,
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 30 * globals.scaleParam,
+                                            height: 2.5 * globals.scaleParam,
+                                          ),
+                                          children: [
+                                            TextSpan(
+                                              text: element["name"],
+                                            ),
+                                            element["country"] != null
+                                                ? WidgetSpan(
+                                                    child: Container(
+                                                      padding:
+                                                          EdgeInsets.symmetric(
+                                                        horizontal: 4 *
+                                                            globals.scaleParam,
+                                                        // vertical: 2 *
+                                                        // globals.scaleParam,
+                                                      ),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors
+                                                            .grey.shade200,
+                                                        borderRadius:
+                                                            BorderRadius.all(
+                                                          Radius.circular(10),
+                                                        ),
+                                                      ),
+                                                      child: Text(
+                                                        element["country"] ??
+                                                            "",
+                                                        style: TextStyle(
+                                                          color: Colors.black,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          fontSize: 26 *
+                                                              globals
+                                                                  .scaleParam,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  )
+                                                : TextSpan()
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Flexible(
+                              fit: FlexFit.tight,
+                              child: Text(
+                                "В наличии ${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт.",
+                                style: TextStyle(
+                                  color:
+                                      Theme.of(context).colorScheme.secondary,
+                                  fontSize: 28 * globals.scaleParam,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Flexible(
+                      child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 15 * globals.scaleParam,
+                      // vertical: 5 * globals.scaleParam,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          globals.formatCost(element['price'] ?? ""),
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 36 * globals.scaleParam,
+                          ),
+                        ),
+                        Text(
+                          "₸",
+                          textAlign: TextAlign.start,
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 36 * globals.scaleParam,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ))
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
