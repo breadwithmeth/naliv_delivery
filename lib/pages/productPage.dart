@@ -31,7 +31,7 @@ class _ProductPageState extends State<ProductPage> {
   late Map<String, dynamic> item = widget.item;
   List<Widget> groupItems = [];
   List<TableRow> properties = [];
-  bool isRequired = true;
+  bool isRequired = false;
   List<Widget> propertiesWidget = [];
 
   int currentTab = 0;
@@ -60,6 +60,7 @@ class _ProductPageState extends State<ProductPage> {
 
   bool isServerCallOnGoing = false;
   bool isLastServerCallWasSucceed = false;
+  bool isOptionsLoaded = false;
 
   Map<String, String> buyButtonActionTextMap = {
     "add": "Добавить",
@@ -84,6 +85,10 @@ class _ProductPageState extends State<ProductPage> {
     if (options.length == 0) {
       setState(() {
         isRequired = false;
+      });
+    } else {
+      setState(() {
+        isRequired = true;
       });
     }
 
@@ -204,8 +209,14 @@ class _ProductPageState extends State<ProductPage> {
     // TODO: implement initState
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      setState(() {
+        isOptionsLoaded = false;
+      });
       _getItem().then((value) {
         initOptionSelector();
+        setState(() {
+          isOptionsLoaded = true;
+        });
       });
     });
 
@@ -340,30 +351,213 @@ class _ProductPageState extends State<ProductPage> {
         position: AlwaysStoppedAnimation(Offset(0, -0.25)),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            return isRequired
-                ? Container(
-                    decoration: BoxDecoration(
-                        color: Colors.black,
-                        boxShadow: [
-                          BoxShadow(
-                            offset: Offset(3, 5),
-                            color: Colors.black38,
-                            blurRadius: 5,
-                          )
-                        ],
-                        borderRadius: BorderRadius.all(
-                            Radius.circular(30 * globals.scaleParam))),
-                    alignment: Alignment.center,
-                    width: constraints.maxWidth * 0.95,
-                    height: 125 * globals.scaleParam,
-                    child: Text(
-                      "Выберите опцию",
-                      style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          fontSize: 48 * globals.scaleParam),
-                    ),
-                  )
+            return isOptionsLoaded
+                ? isRequired
+                    ? Container(
+                        decoration: BoxDecoration(
+                            color: Colors.black,
+                            boxShadow: [
+                              BoxShadow(
+                                offset: Offset(3, 5),
+                                color: Colors.black38,
+                                blurRadius: 5,
+                              )
+                            ],
+                            borderRadius: BorderRadius.all(
+                                Radius.circular(30 * globals.scaleParam))),
+                        alignment: Alignment.center,
+                        width: constraints.maxWidth * 0.95,
+                        height: 125 * globals.scaleParam,
+                        child: Text(
+                          "Выберите опцию",
+                          style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              fontSize: 48 * globals.scaleParam),
+                        ),
+                      )
+                    : Container(
+                        width: constraints.maxWidth * 0.95,
+                        height: 125 * globals.scaleParam,
+                        child: Stack(
+                          alignment: Alignment.bottomCenter,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  flex: 5,
+                                  fit: FlexFit.tight,
+                                  child: Padding(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 10 * globals.scaleParam),
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        disabledBackgroundColor:
+                                            Colors.grey.shade200,
+                                        padding: EdgeInsets.zero,
+                                      ),
+                                      onPressed: null,
+                                      child: Container(
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(8)),
+                                          clipBehavior:
+                                              Clip.antiAliasWithSaveLayer,
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.center,
+                                            children: [
+                                              Flexible(
+                                                fit: FlexFit.tight,
+                                                child: IconButton(
+                                                  padding:
+                                                      const EdgeInsets.all(0),
+                                                  onPressed: () {
+                                                    _removeFromCart();
+                                                  },
+                                                  icon: Container(
+                                                    padding: EdgeInsets.all(
+                                                        5 * globals.scaleParam),
+                                                    decoration: BoxDecoration(
+                                                      borderRadius:
+                                                          BorderRadius.all(
+                                                        Radius.circular(100),
+                                                      ),
+                                                      color:
+                                                          Colors.grey.shade400,
+                                                    ),
+                                                    child: Icon(
+                                                      Icons.remove_rounded,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              Flexible(
+                                                fit: FlexFit.tight,
+                                                child: Column(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Text(
+                                                      amountInCart.toString(),
+                                                      textHeightBehavior:
+                                                          const TextHeightBehavior(
+                                                        applyHeightToFirstAscent:
+                                                            false,
+                                                      ),
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        fontSize: 34 *
+                                                            globals.scaleParam,
+                                                        color: Theme.of(context)
+                                                            .colorScheme
+                                                            .onSurface,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              Flexible(
+                                                fit: FlexFit.tight,
+                                                child: IconButton(
+                                                  padding:
+                                                      const EdgeInsets.all(0),
+                                                  onPressed: () {
+                                                    _addToCart();
+                                                  },
+                                                  icon: Container(
+                                                    padding: EdgeInsets.all(
+                                                        5 * globals.scaleParam),
+                                                    decoration: BoxDecoration(
+                                                      borderRadius:
+                                                          BorderRadius.all(
+                                                        Radius.circular(100),
+                                                      ),
+                                                      color:
+                                                          Colors.grey.shade400,
+                                                    ),
+                                                    child: Icon(
+                                                      Icons.add_rounded,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Flexible(
+                                  flex: 7,
+                                  fit: FlexFit.tight,
+                                  child: Padding(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 10 * globals.scaleParam),
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: buyButtonActionColor,
+                                        padding: EdgeInsets.zero,
+                                      ),
+                                      onPressed: () {
+                                        if (actualCartAmount == 0) {
+                                          _finalizeCartAmount();
+                                        } else if (actualCartAmount ==
+                                                amountInCart ||
+                                            amountInCart == 0) {
+                                          setState(() {
+                                            amountInCart = 0;
+                                          });
+                                          _finalizeCartAmount();
+                                        } else {
+                                          _finalizeCartAmount();
+                                        }
+                                      },
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Flexible(
+                                                fit: FlexFit.tight,
+                                                child: Text(
+                                                  buyButtonActionText,
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize:
+                                                        38 * globals.scaleParam,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onPrimary,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      )
                 : Container(
                     width: constraints.maxWidth * 0.95,
                     height: 125 * globals.scaleParam,
@@ -373,116 +567,6 @@ class _ProductPageState extends State<ProductPage> {
                         Row(
                           children: [
                             Flexible(
-                              flex: 5,
-                              fit: FlexFit.tight,
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 10 * globals.scaleParam),
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    disabledBackgroundColor:
-                                        Colors.grey.shade200,
-                                    padding: EdgeInsets.zero,
-                                  ),
-                                  onPressed: null,
-                                  child: Container(
-                                    child: ClipRRect(
-                                      borderRadius:
-                                          BorderRadius.all(Radius.circular(8)),
-                                      clipBehavior: Clip.antiAliasWithSaveLayer,
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          Flexible(
-                                            fit: FlexFit.tight,
-                                            child: IconButton(
-                                              padding: const EdgeInsets.all(0),
-                                              onPressed: () {
-                                                _removeFromCart();
-                                              },
-                                              icon: Container(
-                                                padding: EdgeInsets.all(
-                                                    5 * globals.scaleParam),
-                                                decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.all(
-                                                    Radius.circular(100),
-                                                  ),
-                                                  color: Colors.grey.shade400,
-                                                ),
-                                                child: Icon(
-                                                  Icons.remove_rounded,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurface,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          Flexible(
-                                            fit: FlexFit.tight,
-                                            child: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                Text(
-                                                  amountInCart.toString(),
-                                                  textHeightBehavior:
-                                                      const TextHeightBehavior(
-                                                    applyHeightToFirstAscent:
-                                                        false,
-                                                  ),
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.w700,
-                                                    fontSize:
-                                                        34 * globals.scaleParam,
-                                                    color: Theme.of(context)
-                                                        .colorScheme
-                                                        .onSurface,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Flexible(
-                                            fit: FlexFit.tight,
-                                            child: IconButton(
-                                              padding: const EdgeInsets.all(0),
-                                              onPressed: () {
-                                                _addToCart();
-                                              },
-                                              icon: Container(
-                                                padding: EdgeInsets.all(
-                                                    5 * globals.scaleParam),
-                                                decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.all(
-                                                    Radius.circular(100),
-                                                  ),
-                                                  color: Colors.grey.shade400,
-                                                ),
-                                                child: Icon(
-                                                  Icons.add_rounded,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurface,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Flexible(
-                              flex: 7,
                               fit: FlexFit.tight,
                               child: Padding(
                                 padding: EdgeInsets.symmetric(
@@ -492,20 +576,7 @@ class _ProductPageState extends State<ProductPage> {
                                     backgroundColor: buyButtonActionColor,
                                     padding: EdgeInsets.zero,
                                   ),
-                                  onPressed: () {
-                                    if (actualCartAmount == 0) {
-                                      _finalizeCartAmount();
-                                    } else if (actualCartAmount ==
-                                            amountInCart ||
-                                        amountInCart == 0) {
-                                      setState(() {
-                                        amountInCart = 0;
-                                      });
-                                      _finalizeCartAmount();
-                                    } else {
-                                      _finalizeCartAmount();
-                                    }
-                                  },
+                                  onPressed: null,
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
@@ -514,7 +585,7 @@ class _ProductPageState extends State<ProductPage> {
                                           Flexible(
                                             fit: FlexFit.tight,
                                             child: Text(
-                                              buyButtonActionText,
+                                              "Загружаю...",
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
                                                 fontWeight: FontWeight.w700,
@@ -535,129 +606,6 @@ class _ProductPageState extends State<ProductPage> {
                             ),
                           ],
                         ),
-                        // isNumPickActive
-                        //     ? SizedBox(
-                        //         width: double.infinity,
-                        //         child: Row(
-                        //           children: [
-                        //             Flexible(
-                        //               flex: 5,
-                        //               fit: FlexFit.tight,
-                        //               child: LayoutBuilder(
-                        //                 builder: (context, constraints) {
-                        //                   return OverflowBox(
-                        //                     maxHeight: constraints.maxHeight * 1.8,
-                        //                     child: Row(
-                        //                       children: [
-                        //                         Flexible(
-                        //                           child: Container(
-                        //                             // margin:
-                        //                             //     const EdgeInsets.symmetric(
-                        //                             //         horizontal: 10),
-                        //                             clipBehavior: Clip.antiAlias,
-                        //                             decoration: BoxDecoration(
-                        //                               borderRadius:
-                        //                                   const BorderRadius.all(
-                        //                                 Radius.circular(10),
-                        //                               ),
-                        //                               gradient: LinearGradient(
-                        //                                 colors: [
-                        //                                   Colors.transparent,
-                        //                                   Colors.amber,
-                        //                                   // Colors.transparent
-                        //                                 ],
-                        //                                 begin: Alignment.topCenter,
-                        //                                 end: Alignment.bottomCenter,
-                        //                               ),
-                        //                               // color: Theme.of(context)
-                        //                               //     .colorScheme
-                        //                               //     .secondary
-                        //                               //     .withOpacity(0.45),
-                        //                             ),
-                        //                             child: FractionallySizedBox(
-                        //                               widthFactor: 3 / 5,
-                        //                               child: ListView.builder(
-                        //                                 controller: _scrollController,
-                        //                                 itemCount: double.parse(
-                        //                                             item["in_stock"])
-                        //                                         .truncate() +
-                        //                                     2,
-                        //                                 itemExtent: 33.3,
-                        //                                 itemBuilder:
-                        //                                     (context, index) {
-                        //                                   if (index == 0 ||
-                        //                                       index ==
-                        //                                           double.parse(item[
-                        //                                                       "in_stock"])
-                        //                                                   .truncate() +
-                        //                                               1) {
-                        //                                     return const SizedBox(
-                        //                                       height: 15,
-                        //                                     );
-                        //                                   }
-                        //                                   return Row(
-                        //                                     mainAxisAlignment:
-                        //                                         MainAxisAlignment
-                        //                                             .center,
-                        //                                     children: [
-                        //                                       Flexible(
-                        //                                         child:
-                        //                                             GestureDetector(
-                        //                                           behavior:
-                        //                                               HitTestBehavior
-                        //                                                   .opaque,
-                        //                                           onTap: () {
-                        //                                             setState(() {
-                        //                                               cacheAmount =
-                        //                                                   index;
-                        //                                             });
-                        //                                             isNumPickActive =
-                        //                                                 false;
-                        //                                           },
-                        //                                           child: SizedBox(
-                        //                                             height: 33.3,
-                        //                                             child: Text(
-                        //                                               "${index.toString()} шт.",
-                        //                                               style:
-                        //                                                   TextStyle(
-                        //                                                 color: Theme.of(
-                        //                                                         context)
-                        //                                                     .colorScheme
-                        //                                                     .onPrimary,
-                        //                                                 fontSize: 20,
-                        //                                                 fontWeight: index ==
-                        //                                                         cacheAmount
-                        //                                                     ? FontWeight
-                        //                                                         .w900
-                        //                                                     : FontWeight
-                        //                                                         .w500,
-                        //                                               ),
-                        //                                             ),
-                        //                                           ),
-                        //                                         ),
-                        //                                       ),
-                        //                                     ],
-                        //                                   );
-                        //                                 },
-                        //                               ),
-                        //                             ),
-                        //                           ),
-                        //                         ),
-                        //                       ],
-                        //                     ),
-                        //                   );
-                        //                 },
-                        //               ),
-                        //             ),
-                        //             Flexible(
-                        //               flex: 7,
-                        //               fit: FlexFit.tight,
-                        //               child: SizedBox(),
-                        //             ),
-                        //           ],
-                        //         ),
-                        //       )
-                        //     : const SizedBox()
                       ],
                     ),
                   );
@@ -686,10 +634,11 @@ class _ProductPageState extends State<ProductPage> {
           ),
           item.isNotEmpty
               ? Container(
+                  // color: Colors.grey.shade50,
                   padding: EdgeInsets.symmetric(
-                      horizontal: 30 * globals.scaleParam,
-                      vertical:
-                          10 * (MediaQuery.sizeOf(context).height / 1080)),
+                    horizontal: 30 * globals.scaleParam,
+                    vertical: 10 * (MediaQuery.sizeOf(context).height / 1080),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.start,
@@ -702,20 +651,55 @@ class _ProductPageState extends State<ProductPage> {
                           color: Colors.black,
                         ),
                       ),
-                      Text(
-                        "${item['price'] ?? ''}",
-                        style: TextStyle(
-                          fontSize: 40 * globals.scaleParam,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black,
-                        ),
+                      SizedBox(
+                        height: 20 * globals.scaleParam,
                       ),
-                      Text(
-                        "${double.parse(item["in_stock"] ?? "0").truncate().toString()} шт. в наличии",
-                        style: TextStyle(
-                          fontSize: 28 * globals.scaleParam,
-                          fontWeight: FontWeight.w700,
-                          color: Theme.of(context).colorScheme.secondary,
+                      Padding(
+                        padding: EdgeInsets.only(left: 10 * globals.scaleParam),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    "${globals.formatCost(item['price'] ?? '')}",
+                                    style: TextStyle(
+                                      fontSize: 40 * globals.scaleParam,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                                Flexible(
+                                  child: Text(
+                                    "₸",
+                                    textAlign: TextAlign.start,
+                                    style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 38 * globals.scaleParam,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    "${double.parse(item["in_stock"] ?? "0").truncate().toString()} шт. в наличии",
+                                    style: TextStyle(
+                                      fontSize: 28 * globals.scaleParam,
+                                      fontWeight: FontWeight.w700,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .secondary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ],
