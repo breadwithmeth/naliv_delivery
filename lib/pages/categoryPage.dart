@@ -584,6 +584,29 @@ class _CategoryPageState extends State<CategoryPage> {
 //   Item(this);
 // }
 
+class FilterBar extends StatefulWidget {
+  const FilterBar({super.key});
+
+  @override
+  State<FilterBar> createState() => _FilterBarState();
+}
+
+class _FilterBarState extends State<FilterBar> {
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      slivers: [
+        SliverAppBar(
+          title: Text("Фильтр"),
+          automaticallyImplyLeading: false,
+          floating: true,
+          actions: [TextButton(onPressed: () {}, child: Text("Применить"))],
+        ),
+      ],
+    );
+  }
+}
+
 class CategoryPageList extends StatefulWidget {
   const CategoryPageList({
     super.key,
@@ -702,90 +725,55 @@ class _CategoryPageListState extends State<CategoryPageList>
         return Center(child: errorDialog(size: 20));
       }
     }
-    return Column(
-      children: [
-        // TabBar.secondary(
-        //   controller: _controller,
-        //   tabs: [
-        //     Padding(
-        //       padding: const EdgeInsets.symmetric(vertical: 8),
-        //       child: Text(
-        //         "Бутылка",
-        //         style: TextStyle(
-        //           fontSize: 14,
-        //           fontWeight: FontWeight.w500,
-        //           color: Colors.black,
-        //         ),
-        //       ),
-        //     ),
-        //     Padding(
-        //       padding: const EdgeInsets.symmetric(vertical: 8),
-        //       child: Text(
-        //         "Жестянка",
-        //         style: TextStyle(
-        //           fontSize: 14,
-        //           fontWeight: FontWeight.w500,
-        //           color: Colors.black,
-        //         ),
-        //       ),
-        //     ),
-        //     // Tab(text: 'Бутылка'),
-        //     // Tab(text: 'Жестянная банка'),
-        //   ],
-        // ),
-        Expanded(
-          child: _items.length > 1
-              ? Padding(
-                  padding: EdgeInsets.all(0),
-                  child: GridView.builder(
-                    primary: false,
-                    shrinkWrap: true,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        // crossAxisSpacing: globals.scaleParam * 5,
-                        // mainAxisSpacing: globals.scaleParam * 5,
-                        crossAxisCount:
-                            MediaQuery.of(context).size.aspectRatio > 1 ? 3 : 2,
-                        childAspectRatio:
-                            MediaQuery.of(context).size.aspectRatio > 1
-                                ? 1.5
-                                : 1),
-                    addAutomaticKeepAlives: false,
-                    itemCount: _items.length + (_isLastPage ? 0 : 1),
-                    itemBuilder: (context, index) {
-                      if ((index == _items.length - _nextPageTrigger) &&
-                          (!_isLastPage)) {
-                        _getItems();
-                      }
-                      if (index == _items.length) {
-                        if (_error) {
-                          return Center(child: errorDialog(size: 15));
-                        } else {
-                          return const Center(
-                              child: Padding(
-                            padding: EdgeInsets.all(8),
-                            child: CircularProgressIndicator(),
-                          ));
-                        }
-                      }
-                      final Map<String, dynamic> item = _items[index];
-                      return LayoutBuilder(
-                        builder: (context, constraints) {
-                          return ItemCardSquare(
-                            constraints: constraints,
-                            itemId: item["item_id"],
-                            element: item,
-                            categoryId: "",
-                            categoryName: "",
-                            scroll: 0,
-                            business: widget.business,
-                            index: index,
-                            categoryPageUpdateData: updateDataAmount,
-                          );
-                        },
+    return CustomScrollView(
+      slivers: [
+        _items.length > 1
+            ? SliverGrid.builder(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    // crossAxisSpacing: globals.scaleParam * 5,
+                    // mainAxisSpacing: globals.scaleParam * 5,
+                    crossAxisCount:
+                        MediaQuery.of(context).size.aspectRatio > 1 ? 6 : 2,
+                    childAspectRatio:
+                        MediaQuery.of(context).size.aspectRatio > 1 ? 1 : 1),
+                addAutomaticKeepAlives: false,
+                itemCount: _items.length + (_isLastPage ? 0 : 1),
+                itemBuilder: (context, index) {
+                  if ((index == _items.length - _nextPageTrigger) &&
+                      (!_isLastPage)) {
+                    _getItems();
+                  }
+                  if (index == _items.length) {
+                    if (_error) {
+                      return Center(child: errorDialog(size: 15));
+                    } else {
+                      return const Center(
+                          child: Padding(
+                        padding: EdgeInsets.all(8),
+                        child: CircularProgressIndicator(),
+                      ));
+                    }
+                  }
+                  final Map<String, dynamic> item = _items[index];
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      return ItemCardSquare(
+                        constraints: constraints,
+                        itemId: item["item_id"],
+                        element: item,
+                        categoryId: "",
+                        categoryName: "",
+                        scroll: 0,
+                        business: widget.business,
+                        index: index,
+                        categoryPageUpdateData: updateDataAmount,
                       );
                     },
-                  ))
-              : Container(
+                  );
+                },
+              )
+            : SliverToBoxAdapter(
+                child: Container(
                   alignment: Alignment.center,
                   child: Text(
                     "Категория пуста",
@@ -797,7 +785,7 @@ class _CategoryPageListState extends State<CategoryPageList>
                     ),
                   ),
                 ),
-        ),
+              )
       ],
     );
   }
