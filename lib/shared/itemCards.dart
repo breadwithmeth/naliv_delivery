@@ -1676,12 +1676,26 @@ class _ItemCardSquareState extends State<ItemCardSquare>
   int previousAmount = 0;
   late int chack;
   Timer? _debounce;
+  Timer? _hideButtonsTimer;
 
   bool canButtonsBeUsed = true;
+  bool hideButtons = true;
 
   late AnimationController _controller;
   late Animation<Offset> _offsetAnimation;
   // late Animation<Offset> _offsetAnimationReverse;
+
+  void _hideButtonsAfterTime() {
+    // Cancel the previous timer if it exists
+    if (_hideButtonsTimer?.isActive ?? false) _hideButtonsTimer!.cancel();
+
+    // Start a new timer
+    _hideButtonsTimer = Timer(Duration(milliseconds: 1500), () {
+      setState(() {
+        hideButtons = true;
+      });
+    });
+  }
 
   void _updateItemCountServerCall() {
     changeCartItem(
@@ -1859,243 +1873,267 @@ class _ItemCardSquareState extends State<ItemCardSquare>
   @override
   Widget build(BuildContext context) {
     chack = widget.chack;
-    return GestureDetector(
-      onTap: () {
-        showModalBottomSheet(
-          context: context,
-          clipBehavior: Clip.antiAlias,
-          useSafeArea: true,
-          isScrollControlled: true,
-          showDragHandle: false,
-          builder: (context) {
-            widget.element["amount"] = amountInCart.toString();
-            return ProductPage(
-              item: widget.element,
-              index: widget.index,
-              returnDataAmount: updateCurrentItem,
-              business: widget.business,
-            );
-          },
-        );
-      },
-      // padding: EdgeInsets.symmetric(horizontal: 5 * globals.scaleParam),
-      // width: double.infinity,
-      // height: 300 * globals.scaleParam,
-      child: Container(
-        padding: EdgeInsets.all(10),
-        margin: EdgeInsets.all(10),
-        height: widget.constraints.minHeight,
-        width: widget.constraints.maxWidth,
-        decoration: BoxDecoration(
-            borderRadius: BorderRadius.all(Radius.circular(20)),
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                  blurRadius: 7,
-                  offset: Offset(2, 2),
-                  color: Colors.blueGrey.shade50)
-            ]),
-        child: Column(
-          children: [
-            Flexible(
-              flex: 2,
-              child: Stack(
-                alignment: Alignment.topRight,
-                children: [
-                  Container(
-                    width: widget.constraints.minWidth,
-                    child: ExtendedImage.network(
-                      element["img"],
-                      height: double.infinity,
-                      clearMemoryCacheWhenDispose: true,
-                      enableMemoryCache: true,
-                      enableLoadState: false,
-                      fit: BoxFit.contain,
+    return Container(
+      padding: EdgeInsets.all(15 * globals.scaleParam),
+      margin: EdgeInsets.all(10 * globals.scaleParam),
+      height: widget.constraints.minHeight,
+      width: widget.constraints.maxWidth,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.all(Radius.circular(20)),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+              blurRadius: 7,
+              offset: Offset(2, 2),
+              color: Colors.blueGrey.shade50)
+        ],
+      ),
+      // Stack for the gesture detector in the end of the code
+      child: Stack(
+        children: [
+          Column(
+            children: [
+              Flexible(
+                flex: 2,
+                // Plus button stack
+                child: Stack(
+                  alignment: Alignment.topRight,
+                  children: [
+                    Container(
+                      width: widget.constraints.minWidth,
+                      child: ExtendedImage.network(
+                        element["img"],
+                        height: double.infinity,
+                        clearMemoryCacheWhenDispose: true,
+                        enableMemoryCache: true,
+                        enableLoadState: false,
+                        fit: BoxFit.contain,
+                      ),
                     ),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                        borderRadius: BorderRadius.all(Radius.circular(30)),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.all(Radius.circular(100)),
                         color: Colors.white,
                         boxShadow: [
                           BoxShadow(
-                              color: Colors.blueGrey.shade100, blurRadius: 5)
-                        ]),
-                    child: AnimatedCrossFade(
-                      alignment: Alignment.topRight,
-                      duration: Durations.medium1,
-                      crossFadeState: amountInCart == 0
-                          ? CrossFadeState.showFirst
-                          : CrossFadeState.showSecond,
-                      firstChild: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          int.parse(widget.element["option"]) == 1
-                              ? IconButton(
-                                  highlightColor: canButtonsBeUsed
-                                      ? Colors.transparent
-                                      : Colors.transparent,
+                            color: Colors.blueGrey.shade100,
+                            blurRadius: 5,
+                          )
+                        ],
+                      ),
+                      child: AnimatedCrossFade(
+                        alignment: Alignment.topRight,
+                        duration: Durations.medium1,
+                        crossFadeState: amountInCart == 0 ||
+                                (amountInCart > 0 && hideButtons)
+                            ? CrossFadeState.showFirst
+                            : CrossFadeState.showSecond,
+                        firstChild: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            int.parse(widget.element["option"]) == 1
+                                ? Flexible(
+                                    child: SizedBox(
+                                      height:
+                                          widget.constraints.maxHeight * 0.2,
+                                      child: AspectRatio(
+                                        aspectRatio: 1,
+                                        child: IconButton(
+                                          style: IconButton.styleFrom(
+                                            backgroundColor: amountInCart > 0
+                                                ? Colors.amberAccent.shade200
+                                                : Colors.white,
+                                          ),
+                                          highlightColor: canButtonsBeUsed
+                                              ? Colors.transparent
+                                              : Colors.transparent,
+                                          padding: EdgeInsets.all(0),
+                                          onPressed: canButtonsBeUsed
+                                              ? () {
+                                                  if (hideButtons &&
+                                                      amountInCart > 0) {
+                                                    setState(() {
+                                                      hideButtons = false;
+                                                    });
+                                                    _hideButtonsAfterTime();
+                                                    return;
+                                                  } else if (hideButtons &&
+                                                      amountInCart == 0) {
+                                                    setState(() {
+                                                      hideButtons = false;
+                                                    });
+                                                    _hideButtonsAfterTime();
+                                                  } else {
+                                                    _hideButtonsAfterTime();
+                                                  }
+                                                  _incrementAmountInCart();
+                                                  setState(() {
+                                                    canButtonsBeUsed = false;
+                                                  });
+                                                  _controller.forward();
+                                                  Timer(
+                                                    Duration(milliseconds: 300),
+                                                    () {
+                                                      setState(() {
+                                                        canButtonsBeUsed = true;
+                                                      });
+                                                    },
+                                                  );
+                                                }
+                                              : null,
+                                          icon: Container(
+                                            // alignment: Alignment.center,
+                                            padding: EdgeInsets.all(
+                                                5 * globals.scaleParam),
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.all(
+                                                Radius.circular(100),
+                                              ),
+                                              // color: Colors.white,
+                                            ),
+                                            child: amountInCart == 0
+                                                ? Icon(
+                                                    Icons.add_rounded,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurface,
+                                                  )
+                                                : Text(
+                                                    amountInCart.toString(),
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      fontSize: 32 *
+                                                          globals.scaleParam,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface,
+                                                    ),
+                                                  ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : Container()
+                          ],
+                        ),
+                        secondChild: SizedBox(
+                          width: widget.constraints.maxWidth * 0.7,
+                          height: widget.constraints.maxHeight * 0.2,
+                          child: Row(
+                            children: [
+                              Flexible(
+                                fit: FlexFit.tight,
+                                child: IconButton(
+                                  padding: EdgeInsets.all(0),
+                                  onPressed: canButtonsBeUsed
+                                      ? () {
+                                          _hideButtonsAfterTime();
+                                          _decrementAmountInCart();
+                                          if (amountInCart <= 0) {
+                                            setState(() {
+                                              canButtonsBeUsed = false;
+                                            });
+                                            _controller.reverse();
+                                            Timer(
+                                              Duration(milliseconds: 300),
+                                              () {
+                                                setState(() {
+                                                  canButtonsBeUsed = true;
+                                                });
+                                              },
+                                            );
+                                          }
+                                        }
+                                      : null,
+                                  icon: Container(
+                                    child: Icon(
+                                      Icons.remove_rounded,
+                                      color: amountInCart > 0
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                          : Theme.of(context)
+                                              .colorScheme
+                                              .secondary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Flexible(
+                                flex: 2,
+                                fit: FlexFit.tight,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        "${amountInCart.toString()} шт.", //"${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
+                                        textHeightBehavior: TextHeightBehavior(
+                                          applyHeightToFirstAscent: false,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 36 * globals.scaleParam,
+                                          color: amountInCart != 0
+                                              ? Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                              : Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Flexible(
+                                fit: FlexFit.tight,
+                                child: IconButton(
                                   padding: EdgeInsets.all(0),
                                   onPressed: canButtonsBeUsed
                                       ? () {
                                           _incrementAmountInCart();
-                                          setState(() {
-                                            canButtonsBeUsed = false;
-                                          });
-                                          _controller.forward();
-                                          Timer(
-                                            Duration(milliseconds: 100),
-                                            () {
-                                              setState(() {
-                                                canButtonsBeUsed = true;
-                                              });
-                                            },
-                                          );
+                                          _hideButtonsAfterTime();
                                         }
                                       : null,
                                   icon: Container(
-                                    padding:
-                                        EdgeInsets.all(5 * globals.scaleParam),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.all(
-                                        Radius.circular(100),
-                                      ),
-                                      color: Colors.white,
-                                    ),
                                     child: Icon(
                                       Icons.add_rounded,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
-                                    ),
-                                  ),
-                                )
-                              : Container()
-                        ],
-                      ),
-                      secondChild: Row(
-                        children: [
-                          Flexible(
-                            fit: FlexFit.tight,
-                            child: IconButton(
-                              padding: EdgeInsets.all(0),
-                              onPressed: canButtonsBeUsed
-                                  ? () {
-                                      _decrementAmountInCart();
-                                      if (amountInCart <= 0) {
-                                        setState(() {
-                                          canButtonsBeUsed = false;
-                                        });
-                                        _controller.reverse();
-                                        Timer(
-                                          Duration(milliseconds: 100),
-                                          () {
-                                            setState(() {
-                                              canButtonsBeUsed = true;
-                                            });
-                                          },
-                                        );
-                                      }
-                                    }
-                                  : null,
-                              icon: Container(
-                                child: Icon(
-                                  Icons.remove_rounded,
-                                  color: amountInCart > 0
-                                      ? Theme.of(context).colorScheme.onSurface
-                                      : Theme.of(context).colorScheme.secondary,
-                                ),
-                              ),
-                            ),
-                          ),
-                          Flexible(
-                            flex: 2,
-                            fit: FlexFit.tight,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    "${amountInCart.toString()} шт.", //"${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
-                                    textHeightBehavior: TextHeightBehavior(
-                                      applyHeightToFirstAscent: false,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 36 * globals.scaleParam,
-                                      color: amountInCart != 0
+                                      color: amountInCart <
+                                              double.parse(element["in_stock"])
+                                                  .truncate()
                                           ? Theme.of(context)
                                               .colorScheme
                                               .onSurface
-                                          : Colors.grey.shade600,
+                                          : Theme.of(context)
+                                              .colorScheme
+                                              .secondary,
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                          Flexible(
-                            fit: FlexFit.tight,
-                            child: IconButton(
-                              padding: EdgeInsets.all(0),
-                              onPressed: canButtonsBeUsed
-                                  ? () {
-                                      _incrementAmountInCart();
-                                    }
-                                  : null,
-                              icon: Container(
-                                child: Icon(
-                                  Icons.add_rounded,
-                                  color: amountInCart <
-                                          double.parse(element["in_stock"])
-                                              .truncate()
-                                      ? Theme.of(context).colorScheme.onSurface
-                                      : Theme.of(context).colorScheme.secondary,
-                                ),
                               ),
-                            ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                  )
-                ],
+                    )
+                  ],
+                ),
               ),
-            ),
-            Flexible(
-              flex: 2,
-              fit: FlexFit.tight,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                mainAxisSize: MainAxisSize.max,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Flexible(
-                    flex: 2,
-                    fit: FlexFit.tight,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      key: Key(widget.element["item_id"]),
-                      onTap: () {
-                        showModalBottomSheet(
-                          context: context,
-                          clipBehavior: Clip.antiAlias,
-                          useSafeArea: true,
-                          isScrollControlled: true,
-                          showDragHandle: false,
-                          builder: (context) {
-                            widget.element["amount"] = amountInCart.toString();
-                            return ProductPage(
-                              item: widget.element,
-                              index: widget.index,
-                              returnDataAmount: updateCurrentItem,
-                              business: widget.business,
-                            );
-                          },
-                        );
-                      },
+              Flexible(
+                flex: 2,
+                fit: FlexFit.tight,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.max,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Flexible(
+                      flex: 2,
+                      fit: FlexFit.tight,
                       child: Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: 15 * globals.scaleParam,
