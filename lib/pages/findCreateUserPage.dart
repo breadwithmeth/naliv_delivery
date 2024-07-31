@@ -5,11 +5,24 @@ import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
 
 class FindCreateUserPage extends StatefulWidget {
-  const FindCreateUserPage(
-      {super.key, required this.business, required this.user});
+  const FindCreateUserPage({
+    super.key,
+    required this.business,
+    required this.user,
+    required this.items,
+    required this.itemsAmount,
+    required this.localSum,
+    required this.distance,
+    required this.price,
+  });
 
   final Map<dynamic, dynamic> business;
   final Map user;
+  final List items;
+  final int itemsAmount;
+  final int localSum;
+  final int distance;
+  final int price;
 
   @override
   State<FindCreateUserPage> createState() => _FindCreateUserPageState();
@@ -132,12 +145,15 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                               builder: (context) {
                                 return CreateOrderPage(
                                   business: widget.business,
-                                  finalSum: localSum,
-                                  items: items,
-                                  itemsAmount: itemsAmount,
+                                  finalSum: widget.localSum,
+                                  items: widget.items,
+                                  itemsAmount: widget.itemsAmount,
                                   user: widget.user,
                                   deliveryInfo: Map.from(
-                                    {"distance": distance, "price": price},
+                                    {
+                                      "distance": widget.distance,
+                                      "price": widget.price
+                                    },
                                   ),
                                 );
                               },

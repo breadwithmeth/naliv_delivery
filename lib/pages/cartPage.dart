@@ -334,6 +334,11 @@ class _CartPageState extends State<CartPage>
                                     return FindCreateUserPage(
                                       business: widget.business,
                                       user: widget.user,
+                                      distance: distance,
+                                      items: items,
+                                      itemsAmount: itemsAmount,
+                                      localSum: localSum,
+                                      price: price,
                                     );
                                   },
                                 ),

@@ -1926,9 +1926,13 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                     Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.only(
-                            bottomRight: Radius.circular(9),
-                            topLeft: Radius.circular(9),
-                            bottomLeft: Radius.elliptical(40, 40)),
+                          bottomRight: Radius.circular(9 * globals.scaleParam),
+                          topLeft: Radius.circular(9 * globals.scaleParam),
+                          bottomLeft: Radius.elliptical(
+                            60 * globals.scaleParam,
+                            60 * globals.scaleParam,
+                          ),
+                        ),
                         color: amountInCart > 0
                             ? Colors.amberAccent.shade100
                             : Colors.blueGrey.shade100,
