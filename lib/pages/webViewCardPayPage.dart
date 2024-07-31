@@ -23,23 +23,25 @@ class _WebViewCardPayPageState extends State<WebViewCardPayPage> {
         await getPaymentHTML().then(
           (value) {
             controller = WebViewController()
-              ..setNavigationDelegate(NavigationDelegate(
-                onPageStarted: (url) {
-                  setState(() {
-                    pageLoaded = false;
-                  });
-                },
-                // onProgress: (progress) {
-                //   setState(() {
-                //     loadingPercentage = progress;
-                //   });
-                // },
-                onPageFinished: (url) {
-                  setState(() {
-                    pageLoaded = true;
-                  });
-                },
-              ))
+              ..setNavigationDelegate(
+                NavigationDelegate(
+                  onPageStarted: (url) {
+                    setState(() {
+                      pageLoaded = false;
+                    });
+                  },
+                  // onProgress: (progress) {
+                  //   setState(() {
+                  //     loadingPercentage = progress;
+                  //   });
+                  // },
+                  onPageFinished: (url) {
+                    setState(() {
+                      pageLoaded = true;
+                    });
+                  },
+                ),
+              )
               ..setJavaScriptMode(JavaScriptMode.unrestricted)
               ..loadHtmlString(value);
             setState(() {
@@ -55,50 +57,51 @@ class _WebViewCardPayPageState extends State<WebViewCardPayPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('Оплата картой'),
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-                controller.currentUrl().then(
-                  (value) {
-                    print(value);
-                  },
-                );
-              },
-              child: Text("Нажми!"),
-            ),
-          ],
-        ),
-        body: LayoutBuilder(
-          builder: (context, constraints) {
-            return Stack(
-              children: [
-                Container(
-                  width: constraints.maxWidth,
-                  height: constraints.maxHeight,
-                  alignment: Alignment.center,
-                  child: Text(
-                    "Пожалуйста подождите",
-                    style: TextStyle(
-                      fontSize: 52 * globals.scaleParam,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade400,
-                    ),
+      appBar: AppBar(
+        title: const Text('Оплата картой'),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              controller.currentUrl().then(
+                (value) {
+                  print(value);
+                },
+              );
+            },
+            child: Text("URL"),
+          ),
+        ],
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return Stack(
+            children: [
+              Container(
+                width: constraints.maxWidth,
+                height: constraints.maxHeight,
+                alignment: Alignment.center,
+                child: Text(
+                  "Пожалуйста подождите",
+                  style: TextStyle(
+                    fontSize: 52 * globals.scaleParam,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade400,
                   ),
                 ),
-                pageLoaded == true
-                    ? Container(
-                        width: constraints.maxWidth,
-                        height: constraints.maxHeight,
-                        child: WebViewWidget(
-                          controller: controller,
-                        ),
-                      )
-                    : LinearProgressIndicator(),
-              ],
-            );
-          },
-        ));
+              ),
+              pageLoaded == true
+                  ? Container(
+                      width: constraints.maxWidth,
+                      height: constraints.maxHeight,
+                      child: WebViewWidget(
+                        controller: controller,
+                      ),
+                    )
+                  : LinearProgressIndicator(),
+            ],
+          );
+        },
+      ),
+    );
   }
 }

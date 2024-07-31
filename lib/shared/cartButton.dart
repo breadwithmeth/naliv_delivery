@@ -20,8 +20,8 @@ class _CartButtonState extends State<CartButton> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: MediaQuery.sizeOf(context).shortestSide * 0.2,
-      height: MediaQuery.sizeOf(context).shortestSide * 0.2,
+      width: 150 * globals.scaleParam,
+      height: 150 * globals.scaleParam,
       child: FloatingActionButton(
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(
@@ -29,7 +29,7 @@ class _CartButtonState extends State<CartButton> {
           ),
         ),
         child: Icon(
-          size: MediaQuery.sizeOf(context).shortestSide * 0.088,
+          size: 70 * globals.scaleParam,
           Icons.shopping_basket_rounded,
           color: Theme.of(context).colorScheme.onPrimary,
         ),

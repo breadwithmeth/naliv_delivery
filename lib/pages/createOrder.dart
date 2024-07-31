@@ -63,7 +63,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
 
   late AnimationController _controller;
   late Animation<Offset> _deliveryChooseAnim;
-  PaymentType paymentType = PaymentType.kaspi;
+  PaymentType paymentType = PaymentType.card;
   String paymentDescText = "";
 
   // Future<void> _getCart() async {
@@ -232,15 +232,15 @@ class _CreateOrderPageState extends State<CreateOrderPage>
     switch (paymentType) {
       case PaymentType.kaspi:
         paymentDescText =
-            "${widget.user["login"]} (${globals.formatCost((widget.finalSum + widget.deliveryInfo["price"]).toString())} ₸)";
+            "${globals.formatCost((widget.finalSum + widget.deliveryInfo["price"]).toString())} ₸   ${widget.user["login"]} ";
         break;
       case PaymentType.card:
         paymentDescText =
-            "Номер карты/Название (${globals.formatCost((widget.finalSum + widget.deliveryInfo["price"]).toString())} ₸)";
+            "${globals.formatCost((widget.finalSum + widget.deliveryInfo["price"]).toString())} ₸";
         break;
       case PaymentType.cash:
         paymentDescText =
-            "(${globals.formatCost((widget.finalSum + widget.deliveryInfo["price"]).toString())} ₸)";
+            "${globals.formatCost((widget.finalSum + widget.deliveryInfo["price"]).toString())} ₸";
         break;
     }
   }
@@ -845,8 +845,8 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                     fit: FlexFit.tight,
                                     child: Text(
                                       delivery
-                                          ? "(${globals.formatCost((widget.deliveryInfo["price"]).toString())} ₸ - ${globals.formatCost(widget.deliveryInfo["distance"].toString())} м)"
-                                          : "(Без доставки)",
+                                          ? "${globals.formatCost((widget.deliveryInfo["price"]).toString())} ₸ - ${globals.formatCost(widget.deliveryInfo["distance"].toString())} м"
+                                          : "Без доставки",
                                       style: TextStyle(
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w500,
@@ -1020,204 +1020,194 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                   foregroundColor: Colors.grey,
                                 ),
                                 onPressed: () {
-                                  showAdaptiveDialog(
-                                    context: context,
-                                    builder: (context) {
-                                      return StatefulBuilder(
-                                        builder: (BuildContext context,
-                                            setStatePayment) {
-                                          return AlertDialog(
-                                            title: Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                Flexible(
-                                                  child: Text(
-                                                    "Способ оплаты",
-                                                    style: TextStyle(
-                                                      fontSize: 48 *
-                                                          globals.scaleParam,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      color: Colors.black,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            // content: Column(
-                                            //   mainAxisSize: MainAxisSize.min,
-                                            //   children: [
-                                            //     Row(
-                                            //       children: [],
-                                            //     ),
-                                            //   ],
-                                            // ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () {
-                                                  setState(() {
-                                                    paymentType =
-                                                        PaymentType.card;
-                                                  });
-                                                  Navigator.push(
-                                                    context,
-                                                    globals
-                                                        .getPlatformSpecialRoute(
-                                                      const WebViewCardPayPage(),
-                                                    ),
-                                                  ).whenComplete(
-                                                    () {
-                                                      Navigator.pop(context);
-                                                    },
-                                                  );
-                                                },
-                                                child: Container(
-                                                  padding: EdgeInsets.all(
-                                                      20 * globals.scaleParam),
-                                                  decoration: BoxDecoration(
-                                                    borderRadius:
-                                                        BorderRadius.all(
-                                                      Radius.circular(10),
-                                                    ),
-                                                    color: Colors.black12,
-                                                  ),
-                                                  child: Row(
-                                                    children: [
-                                                      Flexible(
-                                                        flex: 4,
-                                                        fit: FlexFit.tight,
-                                                        child: Text(
-                                                          "Картой",
-                                                        ),
-                                                      ),
-                                                      Flexible(
-                                                        flex: 2,
-                                                        fit: FlexFit.tight,
-                                                        child: Icon(
-                                                          Icons
-                                                              .credit_card_rounded,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                              TextButton(
-                                                onPressed: () {
-                                                  setState(() {
-                                                    paymentType =
-                                                        PaymentType.kaspi;
-                                                  });
-                                                  Navigator.pop(context);
-                                                },
-                                                child: Container(
-                                                  padding: EdgeInsets.all(
-                                                    20 * globals.scaleParam,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    borderRadius:
-                                                        BorderRadius.all(
-                                                      Radius.circular(10),
-                                                    ),
-                                                    color: Colors.black12,
-                                                  ),
-                                                  child: Row(
-                                                    children: [
-                                                      Flexible(
-                                                        flex: 4,
-                                                        fit: FlexFit.tight,
-                                                        child: Text(
-                                                          "Счёт на каспи",
-                                                        ),
-                                                      ),
-                                                      Flexible(
-                                                        flex: 2,
-                                                        fit: FlexFit.tight,
-                                                        child: Icon(
-                                                          Icons
-                                                              .smartphone_rounded,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                              TextButton(
-                                                onPressed: () {
-                                                  setState(() {
-                                                    paymentType =
-                                                        PaymentType.cash;
-                                                  });
-                                                  Navigator.pop(context);
-                                                },
-                                                child: Container(
-                                                  padding: EdgeInsets.all(
-                                                      20 * globals.scaleParam),
-                                                  decoration: BoxDecoration(
-                                                    borderRadius:
-                                                        BorderRadius.all(
-                                                      Radius.circular(10),
-                                                    ),
-                                                    color: Colors.black12,
-                                                  ),
-                                                  child: Row(
-                                                    children: [
-                                                      Flexible(
-                                                        flex: 4,
-                                                        fit: FlexFit.tight,
-                                                        child: Text(
-                                                          "Наличными",
-                                                        ),
-                                                      ),
-                                                      Flexible(
-                                                        flex: 2,
-                                                        fit: FlexFit.tight,
-                                                        child: Icon(
-                                                          Icons.money_rounded,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                              TextButton(
-                                                onPressed: () {
-                                                  Navigator.pop(context);
-                                                },
-                                                child: Container(
-                                                  padding: EdgeInsets.all(
-                                                      20 * globals.scaleParam),
-                                                  decoration: BoxDecoration(
-                                                    borderRadius:
-                                                        BorderRadius.all(
-                                                      Radius.circular(10),
-                                                    ),
-                                                    color: Colors.black12,
-                                                  ),
-                                                  child: Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .center,
-                                                    children: [
-                                                      Flexible(
-                                                        fit: FlexFit.tight,
-                                                        child: Text(
-                                                          "Назад",
-                                                          textAlign:
-                                                              TextAlign.center,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          );
-                                        },
-                                      );
-                                    },
-                                  );
+                                  // showAdaptiveDialog(
+                                  //   context: context,
+                                  //   builder: (context) {
+                                  //     return StatefulBuilder(
+                                  //       builder: (BuildContext context,
+                                  //           setStatePayment) {
+                                  //         return AlertDialog(
+                                  //           title: Row(
+                                  //             mainAxisAlignment:
+                                  //                 MainAxisAlignment.center,
+                                  //             children: [
+                                  //               Flexible(
+                                  //                 child: Text(
+                                  //                   "Способ оплаты",
+                                  //                   style: TextStyle(
+                                  //                     fontSize: 48 *
+                                  //                         globals.scaleParam,
+                                  //                     fontWeight:
+                                  //                         FontWeight.w700,
+                                  //                     color: Colors.black,
+                                  //                   ),
+                                  //                 ),
+                                  //               ),
+                                  //             ],
+                                  //           ),
+                                  //           // content: Column(
+                                  //           //   mainAxisSize: MainAxisSize.min,
+                                  //           //   children: [
+                                  //           //     Row(
+                                  //           //       children: [],
+                                  //           //     ),
+                                  //           //   ],
+                                  //           // ),
+                                  //           actions: [
+                                  //             TextButton(
+                                  //               onPressed: () {
+                                  //                 setState(() {
+                                  //                   paymentType =
+                                  //                       PaymentType.card;
+                                  //                 });
+                                  //                 Navigator.pop(context);
+                                  //               },
+                                  //               child: Container(
+                                  //                 padding: EdgeInsets.all(
+                                  //                     20 * globals.scaleParam),
+                                  //                 decoration: BoxDecoration(
+                                  //                   borderRadius:
+                                  //                       BorderRadius.all(
+                                  //                     Radius.circular(10),
+                                  //                   ),
+                                  //                   color: Colors.black12,
+                                  //                 ),
+                                  //                 child: Row(
+                                  //                   children: [
+                                  //                     Flexible(
+                                  //                       flex: 4,
+                                  //                       fit: FlexFit.tight,
+                                  //                       child: Text(
+                                  //                         "Картой",
+                                  //                       ),
+                                  //                     ),
+                                  //                     Flexible(
+                                  //                       flex: 2,
+                                  //                       fit: FlexFit.tight,
+                                  //                       child: Icon(
+                                  //                         Icons
+                                  //                             .credit_card_rounded,
+                                  //                       ),
+                                  //                     ),
+                                  //                   ],
+                                  //                 ),
+                                  //               ),
+                                  //             ),
+                                  //             TextButton(
+                                  //               onPressed: () {
+                                  //                 setState(() {
+                                  //                   paymentType =
+                                  //                       PaymentType.kaspi;
+                                  //                 });
+                                  //                 Navigator.pop(context);
+                                  //               },
+                                  //               child: Container(
+                                  //                 padding: EdgeInsets.all(
+                                  //                   20 * globals.scaleParam,
+                                  //                 ),
+                                  //                 decoration: BoxDecoration(
+                                  //                   borderRadius:
+                                  //                       BorderRadius.all(
+                                  //                     Radius.circular(10),
+                                  //                   ),
+                                  //                   color: Colors.black12,
+                                  //                 ),
+                                  //                 child: Row(
+                                  //                   children: [
+                                  //                     Flexible(
+                                  //                       flex: 4,
+                                  //                       fit: FlexFit.tight,
+                                  //                       child: Text(
+                                  //                         "Счёт на каспи",
+                                  //                       ),
+                                  //                     ),
+                                  //                     Flexible(
+                                  //                       flex: 2,
+                                  //                       fit: FlexFit.tight,
+                                  //                       child: Icon(
+                                  //                         Icons
+                                  //                             .smartphone_rounded,
+                                  //                       ),
+                                  //                     ),
+                                  //                   ],
+                                  //                 ),
+                                  //               ),
+                                  //             ),
+                                  //             TextButton(
+                                  //               onPressed: () {
+                                  //                 setState(() {
+                                  //                   paymentType =
+                                  //                       PaymentType.cash;
+                                  //                 });
+                                  //                 Navigator.pop(context);
+                                  //               },
+                                  //               child: Container(
+                                  //                 padding: EdgeInsets.all(
+                                  //                     20 * globals.scaleParam),
+                                  //                 decoration: BoxDecoration(
+                                  //                   borderRadius:
+                                  //                       BorderRadius.all(
+                                  //                     Radius.circular(10),
+                                  //                   ),
+                                  //                   color: Colors.black12,
+                                  //                 ),
+                                  //                 child: Row(
+                                  //                   children: [
+                                  //                     Flexible(
+                                  //                       flex: 4,
+                                  //                       fit: FlexFit.tight,
+                                  //                       child: Text(
+                                  //                         "Наличными",
+                                  //                       ),
+                                  //                     ),
+                                  //                     Flexible(
+                                  //                       flex: 2,
+                                  //                       fit: FlexFit.tight,
+                                  //                       child: Icon(
+                                  //                         Icons.money_rounded,
+                                  //                       ),
+                                  //                     ),
+                                  //                   ],
+                                  //                 ),
+                                  //               ),
+                                  //             ),
+                                  //             TextButton(
+                                  //               onPressed: () {
+                                  //                 Navigator.pop(context);
+                                  //               },
+                                  //               child: Container(
+                                  //                 padding: EdgeInsets.all(
+                                  //                     20 * globals.scaleParam),
+                                  //                 decoration: BoxDecoration(
+                                  //                   borderRadius:
+                                  //                       BorderRadius.all(
+                                  //                     Radius.circular(10),
+                                  //                   ),
+                                  //                   color: Colors.black12,
+                                  //                 ),
+                                  //                 child: Row(
+                                  //                   mainAxisAlignment:
+                                  //                       MainAxisAlignment
+                                  //                           .center,
+                                  //                   children: [
+                                  //                     Flexible(
+                                  //                       fit: FlexFit.tight,
+                                  //                       child: Text(
+                                  //                         "Назад",
+                                  //                         textAlign:
+                                  //                             TextAlign.center,
+                                  //                       ),
+                                  //                     ),
+                                  //                   ],
+                                  //                 ),
+                                  //               ),
+                                  //             ),
+                                  //           ],
+                                  //         );
+                                  //       },
+                                  //     );
+                                  //   },
+                                  // );
                                 },
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.center,

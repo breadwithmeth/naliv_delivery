@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:naliv_delivery/pages/webViewCardPayPage.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/orderPage.dart';
@@ -60,6 +61,14 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
       });
     });
     timer = Timer(const Duration(seconds: 6), () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) {
+            return WebViewCardPayPage();
+          },
+        ),
+      );
       return;
       Future.delayed(const Duration(milliseconds: 0)).then((value) async {
         print("Creating order...!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
@@ -332,6 +341,9 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
             Flexible(
               fit: FlexFit.tight,
               child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                ),
                 onPressed: () {
                   Navigator.pop(context);
                 },
