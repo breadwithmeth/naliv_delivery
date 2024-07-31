@@ -39,34 +39,6 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
   double _lon = 0;
   String? _currentAddressName;
 
-  List<Map<String, dynamic>> bars = [
-    {"organization_id": "1", "name": "НАЛИВ"},
-    {"organization_id": "2", "name": "Название бизнеса"},
-    {"organization_id": "3", "name": "Название бизнеса"},
-    {"organization_id": "4", "name": "Название бизнеса"},
-    {"organization_id": "5", "name": "Название бизнеса"},
-    {"organization_id": "6", "name": "Название бизнеса"},
-    {"organization_id": "7", "name": "Название бизнеса"},
-    {"organization_id": "8", "name": "Название бизнеса"},
-    {"organization_id": "9", "name": "Название бизнеса"},
-    {"organization_id": "2", "name": "Название бизнеса"},
-    {"organization_id": "3", "name": "Название бизнеса"},
-    {"organization_id": "4", "name": "Название бизнеса"},
-    {"organization_id": "5", "name": "Название бизнеса"},
-    {"organization_id": "6", "name": "Название бизнеса"},
-    {"organization_id": "7", "name": "Название бизнеса"},
-    {"organization_id": "8", "name": "Название бизнеса"},
-    {"organization_id": "9", "name": "Название бизнеса"},
-    {"organization_id": "2", "name": "Название бизнеса"},
-    {"organization_id": "3", "name": "Название бизнеса"},
-    {"organization_id": "4", "name": "Название бизнеса"},
-    {"organization_id": "5", "name": "Название бизнеса"},
-    {"organization_id": "6", "name": "Название бизнеса"},
-    {"organization_id": "7", "name": "Название бизнеса"},
-    {"organization_id": "8", "name": "Название бизнеса"},
-    {"organization_id": "9", "name": "Название бизнеса"},
-  ];
-
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   void toggleDrawer() async {
@@ -77,6 +49,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     }
   }
 
+  // ! TODO: TAKE THIS DATA FROM BACKEND
   List<Map> _carouselItems = [
     {
       "name": "Алкоголь",
@@ -983,6 +956,11 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                 ),
               ),
             ),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 50 * globals.scaleParam,
+              ),
+            ),
             BusinessSelectCarousel(
               businesses: widget.businesses,
               user: widget.user,
@@ -990,7 +968,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
             ),
             SliverToBoxAdapter(
               child: Container(
-                height: 5000,
+                height: 800 * globals.scaleParam,
               ),
             )
           ],
@@ -1060,7 +1038,7 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
 }
 
 class BusinessItem extends StatefulWidget {
-  BusinessItem({
+  const BusinessItem({
     super.key,
     required this.business,
     required this.user,
@@ -1083,139 +1061,136 @@ class BusinessItemState extends State<BusinessItem> {
               return HomePage(
                 business: widget.business,
                 user: widget.user,
-              ); //! TOOD: Change to redirect page to a different organizations or do this right here.
+              );
             },
           ),
         );
       },
-      child: AspectRatio(
-        aspectRatio: 1,
-        child: Container(
-          margin: EdgeInsets.all(10 * globals.scaleParam),
-          // width: 650 * globals.scaleParam,
-          // height: 600 * globals.scaleParam,
+      child: Container(
+        margin: EdgeInsets.all(10 * globals.scaleParam),
+        // width: 650 * globals.scaleParam,
+        // height: 600 * globals.scaleParam,
 
-          clipBehavior: Clip.antiAlias,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                  offset: Offset(2, 2), blurRadius: 2, color: Colors.black12),
-            ],
-            borderRadius: BorderRadius.all(
-              Radius.circular(10),
-            ),
+        clipBehavior: Clip.antiAlias,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+                offset: Offset(2, 2), blurRadius: 2, color: Colors.black12),
+          ],
+          borderRadius: BorderRadius.all(
+            Radius.circular(10),
           ),
-          child: Column(
-            children: [
-              Expanded(
-                child: Stack(children: [
-                  CachedNetworkImage(
-                    imageUrl: widget.business["img"],
-                    height: double.infinity,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorWidget: (context, url, error) {
-                      return const SizedBox();
-                    },
-                  ),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.max,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: Stack(children: [
+                CachedNetworkImage(
+                  imageUrl: widget.business["img"],
+                  height: double.infinity,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorWidget: (context, url, error) {
+                    return const SizedBox();
+                  },
+                ),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.max,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 10 * globals.scaleParam),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.delivery_dining_rounded,
+                            size: 48 * globals.scaleParam,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ]),
+            ),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 10 * globals.scaleParam),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                      SizedBox(
+                        width: constraints.maxWidth * 0.9,
+                        height: constraints.maxHeight * 0.9,
+                        child: Column(
                           children: [
-                            Icon(
-                              Icons.delivery_dining_rounded,
-                              size: 48 * globals.scaleParam,
+                            Flexible(
+                              fit: FlexFit.tight,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      widget.business["name"],
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 38 * globals.scaleParam,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Flexible(
+                              fit: FlexFit.tight,
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                    fit: FlexFit.tight,
+                                    child: Text(
+                                      widget.business["address"],
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 30 * globals.scaleParam),
+                                    ),
+                                  )
+                                ],
+                              ),
+                            ),
+                            Flexible(
+                              fit: FlexFit.tight,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      "Короткое описание",
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 30 * globals.scaleParam),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ],
-                  ),
-                ]),
+                  );
+                },
               ),
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: constraints.maxWidth * 0.9,
-                          height: constraints.maxHeight * 0.9,
-                          child: Column(
-                            children: [
-                              Flexible(
-                                fit: FlexFit.tight,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        widget.business["name"],
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 38 * globals.scaleParam,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Flexible(
-                                fit: FlexFit.tight,
-                                child: Row(
-                                  children: [
-                                    Flexible(
-                                      fit: FlexFit.tight,
-                                      child: Text(
-                                        widget.business["address"],
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 30 * globals.scaleParam),
-                                      ),
-                                    )
-                                  ],
-                                ),
-                              ),
-                              Flexible(
-                                fit: FlexFit.tight,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        "Короткое описание",
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 30 * globals.scaleParam),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -1246,25 +1221,18 @@ class _BusinessSelectCarouselState extends State<BusinessSelectCarousel> {
   @override
   Widget build(BuildContext context) {
     return SliverGrid.builder(
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
-        crossAxisCount: 2,
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+        mainAxisSpacing: 5 * globals.scaleParam,
+        crossAxisSpacing: 5 * globals.scaleParam,
+        maxCrossAxisExtent: MediaQuery.sizeOf(context).shortestSide / 2,
+        mainAxisExtent: MediaQuery.sizeOf(context).shortestSide / 2,
       ),
-      // padding: EdgeInsets.all(10),
-      // shrinkWrap: true,
-      // primary: false,
-      // scrollDirection: Axis.horizontal,
-      // // itemExtent: 650 * globals.scaleParam,
-      // physics: PageScrollPhysics(),
-      // controller: PageController(viewportFraction: .6),
       itemCount: widget.businesses.length,
       itemBuilder: (context, index) {
         return BusinessItem(
           business: widget.businesses[index],
           user: widget.user,
         );
-        // return Container(height: 10, width: 1000, color: Colors.yellow, child: Text("data"),);
       },
     );
   }

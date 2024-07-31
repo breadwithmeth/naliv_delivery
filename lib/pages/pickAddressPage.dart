@@ -7,7 +7,7 @@ import 'package:naliv_delivery/pages/pickOnMap.dart';
 import 'package:geolocator/geolocator.dart';
 
 class PickAddressPage extends StatefulWidget {
-  PickAddressPage(
+  const PickAddressPage(
       {super.key,
       required this.client,
       this.isFirstTime = false,
@@ -44,7 +44,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
 
   Future<void> _getGeolocation() async {
     await determinePosition(context).then((v) {
-      if (this.mounted) {
+      if (mounted) {
         setState(() {
           _location = v;
         });
@@ -89,8 +89,8 @@ class _PickAddressPageState extends State<PickAddressPage> {
         title: Text("Адреса"),
       ),
       floatingActionButton: SizedBox(
-        width: 110 * globals.scaleParam,
-        height: 110 * globals.scaleParam,
+        width: MediaQuery.sizeOf(context).shortestSide * 0.2,
+        height: MediaQuery.sizeOf(context).shortestSide * 0.2,
         child: FloatingActionButton(
           onPressed: () {
             if (_location == null) {
@@ -171,7 +171,8 @@ class _PickAddressPageState extends State<PickAddressPage> {
                         border: _addresses[index]["is_selected"] == "1"
                             ? Border(
                                 left: BorderSide(
-                                    color: globals.mainColor, width: 10))
+                                    color: globals.mainColor, width: 10),
+                              )
                             : Border()),
                     padding: EdgeInsets.symmetric(
                         horizontal: 50 * globals.scaleParam,
@@ -191,14 +192,16 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                   Text(
                                     _addresses[index]["address"],
                                     style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 42 * globals.scaleParam),
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 42 * globals.scaleParam,
+                                    ),
                                   ),
                                   Text(
                                     _addresses[index]["city_name"] ?? "",
                                     style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 32 * globals.scaleParam),
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 32 * globals.scaleParam,
+                                    ),
                                   ),
                                 ],
                               ),

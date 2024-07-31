@@ -120,12 +120,11 @@ class _ProductPageState extends State<ProductPage> {
       });
     }
 
+    // ! TODO: REWRITE THIS, WHEN BACKEND START SENDING ACTUAL SELECTED RELATION ID IN CART
     for (var i = 0; i < options.length; i++) {
       if (options[i]["selection"] == "SINGLE") {
         setState(() {
-          setState(() {
-            options[i]["selected_relation_id"] = null;
-          });
+          options[i]["selected_relation_id"] = null;
         });
       } else {
         setState(() {
@@ -217,6 +216,11 @@ class _ProductPageState extends State<ProductPage> {
         buyButtonActionText = buyButtonActionTextMap["add"]!;
         buyButtonActionColor = Colors.black;
       });
+    } else if (isRequired && isRequiredSelected && amountInCart > 0) {
+      setState(() {
+        buyButtonActionText = buyButtonActionTextMap["update"]!;
+        buyButtonActionColor = Color.fromARGB(255, 0, 0, 0);
+      });
     } else if (actualCartAmount == amountInCart || amountInCart == 0) {
       setState(() {
         buyButtonActionText = buyButtonActionTextMap["remove"]!;
@@ -225,11 +229,11 @@ class _ProductPageState extends State<ProductPage> {
     } else {
       setState(() {
         buyButtonActionText = buyButtonActionTextMap["update"]!;
-        buyButtonActionColor = Color.fromARGB(255, 0, 0, 0);
+        buyButtonActionColor = Colors.blueGrey;
       });
     }
   }
-
+// if (isRequired && isRequiredSelected && amountInCart > 0)
   // BUTTON VARIABLES/FUNCS END
 
   @override
@@ -434,7 +438,7 @@ class _ProductPageState extends State<ProductPage> {
                 ),
               );
             }
-            if (isRequired && !isRequiredSelected) {
+            if (isRequired && !isRequiredSelected && amountInCart == 0) {
               return Container(
                 decoration: BoxDecoration(
                     color: Colors.black,
@@ -819,10 +823,11 @@ class _ProductPageState extends State<ProductPage> {
                                             options[indexOption]
                                                 ["selected_relation_id"] = null;
                                           });
-                                          setState(() {
-                                            amountInCart = 0;
-                                          });
-                                          _finalizeCartAmount();
+
+                                          // setState(() {
+                                          //   amountInCart = 0;
+                                          // });
+                                          // _finalizeCartAmount();
                                         }
                                         _checkOptions();
                                       }
