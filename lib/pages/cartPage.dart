@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/findCreateUserPage.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
@@ -326,33 +327,36 @@ class _CartPageState extends State<CartPage>
                     child: ElevatedButton(
                       onPressed: items.isNotEmpty && !dismissingItem
                           ? () {
-                              // Navigator.push(
-                              //   context,
-                              //   MaterialPageRoute(
-                              //     builder: (context) {
-                              //       return FindCreateUserPage(
-                              //         business: widget.business,
-                              //       );
-                              //     },
-                              //   ),
-                              // );
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) {
-                                    return CreateOrderPage(
+                                    return FindCreateUserPage(
                                       business: widget.business,
-                                      finalSum: localSum,
-                                      items: items,
-                                      itemsAmount: itemsAmount,
                                       user: widget.user,
-                                      deliveryInfo: Map.from(
-                                        {"distance": distance, "price": price},
-                                      ),
                                     );
                                   },
                                 ),
                               );
+
+                              // ! TODO: UNCOMMENT FOR PRODUCTION
+                              // Navigator.push(
+                              //   context,
+                              //   MaterialPageRoute(
+                              //     builder: (context) {
+                              //       return CreateOrderPage(
+                              //         business: widget.business,
+                              //         finalSum: localSum,
+                              //         items: items,
+                              //         itemsAmount: itemsAmount,
+                              //         user: widget.user,
+                              //         deliveryInfo: Map.from(
+                              //           {"distance": distance, "price": price},
+                              //         ),
+                              //       );
+                              //     },
+                              //   ),
+                              // );
                             }
                           : null,
                       child: Row(
@@ -598,7 +602,7 @@ class _CartPageState extends State<CartPage>
                       child: Row(
                         children: [
                           Text(
-                            "Часто заказывают",
+                            "Не забудьте также",
                             style: TextStyle(
                               fontSize: 48 * globals.scaleParam,
                               fontWeight: FontWeight.w700,

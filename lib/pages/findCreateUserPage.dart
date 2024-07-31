@@ -131,15 +131,14 @@ class _FindCreateUserPageState extends State<FindCreateUserPage> {
                             MaterialPageRoute(
                               builder: (context) {
                                 return CreateOrderPage(
-                                  client: client,
                                   business: widget.business,
-                                  finalSum: 0,
+                                  finalSum: localSum,
+                                  items: items,
+                                  itemsAmount: itemsAmount,
                                   user: widget.user,
-                                  items: const [], // TODO: GET ITEMS FROM CART SOMWHERE BEFORE THIS PAGE, OR ON THIS PAGE LOADING SCREEN
-                                  itemsAmount: 0,
                                   deliveryInfo: Map.from(
-                                    {"error": 0},
-                                  ), // TODO: GET DELIVERY INFO FROM CART SOMWHERE BEFORE THIS PAGE, OR ON THIS PAGE LOADING SCREEN
+                                    {"distance": distance, "price": price},
+                                  ),
                                 );
                               },
                             ),
