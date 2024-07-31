@@ -71,6 +71,7 @@ class _CategoryPageState extends State<CategoryPage> {
       initialIndex: initialIndexTabbar,
       length: widget.categories.length,
       child: Scaffold(
+        backgroundColor: Colors.grey.shade50,
         key: _scaffoldKey,
         floatingActionButton: CartButton(
           business: widget.business,

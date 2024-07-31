@@ -585,7 +585,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                           ),
                           child: ExtendedImage.network(
                             element["img"],
-                            height: double.infinity,
+                            fit: BoxFit.fitHeight,
                             clearMemoryCacheWhenDispose: true,
                             enableMemoryCache: true,
                             enableLoadState: false,
@@ -1690,7 +1690,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
     if (_hideButtonsTimer?.isActive ?? false) _hideButtonsTimer!.cancel();
 
     // Start a new timer
-    _hideButtonsTimer = Timer(Duration(milliseconds: 1500), () {
+    _hideButtonsTimer = Timer(Duration(milliseconds: 3000), () {
       setState(() {
         hideButtons = true;
       });
@@ -1736,7 +1736,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
     if (_debounce?.isActive ?? false) _debounce!.cancel();
 
     // Start a new timer
-    _debounce = Timer(Duration(milliseconds: 750), () {
+    _debounce = Timer(Duration(milliseconds: 3000), () {
       // Call your server update function here
       _updateItemCountServerCall();
     });
@@ -1874,18 +1874,23 @@ class _ItemCardSquareState extends State<ItemCardSquare>
   Widget build(BuildContext context) {
     chack = widget.chack;
     return Container(
-      padding: EdgeInsets.all(15 * globals.scaleParam),
-      margin: EdgeInsets.all(10 * globals.scaleParam),
+      // padding: EdgeInsets.all(15 * globals.scaleParam),
+      margin: EdgeInsets.all(20 * globals.scaleParam),
       height: widget.constraints.minHeight,
       width: widget.constraints.maxWidth,
+      clipBehavior: Clip.antiAliasWithSaveLayer,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.all(Radius.circular(20)),
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-              blurRadius: 7,
-              offset: Offset(2, 2),
-              color: Colors.blueGrey.shade50)
+              blurRadius: 5,
+              offset: Offset(5, 5),
+              color: Colors.lightBlueAccent.withOpacity(0.1)),
+          BoxShadow(
+              blurRadius: 4,
+              offset: Offset(-5, -5),
+              color: Colors.pinkAccent.withOpacity(0.05))
         ],
       ),
       // Stack for the gesture detector in the end of the code
@@ -1912,13 +1917,18 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                     ),
                     Container(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.all(Radius.circular(100)),
-                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                            bottomRight: Radius.circular(9),
+                            topLeft: Radius.circular(9),
+                            bottomLeft: Radius.elliptical(40, 40)),
+                        color: amountInCart > 0
+                            ? Colors.amberAccent.shade100
+                            : Colors.blueGrey.shade100,
                         boxShadow: [
-                          BoxShadow(
-                            color: Colors.blueGrey.shade100,
-                            blurRadius: 5,
-                          )
+                          // BoxShadow(
+                          //   color: Colors.blueGrey.shade100,
+                          //   blurRadius: 5,
+                          // )
                         ],
                       ),
                       child: AnimatedCrossFade(
@@ -1941,9 +1951,11 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                         aspectRatio: 1,
                                         child: IconButton(
                                           style: IconButton.styleFrom(
-                                            backgroundColor: amountInCart > 0
-                                                ? Colors.amberAccent.shade200
-                                                : Colors.white,
+                                            alignment: Alignment.center,
+                                            // padding: EdgeInsets.all(0),
+                                            // backgroundColor: amountInCart > 0
+                                            //     ? Colors.amberAccent.shade200
+                                            //     : Colors.transparent,
                                           ),
                                           highlightColor: canButtonsBeUsed
                                               ? Colors.transparent
@@ -1973,7 +1985,8 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                                   });
                                                   _controller.forward();
                                                   Timer(
-                                                    Duration(milliseconds: 300),
+                                                    Duration(
+                                                        milliseconds: 1000),
                                                     () {
                                                       setState(() {
                                                         canButtonsBeUsed = true;
@@ -1984,11 +1997,12 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                               : null,
                                           icon: Container(
                                             // alignment: Alignment.center,
-                                            padding: EdgeInsets.all(
-                                                5 * globals.scaleParam),
+                                            // padding: EdgeInsets.all(
+                                            //     5 * globals.scaleParam),
                                             decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.all(
-                                                Radius.circular(100),
+                                              borderRadius: BorderRadius.only(
+                                                bottomLeft:
+                                                    Radius.circular(100),
                                               ),
                                               // color: Colors.white,
                                             ),
@@ -2004,7 +2018,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                                     style: TextStyle(
                                                       fontWeight:
                                                           FontWeight.w700,
-                                                      fontSize: 32 *
+                                                      fontSize: 48 *
                                                           globals.scaleParam,
                                                       color: Theme.of(context)
                                                           .colorScheme
@@ -2038,7 +2052,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                             });
                                             _controller.reverse();
                                             Timer(
-                                              Duration(milliseconds: 300),
+                                              Duration(milliseconds: 700),
                                               () {
                                                 setState(() {
                                                   canButtonsBeUsed = true;
@@ -2137,7 +2151,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                       child: Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: 15 * globals.scaleParam,
-                          // vertical: 5 * globals.scaleParam,
+                          vertical: 5 * globals.scaleParam,
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2153,6 +2167,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                     flex: 5,
                                     fit: FlexFit.tight,
                                     child: Container(
+                                      alignment: Alignment.topLeft,
                                       color: Theme.of(context)
                                           .colorScheme
                                           .surface, // Чтобы текст не обрезало сверху, потому что без цвета, он сжимается до краёв текста
@@ -2165,8 +2180,8 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                                 TextBaseline.alphabetic,
                                             color: Colors.black,
                                             fontWeight: FontWeight.w500,
-                                            fontSize: 30 * globals.scaleParam,
-                                            height: 2.5 * globals.scaleParam,
+                                            fontSize: 32 * globals.scaleParam,
+                                            height: 3 * globals.scaleParam,
                                           ),
                                           children: [
                                             TextSpan(
@@ -2220,7 +2235,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                 style: TextStyle(
                                   color:
                                       Theme.of(context).colorScheme.secondary,
-                                  fontSize: 28 * globals.scaleParam,
+                                  fontSize: 30 * globals.scaleParam,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -2229,42 +2244,110 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                         ),
                       ),
                     ),
-                  ),
-                  Flexible(
-                      child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 15 * globals.scaleParam,
-                      // vertical: 5 * globals.scaleParam,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          globals.formatCost(element['price'] ?? ""),
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 36 * globals.scaleParam,
+                    Flexible(
+                        child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 30 * globals.scaleParam,
+                        vertical: 30 * globals.scaleParam,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            globals.formatCost(element['price'] ?? ""),
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 38 * globals.scaleParam,
+                            ),
                           ),
-                        ),
-                        Text(
-                          "₸",
-                          textAlign: TextAlign.start,
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 36 * globals.scaleParam,
+                          Text(
+                            "₸",
+                            textAlign: TextAlign.start,
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 38 * globals.scaleParam,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ))
-                ],
+                        ],
+                      ),
+                    ))
+                  ],
+                ),
               ),
+            ],
+          ),
+          // THIS IS WHERE ACTUAL GESTURE DETECTOR IS
+          // It has height that will not contact with plus button in the ItemCard, so user will never open ProductPage when he adds item in cart
+          Container(
+            width: widget.constraints.maxWidth,
+            height: widget.constraints.maxHeight,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Flexible(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        clipBehavior: Clip.antiAlias,
+                        useSafeArea: true,
+                        isScrollControlled: true,
+                        showDragHandle: false,
+                        builder: (context) {
+                          widget.element["amount"] = amountInCart.toString();
+                          return ProductPage(
+                            item: widget.element,
+                            index: widget.index,
+                            returnDataAmount: updateCurrentItem,
+                            business: widget.business,
+                          );
+                        },
+                      );
+                    },
+                    child: Container(
+                      width: amountInCart == 0 && canButtonsBeUsed
+                          ? widget.constraints.maxWidth * 0.63
+                          : widget.constraints.maxWidth * 0.05,
+                      height: widget.constraints.maxHeight * 0.23,
+                      // color: Colors.red.withOpacity(0.5),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        clipBehavior: Clip.antiAlias,
+                        useSafeArea: true,
+                        isScrollControlled: true,
+                        showDragHandle: false,
+                        builder: (context) {
+                          widget.element["amount"] = amountInCart.toString();
+                          return ProductPage(
+                            item: widget.element,
+                            index: widget.index,
+                            returnDataAmount: updateCurrentItem,
+                            business: widget.business,
+                          );
+                        },
+                      );
+                    },
+                    child: Container(
+                        // color: Colors.amber.withOpacity(0.5),
+                        ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          )
+        ],
       ),
     );
   }
