@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 import '../globals.dart' as globals;
 
 class WebViewCardPayPage extends StatefulWidget {
@@ -13,34 +15,43 @@ class WebViewCardPayPage extends StatefulWidget {
 }
 
 class _WebViewCardPayPageState extends State<WebViewCardPayPage> {
-  late final WebViewController controller;
+  final GlobalKey webViewKey = GlobalKey();
   // int loadingPercentage = 0;
   bool pageLoaded = false;
 
+  InAppWebViewController? webViewController;
+  InAppWebViewSettings settings = InAppWebViewSettings(
+    isInspectable: kDebugMode,
+    mediaPlaybackRequiresUserGesture: false,
+    allowsInlineMediaPlayback: true,
+    iframeAllow: "camera; microphone",
+    iframeAllowFullscreen: true,
+  );
+
+  PullToRefreshController? pullToRefreshController;
+  String url = "";
+  double progress = 0;
+  final urlController = TextEditingController();
+
   @override
   void initState() {
-    controller = WebViewController()
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (url) {
-            setState(() {
-              pageLoaded = false;
-            });
-          },
-          // onProgress: (progress) {
-          //   setState(() {
-          //     loadingPercentage = progress;
-          //   });
-          // },
-          onPageFinished: (url) {
-            setState(() {
-              pageLoaded = true;
-            });
-          },
-        ),
-      )
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadHtmlString(widget.htmlString);
+    pullToRefreshController = kIsWeb
+        ? null
+        : PullToRefreshController(
+            settings: PullToRefreshSettings(
+              color: Colors.blue,
+            ),
+            onRefresh: () async {
+              if (defaultTargetPlatform == TargetPlatform.android) {
+                webViewController?.reload();
+              } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+                webViewController?.loadUrl(
+                    urlRequest:
+                        URLRequest(url: await webViewController?.getUrl()));
+              }
+            },
+          );
+
     super.initState();
   }
 
@@ -49,45 +60,102 @@ class _WebViewCardPayPageState extends State<WebViewCardPayPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Оплата картой'),
-        actions: [
-          ElevatedButton(
-            onPressed: () {
-              controller.currentUrl().then(
-                (value) {
-                  print(value);
-                },
-              );
-            },
-            child: Text("URL"),
-          ),
-        ],
+        // actions: [
+        //   ElevatedButton(
+        //     onPressed: () {
+        //       controller.currentUrl().then(
+        //         (value) {
+        //           print(value);
+        //         },
+        //       );
+        //     },
+        //     child: Text("URL"),
+        //   ),
+        // ],
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
           return Stack(
             children: [
-              Container(
-                width: constraints.maxWidth,
-                height: constraints.maxHeight,
-                alignment: Alignment.center,
-                child: Text(
-                  "Пожалуйста подождите",
-                  style: TextStyle(
-                    fontSize: 52 * globals.scaleParam,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade400,
-                  ),
-                ),
+              InAppWebView(
+                key: webViewKey,
+                // initialUrlRequest:
+                //     URLRequest(url: WebUri("https://inappwebview.dev/")),
+                initialData: InAppWebViewInitialData(data: widget.htmlString),
+                initialSettings: settings,
+                pullToRefreshController: pullToRefreshController,
+                onWebViewCreated: (controller) {
+                  webViewController = controller;
+                },
+                onLoadStart: (controller, url) {
+                  setState(() {
+                    this.url = url.toString();
+                    urlController.text = this.url;
+                  });
+                },
+                onPermissionRequest: (controller, request) async {
+                  return PermissionResponse(
+                      resources: request.resources,
+                      action: PermissionResponseAction.GRANT);
+                },
+                shouldOverrideUrlLoading: (controller, navigationAction) async {
+                  var uri = navigationAction.request.url!;
+
+                  if (![
+                    "http",
+                    "https",
+                    "file",
+                    "chrome",
+                    "data",
+                    "javascript",
+                    "about"
+                  ].contains(uri.scheme)) {
+                    if (await canLaunchUrl(uri)) {
+                      // Launch the App
+                      await launchUrl(
+                        uri,
+                      );
+                      // and cancel the request
+                      return NavigationActionPolicy.CANCEL;
+                    }
+                  }
+
+                  return NavigationActionPolicy.ALLOW;
+                },
+                onLoadStop: (controller, url) async {
+                  pullToRefreshController?.endRefreshing();
+                  setState(() {
+                    this.url = url.toString();
+                    urlController.text = this.url;
+                  });
+                },
+                onReceivedError: (controller, request, error) {
+                  pullToRefreshController?.endRefreshing();
+                },
+                onProgressChanged: (controller, progress) {
+                  if (progress == 100) {
+                    pullToRefreshController?.endRefreshing();
+                  }
+                  setState(() {
+                    this.progress = progress / 100;
+                    urlController.text = url;
+                  });
+                },
+                onUpdateVisitedHistory: (controller, url, androidIsReload) {
+                  setState(() {
+                    this.url = url.toString();
+                    urlController.text = this.url;
+                  });
+                },
+                onConsoleMessage: (controller, consoleMessage) {
+                  if (kDebugMode) {
+                    print(consoleMessage);
+                  }
+                },
               ),
-              pageLoaded == true
-                  ? Container(
-                      width: constraints.maxWidth,
-                      height: constraints.maxHeight,
-                      child: WebViewWidget(
-                        controller: controller,
-                      ),
-                    )
-                  : LinearProgressIndicator(),
+              progress < 1.0
+                  ? LinearProgressIndicator(value: progress)
+                  : Container(),
             ],
           );
         },

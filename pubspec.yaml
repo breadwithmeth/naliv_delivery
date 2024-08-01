@@ -57,13 +57,15 @@ dependencies:
   aura_box: ^1.0.2
   modal_bottom_sheet: ^3.0.0
   animated_path: ^0.0.2
-  webview_flutter: ^4.8.0
+  # webview_flutter: ^4.8.0
+  flutter_inappwebview: ^6.0.0
   flutter_localizations:
     sdk: flutter
   latlong2: ^0.9.1
   extended_image: ^8.2.1
   flutter_native_splash: ^2.2.16
   vector_map_tiles: ^7.3.1
+  url_launcher: ^6.3.0
   # drawing_animation: ^1.0.0
 
 
