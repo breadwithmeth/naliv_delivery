@@ -1894,11 +1894,11 @@ class _ItemCardSquareState extends State<ItemCardSquare>
           BoxShadow(
               blurRadius: 5,
               offset: Offset(5, 5),
-              color: Colors.lightBlueAccent.withOpacity(0.1)),
+              color: Colors.grey.withOpacity(0.1)),
           BoxShadow(
               blurRadius: 4,
               offset: Offset(-5, -5),
-              color: Colors.pinkAccent.withOpacity(0.05))
+              color: Colors.blueGrey.withOpacity(0.1))
         ],
       ),
       // Stack for the gesture detector in the end of the code

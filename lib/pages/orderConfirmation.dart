@@ -60,7 +60,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
       });
     });
     timer = Timer(const Duration(seconds: 6), () {
-      return;
+      // return;
       Future.delayed(const Duration(milliseconds: 0)).then((value) async {
         print("Creating order...!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         String user_id = widget.user.isNotEmpty ? widget.user["user_id"] : "";
