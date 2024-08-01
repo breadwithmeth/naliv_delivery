@@ -112,7 +112,7 @@ class _CartPageState extends State<CartPage>
       items = cart["cart"] ?? [];
       itemsAmount = 0;
       localSum = int.parse(cart["sum"] ?? "0");
-      distance = double.parse(cart["distance"].toString()).round();
+      distance = double.parse((cart["distance"] ?? 0).toString()).round();
       price = (price / 100).round() * 100;
       isCartLoading = false;
       itemsAmount;

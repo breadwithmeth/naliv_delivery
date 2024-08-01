@@ -60,7 +60,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
         _w = MediaQuery.sizeOf(context).width * 0.88;
       });
     });
-    timer = Timer(const Duration(seconds: 6), () {
+    timer = Timer(const Duration(seconds: 6, milliseconds: 500), () {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -319,7 +319,9 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
 
   @override
   void dispose() {
-    timer.cancel();
+    if (timer.isActive) {
+      timer.cancel();
+    }
     super.dispose();
   }
 
@@ -342,9 +344,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
               fit: FlexFit.tight,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
+                  backgroundColor: Colors.black,
                 ),
                 onPressed: () {
+                  timer.cancel();
                   Navigator.pop(context);
                 },
                 child: Row(
