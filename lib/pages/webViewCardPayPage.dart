@@ -4,7 +4,9 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../globals.dart' as globals;
 
 class WebViewCardPayPage extends StatefulWidget {
-  const WebViewCardPayPage({super.key});
+  const WebViewCardPayPage({super.key, required this.htmlString});
+
+  final String htmlString;
 
   @override
   State<WebViewCardPayPage> createState() => _WebViewCardPayPageState();
@@ -17,40 +19,28 @@ class _WebViewCardPayPageState extends State<WebViewCardPayPage> {
 
   @override
   void initState() {
-    Future.delayed(
-      Duration.zero,
-      () async {
-        await getPaymentHTML().then(
-          (value) {
-            controller = WebViewController()
-              ..setNavigationDelegate(
-                NavigationDelegate(
-                  onPageStarted: (url) {
-                    setState(() {
-                      pageLoaded = false;
-                    });
-                  },
-                  // onProgress: (progress) {
-                  //   setState(() {
-                  //     loadingPercentage = progress;
-                  //   });
-                  // },
-                  onPageFinished: (url) {
-                    setState(() {
-                      pageLoaded = true;
-                    });
-                  },
-                ),
-              )
-              ..setJavaScriptMode(JavaScriptMode.unrestricted)
-              ..loadHtmlString(value);
+    controller = WebViewController()
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (url) {
+            setState(() {
+              pageLoaded = false;
+            });
+          },
+          // onProgress: (progress) {
+          //   setState(() {
+          //     loadingPercentage = progress;
+          //   });
+          // },
+          onPageFinished: (url) {
             setState(() {
               pageLoaded = true;
             });
           },
-        );
-      },
-    );
+        ),
+      )
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..loadHtmlString(widget.htmlString);
     super.initState();
   }
 

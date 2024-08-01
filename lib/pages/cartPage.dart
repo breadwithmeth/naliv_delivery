@@ -327,41 +327,24 @@ class _CartPageState extends State<CartPage>
                     child: ElevatedButton(
                       onPressed: items.isNotEmpty && !dismissingItem
                           ? () {
+                              // ! TODO: UNCOMMENT FOR PRODUCTION
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) {
-                                    return FindCreateUserPage(
+                                    return CreateOrderPage(
                                       business: widget.business,
-                                      user: widget.user,
-                                      distance: distance,
+                                      finalSum: localSum,
                                       items: items,
                                       itemsAmount: itemsAmount,
-                                      localSum: localSum,
-                                      price: price,
+                                      user: widget.user,
+                                      deliveryInfo: Map.from(
+                                        {"distance": distance, "price": price},
+                                      ),
                                     );
                                   },
                                 ),
                               );
-
-                              // ! TODO: UNCOMMENT FOR PRODUCTION
-                              // Navigator.push(
-                              //   context,
-                              //   MaterialPageRoute(
-                              //     builder: (context) {
-                              //       return CreateOrderPage(
-                              //         business: widget.business,
-                              //         finalSum: localSum,
-                              //         items: items,
-                              //         itemsAmount: itemsAmount,
-                              //         user: widget.user,
-                              //         deliveryInfo: Map.from(
-                              //           {"distance": distance, "price": price},
-                              //         ),
-                              //       );
-                              //     },
-                              //   ),
-                              // );
                             }
                           : null,
                       child: Row(

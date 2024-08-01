@@ -41,6 +41,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
 
   late Timer timer;
   bool? isOrderCorrect = false;
+  String htmlString = "";
   List<dynamic> wrongPositions = [];
   List<dynamic> wrongItems = [];
 
@@ -61,31 +62,38 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
       });
     });
     timer = Timer(const Duration(seconds: 6, milliseconds: 500), () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) {
-            return WebViewCardPayPage();
-          },
-        ),
-      );
-      return;
+      // Navigator.push(
+      //   context,
+      //   MaterialPageRoute(
+      //     builder: (context) {
+      //       return WebViewCardPayPage();
+      //     },
+      //   ),
+      // );
+      // return;
       Future.delayed(const Duration(milliseconds: 0)).then((value) async {
         print("Creating order...!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         String user_id = widget.user.isNotEmpty ? widget.user["user_id"] : "";
         await createOrder(widget.business["business_id"], user_id)
             .then((value) {
           if (value["status"] == true) {
-            isOrderCorrect = true;
+            setState(() {
+              isOrderCorrect = true;
+              htmlString = value["data"];
+            });
             print("Order was created successfully");
             // NICE! Congratulations, you did well!
           } else if (value["status"] == false) {
-            isOrderCorrect = false;
-            wrongPositions = value["data"];
+            setState(() {
+              isOrderCorrect = false;
+              wrongPositions = value["data"];
+            });
             print("Order was not created. Return code 400, wrong stock amount");
             // DO SOMETHING, SO THAT USER CAN FIX AMOUNT IN CART?
           } else if (value["status"] == null) {
-            isOrderCorrect = null;
+            setState(() {
+              isOrderCorrect = null;
+            });
             print(
                 "Order was not created. Return code 406, wrong order, or no token");
             // DO SOMETHING, SO THAT USER CAN FIX ORDER IN CART?
@@ -95,8 +103,8 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => OrderPage(
-                  business: widget.business,
+                builder: (context) => WebViewCardPayPage(
+                  htmlString: htmlString,
                 ),
               ),
             );
