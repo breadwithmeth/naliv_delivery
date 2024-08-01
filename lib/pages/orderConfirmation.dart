@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:naliv_delivery/pages/webViewCardPayPage.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/orderPage.dart';
@@ -59,8 +60,16 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
         _w = MediaQuery.sizeOf(context).width * 0.88;
       });
     });
-    timer = Timer(const Duration(seconds: 6), () {
-      // return;
+    timer = Timer(const Duration(seconds: 6, milliseconds: 500), () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) {
+            return WebViewCardPayPage();
+          },
+        ),
+      );
+      return;
       Future.delayed(const Duration(milliseconds: 0)).then((value) async {
         print("Creating order...!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         String user_id = widget.user.isNotEmpty ? widget.user["user_id"] : "";
@@ -310,7 +319,9 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
 
   @override
   void dispose() {
-    timer.cancel();
+    if (timer.isActive) {
+      timer.cancel();
+    }
     super.dispose();
   }
 
@@ -332,7 +343,11 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
             Flexible(
               fit: FlexFit.tight,
               child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                ),
                 onPressed: () {
+                  timer.cancel();
                   Navigator.pop(context);
                 },
                 child: Row(

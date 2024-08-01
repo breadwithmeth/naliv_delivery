@@ -1883,7 +1883,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
     chack = widget.chack;
     return Container(
       // padding: EdgeInsets.all(15 * globals.scaleParam),
-      margin: EdgeInsets.all(20 * globals.scaleParam),
+      margin: EdgeInsets.all(10 * globals.scaleParam),
       height: widget.constraints.minHeight,
       width: widget.constraints.maxWidth,
       clipBehavior: Clip.antiAliasWithSaveLayer,
@@ -1997,8 +1997,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                                   });
                                                   _controller.forward();
                                                   Timer(
-                                                    Duration(
-                                                        milliseconds: 1000),
+                                                    Duration(milliseconds: 350),
                                                     () {
                                                       setState(() {
                                                         canButtonsBeUsed = true;
@@ -2051,45 +2050,54 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                           child: Row(
                             children: [
                               Flexible(
+                                flex: 2,
                                 fit: FlexFit.tight,
-                                child: IconButton(
-                                  padding: EdgeInsets.all(0),
-                                  onPressed: canButtonsBeUsed
-                                      ? () {
-                                          _hideButtonsAfterTime();
-                                          _decrementAmountInCart();
-                                          if (amountInCart <= 0) {
-                                            setState(() {
-                                              canButtonsBeUsed = false;
-                                            });
-                                            _controller.reverse();
-                                            Timer(
-                                              Duration(milliseconds: 700),
-                                              () {
-                                                setState(() {
-                                                  canButtonsBeUsed = true;
-                                                });
-                                              },
-                                            );
-                                          }
-                                        }
-                                      : null,
-                                  icon: Container(
-                                    child: Icon(
-                                      Icons.remove_rounded,
-                                      color: amountInCart > 0
-                                          ? Theme.of(context)
-                                              .colorScheme
-                                              .onSurface
-                                          : Theme.of(context)
-                                              .colorScheme
-                                              .secondary,
-                                    ),
-                                  ),
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    return SizedBox(
+                                      width: constraints.maxWidth,
+                                      height: constraints.maxHeight,
+                                      child: IconButton(
+                                        padding: EdgeInsets.all(0),
+                                        onPressed: canButtonsBeUsed
+                                            ? () {
+                                                _hideButtonsAfterTime();
+                                                _decrementAmountInCart();
+                                                if (amountInCart <= 0) {
+                                                  setState(() {
+                                                    canButtonsBeUsed = false;
+                                                  });
+                                                  _controller.reverse();
+                                                  Timer(
+                                                    Duration(milliseconds: 350),
+                                                    () {
+                                                      setState(() {
+                                                        canButtonsBeUsed = true;
+                                                      });
+                                                    },
+                                                  );
+                                                }
+                                              }
+                                            : null,
+                                        icon: Container(
+                                          child: Icon(
+                                            Icons.remove_rounded,
+                                            color: amountInCart > 0
+                                                ? Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface
+                                                : Theme.of(context)
+                                                    .colorScheme
+                                                    .secondary,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                               Flexible(
-                                flex: 2,
+                                flex: 3,
                                 fit: FlexFit.tight,
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -2116,29 +2124,39 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                 ),
                               ),
                               Flexible(
+                                flex: 2,
                                 fit: FlexFit.tight,
-                                child: IconButton(
-                                  padding: EdgeInsets.all(0),
-                                  onPressed: canButtonsBeUsed
-                                      ? () {
-                                          _incrementAmountInCart();
-                                          _hideButtonsAfterTime();
-                                        }
-                                      : null,
-                                  icon: Container(
-                                    child: Icon(
-                                      Icons.add_rounded,
-                                      color: amountInCart <
-                                              double.parse(element["in_stock"])
-                                                  .truncate()
-                                          ? Theme.of(context)
-                                              .colorScheme
-                                              .onSurface
-                                          : Theme.of(context)
-                                              .colorScheme
-                                              .secondary,
-                                    ),
-                                  ),
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    return SizedBox(
+                                      width: constraints.maxWidth,
+                                      height: constraints.maxHeight,
+                                      child: IconButton(
+                                        padding: EdgeInsets.all(0),
+                                        onPressed: canButtonsBeUsed
+                                            ? () {
+                                                _incrementAmountInCart();
+                                                _hideButtonsAfterTime();
+                                              }
+                                            : null,
+                                        icon: Container(
+                                          child: Icon(
+                                            Icons.add_rounded,
+                                            color: amountInCart <
+                                                    double.parse(
+                                                            element["in_stock"])
+                                                        .truncate()
+                                                ? Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface
+                                                : Theme.of(context)
+                                                    .colorScheme
+                                                    .secondary,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                             ],
@@ -2242,13 +2260,19 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                             ),
                             Flexible(
                               fit: FlexFit.tight,
-                              child: Text(
-                                "В наличии ${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт.",
-                                style: TextStyle(
-                                  color:
-                                      Theme.of(context).colorScheme.secondary,
-                                  fontSize: 30 * globals.scaleParam,
-                                  fontWeight: FontWeight.w500,
+                              child: Padding(
+                                padding: EdgeInsets.only(
+                                  left: 10 * globals.scaleParam,
+                                  bottom: 10 * globals.scaleParam,
+                                ),
+                                child: Text(
+                                  "В наличии ${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт.",
+                                  style: TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.secondary,
+                                    fontSize: 30 * globals.scaleParam,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
                             ),
@@ -2258,9 +2282,9 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                     ),
                     Flexible(
                         child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 30 * globals.scaleParam,
-                        vertical: 30 * globals.scaleParam,
+                      padding: EdgeInsets.only(
+                        left: 25 * globals.scaleParam,
+                        bottom: 15 * globals.scaleParam,
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.start,
