@@ -28,8 +28,9 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
   MapController _mapController = MapController();
   String? _currentAddressName;
   bool isMapSetteled = false;
-String styleUrl = "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png";
-String apiKey = "YOUR-API-KEY";
+  String styleUrl =
+      "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png";
+  String apiKey = "YOUR-API-KEY";
   String _currentCity = "";
 
   double _lat = 0;
@@ -696,8 +697,11 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
       "other": other.text,
     }).then((value) {
       if (widget.isFromCreateOrder) {
-        Navigator.pop(context, value);
-        Navigator.pop(context, value);
+        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+          builder: (context) {
+            return Main();
+          },
+        ), (route) => false);
       } else {
         Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
           builder: (context) {
@@ -872,7 +876,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                 },
                 child: Container(
                   padding: EdgeInsets.all(30 * globals.scaleParam),
-                  margin:EdgeInsets.only(bottom:30),
+                  margin: EdgeInsets.only(bottom: 30),
                   decoration: BoxDecoration(
                     color: globals.mainColor,
                     borderRadius: BorderRadius.all(Radius.circular(10)),
