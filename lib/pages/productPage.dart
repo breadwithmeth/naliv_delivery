@@ -53,6 +53,7 @@ class _ProductPageState extends State<ProductPage> {
       }
     });
   }
+
   // BUTTON VARIABLES/FUNCS START
 
   int amountInCart = 0;
@@ -810,6 +811,7 @@ class _ProductPageState extends State<ProductPage> {
                                               [index]["relation_id"],
                                       onSelected: (v) {
                                         print(v);
+                                        print(options);
                                         if (v) {
                                           setState(() {
                                             options[indexOption]
