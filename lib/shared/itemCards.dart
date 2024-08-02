@@ -1744,7 +1744,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
     if (_debounce?.isActive ?? false) _debounce!.cancel();
 
     // Start a new timer
-    _debounce = Timer(Duration(milliseconds: 3000), () {
+    _debounce = Timer(Duration(milliseconds: 750), () {
       // Call your server update function here
       _updateItemCountServerCall();
     });

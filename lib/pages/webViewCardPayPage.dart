@@ -93,6 +93,9 @@ class _WebViewCardPayPageState extends State<WebViewCardPayPage> {
                     urlController.text = this.url;
                   });
                 },
+                onReceivedHttpError: (controller, request, errorResponse) {
+                  print(errorResponse);
+                },
                 onPermissionRequest: (controller, request) async {
                   return PermissionResponse(
                       resources: request.resources,
