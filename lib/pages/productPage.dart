@@ -44,10 +44,10 @@ class _ProductPageState extends State<ProductPage> {
   Future<void> _getItem() async {
     await getItem(widget.item["item_id"], widget.business["business_id"])
         .then((value) {
-      print(value);
+      // // print(value);
       if (value.isNotEmpty) {
         setState(() {
-          options = value["options"] ?? [];
+          options = value["item_options"] ?? [];
           TabText[0] = value["description"];
         });
       }
@@ -80,7 +80,7 @@ class _ProductPageState extends State<ProductPage> {
     bool? result = await deleteFromCart(itemId);
     result ??= false;
 
-    print(result);
+    // // print(result);
     return Future(() => result!);
   }
 
@@ -141,10 +141,11 @@ class _ProductPageState extends State<ProductPage> {
       isLastServerCallWasSucceed = false;
     });
     await changeCartItem(
-            item["item_id"], amountInCart, widget.business["business_id"])
+            item["item_id"], amountInCart, widget.business["business_id"],
+            options: options)
         .then(
       (value) {
-        print(value);
+        // // print(value);
         if (value != null) {
           if (mounted) {
             setState(() {
@@ -168,7 +169,7 @@ class _ProductPageState extends State<ProductPage> {
           });
           getBuyButtonCurrentActionText();
         }
-        print("TRIGGERED WIDGET.RETURNDATAAMOUNT!");
+        // print("TRIGGERED WIDGET.RETURNDATAAMOUNT!");
         widget.returnDataAmount!(actualCartAmount, widget.index);
         if (widget.cartPageExclusiveCallbackFunc != null) {
           widget.cartPageExclusiveCallbackFunc!(widget.index, actualCartAmount);
@@ -176,7 +177,7 @@ class _ProductPageState extends State<ProductPage> {
       },
     ).onError(
       (error, stackTrace) {
-        print(int.parse(widget.item["amount"]));
+        // print(int.parse(widget.item["amount"]));
         widget.returnDataAmount!(
             int.parse(widget.item["amount"]), widget.index);
         if (widget.cartPageExclusiveCallbackFunc != null) {
@@ -310,7 +311,7 @@ class _ProductPageState extends State<ProductPage> {
           );
       // Future.delayed(const Duration(milliseconds: 0)).whenComplete(() async {
       //   await _getItem().then((value) {
-      //     print("DATA RECIEVED!");
+      //     // print("DATA RECIEVED!");
       //   });
       // });
     });
@@ -810,7 +811,7 @@ class _ProductPageState extends State<ProductPage> {
                                           options[indexOption]["option_items"]
                                               [index]["relation_id"],
                                       onSelected: (v) {
-                                        print(v);
+                                        // print(v);
                                         print(options);
                                         if (v) {
                                           setState(() {

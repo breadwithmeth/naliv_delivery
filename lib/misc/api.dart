@@ -342,17 +342,19 @@ Future<String?> changeCartItem(String itemId, int amount, String businessId,
   var url = Uri.https(URL_API, 'api/item/addToCart');
 
   late var response;
+  print(options);
   if (options.length == 0) {
     response = await client.post(
       url,
       body: json.encode({
         'item_id': itemId,
         'amount': amount.toString(),
-        'business_id': businessId
+        'business_id': businessId,
       }),
       headers: {"Content-Type": "application/json", "AUTH": token},
     );
   } else {
+    print(options);
     response = await client.post(
       url,
       body: json.encode({

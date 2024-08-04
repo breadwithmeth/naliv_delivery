@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -2425,6 +2426,9 @@ class _ItemCardListTileState extends State<ItemCardListTile>
   Timer? _debounce;
   Timer? _hideButtonsTimer;
 
+  List options = [];
+  List cart = [];
+
   bool canButtonsBeUsed = true;
   bool hideButtons = true;
 
@@ -2507,7 +2511,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
     }
   }
 
-  void updateCurrentItem(int amount, [int index = 0]) {
+  Future<void> updateCurrentItem(int amount, [int index = 0]) async {
     if (amountInCart == 0 && amount != 0) {
       _controller.forward();
     } else if (amount == 0) {
@@ -2516,6 +2520,16 @@ class _ItemCardListTileState extends State<ItemCardListTile>
     print("AMOUNT IS $amount");
     setState(() {
       amountInCart = amount;
+    });
+    await getItem(widget.element["item_id"], widget.business["business_id"])
+        .then((value) {
+      print(value);
+      if (value.isNotEmpty) {
+        setState(() {
+          options = json.decode(value["options"]) ?? [];
+          cart = json.decode(value["cart"]) ?? [];
+        });
+      }
     });
   }
 
@@ -2538,7 +2552,14 @@ class _ItemCardListTileState extends State<ItemCardListTile>
       element = widget.element;
       amountInCart = int.parse(element["amount"] ?? "0");
       previousAmount = amountInCart;
+      cart = widget.element["cart"] == null
+          ? []
+          : json.decode(widget.element["cart"]);
+      options = widget.element["options"] == null
+          ? []
+          : json.decode(widget.element["options"]);
     });
+
     // getProperties();
     _controller = AnimationController(
       duration: const Duration(milliseconds: 150),
@@ -2578,6 +2599,34 @@ class _ItemCardListTileState extends State<ItemCardListTile>
       _updateItemCountServerCall();
     }
     super.dispose();
+  }
+
+  List<Widget> _getCartOptions(dynamic option_items) {
+    List<Widget> selectedOptions = [];
+    if (option_items is List) {
+      option_items.forEach((option_item) {
+        dynamic s_option = options.firstWhere((option) =>
+            option["relation_id"].toString() == option_item.toString());
+        print("=======================================");
+        print(s_option);
+        selectedOptions.add(Text(
+          s_option["name"],
+          style: TextStyle(
+              fontSize: 24 * globals.scaleParam, fontWeight: FontWeight.w800),
+        ));
+      });
+    } else {
+      dynamic s_option = options.firstWhere((option) =>
+          option["relation_id"].toString() == option_items.toString());
+      print("=======================================");
+      print(s_option);
+      selectedOptions.add(Text(
+        s_option["name"],
+        style: TextStyle(
+            fontSize: 24 * globals.scaleParam, fontWeight: FontWeight.w800),
+      ));
+    }
+    return selectedOptions;
   }
 
   void getProperties() {
@@ -2621,281 +2670,447 @@ class _ItemCardListTileState extends State<ItemCardListTile>
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.all(10),
-      decoration: BoxDecoration(
-          // boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
-          borderRadius: BorderRadius.all(Radius.circular(10))),
-      child: Column(
-        children: [
-          SizedBox(
-            height: 200 * globals.scaleParam,
-            child: Row(
-              children: [
-                AspectRatio(
-                    aspectRatio: 1,
-                    child: Container(
-                      padding: EdgeInsets.all(5),
-                      clipBehavior: Clip.antiAliasWithSaveLayer,
-                      decoration: BoxDecoration(
-                          // boxShadow: [
-                          //   BoxShadow(color: Colors.black, blurRadius: 5)
-                          // ],
-                          color: Colors.white,
-                          borderRadius: BorderRadius.all(
-                              Radius.circular(30 * globals.scaleParam))),
-                      child: ExtendedImage.network(
-                        element["img"],
-                        height: double.infinity,
-                        clearMemoryCacheWhenDispose: true,
-                        enableMemoryCache: true,
-                        enableLoadState: false,
-                        fit: BoxFit.contain,
-                      ),
-                    )),
-                Expanded(
-                    child: Padding(
-                  padding: EdgeInsets.fromLTRB(10, 5, 10, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      SizedBox(
-                        height: 100 * globals.scaleParam,
-                        child: Flexible(
-                            child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              height: 50 * globals.scaleParam,
-                              child: Text(
-                                element["name"],
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                                style: TextStyle(
-                                    fontSize: 36 * globals.scaleParam,
-                                    fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                            Container(
-                                height: 50 * globals.scaleParam,
-                                child: Text(
-                                  element["description"],
-                                  maxLines: 2,
-                                  softWrap: true,
-                                  style: TextStyle(
-                                      overflow: TextOverflow.ellipsis,
-                                      fontSize: 20 * globals.scaleParam,
-                                      fontWeight: FontWeight.w400),
-                                ))
-                          ],
-                        )),
-                      ),
-                      Flexible(
-                          child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.max,
+        clipBehavior: Clip.antiAliasWithSaveLayer,
+        margin: EdgeInsets.all(10 * globals.scaleParam),
+        padding: EdgeInsets.symmetric(vertical: 5, horizontal: 5),
+        decoration: BoxDecoration(
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 5,
+                  spreadRadius: -5,
+                  offset: Offset(0, 10))
+            ],
+            borderRadius:
+                BorderRadius.all(Radius.circular(30 * globals.scaleParam)),
+            color: options.isNotEmpty && cart.isNotEmpty
+                ? Colors.white
+                : Colors.white,
+            border: Border(bottom: BorderSide(color: Colors.white, width: 1))),
+        child: Column(
+          children: [
+            GestureDetector(
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  clipBehavior: Clip.antiAlias,
+                  useSafeArea: true,
+                  isScrollControlled: true,
+                  showDragHandle: false,
+                  builder: (context) {
+                    widget.element["amount"] = amountInCart.toString();
+                    return ProductPage(
+                      item: widget.element,
+                      index: widget.index,
+                      returnDataAmount: updateCurrentItem,
+                      business: widget.business,
+                    );
+                  },
+                );
+              },
+              child: Container(
+                  padding: EdgeInsets.all(10 * globals.scaleParam),
+                  height: 300 * globals.scaleParam,
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.white12,
+                        blurRadius: 5,
+                      )
+                    ],
+                    color: Colors.white,
+                    borderRadius: BorderRadius.all(
+                        Radius.circular(30 * globals.scaleParam)),
+                  ),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Expanded(
+                      child: Row(
                         children: [
-                          Row(
+                          AspectRatio(
+                              aspectRatio: 1,
+                              child: Container(
+                                padding: EdgeInsets.all(5),
+                                clipBehavior: Clip.antiAliasWithSaveLayer,
+                                decoration: BoxDecoration(
+                                    // boxShadow: [
+                                    //   BoxShadow(color: Colors.black, blurRadius: 5)
+                                    // ],
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.all(
+                                        Radius.circular(
+                                            30 * globals.scaleParam))),
+                                child: ExtendedImage.network(
+                                  element["img"] ??
+                                      "https://upload.wikimedia.org/wikipedia/commons/8/8f/Example_image.svg",
+                                  height: double.infinity,
+                                  clearMemoryCacheWhenDispose: true,
+                                  enableMemoryCache: true,
+                                  enableLoadState: false,
+                                  fit: BoxFit.contain,
+                                ),
+                              )),
+                          Expanded(
+                              flex: 2,
+                              child: Padding(
+                                padding: EdgeInsets.fromLTRB(10, 5, 10, 0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Expanded(
+                                        flex: 2,
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Expanded(
+                                              flex: 2,
+                                              child: Container(
+                                                  alignment: Alignment.topLeft,
+                                                  height:
+                                                      100 * globals.scaleParam,
+                                                  child: Row(
+                                                    children: [
+                                                      Flexible(
+                                                        child: Text(
+                                                          element["name"],
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          maxLines: 2,
+                                                          style: TextStyle(
+                                                              fontSize: 28 *
+                                                                  globals
+                                                                      .scaleParam,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600),
+                                                        ),
+                                                      )
+                                                    ],
+                                                  )),
+                                            ),
+                                            Expanded(
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.end,
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    globals.formatCost(
+                                                        element['price'] ?? ""),
+                                                    style: TextStyle(
+                                                      color: Colors.black,
+                                                      fontWeight:
+                                                          FontWeight.w900,
+                                                      fontSize: 38 *
+                                                          globals.scaleParam,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    "₸",
+                                                    textAlign: TextAlign.start,
+                                                    style: TextStyle(
+                                                      color:
+                                                          Colors.grey.shade600,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      fontSize: 38 *
+                                                          globals.scaleParam,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        )),
+                                    Expanded(
+                                      flex: 2,
+                                      child: AnimatedCrossFade(
+                                        alignment: Alignment.topRight,
+                                        duration: Durations.medium1,
+                                        crossFadeState: amountInCart == 0 ||
+                                                (amountInCart > 0 &&
+                                                    hideButtons)
+                                            ? CrossFadeState.showFirst
+                                            : CrossFadeState.showSecond,
+                                        firstChild: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.end,
+                                          children: [
+                                            int.parse(widget
+                                                        .element["option"]) ==
+                                                    1
+                                                ? IconButton(
+                                                    style: IconButton.styleFrom(
+                                                      alignment:
+                                                          Alignment.center,
+                                                      // padding: EdgeInsets.all(0),
+                                                      // backgroundColor: amountInCart > 0
+                                                      //     ? Colors.amberAccent.shade200
+                                                      //     : Colors.transparent,
+                                                    ),
+                                                    highlightColor:
+                                                        canButtonsBeUsed
+                                                            ? Colors.transparent
+                                                            : Colors
+                                                                .transparent,
+                                                    padding: EdgeInsets.all(0),
+                                                    onPressed: canButtonsBeUsed
+                                                        ? () {
+                                                            if (hideButtons &&
+                                                                amountInCart >
+                                                                    0) {
+                                                              setState(() {
+                                                                hideButtons =
+                                                                    false;
+                                                              });
+                                                              _hideButtonsAfterTime();
+                                                              return;
+                                                            } else if (hideButtons &&
+                                                                amountInCart ==
+                                                                    0) {
+                                                              setState(() {
+                                                                hideButtons =
+                                                                    false;
+                                                              });
+                                                              _hideButtonsAfterTime();
+                                                            } else {
+                                                              _hideButtonsAfterTime();
+                                                            }
+                                                            _incrementAmountInCart();
+                                                            setState(() {
+                                                              canButtonsBeUsed =
+                                                                  false;
+                                                            });
+                                                            _controller
+                                                                .forward();
+                                                            Timer(
+                                                              Duration(
+                                                                  milliseconds:
+                                                                      350),
+                                                              () {
+                                                                setState(() {
+                                                                  canButtonsBeUsed =
+                                                                      true;
+                                                                });
+                                                              },
+                                                            );
+                                                          }
+                                                        : () {},
+                                                    icon: amountInCart == 0
+                                                        ? Icon(
+                                                            Icons.add_rounded,
+                                                            color: Theme.of(
+                                                                    context)
+                                                                .colorScheme
+                                                                .onSurface,
+                                                          )
+                                                        : Text(
+                                                            amountInCart
+                                                                .toString(),
+                                                            style: TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              fontSize: 48 *
+                                                                  globals
+                                                                      .scaleParam,
+                                                              color: Theme.of(
+                                                                      context)
+                                                                  .colorScheme
+                                                                  .onSurface,
+                                                            ),
+                                                          ),
+                                                  )
+                                                : IconButton(
+                                                    onPressed: () {},
+                                                    icon: Icon(
+                                                      Icons.add_rounded,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface,
+                                                    )),
+                                          ],
+                                        ),
+                                        secondChild: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.end,
+                                          children: [
+                                            IconButton(
+                                              padding: EdgeInsets.all(0),
+                                              onPressed: canButtonsBeUsed
+                                                  ? () {
+                                                      _hideButtonsAfterTime();
+                                                      _decrementAmountInCart();
+                                                      if (amountInCart <= 0) {
+                                                        setState(() {
+                                                          canButtonsBeUsed =
+                                                              false;
+                                                        });
+                                                        _controller.reverse();
+                                                        Timer(
+                                                          Duration(
+                                                              milliseconds:
+                                                                  350),
+                                                          () {
+                                                            setState(() {
+                                                              canButtonsBeUsed =
+                                                                  true;
+                                                            });
+                                                          },
+                                                        );
+                                                      }
+                                                    }
+                                                  : null,
+                                              icon: Container(
+                                                child: Icon(
+                                                  Icons.remove_rounded,
+                                                  color: amountInCart > 0
+                                                      ? Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface
+                                                      : Theme.of(context)
+                                                          .colorScheme
+                                                          .secondary,
+                                                ),
+                                              ),
+                                            ),
+                                            Text(
+                                              "${amountInCart.toString()} шт.", //"${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
+                                              textHeightBehavior:
+                                                  TextHeightBehavior(
+                                                applyHeightToFirstAscent: false,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize:
+                                                    36 * globals.scaleParam,
+                                                color: amountInCart != 0
+                                                    ? Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurface
+                                                    : Colors.grey.shade600,
+                                              ),
+                                            ),
+                                            IconButton(
+                                              padding: EdgeInsets.all(0),
+                                              onPressed: canButtonsBeUsed
+                                                  ? () {
+                                                      _incrementAmountInCart();
+                                                      _hideButtonsAfterTime();
+                                                    }
+                                                  : null,
+                                              icon: Container(
+                                                child: Icon(
+                                                  Icons.add_rounded,
+                                                  color: amountInCart <
+                                                          double.parse(element[
+                                                                  "in_stock"])
+                                                              .truncate()
+                                                      ? Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface
+                                                      : Theme.of(context)
+                                                          .colorScheme
+                                                          .secondary,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              )),
+                          // Container(
+                          //                   height: 100 * globals.scaleParam,
+                          //                   width: MediaQuery.of(context)
+                          //                           .size
+                          //                           .width *
+                          //                       0.5,
+                          //                   child: Text(
+                          //                     element["description"],
+                          //                     maxLines: 2,
+                          //                     softWrap: true,
+                          //                     style: TextStyle(
+                          //                         overflow: TextOverflow.ellipsis,
+                          //                         fontSize:
+                          //                             20 * globals.scaleParam,
+                          //                         fontWeight: FontWeight.w400),
+                          //                   ))
+                        ],
+                      ),
+                    )
+                  ])),
+            ),
+            options.isNotEmpty && cart.isNotEmpty
+                ? Container(
+                    child: ListView.builder(
+                      primary: false,
+                      shrinkWrap: true,
+                      itemCount: cart.length,
+                      itemBuilder: (context, index) {
+                        List _options1 = cart[index]["options"];
+
+                        return Container(
+                          padding: EdgeInsets.all(20 * globals.scaleParam),
+                          decoration: BoxDecoration(
+                              boxShadow: [
+                                BoxShadow(
+                                    color: Colors.black38,
+                                    blurRadius: 3,
+                                    offset: Offset(2, 2))
+                              ],
+                              color: Colors.white,
+                              borderRadius: BorderRadius.all(
+                                  Radius.circular(20 * globals.scaleParam))
+                              // border: Border(
+                              //     top: BorderSide(color: Colors.black12))
+                              ),
+                          margin: EdgeInsets.symmetric(
+                              vertical: 5, horizontal: 20 * globals.scaleParam),
+                          child: Row(
                             children: [
-                              Text(
-                                globals.formatCost(element['price'] ?? ""),
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 38 * globals.scaleParam,
-                                ),
-                              ),
-                              Text(
-                                "₸",
-                                textAlign: TextAlign.start,
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 38 * globals.scaleParam,
-                                ),
-                              ),
+                              Flexible(
+                                  child: Text(
+                                cart[index]["amount"].toString() + "x",
+                                style: TextStyle(fontWeight: FontWeight.w900),
+                              )),
+                              Spacer(),
+                              Expanded(
+                                  flex: 9,
+                                  child: Column(
+                                    children: [
+                                      ListView.builder(
+                                        shrinkWrap: true,
+                                        primary: false,
+                                        //  _getCartOptions([3, 4])
+                                        itemCount: _options1.length,
+                                        itemBuilder: (context, index2) {
+                                          return Wrap(
+                                            spacing: 10,
+                                            children: _getCartOptions(
+                                                _options1[index2]
+                                                    ["option_items"]),
+                                          );
+                                        },
+                                      )
+                                    ],
+                                  ))
                             ],
                           ),
-                          Spacer(),
-                          Expanded(
-                            flex: 2,
-                            child: AnimatedCrossFade(
-                              alignment: Alignment.topRight,
-                              duration: Durations.medium1,
-                              crossFadeState: amountInCart == 0 ||
-                                      (amountInCart > 0 && hideButtons)
-                                  ? CrossFadeState.showFirst
-                                  : CrossFadeState.showSecond,
-                              firstChild: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  int.parse(widget.element["option"]) == 1
-                                      ? IconButton(
-                                          style: IconButton.styleFrom(
-                                            alignment: Alignment.center,
-                                            // padding: EdgeInsets.all(0),
-                                            // backgroundColor: amountInCart > 0
-                                            //     ? Colors.amberAccent.shade200
-                                            //     : Colors.transparent,
-                                          ),
-                                          highlightColor: canButtonsBeUsed
-                                              ? Colors.transparent
-                                              : Colors.transparent,
-                                          padding: EdgeInsets.all(0),
-                                          onPressed: canButtonsBeUsed
-                                              ? () {
-                                                  if (hideButtons &&
-                                                      amountInCart > 0) {
-                                                    setState(() {
-                                                      hideButtons = false;
-                                                    });
-                                                    _hideButtonsAfterTime();
-                                                    return;
-                                                  } else if (hideButtons &&
-                                                      amountInCart == 0) {
-                                                    setState(() {
-                                                      hideButtons = false;
-                                                    });
-                                                    _hideButtonsAfterTime();
-                                                  } else {
-                                                    _hideButtonsAfterTime();
-                                                  }
-                                                  _incrementAmountInCart();
-                                                  setState(() {
-                                                    canButtonsBeUsed = false;
-                                                  });
-                                                  _controller.forward();
-                                                  Timer(
-                                                    Duration(milliseconds: 350),
-                                                    () {
-                                                      setState(() {
-                                                        canButtonsBeUsed = true;
-                                                      });
-                                                    },
-                                                  );
-                                                }
-                                              : null,
-                                          icon: amountInCart == 0
-                                              ? Icon(
-                                                  Icons.add_rounded,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurface,
-                                                )
-                                              : Text(
-                                                  amountInCart.toString(),
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.w700,
-                                                    fontSize:
-                                                        48 * globals.scaleParam,
-                                                    color: Theme.of(context)
-                                                        .colorScheme
-                                                        .onSurface,
-                                                  ),
-                                                ),
-                                        )
-                                      : IconButton(
-                                          onPressed: () {},
-                                          icon: Icon(
-                                            Icons.add_rounded,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface,
-                                          )),
-                                ],
-                              ),
-                              secondChild: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  IconButton(
-                                    padding: EdgeInsets.all(0),
-                                    onPressed: canButtonsBeUsed
-                                        ? () {
-                                            _hideButtonsAfterTime();
-                                            _decrementAmountInCart();
-                                            if (amountInCart <= 0) {
-                                              setState(() {
-                                                canButtonsBeUsed = false;
-                                              });
-                                              _controller.reverse();
-                                              Timer(
-                                                Duration(milliseconds: 350),
-                                                () {
-                                                  setState(() {
-                                                    canButtonsBeUsed = true;
-                                                  });
-                                                },
-                                              );
-                                            }
-                                          }
-                                        : null,
-                                    icon: Container(
-                                      child: Icon(
-                                        Icons.remove_rounded,
-                                        color: amountInCart > 0
-                                            ? Theme.of(context)
-                                                .colorScheme
-                                                .onSurface
-                                            : Theme.of(context)
-                                                .colorScheme
-                                                .secondary,
-                                      ),
-                                    ),
-                                  ),
-                                  Text(
-                                    "${amountInCart.toString()} шт.", //"${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
-                                    textHeightBehavior: TextHeightBehavior(
-                                      applyHeightToFirstAscent: false,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 36 * globals.scaleParam,
-                                      color: amountInCart != 0
-                                          ? Theme.of(context)
-                                              .colorScheme
-                                              .onSurface
-                                          : Colors.grey.shade600,
-                                    ),
-                                  ),
-                                  IconButton(
-                                    padding: EdgeInsets.all(0),
-                                    onPressed: canButtonsBeUsed
-                                        ? () {
-                                            _incrementAmountInCart();
-                                            _hideButtonsAfterTime();
-                                          }
-                                        : null,
-                                    icon: Container(
-                                      child: Icon(
-                                        Icons.add_rounded,
-                                        color: amountInCart <
-                                                double.parse(
-                                                        element["in_stock"])
-                                                    .truncate()
-                                            ? Theme.of(context)
-                                                .colorScheme
-                                                .onSurface
-                                            : Theme.of(context)
-                                                .colorScheme
-                                                .secondary,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                        ],
-                      ))
-                    ],
-                  ),
-                ))
-              ],
-            ),
-          )
-        ],
-      ),
-    );
+                        );
+                      },
+                    ),
+                  )
+                : Container(),
+          ],
+        ));
   }
 }
