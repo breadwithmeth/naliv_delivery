@@ -4,6 +4,7 @@ import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/searchPage.dart';
 import 'package:naliv_delivery/shared/cartButton.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 class CategoryPage extends StatefulWidget {
   const CategoryPage(
@@ -71,7 +72,7 @@ class _CategoryPageState extends State<CategoryPage> {
       initialIndex: initialIndexTabbar,
       length: widget.categories.length,
       child: Scaffold(
-        backgroundColor: Colors.grey.shade50,
+        backgroundColor: Colors.white,
         key: _scaffoldKey,
         floatingActionButton: CartButton(
           business: widget.business,
@@ -729,14 +730,15 @@ class _CategoryPageListState extends State<CategoryPageList>
     return CustomScrollView(
       slivers: [
         _items.length > 1
-            ? SliverGrid.builder(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    // crossAxisSpacing: globals.scaleParam * 5,
-                    // mainAxisSpacing: globals.scaleParam * 5,
-                    crossAxisCount:
-                        MediaQuery.of(context).size.aspectRatio > 1 ? 6 : 2,
-                    childAspectRatio:
-                        MediaQuery.of(context).size.aspectRatio > 1 ? 1 : 1),
+            ? SliverList.builder(
+                // gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                //     maxCrossAxisExtent: 500 * globals.scaleParam,
+                //     // crossAxisSpacing: globals.scaleParam * 5,
+                //     // mainAxisSpacing: globals.scaleParam * 5,
+                //     // crossAxisCount:
+                //     //     MediaQuery.of(context).size.aspectRatio > 1 ? 6 : 2,
+                //     childAspectRatio:
+                //         MediaQuery.of(context).size.aspectRatio > 1 ? 1 : 1),
                 addAutomaticKeepAlives: false,
                 itemCount: _items.length + (_isLastPage ? 0 : 1),
                 itemBuilder: (context, index) {
@@ -756,20 +758,15 @@ class _CategoryPageListState extends State<CategoryPageList>
                     }
                   }
                   final Map<String, dynamic> item = _items[index];
-                  return LayoutBuilder(
-                    builder: (context, constraints) {
-                      return ItemCardSquare(
-                        constraints: constraints,
-                        itemId: item["item_id"],
-                        element: item,
-                        categoryId: "",
-                        categoryName: "",
-                        scroll: 0,
-                        business: widget.business,
-                        index: index,
-                        categoryPageUpdateData: updateDataAmount,
-                      );
-                    },
+                  return ItemCardListTile(
+                    itemId: item["item_id"],
+                    element: item,
+                    categoryId: "",
+                    categoryName: "",
+                    scroll: 0,
+                    business: widget.business,
+                    index: index,
+                    categoryPageUpdateData: updateDataAmount,
                   );
                 },
               )
