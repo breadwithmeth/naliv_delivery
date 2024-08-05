@@ -259,7 +259,7 @@ class _ProductPageState extends State<ProductPage> {
       actualCartAmount = amountInCart;
       getBuyButtonCurrentActionText();
       if (widget.item["in_stock"] != null) {
-        inStock = double.parse(widget.item["in_stock"]).truncate();
+        inStock = widget.item["in_stock"].truncate();
       } else {
         inStock = 0;
       }
@@ -687,7 +687,7 @@ class _ProductPageState extends State<ProductPage> {
                               children: [
                                 Flexible(
                                   child: Text(
-                                    "${globals.formatCost(item['price'] ?? '')}",
+                                    "${globals.formatCost((item['price'] ?? '').toString())}",
                                     style: TextStyle(
                                       fontSize: 40 * globals.scaleParam,
                                       fontWeight: FontWeight.w700,
@@ -712,7 +712,7 @@ class _ProductPageState extends State<ProductPage> {
                               children: [
                                 Flexible(
                                   child: Text(
-                                    "${double.parse(item["in_stock"] ?? "0").truncate().toString()} шт. в наличии",
+                                    "${(item["in_stock"] ?? 0.0).truncate().toString()} шт. в наличии",
                                     style: TextStyle(
                                       fontSize: 28 * globals.scaleParam,
                                       fontWeight: FontWeight.w700,

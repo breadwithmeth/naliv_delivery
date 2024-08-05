@@ -142,7 +142,7 @@ class _ActiveOrderButtonState extends State<ActiveOrderButton> {
                   child: Text(
                     "Заказ ${orderCurrentStatus[0]}",
                     style: TextStyle(
-                      fontSize: 28 * globals.scaleParam,
+                      fontSize: 32 * globals.scaleParam,
                       fontWeight: FontWeight.w700,
                       color: Theme.of(context).colorScheme.onPrimary,
                     ),

@@ -309,7 +309,7 @@ Future<Map> getFilters(String categoryId) async {
   return data;
 }
 
-Future<Map<String, dynamic>> getItem(String itemId, String business_id,
+Future<Map<String, dynamic>> getItem(dynamic itemId, String business_id,
     {List? filter}) async {
   String? token = await getToken();
   if (token == null) {

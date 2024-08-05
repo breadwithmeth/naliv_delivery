@@ -20,8 +20,8 @@ class _CartButtonState extends State<CartButton> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 150 * globals.scaleParam,
-      height: 150 * globals.scaleParam,
+      width: 200 * globals.scaleParam,
+      height: 165 * globals.scaleParam,
       child: FloatingActionButton(
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(

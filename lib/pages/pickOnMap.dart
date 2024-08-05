@@ -584,6 +584,9 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                     ),
             ),
           ),
+          SizedBox(
+            height: 50 * globals.scaleParam,
+          ),
         ],
       ),
     );

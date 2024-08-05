@@ -159,12 +159,15 @@ class _HomePageState extends State<HomePage>
         if (snapshot.hasData && isLogoPainted) {
           return Scaffold(
             key: _scaffoldKey,
-            floatingActionButton: CartButton(
-              business: widget.business,
-              user: widget.user,
+            floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+            floatingActionButton: SizedBox(
+              child: CartButton(
+                business: widget.business,
+                user: widget.user,
+              ),
             ),
             appBar: AppBar(
-              // toolbarHeight: 80 * globals.scaleParam,
+              // toolbarHeight: 130 * globals.scaleParam,
               automaticallyImplyLeading: false,
               titleSpacing: 0,
               title: Padding(
@@ -274,18 +277,6 @@ class _HomePageState extends State<HomePage>
                 SizedBox(
                   height: 10 * globals.scaleParam,
                 ),
-                SizedBox(
-                  height: 115 * globals.scaleParam,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 20 * globals.scaleParam),
-                    child: isThereActiveOrder
-                        ? ActiveOrderButton(
-                            business: widget.business,
-                          )
-                        : Container(),
-                  ),
-                ),
                 Expanded(
                   child: Padding(
                     padding: EdgeInsets.symmetric(
@@ -307,7 +298,10 @@ class _HomePageState extends State<HomePage>
                               gridDelegate:
                                   SliverGridDelegateWithFixedCrossAxisCount(
                                 // maxCrossAxisExtent: 650 * globals.scaleParam,
-                                crossAxisCount: MediaQuery.of(context).size.aspectRatio > 1 ? 3 : 2,
+                                crossAxisCount:
+                                    MediaQuery.of(context).size.aspectRatio > 1
+                                        ? 3
+                                        : 2,
                                 childAspectRatio: 1,
                                 crossAxisSpacing: 0,
                                 mainAxisSpacing: 0,
@@ -683,7 +677,7 @@ class _CategoryItemState extends State<CategoryItem> {
                       shadows: [
                         Shadow(
                           blurRadius: 8,
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withOpacity(0.4),
                           offset: Offset(0, 2),
                         )
                       ]
