@@ -2670,89 +2670,73 @@ class _ItemCardListTileState extends State<ItemCardListTile>
   @override
   Widget build(BuildContext context) {
     return Container(
-        clipBehavior: Clip.antiAliasWithSaveLayer,
-        margin: EdgeInsets.all(10 * globals.scaleParam),
-        padding: EdgeInsets.symmetric(vertical: 5, horizontal: 5),
-        decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 5,
-                  spreadRadius: -5,
-                  offset: Offset(0, 10))
-            ],
-            borderRadius:
-                BorderRadius.all(Radius.circular(30 * globals.scaleParam)),
-            color: options.isNotEmpty && cart.isNotEmpty
-                ? Colors.white
-                : Colors.white,
-            border: Border(bottom: BorderSide(color: Colors.white, width: 1))),
-        child: Column(
-          children: [
-            GestureDetector(
-              onTap: () {
-                showModalBottomSheet(
-                  context: context,
-                  clipBehavior: Clip.antiAlias,
-                  useSafeArea: true,
-                  isScrollControlled: true,
-                  showDragHandle: false,
-                  builder: (context) {
-                    widget.element["amount"] = amountInCart.toString();
-                    return ProductPage(
-                      item: widget.element,
-                      index: widget.index,
-                      returnDataAmount: updateCurrentItem,
-                      business: widget.business,
+      height: options.isNotEmpty
+          ? 400 * globals.scaleParam
+          : 300 * globals.scaleParam,
+      clipBehavior: Clip.antiAliasWithSaveLayer,
+      margin: EdgeInsets.all(10 * globals.scaleParam),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.all(
+          Radius.circular(30 * globals.scaleParam),
+        ),
+        color: Colors.white,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SizedBox(
+            height: constraints.maxHeight,
+            child: Column(
+              children: [
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    showModalBottomSheet(
+                      context: context,
+                      clipBehavior: Clip.antiAlias,
+                      useSafeArea: true,
+                      isScrollControlled: true,
+                      showDragHandle: false,
+                      builder: (context) {
+                        widget.element["amount"] = amountInCart.toString();
+                        return ProductPage(
+                          item: widget.element,
+                          index: widget.index,
+                          returnDataAmount: updateCurrentItem,
+                          business: widget.business,
+                        );
+                      },
                     );
                   },
-                );
-              },
-              child: Container(
-                  padding: EdgeInsets.all(10 * globals.scaleParam),
-                  height: 300 * globals.scaleParam,
-                  decoration: BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.white12,
-                        blurRadius: 5,
-                      )
-                    ],
-                    color: Colors.white,
-                    borderRadius: BorderRadius.all(
-                        Radius.circular(30 * globals.scaleParam)),
-                  ),
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Expanded(
-                      child: Row(
-                        children: [
-                          AspectRatio(
-                              aspectRatio: 1,
-                              child: Container(
-                                padding: EdgeInsets.all(5),
-                                clipBehavior: Clip.antiAliasWithSaveLayer,
-                                decoration: BoxDecoration(
-                                    // boxShadow: [
-                                    //   BoxShadow(color: Colors.black, blurRadius: 5)
-                                    // ],
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.all(
+                  child: SizedBox(
+                    height: constraints.maxHeight / 2,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              AspectRatio(
+                                  aspectRatio: 1,
+                                  child: Container(
+                                    clipBehavior: Clip.antiAliasWithSaveLayer,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.all(
                                         Radius.circular(
-                                            30 * globals.scaleParam))),
-                                child: ExtendedImage.network(
-                                  element["img"] ??
-                                      "https://upload.wikimedia.org/wikipedia/commons/8/8f/Example_image.svg",
-                                  height: double.infinity,
-                                  clearMemoryCacheWhenDispose: true,
-                                  enableMemoryCache: true,
-                                  enableLoadState: false,
-                                  fit: BoxFit.contain,
-                                ),
-                              )),
-                          Expanded(
-                              flex: 2,
-                              child: Padding(
-                                padding: EdgeInsets.fromLTRB(10, 5, 10, 0),
+                                            30 * globals.scaleParam),
+                                      ),
+                                    ),
+                                    child: ExtendedImage.network(
+                                      element["img"] ??
+                                          "https://upload.wikimedia.org/wikipedia/commons/8/8f/Example_image.svg",
+                                      height: double.infinity,
+                                      clearMemoryCacheWhenDispose: true,
+                                      enableMemoryCache: true,
+                                      enableLoadState: false,
+                                      fit: BoxFit.contain,
+                                    ),
+                                  )),
+                              Expanded(
+                                flex: 2,
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisAlignment:
@@ -2771,8 +2755,6 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                               flex: 2,
                                               child: Container(
                                                   alignment: Alignment.topLeft,
-                                                  height:
-                                                      100 * globals.scaleParam,
                                                   child: Row(
                                                     children: [
                                                       Flexible(
@@ -2933,7 +2915,8 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                                       color: Theme.of(context)
                                                           .colorScheme
                                                           .onSurface,
-                                                    )),
+                                                    ),
+                                                  ),
                                           ],
                                         ),
                                         secondChild: Row(
@@ -3027,90 +3010,83 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                     )
                                   ],
                                 ),
-                              )),
-                          // Container(
-                          //                   height: 100 * globals.scaleParam,
-                          //                   width: MediaQuery.of(context)
-                          //                           .size
-                          //                           .width *
-                          //                       0.5,
-                          //                   child: Text(
-                          //                     element["description"],
-                          //                     maxLines: 2,
-                          //                     softWrap: true,
-                          //                     style: TextStyle(
-                          //                         overflow: TextOverflow.ellipsis,
-                          //                         fontSize:
-                          //                             20 * globals.scaleParam,
-                          //                         fontWeight: FontWeight.w400),
-                          //                   ))
-                        ],
-                      ),
-                    )
-                  ])),
-            ),
-            options.isNotEmpty && cart.isNotEmpty
-                ? Container(
-                    child: ListView.builder(
-                      primary: false,
-                      shrinkWrap: true,
-                      itemCount: cart.length,
-                      itemBuilder: (context, index) {
-                        List _options1 = cart[index]["options"];
-
-                        return Container(
-                          padding: EdgeInsets.all(20 * globals.scaleParam),
-                          decoration: BoxDecoration(
-                              boxShadow: [
-                                BoxShadow(
-                                    color: Colors.black38,
-                                    blurRadius: 3,
-                                    offset: Offset(2, 2))
-                              ],
-                              color: Colors.white,
-                              borderRadius: BorderRadius.all(
-                                  Radius.circular(20 * globals.scaleParam))
-                              // border: Border(
-                              //     top: BorderSide(color: Colors.black12))
                               ),
-                          margin: EdgeInsets.symmetric(
-                              vertical: 5, horizontal: 20 * globals.scaleParam),
-                          child: Row(
-                            children: [
-                              Flexible(
-                                  child: Text(
-                                cart[index]["amount"].toString() + "x",
-                                style: TextStyle(fontWeight: FontWeight.w900),
-                              )),
-                              Spacer(),
-                              Expanded(
-                                  flex: 9,
-                                  child: Column(
-                                    children: [
-                                      ListView.builder(
-                                        shrinkWrap: true,
-                                        primary: false,
-                                        //  _getCartOptions([3, 4])
-                                        itemCount: _options1.length,
-                                        itemBuilder: (context, index2) {
-                                          return Wrap(
-                                            spacing: 10,
-                                            children: _getCartOptions(
-                                                _options1[index2]
-                                                    ["option_items"]),
-                                          );
-                                        },
-                                      )
-                                    ],
-                                  ))
                             ],
                           ),
-                        );
-                      },
+                        )
+                      ],
                     ),
-                  )
-                : Container(),
-          ],
-        ));
+                  ),
+                ),
+                options.isNotEmpty && cart.isNotEmpty
+                    ? Container(
+                        child: ListView.builder(
+                          primary: false,
+                          shrinkWrap: true,
+                          itemCount: cart.length,
+                          itemBuilder: (context, index) {
+                            List _options1 = cart[index]["options"];
+
+                            return Container(
+                              padding: EdgeInsets.all(20 * globals.scaleParam),
+                              decoration: BoxDecoration(
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color: Colors.black38,
+                                        blurRadius: 3,
+                                        offset: Offset(2, 2))
+                                  ],
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.all(
+                                      Radius.circular(20 * globals.scaleParam))
+                                  // border: Border(
+                                  //     top: BorderSide(color: Colors.black12))
+                                  ),
+                              margin: EdgeInsets.symmetric(
+                                  vertical: 5,
+                                  horizontal: 20 * globals.scaleParam),
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                      child: Text(
+                                    cart[index]["amount"].toString() + "x",
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.w900),
+                                  )),
+                                  Spacer(),
+                                  Expanded(
+                                    flex: 9,
+                                    child: Column(
+                                      children: [
+                                        ListView.builder(
+                                          shrinkWrap: true,
+                                          primary: false,
+                                          //  _getCartOptions([3, 4])
+                                          itemCount: _options1.length,
+                                          itemBuilder: (context, index2) {
+                                            return Wrap(
+                                              spacing: 10,
+                                              children: _getCartOptions(
+                                                  _options1[index2]
+                                                      ["option_items"]),
+                                            );
+                                          },
+                                        )
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      )
+                    : Container(),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 }

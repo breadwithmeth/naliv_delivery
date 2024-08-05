@@ -24,14 +24,26 @@ class _WebViewCardPayPageState extends State<WebViewCardPayPage> {
     isInspectable: kDebugMode,
     mediaPlaybackRequiresUserGesture: false,
     allowsInlineMediaPlayback: true,
-    iframeAllow: "camera; microphone",
+    // iframeAllow: "camera; microphone",
     iframeAllowFullscreen: true,
   );
 
   PullToRefreshController? pullToRefreshController;
   String url = "";
   double progress = 0;
+  String successUrl = "https://example.kz/success.html";
+  String failureUrl = "https://example.kz/failure.html";
   final urlController = TextEditingController();
+
+  // What to do when payment succeeded
+  void _handlePaymentSuccess() {
+    Navigator.pop(context);
+  }
+
+  // What to do when payment failed
+  void _handlePaymentFailure() {
+    Navigator.pop(context);
+  }
 
   @override
   void initState() {
@@ -60,18 +72,6 @@ class _WebViewCardPayPageState extends State<WebViewCardPayPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Оплата картой'),
-        // actions: [
-        //   ElevatedButton(
-        //     onPressed: () {
-        //       controller.currentUrl().then(
-        //         (value) {
-        //           print(value);
-        //         },
-        //       );
-        //     },
-        //     child: Text("URL"),
-        //   ),
-        // ],
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -79,8 +79,6 @@ class _WebViewCardPayPageState extends State<WebViewCardPayPage> {
             children: [
               InAppWebView(
                 key: webViewKey,
-                // initialUrlRequest:
-                //     URLRequest(url: WebUri("https://inappwebview.dev/")),
                 initialData: InAppWebViewInitialData(data: widget.htmlString),
                 initialSettings: settings,
                 pullToRefreshController: pullToRefreshController,
@@ -131,6 +129,13 @@ class _WebViewCardPayPageState extends State<WebViewCardPayPage> {
                     this.url = url.toString();
                     urlController.text = this.url;
                   });
+                  if (url != null) {
+                    if (url.toString() == successUrl) {
+                      _handlePaymentSuccess();
+                    } else if (url.toString() == failureUrl) {
+                      _handlePaymentFailure();
+                    }
+                  }
                 },
                 onReceivedError: (controller, request, error) {
                   pullToRefreshController?.endRefreshing();

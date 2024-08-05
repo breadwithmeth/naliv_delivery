@@ -335,8 +335,8 @@ class _ProductPageState extends State<ProductPage> {
     return DraggableScrollableSheet(
       snap: true,
       expand: false,
-      initialChildSize: 1,
-      maxChildSize: 1,
+      initialChildSize: 0.95,
+      maxChildSize: 0.95,
       minChildSize: 0.85,
       shouldCloseOnMinExtent: true,
       snapAnimationDuration: const Duration(milliseconds: 150),
