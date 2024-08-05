@@ -324,9 +324,12 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                               cartInfo: cartInfo,
                               business: widget.business,
                               user: widget.user,
-                              finalSum: int.parse(((widget.finalSum - 0) +
-                                      widget.deliveryInfo["price"])
-                                  .toString()),
+                              finalSum: delivery
+                                  ? int.parse(((widget.finalSum - 0) +
+                                          widget.deliveryInfo["price"])
+                                      .toString())
+                                  : int.parse(
+                                      ((widget.finalSum - 0)).toString()),
                               paymentType: paymentType == PaymentType.kaspi
                                   ? "${paymentType.description}: ${widget.user["login"]}"
                                   : paymentType.description,
@@ -1354,7 +1357,9 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                             Flexible(
                               fit: FlexFit.tight,
                               child: Text(
-                                "${globals.formatCost(widget.deliveryInfo["price"].toString())} ₸",
+                                delivery
+                                    ? "${globals.formatCost(widget.deliveryInfo["price"].toString())} ₸"
+                                    : "0 ₸",
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w600,
@@ -1421,7 +1426,9 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                               fit: FlexFit.tight,
                               child: Text(
                                 //! TODO: Add bonuses instead of hardcoded zero!
-                                "${globals.formatCost(((widget.finalSum - 0) + widget.deliveryInfo["price"]).toString())} ₸",
+                                delivery
+                                    ? "${globals.formatCost(((widget.finalSum - 0) + widget.deliveryInfo["price"]).toString())} ₸"
+                                    : "${globals.formatCost(((widget.finalSum - 0)).toString())} ₸",
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w600,
