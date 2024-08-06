@@ -2710,24 +2710,23 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                   },
                                 );
                               },
-                              child: AspectRatio(
-                                aspectRatio: 1,
-                                child: Container(
-                                  clipBehavior: Clip.antiAliasWithSaveLayer,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(30 * globals.scaleParam),
-                                    ),
+                              child: Container(
+                                clipBehavior: Clip.antiAlias,
+                                decoration: BoxDecoration(
+                                  // color: Colors.red,
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(30 * globals.scaleParam),
                                   ),
-                                  child: ExtendedImage.network(
-                                    element["img"] ??
-                                        "https://upload.wikimedia.org/wikipedia/commons/8/8f/Example_image.svg",
-                                    height: double.infinity,
-                                    clearMemoryCacheWhenDispose: true,
-                                    enableMemoryCache: true,
-                                    enableLoadState: false,
-                                    fit: BoxFit.fitHeight,
-                                  ),
+                                ),
+                                child: ExtendedImage.network(
+                                  element["img"] ??
+                                      "https://upload.wikimedia.org/wikipedia/commons/8/8f/Example_image.svg",
+                                  // height: double.infinity,
+
+                                  clearMemoryCacheWhenDispose: true,
+                                  enableMemoryCache: true,
+                                  enableLoadState: false,
+                                  fit: BoxFit.fitHeight,
                                 ),
                               ),
                             ),
