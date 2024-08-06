@@ -777,6 +777,7 @@ class _CategoryPageListState extends State<CategoryPageList>
                   )
                 : SliverToBoxAdapter(
                     child: Container(
+                      height: MediaQuery.sizeOf(context).height * 0.8,
                       alignment: Alignment.center,
                       child: Text(
                         "Категория пуста",
@@ -788,7 +789,12 @@ class _CategoryPageListState extends State<CategoryPageList>
                         ),
                       ),
                     ),
-                  )
+                  ),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 200 * globals.scaleParam,
+              ),
+            )
           ],
         ),
       ],
