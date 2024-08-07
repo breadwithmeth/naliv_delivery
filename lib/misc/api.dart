@@ -265,8 +265,12 @@ Future<List?> getItemsMain(int page, String business_id,
 
   // List<dynamic> list = json.decode(response.body);
   print(utf8.decode(response.bodyBytes));
-  List data = json.decode(utf8.decode(response.bodyBytes));
-  return data;
+  if (utf8.decode(response.bodyBytes) == "") {
+    return [];
+  } else {
+    List data = json.decode(utf8.decode(response.bodyBytes));
+    return data;
+  }
 }
 
 Future<List> getItems(String categoryId, int page, {Map? filters}) async {

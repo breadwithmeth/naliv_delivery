@@ -131,7 +131,7 @@ class _CartPageState extends State<CartPage>
     }
 
     for (dynamic item in items) {
-      itemsAmount += int.parse(item["amount"]);
+      itemsAmount += int.parse(item["amount"].toString());
     }
     setState(() {
       itemsAmount;
@@ -194,8 +194,9 @@ class _CartPageState extends State<CartPage>
     itemsAmount = 0;
     if (items.isNotEmpty) {
       for (dynamic item in items) {
-        localSum += (int.parse(item["price"]) * int.parse(item["amount"]));
-        itemsAmount += int.parse(item["amount"]);
+        localSum +=
+            double.parse((item["price"] * item["amount"]).toString()).round();
+        itemsAmount += int.parse(item["amount"].toString());
       }
     } else {
       setState(() {
@@ -475,13 +476,13 @@ class _CartPageState extends State<CartPage>
                             Dismissible(
                               // Each Dismissible must contain a Key. Keys allow Flutter to
                               // uniquely identify widgets.
-                              key: Key(items[index]["item_id"]),
+                              key: Key(items[index]["item_id"].toString()),
                               confirmDismiss: (direction) async {
                                 setState(() {
                                   dismissingItem = true;
                                 });
                                 bool result = await _deleteFromCart(
-                                    items[index]["item_id"]);
+                                    items[index]["item_id"].toString());
 
                                 if (result) {
                                   updatePrices(index);
@@ -540,7 +541,6 @@ class _CartPageState extends State<CartPage>
                                         )
                                       : SizedBox(),
                                   ItemCardMinimal(
-                                    itemId: items[index]["item_id"],
                                     element: items[index],
                                     updateExternalInfo: updateDataAmount,
                                     business: widget.business,
