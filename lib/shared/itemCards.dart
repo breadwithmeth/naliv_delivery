@@ -18,24 +18,24 @@ class ItemCard extends StatefulWidget {
       required this.categoryId,
       required this.scroll,
       required this.business_id});
-  final Map<String, dynamic> element;
-  final String categoryName;
 
-  final String itemId;
-
-  final String categoryId;
-  final double scroll;
   final String business_id;
+  final String categoryId;
+  final String categoryName;
   final int chack = 1;
+  final Map<String, dynamic> element;
+  final String itemId;
+  final double scroll;
+
   @override
   State<ItemCard> createState() => _ItemCardState();
 }
 
 class _ItemCardState extends State<ItemCard> {
-  Map<String, dynamic> element = {};
-  List<InlineSpan> propertiesWidget = [];
   late int chack;
+  Map<String, dynamic> element = {};
   bool isNumPickerActive = false;
+  List<InlineSpan> propertiesWidget = [];
 
   @override
   void initState() {
@@ -330,34 +330,144 @@ class ItemCardMedium extends StatefulWidget {
       required this.business,
       required this.index,
       this.categoryPageUpdateData});
-  final Map<String, dynamic> element;
-  final String categoryName;
 
-  final int itemId;
-
-  final String categoryId;
-  final double scroll;
-  final Map<dynamic, dynamic> business;
-  final int index;
-  final chack = 1;
   final Function(String, int)? categoryPageUpdateData;
+  final Map<dynamic, dynamic> business;
+  final String categoryId;
+  final String categoryName;
+  final chack = 1;
+  final Map<String, dynamic> element;
+  final int index;
+  final int itemId;
+  final double scroll;
+
   @override
   State<ItemCardMedium> createState() => _ItemCardMediumState();
 }
 
 class _ItemCardMediumState extends State<ItemCardMedium>
     with SingleTickerProviderStateMixin<ItemCardMedium> {
-  Map<String, dynamic> element = {};
-  List<InlineSpan> propertiesWidget = [];
   int amountInCart = 0;
-  int previousAmount = 0;
-  late int chack;
-  Timer? _debounce;
-
   bool canButtonsBeUsed = true;
+  late int chack;
+  Map<String, dynamic> element = {};
+  int previousAmount = 0;
+  List<InlineSpan> propertiesWidget = [];
 
   late AnimationController _controller;
+  Timer? _debounce;
   late Animation<Offset> _offsetAnimation;
+
+  @override
+  void dispose() {
+    // Trigger the debounce action immediately if the timer is active
+    if (widget.categoryPageUpdateData != null) {
+      widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
+    }
+    if (_debounce?.isActive ?? false) {
+      _debounce?.cancel();
+      _updateItemCountServerCall();
+    }
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    setState(() {
+      element = widget.element;
+      amountInCart = int.parse(element["amount"] ?? "0");
+      previousAmount = amountInCart;
+    });
+    // getProperties();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+
+    _offsetAnimation = Tween<Offset>(
+      begin: Offset(0.70, 0),
+      end: Offset(-0.1, 0),
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    if (amountInCart > 0) {
+      _controller.forward();
+    }
+    // _offsetAnimationReverse = Tween<Offset>(
+    //   begin: Offset(0, 0),
+    //   end: Offset(1, 0),
+    // ).animate(CurvedAnimation(
+    //   parent: _controller,
+    //   curve: Curves.linear,
+    // ));
+  }
+
+  void updateCurrentItem(int amount, [int index = 0]) {
+    if (amountInCart == 0 && amount != 0) {
+      _controller.forward();
+    } else if (amount == 0) {
+      _controller.reverse();
+    }
+    print("AMOUNT IS $amount");
+    setState(() {
+      amountInCart = amount;
+    });
+  }
+
+  Future<void> refreshItemCard() async {
+    Map<String, dynamic>? element = await getItem(
+        widget.element["item_id"], widget.business["business_id"]);
+    print(element);
+    setState(() {
+      element!["name"] = "123";
+      element = element!;
+    });
+  }
+
+  void getProperties() {
+    if (widget.element["properties"] != null) {
+      List<InlineSpan> propertiesT = [];
+      List<String> properties = widget.element["properties"].split(",");
+      print(properties);
+      for (var element in properties) {
+        List temp = element.split(":");
+        propertiesT.add(
+          WidgetSpan(
+            child: Row(
+              children: [
+                Text(
+                  temp[1],
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                ),
+                Image.asset(
+                  "assets/property_icons/${temp[0]}.png",
+                  width: 14,
+                  height: 14,
+                ),
+                SizedBox(
+                  width: 10,
+                )
+              ],
+            ),
+          ),
+        );
+      }
+      setState(() {
+        propertiesWidget = propertiesT;
+      });
+    }
+  }
+
   // late Animation<Offset> _offsetAnimationReverse;
 
   void _updateItemCountServerCall() {
@@ -420,116 +530,6 @@ class _ItemCardMediumState extends State<ItemCardMedium>
         amountInCart++;
       });
       _updateItemCount();
-    }
-  }
-
-  void updateCurrentItem(int amount, [int index = 0]) {
-    if (amountInCart == 0 && amount != 0) {
-      _controller.forward();
-    } else if (amount == 0) {
-      _controller.reverse();
-    }
-    print("AMOUNT IS $amount");
-    setState(() {
-      amountInCart = amount;
-    });
-  }
-
-  Future<void> refreshItemCard() async {
-    Map<String, dynamic>? element = await getItem(
-        widget.element["item_id"], widget.business["business_id"]);
-    print(element);
-    setState(() {
-      element!["name"] = "123";
-      element = element!;
-    });
-  }
-
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    setState(() {
-      element = widget.element;
-      amountInCart = int.parse(element["amount"] ?? "0");
-      previousAmount = amountInCart;
-    });
-    // getProperties();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 150),
-      vsync: this,
-    );
-
-    _offsetAnimation = Tween<Offset>(
-      begin: Offset(0.70, 0),
-      end: Offset(-0.1, 0),
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeOut,
-      ),
-    );
-
-    if (amountInCart > 0) {
-      _controller.forward();
-    }
-    // _offsetAnimationReverse = Tween<Offset>(
-    //   begin: Offset(0, 0),
-    //   end: Offset(1, 0),
-    // ).animate(CurvedAnimation(
-    //   parent: _controller,
-    //   curve: Curves.linear,
-    // ));
-  }
-
-  @override
-  void dispose() {
-    // Trigger the debounce action immediately if the timer is active
-    if (widget.categoryPageUpdateData != null) {
-      widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
-    }
-    if (_debounce?.isActive ?? false) {
-      _debounce?.cancel();
-      _updateItemCountServerCall();
-    }
-    super.dispose();
-  }
-
-  void getProperties() {
-    if (widget.element["properties"] != null) {
-      List<InlineSpan> propertiesT = [];
-      List<String> properties = widget.element["properties"].split(",");
-      print(properties);
-      for (var element in properties) {
-        List temp = element.split(":");
-        propertiesT.add(
-          WidgetSpan(
-            child: Row(
-              children: [
-                Text(
-                  temp[1],
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
-                  ),
-                ),
-                Image.asset(
-                  "assets/property_icons/${temp[0]}.png",
-                  width: 14,
-                  height: 14,
-                ),
-                SizedBox(
-                  width: 10,
-                )
-              ],
-            ),
-          ),
-        );
-      }
-      setState(() {
-        propertiesWidget = propertiesT;
-      });
     }
   }
 
@@ -1108,15 +1108,16 @@ class ItemCardMinimal extends StatefulWidget {
       required this.index,
       required this.business,
       this.updateExternalInfo});
-  final Map<String, dynamic> element;
-  final String categoryName;
 
-  final String categoryId;
-  final double scroll;
-  final int chack = 1;
-  final int index;
-  final Map business;
   final Function(int, int)? updateExternalInfo; // Update CartPage sum!!!!
+  final Map business;
+  final String categoryId;
+  final String categoryName;
+  final int chack = 1;
+  final Map<String, dynamic> element;
+  final int index;
+  final double scroll;
+
   @override
   State<ItemCardMinimal> createState() => _ItemCardMinimalState();
 }
@@ -1142,9 +1143,9 @@ class ItemCardMinimal extends StatefulWidget {
 // });
 
 class _ItemCardMinimalState extends State<ItemCardMinimal> {
+  late int chack;
   Map<String, dynamic> element = {};
   List<InlineSpan> propertiesWidget = [];
-  late int chack;
 
   @override
   void initState() {
@@ -1421,23 +1422,23 @@ class ItemCardNoImage extends StatefulWidget {
       required this.categoryId,
       required this.business_id,
       required this.scroll});
-  final Map<String, dynamic> element;
-  final String categoryName;
 
-  final String itemId;
-
-  final String categoryId;
-  final double scroll;
   final String business_id;
+  final String categoryId;
+  final String categoryName;
   final int chack = 1;
+  final Map<String, dynamic> element;
+  final String itemId;
+  final double scroll;
+
   @override
   State<ItemCardNoImage> createState() => _ItemCardNoImageState();
 }
 
 class _ItemCardNoImageState extends State<ItemCardNoImage> {
+  late int chack;
   Map<String, dynamic> element = {};
   List<InlineSpan> propertiesWidget = [];
-  late int chack;
 
   @override
   void initState() {
@@ -1658,37 +1659,147 @@ class ItemCardSquare extends StatefulWidget {
       required this.index,
       this.categoryPageUpdateData,
       required this.constraints});
-  final Map<String, dynamic> element;
-  final String categoryName;
-  final BoxConstraints constraints;
 
-  final String itemId;
-
-  final String categoryId;
-  final double scroll;
-  final Map<dynamic, dynamic> business;
-  final int index;
-  final chack = 1;
   final Function(String, int)? categoryPageUpdateData;
+  final Map<dynamic, dynamic> business;
+  final String categoryId;
+  final String categoryName;
+  final chack = 1;
+  final BoxConstraints constraints;
+  final Map<String, dynamic> element;
+  final int index;
+  final String itemId;
+  final double scroll;
+
   @override
   State<ItemCardSquare> createState() => _ItemCardSquareState();
 }
 
 class _ItemCardSquareState extends State<ItemCardSquare>
     with SingleTickerProviderStateMixin<ItemCardSquare> {
-  Map<String, dynamic> element = {};
-  List<InlineSpan> propertiesWidget = [];
   int amountInCart = 0;
-  int previousAmount = 0;
-  late int chack;
-  Timer? _debounce;
-  Timer? _hideButtonsTimer;
-
   bool canButtonsBeUsed = true;
+  late int chack;
+  Map<String, dynamic> element = {};
   bool hideButtons = true;
+  int previousAmount = 0;
+  List<InlineSpan> propertiesWidget = [];
 
   late AnimationController _controller;
+  Timer? _debounce;
+  Timer? _hideButtonsTimer;
   late Animation<Offset> _offsetAnimation;
+
+  @override
+  void dispose() {
+    // Trigger the debounce action immediately if the timer is active
+    if (widget.categoryPageUpdateData != null) {
+      widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
+    }
+    if (_debounce?.isActive ?? false) {
+      _debounce?.cancel();
+      _updateItemCountServerCall();
+    }
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    setState(() {
+      element = widget.element;
+      amountInCart = int.parse(element["amount"] ?? "0");
+      previousAmount = amountInCart;
+    });
+    // getProperties();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+
+    _offsetAnimation = Tween<Offset>(
+      begin: Offset(0.70, 0),
+      end: Offset(-0.1, 0),
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    if (amountInCart > 0) {
+      _controller.forward();
+    }
+    // _offsetAnimationReverse = Tween<Offset>(
+    //   begin: Offset(0, 0),
+    //   end: Offset(1, 0),
+    // ).animate(CurvedAnimation(
+    //   parent: _controller,
+    //   curve: Curves.linear,
+    // ));
+  }
+
+  void updateCurrentItem(int amount, [int index = 0]) {
+    if (amountInCart == 0 && amount != 0) {
+      _controller.forward();
+    } else if (amount == 0) {
+      _controller.reverse();
+    }
+    print("AMOUNT IS $amount");
+    setState(() {
+      amountInCart = amount;
+    });
+  }
+
+  Future<void> refreshItemCard() async {
+    Map<String, dynamic>? element = await getItem(
+        widget.element["item_id"], widget.business["business_id"]);
+    print(element);
+    setState(() {
+      element!["name"] = "123";
+      element = element!;
+    });
+  }
+
+  void getProperties() {
+    if (widget.element["properties"] != null) {
+      List<InlineSpan> propertiesT = [];
+      List<String> properties = widget.element["properties"].split(",");
+      print(properties);
+      for (var element in properties) {
+        List temp = element.split(":");
+        propertiesT.add(
+          WidgetSpan(
+            child: Row(
+              children: [
+                Text(
+                  temp[1],
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                ),
+                Image.asset(
+                  "assets/property_icons/${temp[0]}.png",
+                  width: 14,
+                  height: 14,
+                ),
+                SizedBox(
+                  width: 10,
+                )
+              ],
+            ),
+          ),
+        );
+      }
+      setState(() {
+        propertiesWidget = propertiesT;
+      });
+    }
+  }
+
   // late Animation<Offset> _offsetAnimationReverse;
 
   void _hideButtonsAfterTime() {
@@ -1763,116 +1874,6 @@ class _ItemCardSquareState extends State<ItemCardSquare>
         amountInCart++;
       });
       _updateItemCount();
-    }
-  }
-
-  void updateCurrentItem(int amount, [int index = 0]) {
-    if (amountInCart == 0 && amount != 0) {
-      _controller.forward();
-    } else if (amount == 0) {
-      _controller.reverse();
-    }
-    print("AMOUNT IS $amount");
-    setState(() {
-      amountInCart = amount;
-    });
-  }
-
-  Future<void> refreshItemCard() async {
-    Map<String, dynamic>? element = await getItem(
-        widget.element["item_id"], widget.business["business_id"]);
-    print(element);
-    setState(() {
-      element!["name"] = "123";
-      element = element!;
-    });
-  }
-
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    setState(() {
-      element = widget.element;
-      amountInCart = int.parse(element["amount"] ?? "0");
-      previousAmount = amountInCart;
-    });
-    // getProperties();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 150),
-      vsync: this,
-    );
-
-    _offsetAnimation = Tween<Offset>(
-      begin: Offset(0.70, 0),
-      end: Offset(-0.1, 0),
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeOut,
-      ),
-    );
-
-    if (amountInCart > 0) {
-      _controller.forward();
-    }
-    // _offsetAnimationReverse = Tween<Offset>(
-    //   begin: Offset(0, 0),
-    //   end: Offset(1, 0),
-    // ).animate(CurvedAnimation(
-    //   parent: _controller,
-    //   curve: Curves.linear,
-    // ));
-  }
-
-  @override
-  void dispose() {
-    // Trigger the debounce action immediately if the timer is active
-    if (widget.categoryPageUpdateData != null) {
-      widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
-    }
-    if (_debounce?.isActive ?? false) {
-      _debounce?.cancel();
-      _updateItemCountServerCall();
-    }
-    super.dispose();
-  }
-
-  void getProperties() {
-    if (widget.element["properties"] != null) {
-      List<InlineSpan> propertiesT = [];
-      List<String> properties = widget.element["properties"].split(",");
-      print(properties);
-      for (var element in properties) {
-        List temp = element.split(":");
-        propertiesT.add(
-          WidgetSpan(
-            child: Row(
-              children: [
-                Text(
-                  temp[1],
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
-                  ),
-                ),
-                Image.asset(
-                  "assets/property_icons/${temp[0]}.png",
-                  width: 14,
-                  height: 14,
-                ),
-                SizedBox(
-                  width: 10,
-                )
-              ],
-            ),
-          ),
-        );
-      }
-      setState(() {
-        propertiesWidget = propertiesT;
-      });
     }
   }
 
@@ -2398,39 +2399,165 @@ class ItemCardListTile extends StatefulWidget {
       required this.business,
       required this.index,
       this.categoryPageUpdateData});
-  final Map<String, dynamic> element;
-  final String categoryName;
 
-  final int itemId;
-
-  final String categoryId;
-  final double scroll;
-  final Map<dynamic, dynamic> business;
-  final int index;
-  final chack = 1;
   final Function(String, int)? categoryPageUpdateData;
+  final Map<dynamic, dynamic> business;
+  final String categoryId;
+  final String categoryName;
+  final chack = 1;
+  final Map<String, dynamic> element;
+  final int index;
+  final int itemId;
+  final double scroll;
+
   @override
   State<ItemCardListTile> createState() => _ItemCardListTileState();
 }
 
 class _ItemCardListTileState extends State<ItemCardListTile>
     with SingleTickerProviderStateMixin<ItemCardListTile> {
-  Map<String, dynamic> element = {};
-  List<InlineSpan> propertiesWidget = [];
   int amountInCart = 0;
-  int previousAmount = 0;
-  late int chack;
-  Timer? _debounce;
-  Timer? _hideButtonsTimer;
-
-  List options = [];
-  List cart = [];
-
   bool canButtonsBeUsed = true;
+  List cart = [];
+  late int chack;
+  Map<String, dynamic> element = {};
   bool hideButtons = true;
+  List options = [];
+  int previousAmount = 0;
+  List<InlineSpan> propertiesWidget = [];
 
   late AnimationController _controller;
+  Timer? _debounce;
+  Timer? _hideButtonsTimer;
   late Animation<Offset> _offsetAnimation;
+
+  @override
+  void dispose() {
+    // Trigger the debounce action immediately if the timer is active
+    if (widget.categoryPageUpdateData != null) {
+      widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
+    }
+    if (_debounce?.isActive ?? false) {
+      _debounce?.cancel();
+      _updateItemCountServerCall();
+    }
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    print(widget.element["cart"]);
+    // TODO: implement initState
+    super.initState();
+    if (widget.element["cart"] != null) {
+      print("CART FROM ITEM ${widget.element["cart"]}");
+    }
+    setState(() {
+      element = widget.element;
+      amountInCart = int.parse(element["amount"] ?? "0");
+      previousAmount = amountInCart;
+      cart = widget.element["cart"] == null ? [] : widget.element["cart"];
+      // options = widget.element["cart"] == null ? [] : widget.element["cart"];
+    });
+
+    // getProperties();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+
+    _offsetAnimation = Tween<Offset>(
+      begin: Offset(0.70, 0),
+      end: Offset(-0.1, 0),
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    if (amountInCart > 0) {
+      // _controller.forward();
+    }
+    // _offsetAnimationReverse = Tween<Offset>(
+    //   begin: Offset(0, 0),
+    //   end: Offset(1, 0),
+    // ).animate(CurvedAnimation(
+    //   parent: _controller,
+    //   curve: Curves.linear,
+    // ));
+  }
+
+  Future<void> updateCurrentItem(int amount, [int index = 0]) async {
+    if (amountInCart == 0 && amount != 0) {
+      _controller.forward();
+    } else if (amount == 0) {
+      _controller.reverse();
+    }
+    print("AMOUNT IS $amount");
+    setState(() {
+      amountInCart = amount;
+    });
+    await getItem(widget.element["item_id"], widget.business["business_id"])
+        .then((value) {
+      print(value);
+      if (value.isNotEmpty) {
+        setState(() {
+          options = value["item_options"] ?? [];
+          cart = value["cart"] ?? [];
+        });
+      }
+    });
+  }
+
+  Future<void> refreshItemCard() async {
+    Map<String, dynamic>? element = await getItem(
+        widget.element["item_id"], widget.business["business_id"]);
+    print(element);
+    setState(() {
+      element!["name"] = "123";
+      element = element!;
+    });
+  }
+
+  void getProperties() {
+    if (widget.element["properties"] != null) {
+      List<InlineSpan> propertiesT = [];
+      List<String> properties = widget.element["properties"].split(",");
+      print(properties);
+      for (var element in properties) {
+        List temp = element.split(":");
+        propertiesT.add(
+          WidgetSpan(
+            child: Row(
+              children: [
+                Text(
+                  temp[1],
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                ),
+                Image.asset(
+                  "assets/property_icons/${temp[0]}.png",
+                  width: 14,
+                  height: 14,
+                ),
+                SizedBox(
+                  width: 10,
+                )
+              ],
+            ),
+          ),
+        );
+      }
+      setState(() {
+        propertiesWidget = propertiesT;
+      });
+    }
+  }
+
   // late Animation<Offset> _offsetAnimationReverse;
 
   void _hideButtonsAfterTime() {
@@ -2508,38 +2635,6 @@ class _ItemCardListTileState extends State<ItemCardListTile>
     }
   }
 
-  Future<void> updateCurrentItem(int amount, [int index = 0]) async {
-    if (amountInCart == 0 && amount != 0) {
-      _controller.forward();
-    } else if (amount == 0) {
-      _controller.reverse();
-    }
-    print("AMOUNT IS $amount");
-    setState(() {
-      amountInCart = amount;
-    });
-    await getItem(widget.element["item_id"], widget.business["business_id"])
-        .then((value) {
-      print(value);
-      if (value.isNotEmpty) {
-        setState(() {
-          options = value["item_options"] ?? [];
-          cart = value["cart"] ?? [];
-        });
-      }
-    });
-  }
-
-  Future<void> refreshItemCard() async {
-    Map<String, dynamic>? element = await getItem(
-        widget.element["item_id"], widget.business["business_id"]);
-    print(element);
-    setState(() {
-      element!["name"] = "123";
-      element = element!;
-    });
-  }
-
   List<Widget> _getCartOptions(List itemOptions) {
     List<Widget> selectedOptions = [];
     for (Map itemOption in itemOptions) {
@@ -2575,101 +2670,6 @@ class _ItemCardListTileState extends State<ItemCardListTile>
     return selectedOptions;
   }
 
-  void getProperties() {
-    if (widget.element["properties"] != null) {
-      List<InlineSpan> propertiesT = [];
-      List<String> properties = widget.element["properties"].split(",");
-      print(properties);
-      for (var element in properties) {
-        List temp = element.split(":");
-        propertiesT.add(
-          WidgetSpan(
-            child: Row(
-              children: [
-                Text(
-                  temp[1],
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
-                  ),
-                ),
-                Image.asset(
-                  "assets/property_icons/${temp[0]}.png",
-                  width: 14,
-                  height: 14,
-                ),
-                SizedBox(
-                  width: 10,
-                )
-              ],
-            ),
-          ),
-        );
-      }
-      setState(() {
-        propertiesWidget = propertiesT;
-      });
-    }
-  }
-
-  @override
-  void initState() {
-    print(widget.element["cart"]);
-    // TODO: implement initState
-    super.initState();
-    if (widget.element["cart"] != null) {
-      print("CART FROM ITEM ${widget.element["cart"]}");
-    }
-    setState(() {
-      element = widget.element;
-      amountInCart = int.parse(element["amount"] ?? "0");
-      previousAmount = amountInCart;
-      cart = widget.element["cart"] == null ? [] : widget.element["cart"];
-      // options = widget.element["cart"] == null ? [] : widget.element["cart"];
-    });
-
-    // getProperties();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 150),
-      vsync: this,
-    );
-
-    _offsetAnimation = Tween<Offset>(
-      begin: Offset(0.70, 0),
-      end: Offset(-0.1, 0),
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeOut,
-      ),
-    );
-
-    if (amountInCart > 0) {
-      // _controller.forward();
-    }
-    // _offsetAnimationReverse = Tween<Offset>(
-    //   begin: Offset(0, 0),
-    //   end: Offset(1, 0),
-    // ).animate(CurvedAnimation(
-    //   parent: _controller,
-    //   curve: Curves.linear,
-    // ));
-  }
-
-  @override
-  void dispose() {
-    // Trigger the debounce action immediately if the timer is active
-    if (widget.categoryPageUpdateData != null) {
-      widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
-    }
-    if (_debounce?.isActive ?? false) {
-      _debounce?.cancel();
-      _updateItemCountServerCall();
-    }
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
@@ -2693,6 +2693,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                     return Row(
                       children: [
                         Flexible(
+                          flex: 8,
                           fit: FlexFit.tight,
                           child: SizedBox(
                             height: constraints.maxHeight,
@@ -2705,22 +2706,22 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                 ),
                               ),
                               child: ExtendedImage.network(
-                                element["img"] ??
-                                    "https://upload.wikimedia.org/wikipedia/commons/8/8f/Example_image.svg",
-                                // height: double.infinity,
+                                  element["img"] ??
+                                      "https://upload.wikimedia.org/wikipedia/commons/8/8f/Example_image.svg",
+                                  // height: double.infinity,
 
-                                clearMemoryCacheWhenDispose: true,
-                                enableMemoryCache: true,
-                                enableLoadState: false,
-                                fit: BoxFit.fitHeight,
-                              ),
+                                  clearMemoryCacheWhenDispose: true,
+                                  enableMemoryCache: true,
+                                  enableLoadState: false,
+                                  fit: BoxFit.contain),
                             ),
                           ),
                         ),
                         Expanded(
-                          flex: 2,
+                          flex: 15,
                           child: Padding(
                             padding: EdgeInsets.only(
+                              left: 10 * globals.scaleParam,
                               right: 10 * globals.scaleParam,
                               top: 12 * globals.scaleParam,
                               // bottom: 10 * globals.scaleParam,
