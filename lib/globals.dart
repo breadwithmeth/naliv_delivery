@@ -21,8 +21,7 @@ bool isLoggedIn = false;
 double scaleParam = 1;
 Color mainColor = Colors.deepOrangeAccent;
 
-
-bool addressSelectPopUpDone  = false;
+bool addressSelectPopUpDone = false;
 
 // Navigator.push(
 //   context,
@@ -60,9 +59,6 @@ Route getPlatformSpecialRoute(Widget route) {
 // }
 
 String formatCost(String costString) {
-  int cost = int.parse(costString);
+  double cost = double.parse(costString);
   return NumberFormat("###,###", "en_US").format(cost);
 }
-
-
-

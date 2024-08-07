@@ -175,18 +175,19 @@ class _ProductPageState extends State<ProductPage> {
           widget.cartPageExclusiveCallbackFunc!(widget.index, actualCartAmount);
         }
       },
-    ).onError(
-      (error, stackTrace) {
-        // print(int.parse(widget.item["amount"]));
-        widget.returnDataAmount!(
-            int.parse(widget.item["amount"]), widget.index);
-        if (widget.cartPageExclusiveCallbackFunc != null) {
-          widget.cartPageExclusiveCallbackFunc!(
-              widget.index, int.parse(widget.item["amount"]));
-        }
-        throw Exception("Ошибка в _finalizeCartAmount ProductPage");
-      },
     );
+    // ).onError(
+    //   (error, stackTrace) {
+    //     // print(int.parse(widget.item["amount"]));
+    //     widget.returnDataAmount!(
+    //         int.parse(widget.item["amount"]), widget.index);
+    //     if (widget.cartPageExclusiveCallbackFunc != null) {
+    //       widget.cartPageExclusiveCallbackFunc!(
+    //           widget.index, int.parse(widget.item["amount"]));
+    //     }
+    //     throw Exception("Ошибка в _finalizeCartAmount ProductPage");
+    //   },
+    // );
     if (mounted) {
       setState(() {
         isServerCallOnGoing = false;

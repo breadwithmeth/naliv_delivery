@@ -4,7 +4,7 @@ import 'package:naliv_delivery/misc/api.dart';
 class LikeButton extends StatefulWidget {
   const LikeButton({super.key, this.is_liked, required this.item_id});
   final String? is_liked;
-  final String item_id;
+  final dynamic item_id;
   @override
   State<LikeButton> createState() => _LikeButtonState();
 }

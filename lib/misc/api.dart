@@ -332,7 +332,7 @@ Future<Map<String, dynamic>> getItem(dynamic itemId, String business_id,
   }
 }
 
-Future<String?> changeCartItem(String itemId, int amount, String businessId,
+Future<String?> changeCartItem(dynamic itemId, int amount, String businessId,
     {List options = const []}) async {
   String? token = await getToken();
   print("ADD TO CARD");
@@ -369,7 +369,7 @@ Future<String?> changeCartItem(String itemId, int amount, String businessId,
 
   String? data;
   if (jsonDecode(response.body) != null) {
-    data = jsonDecode(response.body)["amount"];
+    data = jsonDecode(response.body)[0]["amount"];
   } else {
     data = null;
   }
@@ -543,7 +543,7 @@ Future<List> createAddress(Map address) async {
   if (data == null) {
     return [];
   } else {
-    return data!;
+    return data;
   }
 }
 
