@@ -1101,7 +1101,6 @@ class _ItemCardMediumState extends State<ItemCardMedium>
 class ItemCardMinimal extends StatefulWidget {
   const ItemCardMinimal(
       {super.key,
-      required this.itemId,
       required this.element,
       required this.categoryName,
       required this.categoryId,
@@ -1111,8 +1110,6 @@ class ItemCardMinimal extends StatefulWidget {
       this.updateExternalInfo});
   final Map<String, dynamic> element;
   final String categoryName;
-
-  final String itemId;
 
   final String categoryId;
   final double scroll;

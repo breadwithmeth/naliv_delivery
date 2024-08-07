@@ -690,7 +690,7 @@ class _ProductPageState extends State<ProductPage> {
                                   child: Text(
                                     "${globals.formatCost((item['price'] ?? '').toString())}",
                                     style: TextStyle(
-                                      fontSize: 40 * globals.scaleParam,
+                                      fontSize: 44 * globals.scaleParam,
                                       fontWeight: FontWeight.w700,
                                       color: Colors.black,
                                     ),
@@ -703,7 +703,7 @@ class _ProductPageState extends State<ProductPage> {
                                     style: TextStyle(
                                       color: Colors.grey.shade600,
                                       fontWeight: FontWeight.w700,
-                                      fontSize: 38 * globals.scaleParam,
+                                      fontSize: 44 * globals.scaleParam,
                                     ),
                                   ),
                                 ),
@@ -713,7 +713,7 @@ class _ProductPageState extends State<ProductPage> {
                               children: [
                                 Flexible(
                                   child: Text(
-                                    "${(item["in_stock"] ?? 0.0).truncate().toString()} шт. в наличии",
+                                    "${(item["in_stock"] ?? 0.0).truncate().toString()} ${item["unit"]} в наличии",
                                     style: TextStyle(
                                       fontSize: 28 * globals.scaleParam,
                                       fontWeight: FontWeight.w700,
