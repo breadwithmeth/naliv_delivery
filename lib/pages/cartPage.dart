@@ -131,7 +131,7 @@ class _CartPageState extends State<CartPage>
     }
 
     for (dynamic item in items) {
-      itemsAmount += int.parse(item["amount"].toString());
+      itemsAmount += double.parse(item["amount"].toString()).round();
     }
     setState(() {
       itemsAmount;

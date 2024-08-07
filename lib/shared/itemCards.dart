@@ -2523,8 +2523,8 @@ class _ItemCardListTileState extends State<ItemCardListTile>
       print(value);
       if (value.isNotEmpty) {
         setState(() {
-          options = json.decode(value["item_options"]) ?? [];
-          cart = json.decode(value["cart"]) ?? [];
+          options = value["item_options"] ?? [];
+          cart = value["cart"] ?? [];
         });
       }
     });
@@ -2540,18 +2540,93 @@ class _ItemCardListTileState extends State<ItemCardListTile>
     });
   }
 
+  List<Widget> _getCartOptions(List itemOptions) {
+    List<Widget> selectedOptions = [];
+    for (Map itemOption in itemOptions) {
+      selectedOptions.add(Text(
+        itemOption["name"],
+        style: TextStyle(
+            fontSize: 24 * globals.scaleParam, fontWeight: FontWeight.w800),
+      ));
+    }
+    // if (itemOptions is List) {
+    //   itemOptions.forEach((itemOption) {
+    //     dynamic s_option = cart.firstWhere((option) =>
+    //         option["relation_id"].toString() == itemOption.toString());
+    //     print("=======================================");
+    //     print(s_option);
+    //     selectedOptions.add(Text(
+    //       s_option["name"],
+    //       style: TextStyle(
+    //           fontSize: 24 * globals.scaleParam, fontWeight: FontWeight.w800),
+    //     ));
+    //   });
+    // } else {
+    //   dynamic s_option = cart.firstWhere((option) =>
+    //       option["relation_id"].toString() == itemOptions.toString());
+    //   print("=======================================");
+    //   print(s_option);
+    //   selectedOptions.add(Text(
+    //     s_option["name"],
+    //     style: TextStyle(
+    //         fontSize: 24 * globals.scaleParam, fontWeight: FontWeight.w800),
+    //   ));
+    // }
+    return selectedOptions;
+  }
+
+  void getProperties() {
+    if (widget.element["properties"] != null) {
+      List<InlineSpan> propertiesT = [];
+      List<String> properties = widget.element["properties"].split(",");
+      print(properties);
+      for (var element in properties) {
+        List temp = element.split(":");
+        propertiesT.add(
+          WidgetSpan(
+            child: Row(
+              children: [
+                Text(
+                  temp[1],
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                ),
+                Image.asset(
+                  "assets/property_icons/${temp[0]}.png",
+                  width: 14,
+                  height: 14,
+                ),
+                SizedBox(
+                  width: 10,
+                )
+              ],
+            ),
+          ),
+        );
+      }
+      setState(() {
+        propertiesWidget = propertiesT;
+      });
+    }
+  }
+
   @override
   void initState() {
     print(widget.element["cart"]);
     // TODO: implement initState
     super.initState();
+    if (widget.element["cart"] != null) {
+      print("CART FROM ITEM ${widget.element["cart"]}");
+    }
     setState(() {
       element = widget.element;
       amountInCart = int.parse(element["amount"] ?? "0");
       previousAmount = amountInCart;
       cart = widget.element["cart"] == null ? [] : widget.element["cart"];
-      options =
-          widget.element["options"] == null ? [] : widget.element["options"];
+      // options = widget.element["cart"] == null ? [] : widget.element["cart"];
     });
 
     // getProperties();
@@ -2595,72 +2670,6 @@ class _ItemCardListTileState extends State<ItemCardListTile>
     super.dispose();
   }
 
-  List<Widget> _getCartOptions(dynamic option_items) {
-    List<Widget> selectedOptions = [];
-    if (option_items is List) {
-      option_items.forEach((option_item) {
-        dynamic s_option = options.firstWhere((option) =>
-            option["relation_id"].toString() == option_item.toString());
-        print("=======================================");
-        print(s_option);
-        selectedOptions.add(Text(
-          s_option["name"],
-          style: TextStyle(
-              fontSize: 24 * globals.scaleParam, fontWeight: FontWeight.w800),
-        ));
-      });
-    } else {
-      dynamic s_option = options.firstWhere((option) =>
-          option["relation_id"].toString() == option_items.toString());
-      print("=======================================");
-      print(s_option);
-      selectedOptions.add(Text(
-        s_option["name"],
-        style: TextStyle(
-            fontSize: 24 * globals.scaleParam, fontWeight: FontWeight.w800),
-      ));
-    }
-    return selectedOptions;
-  }
-
-  void getProperties() {
-    if (widget.element["properties"] != null) {
-      List<InlineSpan> propertiesT = [];
-      List<String> properties = widget.element["properties"].split(",");
-      print(properties);
-      for (var element in properties) {
-        List temp = element.split(":");
-        propertiesT.add(
-          WidgetSpan(
-            child: Row(
-              children: [
-                Text(
-                  temp[1],
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
-                  ),
-                ),
-                Image.asset(
-                  "assets/property_icons/${temp[0]}.png",
-                  width: 14,
-                  height: 14,
-                ),
-                SizedBox(
-                  width: 10,
-                )
-              ],
-            ),
-          ),
-        );
-      }
-      setState(() {
-        propertiesWidget = propertiesT;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
@@ -2687,44 +2696,23 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                           fit: FlexFit.tight,
                           child: SizedBox(
                             height: constraints.maxHeight,
-                            child: GestureDetector(
-                              onTap: () {
-                                showModalBottomSheet(
-                                  context: context,
-                                  clipBehavior: Clip.antiAlias,
-                                  useSafeArea: true,
-                                  isScrollControlled: true,
-                                  showDragHandle: false,
-                                  builder: (context) {
-                                    widget.element["amount"] =
-                                        amountInCart.toString();
-                                    return ProductPage(
-                                      item: widget.element,
-                                      index: widget.index,
-                                      returnDataAmount: updateCurrentItem,
-                                      business: widget.business,
-                                    );
-                                  },
-                                );
-                              },
-                              child: Container(
-                                clipBehavior: Clip.antiAlias,
-                                decoration: BoxDecoration(
-                                  // color: Colors.red,
-                                  borderRadius: BorderRadius.all(
-                                    Radius.circular(30 * globals.scaleParam),
-                                  ),
+                            child: Container(
+                              clipBehavior: Clip.antiAlias,
+                              decoration: BoxDecoration(
+                                // color: Colors.red,
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(30 * globals.scaleParam),
                                 ),
-                                child: ExtendedImage.network(
-                                  element["img"] ??
-                                      "https://upload.wikimedia.org/wikipedia/commons/8/8f/Example_image.svg",
-                                  // height: double.infinity,
+                              ),
+                              child: ExtendedImage.network(
+                                element["img"] ??
+                                    "https://upload.wikimedia.org/wikipedia/commons/8/8f/Example_image.svg",
+                                // height: double.infinity,
 
-                                  clearMemoryCacheWhenDispose: true,
-                                  enableMemoryCache: true,
-                                  enableLoadState: false,
-                                  fit: BoxFit.fitHeight,
-                                ),
+                                clearMemoryCacheWhenDispose: true,
+                                enableMemoryCache: true,
+                                enableLoadState: false,
+                                fit: BoxFit.fitHeight,
                               ),
                             ),
                           ),
@@ -2855,9 +2843,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                             fit: FlexFit.tight,
                                             child: SizedBox(),
                                           ),
-                                          int.parse(widget.element["option"] ??
-                                                      "0") ==
-                                                  1
+                                          cart.isEmpty
                                               ? Flexible(
                                                   fit: FlexFit.tight,
                                                   child: IconButton(
@@ -2917,7 +2903,8 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                                             );
                                                           }
                                                         : () {},
-                                                    icon: amountInCart == 0
+                                                    icon: amountInCart == 0 &&
+                                                            options.isEmpty
                                                         ? Icon(
                                                             Icons.add_rounded,
                                                             color: Theme.of(
@@ -2949,33 +2936,61 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                                     onPressed: canButtonsBeUsed
                                                         ? () {
                                                             // _incrementAmountInCart();
-                                                            if (amountInCart <=
-                                                                0) {
-                                                              _incrementAmountInCart();
-                                                            }
-                                                            setState(() {
-                                                              hideButtons =
-                                                                  false;
-                                                            });
-                                                            _hideButtonsAfterTime();
-                                                            setState(() {
-                                                              canButtonsBeUsed =
-                                                                  false;
-                                                            });
-                                                            Timer(
-                                                              Duration(
-                                                                  milliseconds:
-                                                                      300),
-                                                              () {
-                                                                setState(() {
-                                                                  canButtonsBeUsed =
-                                                                      true;
-                                                                });
+                                                            // if (amountInCart <=
+                                                            //     0) {
+                                                            //   _incrementAmountInCart();
+                                                            // }
+                                                            // setState(() {
+                                                            //   hideButtons =
+                                                            //       false;
+                                                            // });
+                                                            // _hideButtonsAfterTime();
+                                                            // setState(() {
+                                                            //   canButtonsBeUsed =
+                                                            //       false;
+                                                            // });
+                                                            // Timer(
+                                                            //   Duration(
+                                                            //       milliseconds:
+                                                            //           300),
+                                                            //   () {
+                                                            //     setState(() {
+                                                            //       canButtonsBeUsed =
+                                                            //           true;
+                                                            //     });
+                                                            //   },
+                                                            // );
+                                                            showModalBottomSheet(
+                                                              context: context,
+                                                              clipBehavior: Clip
+                                                                  .antiAlias,
+                                                              useSafeArea: true,
+                                                              isScrollControlled:
+                                                                  true,
+                                                              showDragHandle:
+                                                                  false,
+                                                              builder:
+                                                                  (context) {
+                                                                widget.element[
+                                                                        "amount"] =
+                                                                    amountInCart
+                                                                        .toString();
+                                                                return ProductPage(
+                                                                  item: widget
+                                                                      .element,
+                                                                  index: widget
+                                                                      .index,
+                                                                  returnDataAmount:
+                                                                      updateCurrentItem,
+                                                                  business: widget
+                                                                      .business,
+                                                                );
                                                               },
                                                             );
                                                           }
                                                         : null,
-                                                    icon: amountInCart == 0
+                                                    icon: amountInCart == 0 &&
+                                                            options.isEmpty
                                                         ? Icon(
                                                             Icons.add_rounded,
                                                             color: Theme.of(
@@ -3109,14 +3124,18 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                   },
                 ),
               ),
-              options.isNotEmpty && cart.isNotEmpty
+              cart.isNotEmpty
                   ? ListView.builder(
                       primary: false,
                       physics: NeverScrollableScrollPhysics(),
                       shrinkWrap: true,
                       itemCount: cart.length,
                       itemBuilder: (context, index) {
-                        List _options1 = cart[index]["options"];
+                        if (cart[index]["selected_options"] == null) {
+                          return SizedBox();
+                        }
+                        List _selected_options =
+                            cart[index]["selected_options"];
 
                         return Container(
                           padding: EdgeInsets.all(20 * globals.scaleParam),
@@ -3145,23 +3164,9 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                               Spacer(),
                               Expanded(
                                 flex: 9,
-                                child: Column(
-                                  children: [
-                                    ListView.builder(
-                                      shrinkWrap: true,
-                                      primary: false,
-                                      //  _getCartOptions([3, 4])
-                                      itemCount: _options1.length,
-                                      itemBuilder: (context, index2) {
-                                        return Wrap(
-                                          spacing: 10,
-                                          children: _getCartOptions(
-                                              _options1[index2]
-                                                  ["option_items"]),
-                                        );
-                                      },
-                                    )
-                                  ],
+                                child: Wrap(
+                                  spacing: 10,
+                                  children: _getCartOptions(_selected_options),
                                 ),
                               ),
                             ],
@@ -3172,29 +3177,63 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                   : const SizedBox(),
             ],
           ),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              showModalBottomSheet(
-                context: context,
-                clipBehavior: Clip.antiAlias,
-                useSafeArea: true,
-                isScrollControlled: true,
-                showDragHandle: false,
-                builder: (context) {
-                  widget.element["amount"] = amountInCart.toString();
-                  return ProductPage(
-                    item: widget.element,
-                    index: widget.index,
-                    returnDataAmount: updateCurrentItem,
-                    business: widget.business,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    clipBehavior: Clip.antiAlias,
+                    useSafeArea: true,
+                    isScrollControlled: true,
+                    showDragHandle: false,
+                    builder: (context) {
+                      widget.element["amount"] = amountInCart.toString();
+                      return ProductPage(
+                        item: widget.element,
+                        index: widget.index,
+                        returnDataAmount: updateCurrentItem,
+                        business: widget.business,
+                      );
+                    },
                   );
                 },
-              );
-            },
-            child: Container(
-              height: 180 * globals.scaleParam,
-            ),
+                child: Container(
+                  // color: Colors.amber,
+                  height: 210 * globals.scaleParam,
+                ),
+              ),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    clipBehavior: Clip.antiAlias,
+                    useSafeArea: true,
+                    isScrollControlled: true,
+                    showDragHandle: false,
+                    builder: (context) {
+                      widget.element["amount"] = amountInCart.toString();
+                      return ProductPage(
+                        item: widget.element,
+                        index: widget.index,
+                        returnDataAmount: updateCurrentItem,
+                        business: widget.business,
+                      );
+                    },
+                  );
+                },
+                child: Container(
+                  // color: Colors.red,
+                  width: hideButtons == true
+                      ? MediaQuery.sizeOf(context).width * 0.75
+                      : MediaQuery.sizeOf(context).width * 0.35,
+                  height: 135 * globals.scaleParam,
+                ),
+              ),
+            ],
           ),
         ],
       ),
