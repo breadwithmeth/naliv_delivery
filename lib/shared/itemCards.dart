@@ -2602,6 +2602,9 @@ class _ItemCardListTileState extends State<ItemCardListTile>
     if (widget.element["cart"] != null) {
       print("CART FROM ITEM ${widget.element["cart"]}");
     }
+    if (widget.element["options"] != null) {
+      print("OPTIONS FROM ITEM ${widget.element["options"]}");
+    }
     setState(() {
       element = widget.element;
       amountInCart = int.parse(element["amount"] ?? "0");
