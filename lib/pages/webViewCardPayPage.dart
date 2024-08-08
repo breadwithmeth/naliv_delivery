@@ -31,8 +31,8 @@ class _WebViewCardPayPageState extends State<WebViewCardPayPage> {
   PullToRefreshController? pullToRefreshController;
   String url = "";
   double progress = 0;
-  String successUrl = "https://example.kz/success.html";
-  String failureUrl = "https://example.kz/failure.html";
+  String successUrl = "https://chorenn.naliv.kz/success";
+  String failureUrl = "https://chorenn.naliv.kz/failure";
   final urlController = TextEditingController();
 
   // What to do when payment succeeded

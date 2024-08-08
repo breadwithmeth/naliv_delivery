@@ -291,6 +291,7 @@ class _HomePageState extends State<HomePage>
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           return SingleChildScrollView(
+                            physics: ClampingScrollPhysics(),
                             child: GridView.builder(
                               padding: EdgeInsets.all(0),
                               physics: NeverScrollableScrollPhysics(),
