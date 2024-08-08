@@ -59,10 +59,7 @@ class _ItemCardState extends State<ItemCard> {
           children: [
             Text(
               temp[1],
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black),
             ),
             Image.asset(
               "assets/property_icons/${temp[0]}.png",
@@ -82,8 +79,7 @@ class _ItemCardState extends State<ItemCard> {
   }
 
   Future<void> refreshItemCard() async {
-    Map<String, dynamic>? element =
-        await getItem(widget.element["item_id"], widget.business_id);
+    Map<String, dynamic>? element = await getItem(widget.element["item_id"], widget.business_id);
     print(element);
     setState(() {
       element!["name"] = "123";
@@ -96,10 +92,8 @@ class _ItemCardState extends State<ItemCard> {
     chack = widget.chack;
     return Container(
       // margin:  EdgeInsets.all(10),
-      width: (MediaQuery.of(context).size.width * 2) *
-          (MediaQuery.sizeOf(context).width / 720),
-      height: (MediaQuery.of(context).size.height * 0.56) *
-          (MediaQuery.sizeOf(context).width / 720),
+      width: (MediaQuery.of(context).size.width * 2) * (MediaQuery.sizeOf(context).width / 720),
+      height: (MediaQuery.of(context).size.height * 0.56) * (MediaQuery.sizeOf(context).width / 720),
       padding: EdgeInsets.symmetric(horizontal: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -189,8 +183,7 @@ class _ItemCardState extends State<ItemCard> {
                           element["country"] != null
                               ? WidgetSpan(
                                   child: Container(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 2, vertical: 1),
+                                    padding: EdgeInsets.symmetric(horizontal: 2, vertical: 1),
                                     decoration: BoxDecoration(
                                       color: Colors.grey.shade200,
                                       borderRadius: BorderRadius.all(
@@ -220,18 +213,12 @@ class _ItemCardState extends State<ItemCard> {
                             Text(
                               globals.formatCost(element['price'] ?? ""),
                               style: TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 56 *
-                                      (MediaQuery.sizeOf(context).width / 720)),
+                                  color: Colors.black, fontWeight: FontWeight.w600, fontSize: 56 * (MediaQuery.sizeOf(context).width / 720)),
                             ),
                             Text(
                               "₸",
                               style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 56 *
-                                      (MediaQuery.sizeOf(context).width / 720)),
+                                  color: Colors.grey.shade600, fontWeight: FontWeight.w900, fontSize: 56 * (MediaQuery.sizeOf(context).width / 720)),
                             )
                           ],
                         ),
@@ -241,18 +228,13 @@ class _ItemCardState extends State<ItemCard> {
                                 child: Row(
                                   children: [
                                     Text(
-                                      globals.formatCost(
-                                          element["prev_price"] ?? 0),
+                                      globals.formatCost(element["prev_price"] ?? 0),
                                       style: TextStyle(
-                                          decoration:
-                                              TextDecoration.lineThrough,
+                                          decoration: TextDecoration.lineThrough,
                                           decorationColor: Colors.grey.shade500,
                                           decorationThickness: 1.85,
                                           color: Colors.grey.shade500,
-                                          fontSize: 28 *
-                                              (MediaQuery.sizeOf(context)
-                                                      .width /
-                                                  720),
+                                          fontSize: 28 * (MediaQuery.sizeOf(context).width / 720),
                                           fontWeight: FontWeight.w500),
                                     ),
                                     Text(
@@ -260,10 +242,7 @@ class _ItemCardState extends State<ItemCard> {
                                       style: TextStyle(
                                           color: Colors.grey.shade600,
                                           fontWeight: FontWeight.w900,
-                                          fontSize: 28 *
-                                              (MediaQuery.sizeOf(context)
-                                                      .width /
-                                                  720)),
+                                          fontSize: 28 * (MediaQuery.sizeOf(context).width / 720)),
                                     )
                                   ],
                                 ),
@@ -345,8 +324,7 @@ class ItemCardMedium extends StatefulWidget {
   State<ItemCardMedium> createState() => _ItemCardMediumState();
 }
 
-class _ItemCardMediumState extends State<ItemCardMedium>
-    with SingleTickerProviderStateMixin<ItemCardMedium> {
+class _ItemCardMediumState extends State<ItemCardMedium> with SingleTickerProviderStateMixin<ItemCardMedium> {
   int amountInCart = 0;
   bool canButtonsBeUsed = true;
   late int chack;
@@ -421,8 +399,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
   }
 
   Future<void> refreshItemCard() async {
-    Map<String, dynamic>? element = await getItem(
-        widget.element["item_id"], widget.business["business_id"]);
+    Map<String, dynamic>? element = await getItem(widget.element["item_id"], widget.business["business_id"]);
     print(element);
     setState(() {
       element!["name"] = "123";
@@ -471,9 +448,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
   // late Animation<Offset> _offsetAnimationReverse;
 
   void _updateItemCountServerCall() {
-    changeCartItem(
-            element["item_id"], amountInCart, widget.business["business_id"])
-        .then((value) {
+    changeCartItem(element["item_id"], amountInCart, widget.business["business_id"]).then((value) {
       if (value == null) {
         if (0 != amountInCart) {
           _updateItemCountServerCall();
@@ -662,8 +637,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                             isScrollControlled: true,
                             showDragHandle: false,
                             builder: (context) {
-                              widget.element["amount"] =
-                                  amountInCart.toString();
+                              widget.element["amount"] = amountInCart.toString();
                               return ProductPage(
                                 item: widget.element,
                                 index: widget.index,
@@ -685,8 +659,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                 flex: 2,
                                 fit: FlexFit.tight,
                                 child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Flexible(
                                       flex: 5,
@@ -700,8 +673,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                           overflow: TextOverflow.ellipsis,
                                           text: TextSpan(
                                             style: TextStyle(
-                                              textBaseline:
-                                                  TextBaseline.alphabetic,
+                                              textBaseline: TextBaseline.alphabetic,
                                               color: Colors.black,
                                               fontWeight: FontWeight.w500,
                                               fontSize: 30 * globals.scaleParam,
@@ -714,33 +686,23 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                               element["country"] != null
                                                   ? WidgetSpan(
                                                       child: Container(
-                                                        padding: EdgeInsets
-                                                            .symmetric(
-                                                          horizontal: 4 *
-                                                              globals
-                                                                  .scaleParam,
+                                                        padding: EdgeInsets.symmetric(
+                                                          horizontal: 4 * globals.scaleParam,
                                                           // vertical: 2 *
                                                           // globals.scaleParam,
                                                         ),
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          color: Colors
-                                                              .grey.shade200,
-                                                          borderRadius:
-                                                              BorderRadius.all(
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.grey.shade200,
+                                                          borderRadius: BorderRadius.all(
                                                             Radius.circular(10),
                                                           ),
                                                         ),
                                                         child: Text(
-                                                          element["country"] ??
-                                                              "",
+                                                          element["country"] ?? "",
                                                           style: TextStyle(
                                                             color: Colors.black,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            fontSize: 26 *
-                                                                globals
-                                                                    .scaleParam,
+                                                            fontWeight: FontWeight.w600,
+                                                            fontSize: 26 * globals.scaleParam,
                                                           ),
                                                         ),
                                                       ),
@@ -759,8 +721,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                 child: Text(
                                   "В наличии ${element["in_stock"].toString()} шт.",
                                   style: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.secondary,
+                                    color: Theme.of(context).colorScheme.secondary,
                                     fontSize: 28 * globals.scaleParam,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -772,9 +733,7 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                   children: [
                                     Flexible(
                                       child: Text(
-                                        globals.formatCost(
-                                            (element['price'] ?? "")
-                                                .toString()),
+                                        globals.formatCost((element['price'] ?? "").toString()),
                                         style: TextStyle(
                                           color: Colors.black,
                                           fontWeight: FontWeight.w600,
@@ -821,34 +780,22 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                           return Row(
                                             children: [
                                               Container(
-                                                width:
-                                                    constraints.maxWidth * 0.85,
+                                                width: constraints.maxWidth * 0.85,
                                                 alignment: Alignment.centerLeft,
                                                 child: ClipRect(
                                                   clipBehavior: Clip.antiAlias,
                                                   child: OverflowBox(
-                                                    maxWidth:
-                                                        constraints.maxWidth,
+                                                    maxWidth: constraints.maxWidth,
                                                     child: SlideTransition(
-                                                      position:
-                                                          _offsetAnimation,
+                                                      position: _offsetAnimation,
                                                       child: Row(
                                                         children: [
                                                           Flexible(
-                                                              fit:
-                                                                  FlexFit.tight,
-                                                              child: widget.element[
-                                                                          "option"] ==
-                                                                      1
+                                                              fit: FlexFit.tight,
+                                                              child: widget.element["option"] == 1
                                                                   ? IconButton(
-                                                                      highlightColor: canButtonsBeUsed
-                                                                          ? Colors
-                                                                              .transparent
-                                                                          : Colors
-                                                                              .transparent,
-                                                                      padding:
-                                                                          EdgeInsets.all(
-                                                                              0),
+                                                                      highlightColor: canButtonsBeUsed ? Colors.transparent : Colors.transparent,
+                                                                      padding: EdgeInsets.all(0),
                                                                       onPressed: canButtonsBeUsed
                                                                           ? () {
                                                                               _incrementAmountInCart();
@@ -866,19 +813,13 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                                               );
                                                                             }
                                                                           : null,
-                                                                      icon:
-                                                                          Container(
-                                                                        padding:
-                                                                            EdgeInsets.all(5 *
-                                                                                globals.scaleParam),
-                                                                        decoration:
-                                                                            BoxDecoration(
-                                                                          borderRadius:
-                                                                              BorderRadius.all(
+                                                                      icon: Container(
+                                                                        padding: EdgeInsets.all(5 * globals.scaleParam),
+                                                                        decoration: BoxDecoration(
+                                                                          borderRadius: BorderRadius.all(
                                                                             Radius.circular(100),
                                                                           ),
-                                                                          color:
-                                                                              Colors.white,
+                                                                          color: Colors.white,
                                                                           boxShadow: [
                                                                             BoxShadow(
                                                                               color: Color.fromARGB(255, 180, 180, 180),
@@ -888,13 +829,9 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                                             ),
                                                                           ],
                                                                         ),
-                                                                        child:
-                                                                            Icon(
-                                                                          Icons
-                                                                              .add_rounded,
-                                                                          color: Theme.of(context)
-                                                                              .colorScheme
-                                                                              .onSurface,
+                                                                        child: Icon(
+                                                                          Icons.add_rounded,
+                                                                          color: Theme.of(context).colorScheme.onSurface,
                                                                         ),
                                                                       ),
                                                                     )
@@ -902,62 +839,40 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                           Flexible(
                                                             fit: FlexFit.tight,
                                                             child: IconButton(
-                                                              padding:
-                                                                  EdgeInsets
-                                                                      .all(0),
-                                                              onPressed:
-                                                                  canButtonsBeUsed
-                                                                      ? () {
-                                                                          _decrementAmountInCart();
-                                                                          if (amountInCart <=
-                                                                              0) {
+                                                              padding: EdgeInsets.all(0),
+                                                              onPressed: canButtonsBeUsed
+                                                                  ? () {
+                                                                      _decrementAmountInCart();
+                                                                      if (amountInCart <= 0) {
+                                                                        setState(() {
+                                                                          canButtonsBeUsed = false;
+                                                                        });
+                                                                        _controller.reverse();
+                                                                        Timer(
+                                                                          Duration(milliseconds: 100),
+                                                                          () {
                                                                             setState(() {
-                                                                              canButtonsBeUsed = false;
+                                                                              canButtonsBeUsed = true;
                                                                             });
-                                                                            _controller.reverse();
-                                                                            Timer(
-                                                                              Duration(milliseconds: 100),
-                                                                              () {
-                                                                                setState(() {
-                                                                                  canButtonsBeUsed = true;
-                                                                                });
-                                                                              },
-                                                                            );
-                                                                          }
-                                                                        }
-                                                                      : null,
+                                                                          },
+                                                                        );
+                                                                      }
+                                                                    }
+                                                                  : null,
                                                               icon: Container(
-                                                                decoration:
-                                                                    BoxDecoration(
-                                                                  border: Border
-                                                                      .all(
-                                                                    color: amountInCart >
-                                                                            0
-                                                                        ? Theme.of(context)
-                                                                            .colorScheme
-                                                                            .onSurface
-                                                                        : Theme.of(context)
-                                                                            .colorScheme
-                                                                            .secondary,
+                                                                decoration: BoxDecoration(
+                                                                  border: Border.all(
+                                                                    color: amountInCart > 0
+                                                                        ? Theme.of(context).colorScheme.onSurface
+                                                                        : Theme.of(context).colorScheme.secondary,
                                                                   ),
-                                                                  borderRadius:
-                                                                      BorderRadius
-                                                                          .circular(
-                                                                              6),
+                                                                  borderRadius: BorderRadius.circular(6),
                                                                 ),
                                                                 child: Icon(
-                                                                  Icons
-                                                                      .remove_rounded,
-                                                                  color: amountInCart >
-                                                                          0
-                                                                      ? Theme.of(
-                                                                              context)
-                                                                          .colorScheme
-                                                                          .onSurface
-                                                                      : Theme.of(
-                                                                              context)
-                                                                          .colorScheme
-                                                                          .secondary,
+                                                                  Icons.remove_rounded,
+                                                                  color: amountInCart > 0
+                                                                      ? Theme.of(context).colorScheme.onSurface
+                                                                      : Theme.of(context).colorScheme.secondary,
                                                                 ),
                                                               ),
                                                             ),
@@ -966,37 +881,21 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                             flex: 2,
                                                             fit: FlexFit.tight,
                                                             child: Row(
-                                                              mainAxisAlignment:
-                                                                  MainAxisAlignment
-                                                                      .center,
+                                                              mainAxisAlignment: MainAxisAlignment.center,
                                                               children: [
                                                                 Flexible(
                                                                   child: Text(
                                                                     "${amountInCart.toString()} шт.", //"${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
-                                                                    textHeightBehavior:
-                                                                        TextHeightBehavior(
-                                                                      applyHeightToFirstAscent:
-                                                                          false,
+                                                                    textHeightBehavior: TextHeightBehavior(
+                                                                      applyHeightToFirstAscent: false,
                                                                     ),
-                                                                    textAlign:
-                                                                        TextAlign
-                                                                            .center,
-                                                                    style:
-                                                                        TextStyle(
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w700,
-                                                                      fontSize: 36 *
-                                                                          globals
-                                                                              .scaleParam,
-                                                                      color: amountInCart !=
-                                                                              0
-                                                                          ? Theme.of(context)
-                                                                              .colorScheme
-                                                                              .onSurface
-                                                                          : Colors
-                                                                              .grey
-                                                                              .shade600,
+                                                                    textAlign: TextAlign.center,
+                                                                    style: TextStyle(
+                                                                      fontWeight: FontWeight.w700,
+                                                                      fontSize: 36 * globals.scaleParam,
+                                                                      color: amountInCart != 0
+                                                                          ? Theme.of(context).colorScheme.onSurface
+                                                                          : Colors.grey.shade600,
                                                                     ),
                                                                   ),
                                                                 ),
@@ -1006,49 +905,26 @@ class _ItemCardMediumState extends State<ItemCardMedium>
                                                           Flexible(
                                                             fit: FlexFit.tight,
                                                             child: IconButton(
-                                                              padding:
-                                                                  EdgeInsets
-                                                                      .all(0),
-                                                              onPressed:
-                                                                  canButtonsBeUsed
-                                                                      ? () {
-                                                                          _incrementAmountInCart();
-                                                                        }
-                                                                      : null,
+                                                              padding: EdgeInsets.all(0),
+                                                              onPressed: canButtonsBeUsed
+                                                                  ? () {
+                                                                      _incrementAmountInCart();
+                                                                    }
+                                                                  : null,
                                                               icon: Container(
-                                                                decoration:
-                                                                    BoxDecoration(
-                                                                  border: Border
-                                                                      .all(
-                                                                    color: amountInCart <
-                                                                            element[
-                                                                                "in_stock"]
-                                                                        ? Theme.of(context)
-                                                                            .colorScheme
-                                                                            .onSurface
-                                                                        : Theme.of(context)
-                                                                            .colorScheme
-                                                                            .secondary,
+                                                                decoration: BoxDecoration(
+                                                                  border: Border.all(
+                                                                    color: amountInCart < element["in_stock"]
+                                                                        ? Theme.of(context).colorScheme.onSurface
+                                                                        : Theme.of(context).colorScheme.secondary,
                                                                   ),
-                                                                  borderRadius:
-                                                                      BorderRadius
-                                                                          .circular(
-                                                                              6),
+                                                                  borderRadius: BorderRadius.circular(6),
                                                                 ),
                                                                 child: Icon(
-                                                                  Icons
-                                                                      .add_rounded,
-                                                                  color: amountInCart <
-                                                                          element[
-                                                                              "in_stock"]
-                                                                      ? Theme.of(
-                                                                              context)
-                                                                          .colorScheme
-                                                                          .onSurface
-                                                                      : Theme.of(
-                                                                              context)
-                                                                          .colorScheme
-                                                                          .secondary,
+                                                                  Icons.add_rounded,
+                                                                  color: amountInCart < element["in_stock"]
+                                                                      ? Theme.of(context).colorScheme.onSurface
+                                                                      : Theme.of(context).colorScheme.secondary,
                                                                 ),
                                                               ),
                                                             ),
@@ -1318,9 +1194,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                               element["country"] != null
                                   ? WidgetSpan(
                                       child: Container(
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 4 * globals.scaleParam,
-                                            vertical: 2 * globals.scaleParam),
+                                        padding: EdgeInsets.symmetric(horizontal: 4 * globals.scaleParam, vertical: 2 * globals.scaleParam),
                                         decoration: BoxDecoration(
                                           color: Colors.grey.shade200,
                                           borderRadius: BorderRadius.all(
@@ -1351,10 +1225,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                             child: Text(
                               "${globals.formatCost(element["price"].toString())} ₸ за шт.",
                               style: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .secondary
-                                    .withOpacity(0.2),
+                                color: Theme.of(context).colorScheme.secondary.withOpacity(0.2),
                                 fontWeight: FontWeight.w600,
                                 fontSize: 24 * globals.scaleParam,
                               ),
@@ -1382,8 +1253,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                           Flexible(
                             fit: FlexFit.tight,
                             child: Padding(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 8 * globals.scaleParam),
+                              padding: EdgeInsets.symmetric(horizontal: 8 * globals.scaleParam),
                               child: Text(
                                 "${element["amount"]} шт.",
                                 style: TextStyle(
@@ -1463,10 +1333,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
           children: [
             Text(
               temp[1],
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black),
             ),
             Image.asset(
               "assets/property_icons/${temp[0]}.png",
@@ -1486,8 +1353,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
   }
 
   Future<void> refreshItemCard() async {
-    Map<String, dynamic>? element =
-        await getItem(widget.element["item_id"], widget.business_id);
+    Map<String, dynamic>? element = await getItem(widget.element["item_id"], widget.business_id);
     print(element);
     setState(() {
       element!["name"] = "123";
@@ -1568,9 +1434,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                           element["country"] != null
                               ? WidgetSpan(
                                   child: Container(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 4 * globals.scaleParam,
-                                        vertical: 2 * globals.scaleParam),
+                                    padding: EdgeInsets.symmetric(horizontal: 4 * globals.scaleParam, vertical: 2 * globals.scaleParam),
                                     decoration: BoxDecoration(
                                       color: Colors.grey.shade200,
                                       borderRadius: BorderRadius.all(
@@ -1602,10 +1466,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                         child: Text(
                           "${globals.formatCost(element["price"])} ₸ за шт.",
                           style: TextStyle(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .secondary
-                                .withOpacity(0.2),
+                            color: Theme.of(context).colorScheme.secondary.withOpacity(0.2),
                             fontWeight: FontWeight.w600,
                             fontSize: 28 * globals.scaleParam,
                           ),
@@ -1629,8 +1490,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                     maxLines: 1,
                     textAlign: TextAlign.center,
                     text: TextSpan(
-                      text:
-                          "${globals.formatCost((int.parse(element['price']) * int.parse(element['amount'])).toString())} ₸",
+                      text: "${globals.formatCost((int.parse(element['price']) * int.parse(element['amount'])).toString())} ₸",
                       style: TextStyle(
                         color: Colors.black,
                         fontWeight: FontWeight.w600,
@@ -1676,8 +1536,7 @@ class ItemCardSquare extends StatefulWidget {
   State<ItemCardSquare> createState() => _ItemCardSquareState();
 }
 
-class _ItemCardSquareState extends State<ItemCardSquare>
-    with SingleTickerProviderStateMixin<ItemCardSquare> {
+class _ItemCardSquareState extends State<ItemCardSquare> with SingleTickerProviderStateMixin<ItemCardSquare> {
   int amountInCart = 0;
   bool canButtonsBeUsed = true;
   late int chack;
@@ -1754,8 +1613,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
   }
 
   Future<void> refreshItemCard() async {
-    Map<String, dynamic>? element = await getItem(
-        widget.element["item_id"], widget.business["business_id"]);
+    Map<String, dynamic>? element = await getItem(widget.element["item_id"], widget.business["business_id"]);
     print(element);
     setState(() {
       element!["name"] = "123";
@@ -1816,9 +1674,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
   }
 
   void _updateItemCountServerCall() {
-    changeCartItem(
-            element["item_id"], amountInCart, widget.business["business_id"])
-        .then((value) {
+    changeCartItem(element["item_id"], amountInCart, widget.business["business_id"]).then((value) {
       if (value == null) {
         if (0 != amountInCart) {
           _updateItemCountServerCall();
@@ -1891,14 +1747,8 @@ class _ItemCardSquareState extends State<ItemCardSquare>
         borderRadius: BorderRadius.all(Radius.circular(20)),
         color: Colors.white,
         boxShadow: [
-          BoxShadow(
-              blurRadius: 5,
-              offset: Offset(5, 5),
-              color: Colors.grey.withOpacity(0.1)),
-          BoxShadow(
-              blurRadius: 4,
-              offset: Offset(-5, -5),
-              color: Colors.blueGrey.withOpacity(0.1))
+          BoxShadow(blurRadius: 5, offset: Offset(5, 5), color: Colors.grey.withOpacity(0.1)),
+          BoxShadow(blurRadius: 4, offset: Offset(-5, -5), color: Colors.blueGrey.withOpacity(0.1))
         ],
       ),
       // Stack for the gesture detector in the end of the code
@@ -1933,9 +1783,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                             60 * globals.scaleParam,
                           ),
                         ),
-                        color: amountInCart > 0
-                            ? Colors.amberAccent.shade100
-                            : Colors.blueGrey.shade100,
+                        color: amountInCart > 0 ? Colors.amberAccent.shade100 : Colors.blueGrey.shade100,
                         boxShadow: [
                           // BoxShadow(
                           //   color: Colors.blueGrey.shade100,
@@ -1946,10 +1794,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                       child: AnimatedCrossFade(
                         alignment: Alignment.topRight,
                         duration: Durations.medium1,
-                        crossFadeState: amountInCart == 0 ||
-                                (amountInCart > 0 && hideButtons)
-                            ? CrossFadeState.showFirst
-                            : CrossFadeState.showSecond,
+                        crossFadeState: amountInCart == 0 || (amountInCart > 0 && hideButtons) ? CrossFadeState.showFirst : CrossFadeState.showSecond,
                         firstChild: Row(
                           mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -1957,8 +1802,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                             int.parse(widget.element["option"]) == 1
                                 ? Flexible(
                                     child: SizedBox(
-                                      height:
-                                          widget.constraints.maxHeight * 0.2,
+                                      height: widget.constraints.maxHeight * 0.2,
                                       child: AspectRatio(
                                         aspectRatio: 1,
                                         child: IconButton(
@@ -1969,21 +1813,17 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                             //     ? Colors.amberAccent.shade200
                                             //     : Colors.transparent,
                                           ),
-                                          highlightColor: canButtonsBeUsed
-                                              ? Colors.transparent
-                                              : Colors.transparent,
+                                          highlightColor: canButtonsBeUsed ? Colors.transparent : Colors.transparent,
                                           padding: EdgeInsets.all(0),
                                           onPressed: canButtonsBeUsed
                                               ? () {
-                                                  if (hideButtons &&
-                                                      amountInCart > 0) {
+                                                  if (hideButtons && amountInCart > 0) {
                                                     setState(() {
                                                       hideButtons = false;
                                                     });
                                                     _hideButtonsAfterTime();
                                                     return;
-                                                  } else if (hideButtons &&
-                                                      amountInCart == 0) {
+                                                  } else if (hideButtons && amountInCart == 0) {
                                                     setState(() {
                                                       hideButtons = false;
                                                     });
@@ -2012,28 +1852,21 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                             //     5 * globals.scaleParam),
                                             decoration: BoxDecoration(
                                               borderRadius: BorderRadius.only(
-                                                bottomLeft:
-                                                    Radius.circular(100),
+                                                bottomLeft: Radius.circular(100),
                                               ),
                                               // color: Colors.white,
                                             ),
                                             child: amountInCart == 0
                                                 ? Icon(
                                                     Icons.add_rounded,
-                                                    color: Theme.of(context)
-                                                        .colorScheme
-                                                        .onSurface,
+                                                    color: Theme.of(context).colorScheme.onSurface,
                                                   )
                                                 : Text(
                                                     amountInCart.toString(),
                                                     style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      fontSize: 48 *
-                                                          globals.scaleParam,
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .onSurface,
+                                                      fontWeight: FontWeight.w700,
+                                                      fontSize: 48 * globals.scaleParam,
+                                                      color: Theme.of(context).colorScheme.onSurface,
                                                     ),
                                                   ),
                                           ),
@@ -2082,13 +1915,8 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                         icon: Container(
                                           child: Icon(
                                             Icons.remove_rounded,
-                                            color: amountInCart > 0
-                                                ? Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurface
-                                                : Theme.of(context)
-                                                    .colorScheme
-                                                    .secondary,
+                                            color:
+                                                amountInCart > 0 ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.secondary,
                                           ),
                                         ),
                                       ),
@@ -2112,11 +1940,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                         style: TextStyle(
                                           fontWeight: FontWeight.w700,
                                           fontSize: 36 * globals.scaleParam,
-                                          color: amountInCart != 0
-                                              ? Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface
-                                              : Colors.grey.shade600,
+                                          color: amountInCart != 0 ? Theme.of(context).colorScheme.onSurface : Colors.grey.shade600,
                                         ),
                                       ),
                                     ),
@@ -2142,16 +1966,9 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                         icon: Container(
                                           child: Icon(
                                             Icons.add_rounded,
-                                            color: amountInCart <
-                                                    double.parse(
-                                                            element["in_stock"])
-                                                        .truncate()
-                                                ? Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurface
-                                                : Theme.of(context)
-                                                    .colorScheme
-                                                    .secondary,
+                                            color: amountInCart < double.parse(element["in_stock"]).truncate()
+                                                ? Theme.of(context).colorScheme.onSurface
+                                                : Theme.of(context).colorScheme.secondary,
                                           ),
                                         ),
                                       ),
@@ -2190,8 +2007,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                               flex: 2,
                               fit: FlexFit.tight,
                               child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Flexible(
                                     flex: 5,
@@ -2206,8 +2022,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                         overflow: TextOverflow.ellipsis,
                                         text: TextSpan(
                                           style: TextStyle(
-                                            textBaseline:
-                                                TextBaseline.alphabetic,
+                                            textBaseline: TextBaseline.alphabetic,
                                             color: Colors.black,
                                             fontWeight: FontWeight.w500,
                                             fontSize: 32 * globals.scaleParam,
@@ -2220,31 +2035,23 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                             element["country"] != null
                                                 ? WidgetSpan(
                                                     child: Container(
-                                                      padding:
-                                                          EdgeInsets.symmetric(
-                                                        horizontal: 4 *
-                                                            globals.scaleParam,
+                                                      padding: EdgeInsets.symmetric(
+                                                        horizontal: 4 * globals.scaleParam,
                                                         // vertical: 2 *
                                                         // globals.scaleParam,
                                                       ),
                                                       decoration: BoxDecoration(
-                                                        color: Colors
-                                                            .grey.shade200,
-                                                        borderRadius:
-                                                            BorderRadius.all(
+                                                        color: Colors.grey.shade200,
+                                                        borderRadius: BorderRadius.all(
                                                           Radius.circular(10),
                                                         ),
                                                       ),
                                                       child: Text(
-                                                        element["country"] ??
-                                                            "",
+                                                        element["country"] ?? "",
                                                         style: TextStyle(
                                                           color: Colors.black,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                          fontSize: 26 *
-                                                              globals
-                                                                  .scaleParam,
+                                                          fontWeight: FontWeight.w600,
+                                                          fontSize: 26 * globals.scaleParam,
                                                         ),
                                                       ),
                                                     ),
@@ -2268,8 +2075,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                                 child: Text(
                                   "В наличии ${double.parse(element["in_stock"] ?? "0").truncate().toString()} шт.",
                                   style: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.secondary,
+                                    color: Theme.of(context).colorScheme.secondary,
                                     fontSize: 30 * globals.scaleParam,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -2345,9 +2151,7 @@ class _ItemCardSquareState extends State<ItemCardSquare>
                       );
                     },
                     child: Container(
-                      width: amountInCart == 0 && canButtonsBeUsed
-                          ? widget.constraints.maxWidth * 0.63
-                          : widget.constraints.maxWidth * 0.05,
+                      width: amountInCart == 0 && canButtonsBeUsed ? widget.constraints.maxWidth * 0.63 : widget.constraints.maxWidth * 0.05,
                       height: widget.constraints.maxHeight * 0.23,
                       // color: Colors.red.withOpacity(0.5),
                     ),
@@ -2415,8 +2219,7 @@ class ItemCardListTile extends StatefulWidget {
   State<ItemCardListTile> createState() => _ItemCardListTileState();
 }
 
-class _ItemCardListTileState extends State<ItemCardListTile>
-    with SingleTickerProviderStateMixin<ItemCardListTile> {
+class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerProviderStateMixin<ItemCardListTile> {
   int amountInCart = 0;
   bool canButtonsBeUsed = true;
   List cart = [];
@@ -2432,8 +2235,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
   Timer? _hideButtonsTimer;
   late Animation<Offset> _offsetAnimation;
 
-  Future<void> updateCurrentItem(int amount,
-      [int index = 0, Map cartNewItem = const {}]) async {
+  Future<void> updateCurrentItem(int amount, [int index = 0, Map cartNewItem = const {}]) async {
     // if (amountInCart == 0 && amount != 0) {
     //   _controller.forward();
     // } else if (amount == 0) {
@@ -2520,9 +2322,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
   }
 
   void _updateItemCountServerCall() {
-    changeCartItem(
-            element["item_id"], amountInCart, widget.business["business_id"])
-        .then((value) {
+    changeCartItem(element["item_id"], amountInCart, widget.business["business_id"]).then((value) {
       if (value == null) {
         if (0 != amountInCart) {
           // _updateItemCountServerCall();
@@ -2587,8 +2387,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
     for (Map itemOption in itemOptions) {
       selectedOptions.add(Text(
         itemOption["name"],
-        style: TextStyle(
-            fontSize: 24 * globals.scaleParam, fontWeight: FontWeight.w800),
+        style: TextStyle(fontSize: 24 * globals.scaleParam, fontWeight: FontWeight.w800),
       ));
     }
     return selectedOptions;
@@ -2689,9 +2488,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                   Radius.circular(30 * globals.scaleParam),
                                 ),
                               ),
-                              child: ExtendedImage.network(
-                                  element["img"] ??
-                                      "https://upload.wikimedia.org/wikipedia/commons/8/8f/Example_image.svg",
+                              child: ExtendedImage.network(element["img"] ?? "https://upload.wikimedia.org/wikipedia/commons/8/8f/Example_image.svg",
                                   // height: double.infinity,
 
                                   clearMemoryCacheWhenDispose: true,
@@ -2719,10 +2516,8 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                   flex: 7,
                                   fit: FlexFit.tight,
                                   child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Flexible(
                                         fit: FlexFit.tight,
@@ -2734,14 +2529,9 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                                 fit: FlexFit.tight,
                                                 child: Text(
                                                   element["name"],
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
+                                                  overflow: TextOverflow.ellipsis,
                                                   maxLines: 2,
-                                                  style: TextStyle(
-                                                      fontSize: 32 *
-                                                          globals.scaleParam,
-                                                      fontWeight:
-                                                          FontWeight.w600),
+                                                  style: TextStyle(fontSize: 32 * globals.scaleParam, fontWeight: FontWeight.w600),
                                                 ),
                                               )
                                             ],
@@ -2780,9 +2570,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                     children: [
                                       Flexible(
                                         child: Text(
-                                          globals.formatCost(
-                                              (element['price'] ?? "")
-                                                  .toString()),
+                                          globals.formatCost((element['price'] ?? "").toString()),
                                           style: TextStyle(
                                             color: Colors.black,
                                             fontWeight: FontWeight.w900,
@@ -2815,13 +2603,11 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                     child: AnimatedCrossFade(
                                       alignment: Alignment.topRight,
                                       duration: Durations.medium1,
-                                      crossFadeState: amountInCart == 0 ||
-                                              (amountInCart > 0 && hideButtons)
+                                      crossFadeState: amountInCart == 0 || (amountInCart > 0 && hideButtons)
                                           ? CrossFadeState.showFirst
                                           : CrossFadeState.showSecond,
                                       firstChild: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.end,
+                                        mainAxisAlignment: MainAxisAlignment.end,
                                         children: [
                                           Flexible(
                                             flex: 2,
@@ -2833,86 +2619,59 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                                   fit: FlexFit.tight,
                                                   child: IconButton(
                                                     style: IconButton.styleFrom(
-                                                      alignment:
-                                                          Alignment.center,
+                                                      alignment: Alignment.center,
                                                       // padding: EdgeInsets.all(0),
                                                       // backgroundColor: amountInCart > 0
                                                       // ? Colors.amberAccent.shade200
                                                       //     : Colors.transparent,
-                                                      backgroundColor:
-                                                          Colors.amber,
+                                                      backgroundColor: Colors.amber,
                                                     ),
-                                                    highlightColor:
-                                                        canButtonsBeUsed
-                                                            ? Colors.transparent
-                                                            : Colors
-                                                                .transparent,
+                                                    highlightColor: canButtonsBeUsed ? Colors.transparent : Colors.transparent,
                                                     padding: EdgeInsets.all(0),
                                                     onPressed: canButtonsBeUsed
                                                         ? () {
-                                                            if (hideButtons &&
-                                                                amountInCart >
-                                                                    0) {
+                                                            if (hideButtons && amountInCart > 0) {
                                                               setState(() {
-                                                                hideButtons =
-                                                                    false;
+                                                                hideButtons = false;
                                                               });
                                                               _hideButtonsAfterTime();
                                                               return;
-                                                            } else if (hideButtons &&
-                                                                amountInCart ==
-                                                                    0) {
+                                                            } else if (hideButtons && amountInCart == 0) {
                                                               setState(() {
-                                                                hideButtons =
-                                                                    false;
+                                                                hideButtons = false;
                                                               });
                                                               _hideButtonsAfterTime();
                                                             } else {
                                                               _hideButtonsAfterTime();
                                                             }
                                                             _incrementAmountInCart();
-                                                            setState(() {
-                                                              canButtonsBeUsed =
-                                                                  false;
-                                                            });
-                                                            _controller
-                                                                .forward();
+                                                            setState(
+                                                              () {
+                                                                canButtonsBeUsed = false;
+                                                              },
+                                                            );
+                                                            _controller.forward();
                                                             Timer(
-                                                              Duration(
-                                                                  milliseconds:
-                                                                      300),
+                                                              Duration(milliseconds: 300),
                                                               () {
                                                                 setState(() {
-                                                                  canButtonsBeUsed =
-                                                                      true;
+                                                                  canButtonsBeUsed = true;
                                                                 });
                                                               },
                                                             );
                                                           }
                                                         : () {},
-                                                    icon: amountInCart == 0 &&
-                                                            options.isEmpty
+                                                    icon: amountInCart == 0 && options.isEmpty
                                                         ? Icon(
                                                             Icons.add_rounded,
-                                                            color: Theme.of(
-                                                                    context)
-                                                                .colorScheme
-                                                                .onSurface,
+                                                            color: Theme.of(context).colorScheme.onSurface,
                                                           )
                                                         : Text(
-                                                            amountInCart
-                                                                .toString(),
+                                                            amountInCart.toString(),
                                                             style: TextStyle(
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w700,
-                                                              fontSize: 48 *
-                                                                  globals
-                                                                      .scaleParam,
-                                                              color: Theme.of(
-                                                                      context)
-                                                                  .colorScheme
-                                                                  .onSurface,
+                                                              fontWeight: FontWeight.w700,
+                                                              fontSize: 48 * globals.scaleParam,
+                                                              color: Theme.of(context).colorScheme.onSurface,
                                                             ),
                                                           ),
                                                   ),
@@ -2921,8 +2680,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                                   fit: FlexFit.tight,
                                                   child: IconButton(
                                                     style: IconButton.styleFrom(
-                                                      backgroundColor:
-                                                          Colors.red,
+                                                      backgroundColor: Colors.red,
                                                     ),
                                                     onPressed: canButtonsBeUsed
                                                         ? () {
@@ -2953,56 +2711,33 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                                             // );
                                                             showModalBottomSheet(
                                                               context: context,
-                                                              clipBehavior: Clip
-                                                                  .antiAlias,
+                                                              clipBehavior: Clip.antiAlias,
                                                               useSafeArea: true,
-                                                              isScrollControlled:
-                                                                  true,
-                                                              showDragHandle:
-                                                                  false,
-                                                              builder:
-                                                                  (context) {
-                                                                widget.element[
-                                                                        "amount"] =
-                                                                    amountInCart
-                                                                        .toString();
+                                                              isScrollControlled: true,
+                                                              showDragHandle: false,
+                                                              builder: (context) {
+                                                                widget.element["amount"] = amountInCart.toString();
                                                                 return ProductPage(
-                                                                  item: widget
-                                                                      .element,
-                                                                  index: widget
-                                                                      .index,
-                                                                  returnDataAmount:
-                                                                      updateCurrentItem,
-                                                                  business: widget
-                                                                      .business,
+                                                                  item: widget.element,
+                                                                  index: widget.index,
+                                                                  returnDataAmount: updateCurrentItem,
+                                                                  business: widget.business,
                                                                 );
                                                               },
                                                             );
                                                           }
                                                         : null,
-                                                    icon: amountInCart == 0 &&
-                                                            options.isEmpty
+                                                    icon: amountInCart == 0 && options.isEmpty
                                                         ? Icon(
                                                             Icons.add_rounded,
-                                                            color: Theme.of(
-                                                                    context)
-                                                                .colorScheme
-                                                                .onSurface,
+                                                            color: Theme.of(context).colorScheme.onSurface,
                                                           )
                                                         : Text(
-                                                            amountInCart
-                                                                .toString(),
+                                                            amountInCart.toString(),
                                                             style: TextStyle(
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w700,
-                                                              fontSize: 48 *
-                                                                  globals
-                                                                      .scaleParam,
-                                                              color: Theme.of(
-                                                                      context)
-                                                                  .colorScheme
-                                                                  .onSurface,
+                                                              fontWeight: FontWeight.w700,
+                                                              fontSize: 48 * globals.scaleParam,
+                                                              color: Theme.of(context).colorScheme.onSurface,
                                                             ),
                                                           ),
                                                   ),
@@ -3010,8 +2745,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                         ],
                                       ),
                                       secondChild: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.end,
+                                        mainAxisAlignment: MainAxisAlignment.end,
                                         children: [
                                           Flexible(
                                             fit: FlexFit.tight,
@@ -3023,17 +2757,13 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                                       _decrementAmountInCart();
                                                       if (amountInCart <= 0) {
                                                         setState(() {
-                                                          canButtonsBeUsed =
-                                                              false;
+                                                          canButtonsBeUsed = false;
                                                         });
                                                         Timer(
-                                                          Duration(
-                                                              milliseconds:
-                                                                  300),
+                                                          Duration(milliseconds: 300),
                                                           () {
                                                             setState(() {
-                                                              canButtonsBeUsed =
-                                                                  true;
+                                                              canButtonsBeUsed = true;
                                                             });
                                                           },
                                                         );
@@ -3044,12 +2774,8 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                                 child: Icon(
                                                   Icons.remove_rounded,
                                                   color: amountInCart > 0
-                                                      ? Theme.of(context)
-                                                          .colorScheme
-                                                          .onSurface
-                                                      : Theme.of(context)
-                                                          .colorScheme
-                                                          .secondary,
+                                                      ? Theme.of(context).colorScheme.onSurface
+                                                      : Theme.of(context).colorScheme.secondary,
                                                 ),
                                               ),
                                             ),
@@ -3058,20 +2784,14 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                             fit: FlexFit.tight,
                                             child: Text(
                                               "${amountInCart.toString()} ${widget.element["unit"]}", //"${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
-                                              textHeightBehavior:
-                                                  TextHeightBehavior(
+                                              textHeightBehavior: TextHeightBehavior(
                                                 applyHeightToFirstAscent: false,
                                               ),
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
                                                 fontWeight: FontWeight.w700,
-                                                fontSize:
-                                                    36 * globals.scaleParam,
-                                                color: amountInCart != 0
-                                                    ? Theme.of(context)
-                                                        .colorScheme
-                                                        .onSurface
-                                                    : Colors.grey.shade600,
+                                                fontSize: 36 * globals.scaleParam,
+                                                color: amountInCart != 0 ? Theme.of(context).colorScheme.onSurface : Colors.grey.shade600,
                                               ),
                                             ),
                                           ),
@@ -3088,15 +2808,9 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                               icon: Container(
                                                 child: Icon(
                                                   Icons.add_rounded,
-                                                  color: amountInCart <
-                                                          element["in_stock"]
-                                                              .truncate()
-                                                      ? Theme.of(context)
-                                                          .colorScheme
-                                                          .onSurface
-                                                      : Theme.of(context)
-                                                          .colorScheme
-                                                          .secondary,
+                                                  color: amountInCart < element["in_stock"].truncate()
+                                                      ? Theme.of(context).colorScheme.onSurface
+                                                      : Theme.of(context).colorScheme.secondary,
                                                 ),
                                               ),
                                             ),
@@ -3131,20 +2845,13 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                         return Container(
                           padding: EdgeInsets.all(20 * globals.scaleParam),
                           decoration: BoxDecoration(
-                              boxShadow: const [
-                                BoxShadow(
-                                    color: Colors.black38,
-                                    blurRadius: 3,
-                                    offset: Offset(2, 2))
-                              ],
+                              boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 3, offset: Offset(2, 2))],
                               color: Colors.white,
-                              borderRadius: BorderRadius.all(
-                                  Radius.circular(20 * globals.scaleParam))
+                              borderRadius: BorderRadius.all(Radius.circular(20 * globals.scaleParam))
                               // border: Border(
                               //     top: BorderSide(color: Colors.black12))
                               ),
-                          margin: EdgeInsets.symmetric(
-                              vertical: 5, horizontal: 20 * globals.scaleParam),
+                          margin: EdgeInsets.symmetric(vertical: 5, horizontal: 20 * globals.scaleParam),
                           child: Row(
                             children: [
                               Flexible(
@@ -3218,9 +2925,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                 },
                 child: Container(
                   // color: Colors.red,
-                  width: hideButtons == true
-                      ? MediaQuery.sizeOf(context).width * 0.75
-                      : MediaQuery.sizeOf(context).width * 0.35,
+                  width: hideButtons == true ? MediaQuery.sizeOf(context).width * 0.75 : MediaQuery.sizeOf(context).width * 0.35,
                   height: 135 * globals.scaleParam,
                 ),
               ),
