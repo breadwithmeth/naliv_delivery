@@ -731,181 +731,183 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
           right: 20),
       child: Container(
         child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Row(
-                children: [
-                  Flexible(
-                      child: Text(
-                    widget.addressName,
-                    style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black),
-                  )),
-                ],
-              ),
-              Divider(
-                thickness: 1,
-              ),
-              Flexible(
-                child: TextField(
-                  maxLength: 250,
-                  buildCounter: (context,
-                      {required currentLength,
-                      required isFocused,
-                      required maxLength}) {
-                    return null;
-                  },
-                  decoration: InputDecoration(
-                    labelText: "Название",
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: UnderlineInputBorder(),
-                    labelStyle: TextStyle(fontSize: 38 * globals.scaleParam),
-                  ),
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Row(
+              children: [
+                Flexible(
+                    child: Text(
+                  widget.addressName,
                   style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 38 * globals.scaleParam,
-                  ),
-                  controller: name,
-                ),
-              ),
-              // TextField(
-              //   decoration: InputDecoration(
-              //     filled: true,
-              //     fillColor: Colors.grey.shade200,
-              //     border: OutlineInputBorder(
-              //       borderSide: BorderSide(color: Colors.black, width: 10),
-              //       borderRadius: BorderRadius.all(Radius.circular(10)),
-              //     ),
-              //     labelStyle: TextStyle(fontSize: 38 * globals.scaleParam),
-              //   ),
-              //   readOnly: true,
-              //   style: TextStyle(
-              //     fontWeight: FontWeight.w700,
-              //     fontSize: 38 * globals.scaleParam,
-              //   ),
-              //   controller: TextEditingController(text: widget.addressName),
-              // ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: TextField(
-                      keyboardType: TextInputType.number,
-                      controller: house,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: InputDecoration(
-                        labelText: "Квартира/Офис",
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: UnderlineInputBorder(),
-                        labelStyle:
-                            TextStyle(fontSize: 32 * globals.scaleParam),
-                      ),
-                      style: TextStyle(fontSize: 32 * globals.scaleParam),
-                    ),
-                  ),
-                  Flexible(
-                    child: TextField(
-                      keyboardType: TextInputType.number,
-                      controller: entrance,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: InputDecoration(
-                        labelText: "Подъезд/Вход",
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: UnderlineInputBorder(),
-                        labelStyle:
-                            TextStyle(fontSize: 32 * globals.scaleParam),
-                      ),
-                      style: TextStyle(fontSize: 32 * globals.scaleParam),
-                    ),
-                  ),
-                  Flexible(
-                    child: TextField(
-                      keyboardType: TextInputType.number,
-                      controller: floor,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: InputDecoration(
-                        labelText: "Этаж",
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: UnderlineInputBorder(),
-                        labelStyle:
-                            TextStyle(fontSize: 32 * globals.scaleParam),
-                      ),
-                      style: TextStyle(fontSize: 32 * globals.scaleParam),
-                    ),
-                  )
-                ],
-              ),
-              TextField(
-                maxLength: 500,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black),
+                )),
+              ],
+            ),
+            Divider(
+              thickness: 1,
+            ),
+            Flexible(
+              child: TextField(
+                maxLength: 250,
                 buildCounter: (context,
                     {required currentLength,
                     required isFocused,
                     required maxLength}) {
-                  if (isFocused) {
-                    return Text(
-                      '$currentLength/$maxLength',
-                      semanticsLabel: 'character count',
-                      style: TextStyle(fontSize: 32 * globals.scaleParam),
-                    );
-                  } else {
-                    return null;
-                  }
+                  return null;
                 },
                 decoration: InputDecoration(
-                  labelText: "Комментарий",
+                  labelText: "Название",
                   filled: true,
                   fillColor: Colors.white,
                   border: UnderlineInputBorder(),
                   labelStyle: TextStyle(fontSize: 38 * globals.scaleParam),
                 ),
-                style: TextStyle(fontSize: 38 * globals.scaleParam),
-                controller: other,
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 38 * globals.scaleParam,
+                ),
+                controller: name,
               ),
-              Row(
-                children: [
-                  Text(widget.lat.toString()),
-                  SizedBox(
-                    width: 20 * globals.scaleParam,
-                  ),
-                  Text(widget.lon.toString())
-                ],
-              ),
-              GestureDetector(
-                onTap: () {
-                  _createAddress().whenComplete(() {
-                    // widget.isFromCreateOrder
-                  });
-                },
-                child: Container(
-                  padding: EdgeInsets.all(30 * globals.scaleParam),
-                  margin: EdgeInsets.only(bottom: 30),
-                  decoration: BoxDecoration(
-                    color: globals.mainColor,
-                    borderRadius: BorderRadius.all(Radius.circular(10)),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Продолжить",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 48 * globals.scaleParam,
-                        ),
-                      )
-                    ],
+            ),
+            // TextField(
+            //   decoration: InputDecoration(
+            //     filled: true,
+            //     fillColor: Colors.grey.shade200,
+            //     border: OutlineInputBorder(
+            //       borderSide: BorderSide(color: Colors.black, width: 10),
+            //       borderRadius: BorderRadius.all(Radius.circular(10)),
+            //     ),
+            //     labelStyle: TextStyle(fontSize: 38 * globals.scaleParam),
+            //   ),
+            //   readOnly: true,
+            //   style: TextStyle(
+            //     fontWeight: FontWeight.w700,
+            //     fontSize: 38 * globals.scaleParam,
+            //   ),
+            //   controller: TextEditingController(text: widget.addressName),
+            // ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: TextField(
+                    keyboardType: TextInputType.number,
+                    controller: house,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(
+                      labelText: "Квартира/Офис",
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: UnderlineInputBorder(),
+                      labelStyle: TextStyle(fontSize: 32 * globals.scaleParam),
+                    ),
+                    style: TextStyle(fontSize: 32 * globals.scaleParam),
                   ),
                 ),
+                Flexible(
+                  child: TextField(
+                    keyboardType: TextInputType.number,
+                    controller: entrance,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(
+                      labelText: "Подъезд/Вход",
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: UnderlineInputBorder(),
+                      labelStyle: TextStyle(fontSize: 32 * globals.scaleParam),
+                    ),
+                    style: TextStyle(fontSize: 32 * globals.scaleParam),
+                  ),
+                ),
+                Flexible(
+                  child: TextField(
+                    keyboardType: TextInputType.number,
+                    controller: floor,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(
+                      labelText: "Этаж",
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: UnderlineInputBorder(),
+                      labelStyle: TextStyle(fontSize: 32 * globals.scaleParam),
+                    ),
+                    style: TextStyle(fontSize: 32 * globals.scaleParam),
+                  ),
+                )
+              ],
+            ),
+            TextField(
+              maxLength: 500,
+              buildCounter: (context,
+                  {required currentLength,
+                  required isFocused,
+                  required maxLength}) {
+                if (isFocused) {
+                  return Text(
+                    '$currentLength/$maxLength',
+                    semanticsLabel: 'character count',
+                    style: TextStyle(fontSize: 32 * globals.scaleParam),
+                  );
+                } else {
+                  return null;
+                }
+              },
+              decoration: InputDecoration(
+                labelText: "Комментарий",
+                filled: true,
+                fillColor: Colors.white,
+                border: UnderlineInputBorder(),
+                labelStyle: TextStyle(fontSize: 38 * globals.scaleParam),
               ),
-            ]),
+              style: TextStyle(fontSize: 38 * globals.scaleParam),
+              controller: other,
+            ),
+            Row(
+              children: [
+                Text(widget.lat.toString()),
+                SizedBox(
+                  width: 20 * globals.scaleParam,
+                ),
+                Text(widget.lon.toString())
+              ],
+            ),
+            GestureDetector(
+              onTap: () {
+                _createAddress().whenComplete(() {
+                  // widget.isFromCreateOrder
+                });
+              },
+              child: Container(
+                padding: EdgeInsets.all(30 * globals.scaleParam),
+                margin: EdgeInsets.only(bottom: 30),
+                decoration: BoxDecoration(
+                  color: globals.mainColor,
+                  borderRadius: BorderRadius.all(Radius.circular(10)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Продолжить",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 48 * globals.scaleParam,
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            ),
+
+            SizedBox(
+              height: 50 * globals.scaleParam,
+            ),
+          ],
+        ),
       ),
     );
   }
