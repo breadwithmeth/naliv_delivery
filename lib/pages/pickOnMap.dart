@@ -274,9 +274,13 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                   ),
                   children: [
                     TileLayer(
-                      // tileBuilder: _darkModeTileBuilder,
                       urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          'https://tile2.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
+
+                      // tileBuilder: _darkModeTileBuilder,
+                      // urlTemplate:
+                      //     'https://static.maps.2gis.com/1.0?s=500x500&c={x},{y}&z={z}',
+                      // 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       // urlTemplate:
                       //     'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
                       tileProvider: CancellableNetworkTileProvider(),
