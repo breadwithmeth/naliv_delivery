@@ -32,14 +32,14 @@ class CreateOrderPage extends StatefulWidget {
       required this.user,
       required this.items,
       required this.deliveryInfo,
-      required this.itemsAmount,
+      // required this.itemsAmount,
       this.client = const {}});
 
   final Map<dynamic, dynamic> business;
   final int finalSum;
   final Map user;
   final List items;
-  final int itemsAmount;
+  // final double itemsAmount;
   final Map deliveryInfo;
   final Map<dynamic, dynamic> client;
 
