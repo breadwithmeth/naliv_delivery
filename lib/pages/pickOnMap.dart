@@ -239,355 +239,361 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
           ],
         ),
       ),
-      body: Column(
-        children: [
-          Flexible(
-            flex: 32,
-            fit: FlexFit.tight,
-            child: Stack(
-              children: [
-                FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    onPointerUp: (event, point) {
-                      if (event.down == false) {
-                        searchGeoData(_mapController.camera.center.longitude,
-                                _mapController.camera.center.latitude)
-                            .then(
-                          (value) {
-                            setState(() {
-                              isMapSetteled = true;
-                            });
-                          },
-                        );
-                      }
-                    },
-                    onPointerDown: (event, point) {
-                      setState(() {
-                        isMapSetteled = false;
-                      });
-                    },
-                    interactionOptions:
-                        InteractionOptions(enableMultiFingerGestureRace: true),
-                    initialCenter: LatLng(0, 0),
-                    initialZoom: 9.2,
-                  ),
-                  children: [
-                    TileLayer(
-                      // tileBuilder: _darkModeTileBuilder,
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      // urlTemplate:
-                      //     'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-                      tileProvider: CancellableNetworkTileProvider(),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Flexible(
+              flex: 32,
+              fit: FlexFit.tight,
+              child: Stack(
+                children: [
+                  FlutterMap(
+                    mapController: _mapController,
+                    options: MapOptions(
+                      onPointerUp: (event, point) {
+                        if (event.down == false) {
+                          searchGeoData(_mapController.camera.center.longitude,
+                                  _mapController.camera.center.latitude)
+                              .then(
+                            (value) {
+                              setState(() {
+                                isMapSetteled = true;
+                              });
+                            },
+                          );
+                        }
+                      },
+                      onPointerDown: (event, point) {
+                        setState(() {
+                          isMapSetteled = false;
+                        });
+                      },
+                      interactionOptions: InteractionOptions(
+                          enableMultiFingerGestureRace: true),
+                      initialCenter: LatLng(0, 0),
+                      initialZoom: 9.2,
                     ),
-                    // MarkerLayer(markers: [
-                    //   Marker(point: _selectedAddress, child: FlutterLogo())
-                    // ]),
-                    // MarkerLayer(markers: _markers),
-                    MarkerLayer(markers: [
-                      Marker(
-                        point: LatLng(widget.currentPosition.latitude,
-                            widget.currentPosition.longitude),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            // AnimatedCurrentPosition(),
-                            Icon(
-                              Icons.circle,
-                              color: globals.mainColor,
-                              shadows: [
-                                BoxShadow(
-                                    color: Colors.orange,
-                                    blurRadius: 10,
-                                    spreadRadius: 200 * globals.scaleParam)
-                              ],
-                            ),
-                          ],
-                        ),
+                    children: [
+                      TileLayer(
+                        // tileBuilder: _darkModeTileBuilder,
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        // urlTemplate:
+                        //     'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                        tileProvider: CancellableNetworkTileProvider(),
                       ),
-                      // Marker(
-                      //     width: 200,
-                      //     height: 200,
-                      //     alignment: Alignment.center,
-                      //     point: LatLng(widget.currentPosition.latitude,
-                      //         widget.currentPosition.longitude),
-                      //     child: )
-                    ]),
-                    RichAttributionWidget(
-                      attributions: [
-                        TextSourceAttribution(
-                          'OpenStreetMap contributors',
-                          // onTap: () => launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
+                      // MarkerLayer(markers: [
+                      //   Marker(point: _selectedAddress, child: FlutterLogo())
+                      // ]),
+                      // MarkerLayer(markers: _markers),
+                      MarkerLayer(markers: [
+                        Marker(
+                          point: LatLng(widget.currentPosition.latitude,
+                              widget.currentPosition.longitude),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // AnimatedCurrentPosition(),
+                              Icon(
+                                Icons.circle,
+                                color: globals.mainColor,
+                                shadows: [
+                                  BoxShadow(
+                                      color: Colors.orange,
+                                      blurRadius: 10,
+                                      spreadRadius: 200 * globals.scaleParam)
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
-                Center(
-                  child: Container(
-                    child: Icon(
-                      Icons.circle_outlined,
-                      size: 58 * globals.scaleParam,
+                        // Marker(
+                        //     width: 200,
+                        //     height: 200,
+                        //     alignment: Alignment.center,
+                        //     point: LatLng(widget.currentPosition.latitude,
+                        //         widget.currentPosition.longitude),
+                        //     child: )
+                      ]),
+                      RichAttributionWidget(
+                        attributions: [
+                          TextSourceAttribution(
+                            'OpenStreetMap contributors',
+                            // onTap: () => launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  Center(
+                    child: Container(
+                      child: Icon(
+                        Icons.circle_outlined,
+                        size: 58 * globals.scaleParam,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Flexible(
-            flex: MediaQuery.sizeOf(context).height > 400 ? 15 : 28,
-            fit: FlexFit.tight,
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                  horizontal: 30 * globals.scaleParam,
-                  vertical: 20 * globals.scaleParam),
-              child: !isMapSetteled
-                  ? Center(
-                      child: CircularProgressIndicator.adaptive(),
-                    )
-                  : Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Spacer(),
-                        Flexible(
-                          flex: 10,
-                          fit: FlexFit.tight,
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                                vertical: 5 * globals.scaleParam),
-                            child: Column(
-                              children: [
-                                Flexible(
-                                  fit: FlexFit.tight,
-                                  child: Row(
-                                    children: [
-                                      Flexible(
-                                        fit: FlexFit.tight,
-                                        child: Text(
-                                          "Выберите адрес",
-                                          maxLines: 1,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w900,
-                                            fontSize: 42 * globals.scaleParam,
-                                            height: 2 * globals.scaleParam,
+            Flexible(
+              flex: MediaQuery.sizeOf(context).height > 400 ? 15 : 28,
+              fit: FlexFit.tight,
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: 30 * globals.scaleParam,
+                    vertical: 20 * globals.scaleParam),
+                child: !isMapSetteled
+                    ? Center(
+                        child: CircularProgressIndicator.adaptive(),
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Spacer(),
+                          Flexible(
+                            flex: 10,
+                            fit: FlexFit.tight,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                  vertical: 5 * globals.scaleParam),
+                              child: Column(
+                                children: [
+                                  Flexible(
+                                    fit: FlexFit.tight,
+                                    child: Row(
+                                      children: [
+                                        Flexible(
+                                          fit: FlexFit.tight,
+                                          child: Text(
+                                            "Выберите адрес",
+                                            maxLines: 1,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 42 * globals.scaleParam,
+                                              height: 2 * globals.scaleParam,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                Flexible(
-                                  fit: FlexFit.tight,
-                                  child: Row(
-                                    children: [
-                                      Flexible(
-                                        fit: FlexFit.tight,
-                                        child: Text(
-                                          "Ваш адрес",
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 24 * globals.scaleParam,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Flexible(
-                                  flex: 1,
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      Flexible(
-                                        fit: FlexFit.tight,
-                                        child: Text(
-                                          _currentAddressName ?? "",
-                                          style: TextStyle(
+                                  Flexible(
+                                    fit: FlexFit.tight,
+                                    child: Row(
+                                      children: [
+                                        Flexible(
+                                          fit: FlexFit.tight,
+                                          child: Text(
+                                            "Ваш адрес",
+                                            style: TextStyle(
                                               fontWeight: FontWeight.w700,
-                                              fontSize: 32 * globals.scaleParam,
-                                              color: Colors.black),
+                                              fontSize: 24 * globals.scaleParam,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                      Flexible(
-                                        child: IconButton(
-                                          padding: EdgeInsets.zero,
-                                          onPressed: () {
-                                            setState(() {
-                                              isMapSetteled = false;
-                                            });
-                                            showDialog(
-                                              barrierColor: Colors.white70,
-                                              context: context,
-                                              builder: (context) {
-                                                return Dialog(
-                                                  backgroundColor:
-                                                      Colors.transparent,
-                                                  shape:
-                                                      RoundedRectangleBorder(),
-                                                  child: Container(
-                                                    color: Colors.transparent,
-                                                    padding: EdgeInsets.all(20 *
-                                                        globals.scaleParam),
-                                                    child: Column(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        Row(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .end,
-                                                          mainAxisSize:
-                                                              MainAxisSize.max,
-                                                          children: [
-                                                            IconButton(
-                                                                onPressed: () {
-                                                                  Navigator.pop(
-                                                                      context);
-                                                                },
-                                                                icon: Icon(Icons
-                                                                    .close))
-                                                          ],
-                                                        ),
-                                                        Flexible(
-                                                            child: TextField(
-                                                          controller:
-                                                              _searchAddress,
-                                                          decoration: InputDecoration(
-                                                              border:
-                                                                  OutlineInputBorder(),
-                                                              labelText:
-                                                                  "Введите адрес"),
-                                                        )),
-                                                        SizedBox(
-                                                          height: 40 *
+                                      ],
+                                    ),
+                                  ),
+                                  Flexible(
+                                    flex: 1,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Flexible(
+                                          fit: FlexFit.tight,
+                                          child: Text(
+                                            _currentAddressName ?? "",
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize:
+                                                    32 * globals.scaleParam,
+                                                color: Colors.black),
+                                          ),
+                                        ),
+                                        Flexible(
+                                          child: IconButton(
+                                            padding: EdgeInsets.zero,
+                                            onPressed: () {
+                                              setState(() {
+                                                isMapSetteled = false;
+                                              });
+                                              showDialog(
+                                                barrierColor: Colors.white70,
+                                                context: context,
+                                                builder: (context) {
+                                                  return Dialog(
+                                                    backgroundColor:
+                                                        Colors.transparent,
+                                                    shape:
+                                                        RoundedRectangleBorder(),
+                                                    child: Container(
+                                                      color: Colors.transparent,
+                                                      padding: EdgeInsets.all(
+                                                          20 *
                                                               globals
-                                                                  .scaleParam,
-                                                        ),
-                                                        Flexible(
-                                                          child:
-                                                              GestureDetector(
-                                                            onTap: () {
-                                                              searchGeoDataByString(
-                                                                  _searchAddress
-                                                                      .text);
-                                                              Navigator.pop(
-                                                                  context);
-                                                              setState(() {
-                                                                isMapSetteled =
-                                                                    true;
-                                                              });
-                                                            },
-                                                            child: Container(
-                                                              padding: EdgeInsets
-                                                                  .all(30 *
-                                                                      globals
-                                                                          .scaleParam),
-                                                              decoration: BoxDecoration(
-                                                                  color: Colors
-                                                                      .deepOrangeAccent,
-                                                                  borderRadius:
-                                                                      BorderRadius.all(
-                                                                          Radius.circular(
-                                                                              5))),
-                                                              child: Row(
-                                                                children: [
-                                                                  Text(
-                                                                    "Поиск",
-                                                                    style:
-                                                                        TextStyle(
-                                                                      color: Colors
-                                                                          .white,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w900,
-                                                                    ),
-                                                                  )
-                                                                ],
+                                                                  .scaleParam),
+                                                      child: Column(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .end,
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .max,
+                                                            children: [
+                                                              IconButton(
+                                                                  onPressed:
+                                                                      () {
+                                                                    Navigator.pop(
+                                                                        context);
+                                                                  },
+                                                                  icon: Icon(Icons
+                                                                      .close))
+                                                            ],
+                                                          ),
+                                                          Flexible(
+                                                              child: TextField(
+                                                            controller:
+                                                                _searchAddress,
+                                                            decoration: InputDecoration(
+                                                                border:
+                                                                    OutlineInputBorder(),
+                                                                labelText:
+                                                                    "Введите адрес"),
+                                                          )),
+                                                          SizedBox(
+                                                            height: 40 *
+                                                                globals
+                                                                    .scaleParam,
+                                                          ),
+                                                          Flexible(
+                                                            child:
+                                                                GestureDetector(
+                                                              onTap: () {
+                                                                searchGeoDataByString(
+                                                                    _searchAddress
+                                                                        .text);
+                                                                Navigator.pop(
+                                                                    context);
+                                                                setState(() {
+                                                                  isMapSetteled =
+                                                                      true;
+                                                                });
+                                                              },
+                                                              child: Container(
+                                                                padding: EdgeInsets
+                                                                    .all(30 *
+                                                                        globals
+                                                                            .scaleParam),
+                                                                decoration: BoxDecoration(
+                                                                    color: Colors
+                                                                        .deepOrangeAccent,
+                                                                    borderRadius:
+                                                                        BorderRadius.all(
+                                                                            Radius.circular(5))),
+                                                                child: Row(
+                                                                  children: [
+                                                                    Text(
+                                                                      "Поиск",
+                                                                      style:
+                                                                          TextStyle(
+                                                                        color: Colors
+                                                                            .white,
+                                                                        fontWeight:
+                                                                            FontWeight.w900,
+                                                                      ),
+                                                                    )
+                                                                  ],
+                                                                ),
                                                               ),
                                                             ),
                                                           ),
-                                                        ),
-                                                      ],
+                                                        ],
+                                                      ),
                                                     ),
-                                                  ),
-                                                );
-                                              },
-                                            );
-                                          },
-                                          icon: Icon(
-                                            Icons.search,
-                                            color: globals.mainColor,
-                                            size: 48 * globals.scaleParam,
+                                                  );
+                                                },
+                                              );
+                                            },
+                                            icon: Icon(
+                                              Icons.search,
+                                              color: globals.mainColor,
+                                              size: 48 * globals.scaleParam,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Divider(
-                                  height: 15 * globals.scaleParam,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Flexible(
-                          flex: 4,
-                          fit: FlexFit.tight,
-                          child: GestureDetector(
-                            onTap: () {
-                              showModalBottomSheet(
-                                backgroundColor: Colors.white,
-                                barrierColor: Colors.black45,
-                                isScrollControlled: true,
-                                context: context,
-                                useSafeArea: true,
-                                builder: (context) {
-                                  return CreateAddressPage(
-                                    lat: _lat,
-                                    lon: _lon,
-                                    addressName: _currentAddressName!,
-                                    isFromCreateOrder: true,
-                                  );
-                                },
-                              );
-                            },
-                            child: Container(
-                              padding: EdgeInsets.all(15 * globals.scaleParam),
-                              decoration: BoxDecoration(
-                                  color: globals.mainColor,
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(5))),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    "Продолжить",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 32 * globals.scaleParam,
+                                      ],
                                     ),
-                                  )
+                                  ),
+                                  Divider(
+                                    height: 15 * globals.scaleParam,
+                                  ),
                                 ],
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                          Flexible(
+                            flex: 4,
+                            fit: FlexFit.tight,
+                            child: GestureDetector(
+                              onTap: () {
+                                showModalBottomSheet(
+                                  backgroundColor: Colors.white,
+                                  barrierColor: Colors.black45,
+                                  isScrollControlled: true,
+                                  context: context,
+                                  useSafeArea: true,
+                                  builder: (context) {
+                                    return CreateAddressPage(
+                                      lat: _lat,
+                                      lon: _lon,
+                                      addressName: _currentAddressName!,
+                                      isFromCreateOrder: true,
+                                    );
+                                  },
+                                );
+                              },
+                              child: Container(
+                                padding:
+                                    EdgeInsets.all(15 * globals.scaleParam),
+                                decoration: BoxDecoration(
+                                    color: globals.mainColor,
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(5))),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      "Продолжить",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 32 * globals.scaleParam,
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
             ),
-          ),
-          SizedBox(
-            height: 50 * globals.scaleParam,
-          ),
-        ],
+            SizedBox(
+              height: 50 * globals.scaleParam,
+            ),
+          ],
+        ),
       ),
     );
   }

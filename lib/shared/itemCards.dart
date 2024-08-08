@@ -1208,25 +1208,26 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
-          showModalBottomSheet(
-            context: context,
-            clipBehavior: Clip.antiAlias,
-            useSafeArea: true,
-            showDragHandle: false,
-            isScrollControlled: true,
-            builder: (context) {
-              return ProductPage(
-                item: element,
-                index: widget.index,
-                returnDataAmount: updateCurrentItem,
-                cartPageExclusiveCallbackFunc: widget.updateExternalInfo,
-                business: widget.business,
-                openedFromCart: true,
-              );
-            },
-          ).then((value) {
-            print("object");
-          });
+          // ! TODO: CAN'T DO THAT BECAUSE AFTER cart, options UPDATES NOTHING HERE IS WORKING PROPERLY!!!!!
+          // showModalBottomSheet(
+          //   context: context,
+          //   clipBehavior: Clip.antiAlias,
+          //   useSafeArea: true,
+          //   showDragHandle: false,
+          //   isScrollControlled: true,
+          //   builder: (context) {
+          //     return ProductPage(
+          //       item: element,
+          //       index: widget.index,
+          //       returnDataAmount: updateCurrentItem,
+          //       cartPageExclusiveCallbackFunc: widget.updateExternalInfo,
+          //       business: widget.business,
+          //       openedFromCart: true,
+          //     );
+          //   },
+          // ).then((value) {
+          //   print("object");
+          // });
         },
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -3118,11 +3119,11 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                       shrinkWrap: true,
                       itemCount: cart.length,
                       itemBuilder: (context, index) {
-                        if (cart[index]["selected_options"] == null) {
-                          return SizedBox();
+                        List _selected_options = [];
+                        if (cart[index]["selected_options"] != null) {
+                          _selected_options = cart[index]["selected_options"];
+                          // return SizedBox();
                         }
-                        List _selected_options =
-                            cart[index]["selected_options"];
 
                         return Container(
                           padding: EdgeInsets.all(20 * globals.scaleParam),
