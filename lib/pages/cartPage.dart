@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/pages/findCreateUserPage.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
@@ -20,7 +19,7 @@ class CartPage extends StatefulWidget {
 class _CartPageState extends State<CartPage>
     with SingleTickerProviderStateMixin {
   late List items = [];
-  int itemsAmount = 0;
+  double itemsAmount = 0;
   late Map<String, dynamic> cartInfo = {};
   late AnimationController animController;
   final Duration animDuration = Duration(milliseconds: 250);
@@ -131,7 +130,7 @@ class _CartPageState extends State<CartPage>
     }
 
     for (dynamic item in items) {
-      itemsAmount += int.parse(item["amount"].toString());
+      itemsAmount += double.parse(item["amount"].toString()).round();
     }
     setState(() {
       itemsAmount;
@@ -168,7 +167,7 @@ class _CartPageState extends State<CartPage>
     itemsAmount = 0;
     for (dynamic item in items) {
       localSum += (int.parse(item["price"]) * int.parse(item["amount"]));
-      itemsAmount += int.parse(item["amount"]);
+      itemsAmount += double.parse(item["amount"].toString());
     }
     // if ((localSum * (bonusPercent / 100)).round() >
     //     userBonusPoints) {
@@ -196,7 +195,7 @@ class _CartPageState extends State<CartPage>
       for (dynamic item in items) {
         localSum +=
             double.parse((item["price"] * item["amount"]).toString()).round();
-        itemsAmount += int.parse(item["amount"].toString());
+        itemsAmount += double.parse(item["amount"].toString());
       }
     } else {
       setState(() {
@@ -337,7 +336,7 @@ class _CartPageState extends State<CartPage>
                                       business: widget.business,
                                       finalSum: localSum,
                                       items: items,
-                                      itemsAmount: itemsAmount,
+                                      // itemsAmount: itemsAmount,
                                       user: widget.user,
                                       deliveryInfo: Map.from(
                                         {"distance": distance, "price": price},
@@ -389,16 +388,6 @@ class _CartPageState extends State<CartPage>
           //     child: ElevatedButton(
           // onPressed: items.isNotEmpty && !dismissingItem
           //     ? () {
-          //         // Navigator.push(
-          //         //   context,
-          //         //   MaterialPageRoute(
-          //         //     builder: (context) {
-          //         //       return FindCreateUserPage(
-          //         //         business: widget.business,
-          //         //       );
-          //         //     },
-          //         //   ),
-          //         // );
           //         Navigator.push(
           //           context,
           //           MaterialPageRoute(

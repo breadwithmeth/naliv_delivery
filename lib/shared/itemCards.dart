@@ -18,24 +18,24 @@ class ItemCard extends StatefulWidget {
       required this.categoryId,
       required this.scroll,
       required this.business_id});
-  final Map<String, dynamic> element;
-  final String categoryName;
 
-  final String itemId;
-
-  final String categoryId;
-  final double scroll;
   final String business_id;
+  final String categoryId;
+  final String categoryName;
   final int chack = 1;
+  final Map<String, dynamic> element;
+  final String itemId;
+  final double scroll;
+
   @override
   State<ItemCard> createState() => _ItemCardState();
 }
 
 class _ItemCardState extends State<ItemCard> {
-  Map<String, dynamic> element = {};
-  List<InlineSpan> propertiesWidget = [];
   late int chack;
+  Map<String, dynamic> element = {};
   bool isNumPickerActive = false;
+  List<InlineSpan> propertiesWidget = [];
 
   @override
   void initState() {
@@ -330,34 +330,144 @@ class ItemCardMedium extends StatefulWidget {
       required this.business,
       required this.index,
       this.categoryPageUpdateData});
-  final Map<String, dynamic> element;
-  final String categoryName;
 
-  final int itemId;
-
-  final String categoryId;
-  final double scroll;
-  final Map<dynamic, dynamic> business;
-  final int index;
-  final chack = 1;
   final Function(String, int)? categoryPageUpdateData;
+  final Map<dynamic, dynamic> business;
+  final String categoryId;
+  final String categoryName;
+  final chack = 1;
+  final Map<String, dynamic> element;
+  final int index;
+  final int itemId;
+  final double scroll;
+
   @override
   State<ItemCardMedium> createState() => _ItemCardMediumState();
 }
 
 class _ItemCardMediumState extends State<ItemCardMedium>
     with SingleTickerProviderStateMixin<ItemCardMedium> {
-  Map<String, dynamic> element = {};
-  List<InlineSpan> propertiesWidget = [];
   int amountInCart = 0;
-  int previousAmount = 0;
-  late int chack;
-  Timer? _debounce;
-
   bool canButtonsBeUsed = true;
+  late int chack;
+  Map<String, dynamic> element = {};
+  int previousAmount = 0;
+  List<InlineSpan> propertiesWidget = [];
 
   late AnimationController _controller;
+  Timer? _debounce;
   late Animation<Offset> _offsetAnimation;
+
+  @override
+  void dispose() {
+    // Trigger the debounce action immediately if the timer is active
+    if (widget.categoryPageUpdateData != null) {
+      widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
+    }
+    if (_debounce?.isActive ?? false) {
+      _debounce?.cancel();
+      _updateItemCountServerCall();
+    }
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    setState(() {
+      element = widget.element;
+      amountInCart = int.parse(element["amount"] ?? "0");
+      previousAmount = amountInCart;
+    });
+    // getProperties();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+
+    _offsetAnimation = Tween<Offset>(
+      begin: Offset(0.70, 0),
+      end: Offset(-0.1, 0),
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    if (amountInCart > 0) {
+      _controller.forward();
+    }
+    // _offsetAnimationReverse = Tween<Offset>(
+    //   begin: Offset(0, 0),
+    //   end: Offset(1, 0),
+    // ).animate(CurvedAnimation(
+    //   parent: _controller,
+    //   curve: Curves.linear,
+    // ));
+  }
+
+  void updateCurrentItem(int amount, [int index = 0]) {
+    if (amountInCart == 0 && amount != 0) {
+      _controller.forward();
+    } else if (amount == 0) {
+      _controller.reverse();
+    }
+    print("AMOUNT IS $amount");
+    setState(() {
+      amountInCart = amount;
+    });
+  }
+
+  Future<void> refreshItemCard() async {
+    Map<String, dynamic>? element = await getItem(
+        widget.element["item_id"], widget.business["business_id"]);
+    print(element);
+    setState(() {
+      element!["name"] = "123";
+      element = element!;
+    });
+  }
+
+  void getProperties() {
+    if (widget.element["properties"] != null) {
+      List<InlineSpan> propertiesT = [];
+      List<String> properties = widget.element["properties"].split(",");
+      print(properties);
+      for (var element in properties) {
+        List temp = element.split(":");
+        propertiesT.add(
+          WidgetSpan(
+            child: Row(
+              children: [
+                Text(
+                  temp[1],
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                ),
+                Image.asset(
+                  "assets/property_icons/${temp[0]}.png",
+                  width: 14,
+                  height: 14,
+                ),
+                SizedBox(
+                  width: 10,
+                )
+              ],
+            ),
+          ),
+        );
+      }
+      setState(() {
+        propertiesWidget = propertiesT;
+      });
+    }
+  }
+
   // late Animation<Offset> _offsetAnimationReverse;
 
   void _updateItemCountServerCall() {
@@ -420,116 +530,6 @@ class _ItemCardMediumState extends State<ItemCardMedium>
         amountInCart++;
       });
       _updateItemCount();
-    }
-  }
-
-  void updateCurrentItem(int amount, [int index = 0]) {
-    if (amountInCart == 0 && amount != 0) {
-      _controller.forward();
-    } else if (amount == 0) {
-      _controller.reverse();
-    }
-    print("AMOUNT IS $amount");
-    setState(() {
-      amountInCart = amount;
-    });
-  }
-
-  Future<void> refreshItemCard() async {
-    Map<String, dynamic>? element = await getItem(
-        widget.element["item_id"], widget.business["business_id"]);
-    print(element);
-    setState(() {
-      element!["name"] = "123";
-      element = element!;
-    });
-  }
-
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    setState(() {
-      element = widget.element;
-      amountInCart = int.parse(element["amount"] ?? "0");
-      previousAmount = amountInCart;
-    });
-    // getProperties();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 150),
-      vsync: this,
-    );
-
-    _offsetAnimation = Tween<Offset>(
-      begin: Offset(0.70, 0),
-      end: Offset(-0.1, 0),
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeOut,
-      ),
-    );
-
-    if (amountInCart > 0) {
-      _controller.forward();
-    }
-    // _offsetAnimationReverse = Tween<Offset>(
-    //   begin: Offset(0, 0),
-    //   end: Offset(1, 0),
-    // ).animate(CurvedAnimation(
-    //   parent: _controller,
-    //   curve: Curves.linear,
-    // ));
-  }
-
-  @override
-  void dispose() {
-    // Trigger the debounce action immediately if the timer is active
-    if (widget.categoryPageUpdateData != null) {
-      widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
-    }
-    if (_debounce?.isActive ?? false) {
-      _debounce?.cancel();
-      _updateItemCountServerCall();
-    }
-    super.dispose();
-  }
-
-  void getProperties() {
-    if (widget.element["properties"] != null) {
-      List<InlineSpan> propertiesT = [];
-      List<String> properties = widget.element["properties"].split(",");
-      print(properties);
-      for (var element in properties) {
-        List temp = element.split(":");
-        propertiesT.add(
-          WidgetSpan(
-            child: Row(
-              children: [
-                Text(
-                  temp[1],
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
-                  ),
-                ),
-                Image.asset(
-                  "assets/property_icons/${temp[0]}.png",
-                  width: 14,
-                  height: 14,
-                ),
-                SizedBox(
-                  width: 10,
-                )
-              ],
-            ),
-          ),
-        );
-      }
-      setState(() {
-        propertiesWidget = propertiesT;
-      });
     }
   }
 
@@ -1108,15 +1108,16 @@ class ItemCardMinimal extends StatefulWidget {
       required this.index,
       required this.business,
       this.updateExternalInfo});
-  final Map<String, dynamic> element;
-  final String categoryName;
 
-  final String categoryId;
-  final double scroll;
-  final int chack = 1;
-  final int index;
-  final Map business;
   final Function(int, int)? updateExternalInfo; // Update CartPage sum!!!!
+  final Map business;
+  final String categoryId;
+  final String categoryName;
+  final int chack = 1;
+  final Map<String, dynamic> element;
+  final int index;
+  final double scroll;
+
   @override
   State<ItemCardMinimal> createState() => _ItemCardMinimalState();
 }
@@ -1142,9 +1143,9 @@ class ItemCardMinimal extends StatefulWidget {
 // });
 
 class _ItemCardMinimalState extends State<ItemCardMinimal> {
+  late int chack;
   Map<String, dynamic> element = {};
   List<InlineSpan> propertiesWidget = [];
-  late int chack;
 
   @override
   void initState() {
@@ -1421,23 +1422,23 @@ class ItemCardNoImage extends StatefulWidget {
       required this.categoryId,
       required this.business_id,
       required this.scroll});
-  final Map<String, dynamic> element;
-  final String categoryName;
 
-  final String itemId;
-
-  final String categoryId;
-  final double scroll;
   final String business_id;
+  final String categoryId;
+  final String categoryName;
   final int chack = 1;
+  final Map<String, dynamic> element;
+  final String itemId;
+  final double scroll;
+
   @override
   State<ItemCardNoImage> createState() => _ItemCardNoImageState();
 }
 
 class _ItemCardNoImageState extends State<ItemCardNoImage> {
+  late int chack;
   Map<String, dynamic> element = {};
   List<InlineSpan> propertiesWidget = [];
-  late int chack;
 
   @override
   void initState() {
@@ -1658,37 +1659,147 @@ class ItemCardSquare extends StatefulWidget {
       required this.index,
       this.categoryPageUpdateData,
       required this.constraints});
-  final Map<String, dynamic> element;
-  final String categoryName;
-  final BoxConstraints constraints;
 
-  final String itemId;
-
-  final String categoryId;
-  final double scroll;
-  final Map<dynamic, dynamic> business;
-  final int index;
-  final chack = 1;
   final Function(String, int)? categoryPageUpdateData;
+  final Map<dynamic, dynamic> business;
+  final String categoryId;
+  final String categoryName;
+  final chack = 1;
+  final BoxConstraints constraints;
+  final Map<String, dynamic> element;
+  final int index;
+  final String itemId;
+  final double scroll;
+
   @override
   State<ItemCardSquare> createState() => _ItemCardSquareState();
 }
 
 class _ItemCardSquareState extends State<ItemCardSquare>
     with SingleTickerProviderStateMixin<ItemCardSquare> {
-  Map<String, dynamic> element = {};
-  List<InlineSpan> propertiesWidget = [];
   int amountInCart = 0;
-  int previousAmount = 0;
-  late int chack;
-  Timer? _debounce;
-  Timer? _hideButtonsTimer;
-
   bool canButtonsBeUsed = true;
+  late int chack;
+  Map<String, dynamic> element = {};
   bool hideButtons = true;
+  int previousAmount = 0;
+  List<InlineSpan> propertiesWidget = [];
 
   late AnimationController _controller;
+  Timer? _debounce;
+  Timer? _hideButtonsTimer;
   late Animation<Offset> _offsetAnimation;
+
+  @override
+  void dispose() {
+    // Trigger the debounce action immediately if the timer is active
+    if (widget.categoryPageUpdateData != null) {
+      widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
+    }
+    if (_debounce?.isActive ?? false) {
+      _debounce?.cancel();
+      _updateItemCountServerCall();
+    }
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    setState(() {
+      element = widget.element;
+      amountInCart = int.parse(element["amount"] ?? "0");
+      previousAmount = amountInCart;
+    });
+    // getProperties();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+
+    _offsetAnimation = Tween<Offset>(
+      begin: Offset(0.70, 0),
+      end: Offset(-0.1, 0),
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    if (amountInCart > 0) {
+      _controller.forward();
+    }
+    // _offsetAnimationReverse = Tween<Offset>(
+    //   begin: Offset(0, 0),
+    //   end: Offset(1, 0),
+    // ).animate(CurvedAnimation(
+    //   parent: _controller,
+    //   curve: Curves.linear,
+    // ));
+  }
+
+  void updateCurrentItem(int amount, [int index = 0]) {
+    if (amountInCart == 0 && amount != 0) {
+      _controller.forward();
+    } else if (amount == 0) {
+      _controller.reverse();
+    }
+    print("AMOUNT IS $amount");
+    setState(() {
+      amountInCart = amount;
+    });
+  }
+
+  Future<void> refreshItemCard() async {
+    Map<String, dynamic>? element = await getItem(
+        widget.element["item_id"], widget.business["business_id"]);
+    print(element);
+    setState(() {
+      element!["name"] = "123";
+      element = element!;
+    });
+  }
+
+  void getProperties() {
+    if (widget.element["properties"] != null) {
+      List<InlineSpan> propertiesT = [];
+      List<String> properties = widget.element["properties"].split(",");
+      print(properties);
+      for (var element in properties) {
+        List temp = element.split(":");
+        propertiesT.add(
+          WidgetSpan(
+            child: Row(
+              children: [
+                Text(
+                  temp[1],
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                ),
+                Image.asset(
+                  "assets/property_icons/${temp[0]}.png",
+                  width: 14,
+                  height: 14,
+                ),
+                SizedBox(
+                  width: 10,
+                )
+              ],
+            ),
+          ),
+        );
+      }
+      setState(() {
+        propertiesWidget = propertiesT;
+      });
+    }
+  }
+
   // late Animation<Offset> _offsetAnimationReverse;
 
   void _hideButtonsAfterTime() {
@@ -1763,116 +1874,6 @@ class _ItemCardSquareState extends State<ItemCardSquare>
         amountInCart++;
       });
       _updateItemCount();
-    }
-  }
-
-  void updateCurrentItem(int amount, [int index = 0]) {
-    if (amountInCart == 0 && amount != 0) {
-      _controller.forward();
-    } else if (amount == 0) {
-      _controller.reverse();
-    }
-    print("AMOUNT IS $amount");
-    setState(() {
-      amountInCart = amount;
-    });
-  }
-
-  Future<void> refreshItemCard() async {
-    Map<String, dynamic>? element = await getItem(
-        widget.element["item_id"], widget.business["business_id"]);
-    print(element);
-    setState(() {
-      element!["name"] = "123";
-      element = element!;
-    });
-  }
-
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    setState(() {
-      element = widget.element;
-      amountInCart = int.parse(element["amount"] ?? "0");
-      previousAmount = amountInCart;
-    });
-    // getProperties();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 150),
-      vsync: this,
-    );
-
-    _offsetAnimation = Tween<Offset>(
-      begin: Offset(0.70, 0),
-      end: Offset(-0.1, 0),
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeOut,
-      ),
-    );
-
-    if (amountInCart > 0) {
-      _controller.forward();
-    }
-    // _offsetAnimationReverse = Tween<Offset>(
-    //   begin: Offset(0, 0),
-    //   end: Offset(1, 0),
-    // ).animate(CurvedAnimation(
-    //   parent: _controller,
-    //   curve: Curves.linear,
-    // ));
-  }
-
-  @override
-  void dispose() {
-    // Trigger the debounce action immediately if the timer is active
-    if (widget.categoryPageUpdateData != null) {
-      widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
-    }
-    if (_debounce?.isActive ?? false) {
-      _debounce?.cancel();
-      _updateItemCountServerCall();
-    }
-    super.dispose();
-  }
-
-  void getProperties() {
-    if (widget.element["properties"] != null) {
-      List<InlineSpan> propertiesT = [];
-      List<String> properties = widget.element["properties"].split(",");
-      print(properties);
-      for (var element in properties) {
-        List temp = element.split(":");
-        propertiesT.add(
-          WidgetSpan(
-            child: Row(
-              children: [
-                Text(
-                  temp[1],
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
-                  ),
-                ),
-                Image.asset(
-                  "assets/property_icons/${temp[0]}.png",
-                  width: 14,
-                  height: 14,
-                ),
-                SizedBox(
-                  width: 10,
-                )
-              ],
-            ),
-          ),
-        );
-      }
-      setState(() {
-        propertiesWidget = propertiesT;
-      });
     }
   }
 
@@ -2398,230 +2399,72 @@ class ItemCardListTile extends StatefulWidget {
       required this.business,
       required this.index,
       this.categoryPageUpdateData});
-  final Map<String, dynamic> element;
-  final String categoryName;
 
-  final int itemId;
-
-  final String categoryId;
-  final double scroll;
-  final Map<dynamic, dynamic> business;
-  final int index;
-  final chack = 1;
   final Function(String, int)? categoryPageUpdateData;
+  final Map<dynamic, dynamic> business;
+  final String categoryId;
+  final String categoryName;
+  final chack = 1;
+  final Map<String, dynamic> element;
+  final int index;
+  final int itemId;
+  final double scroll;
+
   @override
   State<ItemCardListTile> createState() => _ItemCardListTileState();
 }
 
 class _ItemCardListTileState extends State<ItemCardListTile>
     with SingleTickerProviderStateMixin<ItemCardListTile> {
-  Map<String, dynamic> element = {};
-  List<InlineSpan> propertiesWidget = [];
   int amountInCart = 0;
-  int previousAmount = 0;
-  late int chack;
-  Timer? _debounce;
-  Timer? _hideButtonsTimer;
-
-  List options = [];
-  List cart = [];
-
   bool canButtonsBeUsed = true;
+  List cart = [];
+  late int chack;
+  Map<String, dynamic> element = {};
   bool hideButtons = true;
+  List options = [];
+  int previousAmount = 0;
+  List<InlineSpan> propertiesWidget = [];
 
   late AnimationController _controller;
+  Timer? _debounce;
+  Timer? _hideButtonsTimer;
   late Animation<Offset> _offsetAnimation;
-  // late Animation<Offset> _offsetAnimationReverse;
 
-  void _hideButtonsAfterTime() {
-    // Cancel the previous timer if it exists
-    if (_hideButtonsTimer?.isActive ?? false) _hideButtonsTimer!.cancel();
-
-    // Start a new timer
-    _hideButtonsTimer = Timer(Duration(milliseconds: 3000), () {
-      setState(() {
-        hideButtons = true;
-      });
-    });
-  }
-
-  void _updateItemCountServerCall() {
-    changeCartItem(
-            element["item_id"], amountInCart, widget.business["business_id"])
-        .then((value) {
-      if (value == null) {
-        if (0 != amountInCart) {
-          _updateItemCountServerCall();
-        } else {
-          setState(() {
-            amountInCart = 0;
-            previousAmount = amountInCart;
-          });
-        }
-      } else {
-        if (int.parse(value) != amountInCart) {
-          _updateItemCountServerCall();
-        } else {
-          setState(() {
-            amountInCart = int.parse(value);
-            previousAmount = amountInCart;
-          });
-        }
-      }
-      // if (widget.updateCategoryPageInfo != null) {
-      //   widget.updateCategoryPageInfo!(
-      //       amountInCart.toString(), widget.index);
-      // }
-      if (widget.categoryPageUpdateData != null) {
-        widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
-      }
-      print(value);
-    });
-  }
-
-  void _updateItemCount() {
-    // Cancel the previous timer if it exists
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-
-    // Start a new timer
-    _debounce = Timer(Duration(milliseconds: 750), () {
-      // Call your server update function here
-      _updateItemCountServerCall();
-    });
-  }
-
-  void _decrementAmountInCart() {
-    if (amountInCart > 0) {
-      setState(() {
-        amountInCart--;
-      });
-      _updateItemCount();
-    }
-  }
-
-  void _incrementAmountInCart() {
-    if (amountInCart + 1 <= element["in_stock"].truncate()) {
-      setState(() {
-        amountInCart++;
-      });
-      _updateItemCount();
-    }
-  }
-
-  Future<void> updateCurrentItem(int amount, [int index = 0]) async {
-    if (amountInCart == 0 && amount != 0) {
-      _controller.forward();
-    } else if (amount == 0) {
-      _controller.reverse();
-    }
+  Future<void> updateCurrentItem(int amount,
+      [int index = 0, Map cartNewItem = const {}]) async {
+    // if (amountInCart == 0 && amount != 0) {
+    //   _controller.forward();
+    // } else if (amount == 0) {
+    //   _controller.reverse();
+    // }
     print("AMOUNT IS $amount");
     setState(() {
       amountInCart = amount;
     });
-    await getItem(widget.element["item_id"], widget.business["business_id"])
-        .then((value) {
-      print(value);
-      if (value.isNotEmpty) {
-        setState(() {
-          options = json.decode(value["item_options"]) ?? [];
-          cart = json.decode(value["cart"]) ?? [];
-        });
-      }
-    });
+    // ! INSTEAD OF CALLING TO THE BACKEND WE WILL SIMPLY ADD NEW ITEM TO CART
+    // ! THIS IS BECAUSE getItem DOESN'T RETURN CART!!!!!!!!!
+    // await getItem(widget.element["item_id"], widget.business["business_id"])
+    //     .then((value) {
+    //   print(value);
+    //   if (value.isNotEmpty) {
+    //     setState(() {
+    //       // options = value["item_options"] ?? [];
+    //       // cart = value["cart"] ?? [];
+    //     });
+    //   }
+    // });
   }
 
-  Future<void> refreshItemCard() async {
-    Map<String, dynamic>? element = await getItem(
-        widget.element["item_id"], widget.business["business_id"]);
-    print(element);
-    setState(() {
-      element!["name"] = "123";
-      element = element!;
-    });
-  }
-
-  @override
-  void initState() {
-    print(widget.element["cart"]);
-    // TODO: implement initState
-    super.initState();
-    setState(() {
-      element = widget.element;
-      amountInCart = int.parse(element["amount"] ?? "0");
-      previousAmount = amountInCart;
-      cart = widget.element["cart"] == null ? [] : widget.element["cart"];
-      options =
-          widget.element["options"] == null ? [] : widget.element["options"];
-    });
-
-    // getProperties();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 150),
-      vsync: this,
-    );
-
-    _offsetAnimation = Tween<Offset>(
-      begin: Offset(0.70, 0),
-      end: Offset(-0.1, 0),
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeOut,
-      ),
-    );
-
-    if (amountInCart > 0) {
-      // _controller.forward();
-    }
-    // _offsetAnimationReverse = Tween<Offset>(
-    //   begin: Offset(0, 0),
-    //   end: Offset(1, 0),
-    // ).animate(CurvedAnimation(
-    //   parent: _controller,
-    //   curve: Curves.linear,
-    // ));
-  }
-
-  @override
-  void dispose() {
-    // Trigger the debounce action immediately if the timer is active
-    if (widget.categoryPageUpdateData != null) {
-      widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
-    }
-    if (_debounce?.isActive ?? false) {
-      _debounce?.cancel();
-      _updateItemCountServerCall();
-    }
-    super.dispose();
-  }
-
-  List<Widget> _getCartOptions(dynamic option_items) {
-    List<Widget> selectedOptions = [];
-    if (option_items is List) {
-      option_items.forEach((option_item) {
-        dynamic s_option = options.firstWhere((option) =>
-            option["relation_id"].toString() == option_item.toString());
-        print("=======================================");
-        print(s_option);
-        selectedOptions.add(Text(
-          s_option["name"],
-          style: TextStyle(
-              fontSize: 24 * globals.scaleParam, fontWeight: FontWeight.w800),
-        ));
-      });
-    } else {
-      dynamic s_option = options.firstWhere((option) =>
-          option["relation_id"].toString() == option_items.toString());
-      print("=======================================");
-      print(s_option);
-      selectedOptions.add(Text(
-        s_option["name"],
-        style: TextStyle(
-            fontSize: 24 * globals.scaleParam, fontWeight: FontWeight.w800),
-      ));
-    }
-    return selectedOptions;
-  }
+  // Future<void> refreshItemCard() async {
+  //   Map<String, dynamic>? element = await getItem(
+  //       widget.element["item_id"], widget.business["business_id"]);
+  //   print(element);
+  //   setState(() {
+  //     element!["name"] = "123";
+  //     element = element!;
+  //   });
+  // }
 
   void getProperties() {
     if (widget.element["properties"] != null) {
@@ -2661,6 +2504,152 @@ class _ItemCardListTileState extends State<ItemCardListTile>
     }
   }
 
+  // late Animation<Offset> _offsetAnimationReverse;
+
+  void _hideButtonsAfterTime() {
+    // Cancel the previous timer if it exists
+    if (_hideButtonsTimer?.isActive ?? false) _hideButtonsTimer!.cancel();
+
+    // Start a new timer
+    _hideButtonsTimer = Timer(Duration(milliseconds: 3000), () {
+      setState(() {
+        hideButtons = true;
+      });
+    });
+  }
+
+  void _updateItemCountServerCall() {
+    changeCartItem(
+            element["item_id"], amountInCart, widget.business["business_id"])
+        .then((value) {
+      if (value == null) {
+        if (0 != amountInCart) {
+          // _updateItemCountServerCall();
+        } else {
+          setState(() {
+            amountInCart = 0;
+            previousAmount = amountInCart;
+          });
+        }
+      } else {
+        if (int.parse(value) != amountInCart) {
+          // _updateItemCountServerCall();
+        } else {
+          setState(() {
+            amountInCart = int.parse(value);
+            previousAmount = amountInCart;
+          });
+        }
+      }
+      // if (widget.updateCategoryPageInfo != null) {
+      //   widget.updateCategoryPageInfo!(
+      //       amountInCart.toString(), widget.index);
+      // }
+      // if (widget.categoryPageUpdateData != null) {
+      //   widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
+      // }
+      print(value);
+    });
+  }
+
+  void _updateItemCount() {
+    // Cancel the previous timer if it exists
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    // Start a new timer
+    _debounce = Timer(Duration(milliseconds: 750), () {
+      // Call your server update function here
+      _updateItemCountServerCall();
+    });
+  }
+
+  void _decrementAmountInCart() {
+    if (amountInCart > 0) {
+      setState(() {
+        amountInCart--;
+      });
+      _updateItemCount();
+    }
+  }
+
+  void _incrementAmountInCart() {
+    if (amountInCart + 1 <= element["in_stock"].truncate()) {
+      setState(() {
+        amountInCart++;
+      });
+      _updateItemCount();
+    }
+  }
+
+  List<Widget> _getCartOptions(List itemOptions) {
+    List<Widget> selectedOptions = [];
+    for (Map itemOption in itemOptions) {
+      selectedOptions.add(Text(
+        itemOption["name"],
+        style: TextStyle(
+            fontSize: 24 * globals.scaleParam, fontWeight: FontWeight.w800),
+      ));
+    }
+    return selectedOptions;
+  }
+
+  @override
+  void initState() {
+    print(widget.element["cart"]);
+    // TODO: implement initState
+    super.initState();
+    if (widget.element["cart"] != null) {
+      print("CART FROM ITEM ${widget.element["cart"]}");
+    }
+    setState(() {
+      element = widget.element;
+      amountInCart = int.parse(element["amount"] ?? "0");
+      previousAmount = amountInCart;
+      cart = widget.element["cart"] == null ? [] : widget.element["cart"];
+      // options = widget.element["cart"] == null ? [] : widget.element["cart"];
+    });
+
+    // getProperties();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+
+    _offsetAnimation = Tween<Offset>(
+      begin: Offset(0.70, 0),
+      end: Offset(-0.1, 0),
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    if (amountInCart > 0) {
+      // _controller.forward();
+    }
+    // _offsetAnimationReverse = Tween<Offset>(
+    //   begin: Offset(0, 0),
+    //   end: Offset(1, 0),
+    // ).animate(CurvedAnimation(
+    //   parent: _controller,
+    //   curve: Curves.linear,
+    // ));
+  }
+
+  @override
+  void dispose() {
+    // Trigger the debounce action immediately if the timer is active
+    // if (widget.categoryPageUpdateData != null) {
+    //   widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
+    // }
+    if (_debounce?.isActive ?? false) {
+      _debounce?.cancel();
+      _updateItemCountServerCall();
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
@@ -2684,38 +2673,19 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                     return Row(
                       children: [
                         Flexible(
+                          flex: 8,
                           fit: FlexFit.tight,
                           child: SizedBox(
                             height: constraints.maxHeight,
-                            child: GestureDetector(
-                              onTap: () {
-                                showModalBottomSheet(
-                                  context: context,
-                                  clipBehavior: Clip.antiAlias,
-                                  useSafeArea: true,
-                                  isScrollControlled: true,
-                                  showDragHandle: false,
-                                  builder: (context) {
-                                    widget.element["amount"] =
-                                        amountInCart.toString();
-                                    return ProductPage(
-                                      item: widget.element,
-                                      index: widget.index,
-                                      returnDataAmount: updateCurrentItem,
-                                      business: widget.business,
-                                    );
-                                  },
-                                );
-                              },
-                              child: Container(
-                                clipBehavior: Clip.antiAlias,
-                                decoration: BoxDecoration(
-                                  // color: Colors.red,
-                                  borderRadius: BorderRadius.all(
-                                    Radius.circular(30 * globals.scaleParam),
-                                  ),
+                            child: Container(
+                              clipBehavior: Clip.antiAlias,
+                              decoration: BoxDecoration(
+                                // color: Colors.red,
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(30 * globals.scaleParam),
                                 ),
-                                child: ExtendedImage.network(
+                              ),
+                              child: ExtendedImage.network(
                                   element["img"] ??
                                       "https://upload.wikimedia.org/wikipedia/commons/8/8f/Example_image.svg",
                                   // height: double.infinity,
@@ -2723,16 +2693,15 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                   clearMemoryCacheWhenDispose: true,
                                   enableMemoryCache: true,
                                   enableLoadState: false,
-                                  fit: BoxFit.fitHeight,
-                                ),
-                              ),
+                                  fit: BoxFit.contain),
                             ),
                           ),
                         ),
                         Expanded(
-                          flex: 2,
+                          flex: 15,
                           child: Padding(
                             padding: EdgeInsets.only(
+                              left: 10 * globals.scaleParam,
                               right: 10 * globals.scaleParam,
                               top: 12 * globals.scaleParam,
                               // bottom: 10 * globals.scaleParam,
@@ -2855,9 +2824,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                             fit: FlexFit.tight,
                                             child: SizedBox(),
                                           ),
-                                          int.parse(widget.element["option"] ??
-                                                      "0") ==
-                                                  1
+                                          cart.isEmpty
                                               ? Flexible(
                                                   fit: FlexFit.tight,
                                                   child: IconButton(
@@ -2866,8 +2833,10 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                                           Alignment.center,
                                                       // padding: EdgeInsets.all(0),
                                                       // backgroundColor: amountInCart > 0
-                                                      //     ? Colors.amberAccent.shade200
+                                                      // ? Colors.amberAccent.shade200
                                                       //     : Colors.transparent,
+                                                      backgroundColor:
+                                                          Colors.amber,
                                                     ),
                                                     highlightColor:
                                                         canButtonsBeUsed
@@ -2917,7 +2886,8 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                                             );
                                                           }
                                                         : () {},
-                                                    icon: amountInCart == 0
+                                                    icon: amountInCart == 0 &&
+                                                            options.isEmpty
                                                         ? Icon(
                                                             Icons.add_rounded,
                                                             color: Theme.of(
@@ -2946,36 +2916,68 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                               : Flexible(
                                                   fit: FlexFit.tight,
                                                   child: IconButton(
+                                                    style: IconButton.styleFrom(
+                                                      backgroundColor:
+                                                          Colors.red,
+                                                    ),
                                                     onPressed: canButtonsBeUsed
                                                         ? () {
                                                             // _incrementAmountInCart();
-                                                            if (amountInCart <=
-                                                                0) {
-                                                              _incrementAmountInCart();
-                                                            }
-                                                            setState(() {
-                                                              hideButtons =
-                                                                  false;
-                                                            });
-                                                            _hideButtonsAfterTime();
-                                                            setState(() {
-                                                              canButtonsBeUsed =
-                                                                  false;
-                                                            });
-                                                            Timer(
-                                                              Duration(
-                                                                  milliseconds:
-                                                                      300),
-                                                              () {
-                                                                setState(() {
-                                                                  canButtonsBeUsed =
-                                                                      true;
-                                                                });
+                                                            // if (amountInCart <=
+                                                            //     0) {
+                                                            //   _incrementAmountInCart();
+                                                            // }
+                                                            // setState(() {
+                                                            //   hideButtons =
+                                                            //       false;
+                                                            // });
+                                                            // _hideButtonsAfterTime();
+                                                            // setState(() {
+                                                            //   canButtonsBeUsed =
+                                                            //       false;
+                                                            // });
+                                                            // Timer(
+                                                            //   Duration(
+                                                            //       milliseconds:
+                                                            //           300),
+                                                            //   () {
+                                                            //     setState(() {
+                                                            //       canButtonsBeUsed =
+                                                            //           true;
+                                                            //     });
+                                                            //   },
+                                                            // );
+                                                            showModalBottomSheet(
+                                                              context: context,
+                                                              clipBehavior: Clip
+                                                                  .antiAlias,
+                                                              useSafeArea: true,
+                                                              isScrollControlled:
+                                                                  true,
+                                                              showDragHandle:
+                                                                  false,
+                                                              builder:
+                                                                  (context) {
+                                                                widget.element[
+                                                                        "amount"] =
+                                                                    amountInCart
+                                                                        .toString();
+                                                                return ProductPage(
+                                                                  item: widget
+                                                                      .element,
+                                                                  index: widget
+                                                                      .index,
+                                                                  returnDataAmount:
+                                                                      updateCurrentItem,
+                                                                  business: widget
+                                                                      .business,
+                                                                );
                                                               },
                                                             );
                                                           }
                                                         : null,
-                                                    icon: amountInCart == 0
+                                                    icon: amountInCart == 0 &&
+                                                            options.isEmpty
                                                         ? Icon(
                                                             Icons.add_rounded,
                                                             color: Theme.of(
@@ -3109,19 +3111,23 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                   },
                 ),
               ),
-              options.isNotEmpty && cart.isNotEmpty
+              cart.isNotEmpty
                   ? ListView.builder(
                       primary: false,
                       physics: NeverScrollableScrollPhysics(),
                       shrinkWrap: true,
                       itemCount: cart.length,
                       itemBuilder: (context, index) {
-                        List _options1 = cart[index]["options"];
+                        if (cart[index]["selected_options"] == null) {
+                          return SizedBox();
+                        }
+                        List _selected_options =
+                            cart[index]["selected_options"];
 
                         return Container(
                           padding: EdgeInsets.all(20 * globals.scaleParam),
                           decoration: BoxDecoration(
-                              boxShadow: [
+                              boxShadow: const [
                                 BoxShadow(
                                     color: Colors.black38,
                                     blurRadius: 3,
@@ -3145,23 +3151,9 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                               Spacer(),
                               Expanded(
                                 flex: 9,
-                                child: Column(
-                                  children: [
-                                    ListView.builder(
-                                      shrinkWrap: true,
-                                      primary: false,
-                                      //  _getCartOptions([3, 4])
-                                      itemCount: _options1.length,
-                                      itemBuilder: (context, index2) {
-                                        return Wrap(
-                                          spacing: 10,
-                                          children: _getCartOptions(
-                                              _options1[index2]
-                                                  ["option_items"]),
-                                        );
-                                      },
-                                    )
-                                  ],
+                                child: Wrap(
+                                  spacing: 10,
+                                  children: _getCartOptions(_selected_options),
                                 ),
                               ),
                             ],
@@ -3172,29 +3164,63 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                   : const SizedBox(),
             ],
           ),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              showModalBottomSheet(
-                context: context,
-                clipBehavior: Clip.antiAlias,
-                useSafeArea: true,
-                isScrollControlled: true,
-                showDragHandle: false,
-                builder: (context) {
-                  widget.element["amount"] = amountInCart.toString();
-                  return ProductPage(
-                    item: widget.element,
-                    index: widget.index,
-                    returnDataAmount: updateCurrentItem,
-                    business: widget.business,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    clipBehavior: Clip.antiAlias,
+                    useSafeArea: true,
+                    isScrollControlled: true,
+                    showDragHandle: false,
+                    builder: (context) {
+                      widget.element["amount"] = amountInCart.toString();
+                      return ProductPage(
+                        item: widget.element,
+                        index: widget.index,
+                        returnDataAmount: updateCurrentItem,
+                        business: widget.business,
+                      );
+                    },
                   );
                 },
-              );
-            },
-            child: Container(
-              height: 180 * globals.scaleParam,
-            ),
+                child: Container(
+                  // color: Colors.amber,
+                  height: 210 * globals.scaleParam,
+                ),
+              ),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    clipBehavior: Clip.antiAlias,
+                    useSafeArea: true,
+                    isScrollControlled: true,
+                    showDragHandle: false,
+                    builder: (context) {
+                      widget.element["amount"] = amountInCart.toString();
+                      return ProductPage(
+                        item: widget.element,
+                        index: widget.index,
+                        returnDataAmount: updateCurrentItem,
+                        business: widget.business,
+                      );
+                    },
+                  );
+                },
+                child: Container(
+                  // color: Colors.red,
+                  width: hideButtons == true
+                      ? MediaQuery.sizeOf(context).width * 0.75
+                      : MediaQuery.sizeOf(context).width * 0.35,
+                  height: 135 * globals.scaleParam,
+                ),
+              ),
+            ],
           ),
         ],
       ),

@@ -19,7 +19,8 @@ class ProductPage extends StatefulWidget {
       this.openedFromCart = false});
   final Map<String, dynamic> item;
   final int index;
-  final Function(int, int)? returnDataAmount; // INDEX, NEWAMOUNT
+  final Function(int, int)?
+      returnDataAmount; // NEWAMOUNT, INDEX, MAP of cart item
   final Function(int, int)? cartPageExclusiveCallbackFunc;
   final Map<dynamic, dynamic> business;
   final bool openedFromCart;
@@ -222,7 +223,7 @@ class _ProductPageState extends State<ProductPage> {
     } else if (isRequired && isRequiredSelected && amountInCart > 0) {
       setState(() {
         buyButtonActionText = buyButtonActionTextMap["update"]!;
-        buyButtonActionColor = Color.fromARGB(255, 0, 0, 0);
+        buyButtonActionColor = Colors.blueGrey;
       });
     } else if (actualCartAmount == amountInCart || amountInCart == 0) {
       setState(() {

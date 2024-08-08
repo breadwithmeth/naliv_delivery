@@ -346,6 +346,16 @@ Future<String?> changeCartItem(dynamic itemId, int amount, String businessId,
   var url = Uri.https(URL_API, 'api/item/addToCart');
 
   late var response;
+  List options_selected_ids = [];
+  for (Map option in options) {
+    if (option["selection"] == "SINGLE") {
+      options_selected_ids.add(option["selected_relation_id"]);
+    } else {
+      for (String selected_id in option["selected_relation_id"]) {
+        options_selected_ids.add(selected_id);
+      }
+    }
+  }
   print(options);
   if (options.length == 0) {
     response = await client.post(
@@ -365,14 +375,14 @@ Future<String?> changeCartItem(dynamic itemId, int amount, String businessId,
         'item_id': itemId,
         'amount': amount.toString(),
         'business_id': businessId,
-        'options': options
+        'options': options_selected_ids
       }),
       headers: {"Content-Type": "application/json", "AUTH": token},
     );
   }
 
   String? data;
-  if (jsonDecode(response.body) != null) {
+  if (jsonDecode(response.body) != null && response.body != "[]") {
     data = jsonDecode(response.body)[0]["amount"];
   } else {
     data = null;
