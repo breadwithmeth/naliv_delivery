@@ -2524,7 +2524,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
         .then((value) {
       if (value == null) {
         if (0 != amountInCart) {
-          _updateItemCountServerCall();
+          // _updateItemCountServerCall();
         } else {
           setState(() {
             amountInCart = 0;
@@ -2533,7 +2533,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
         }
       } else {
         if (int.parse(value) != amountInCart) {
-          _updateItemCountServerCall();
+          // _updateItemCountServerCall();
         } else {
           setState(() {
             amountInCart = int.parse(value);
@@ -2833,8 +2833,10 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                                           Alignment.center,
                                                       // padding: EdgeInsets.all(0),
                                                       // backgroundColor: amountInCart > 0
-                                                      //     ? Colors.amberAccent.shade200
+                                                      // ? Colors.amberAccent.shade200
                                                       //     : Colors.transparent,
+                                                      backgroundColor:
+                                                          Colors.amber,
                                                     ),
                                                     highlightColor:
                                                         canButtonsBeUsed
@@ -2914,6 +2916,10 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                               : Flexible(
                                                   fit: FlexFit.tight,
                                                   child: IconButton(
+                                                    style: IconButton.styleFrom(
+                                                      backgroundColor:
+                                                          Colors.red,
+                                                    ),
                                                     onPressed: canButtonsBeUsed
                                                         ? () {
                                                             // _incrementAmountInCart();
@@ -3121,7 +3127,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                         return Container(
                           padding: EdgeInsets.all(20 * globals.scaleParam),
                           decoration: BoxDecoration(
-                              boxShadow: [
+                              boxShadow: const [
                                 BoxShadow(
                                     color: Colors.black38,
                                     blurRadius: 3,
