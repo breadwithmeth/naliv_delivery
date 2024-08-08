@@ -2431,94 +2431,40 @@ class _ItemCardListTileState extends State<ItemCardListTile>
   Timer? _hideButtonsTimer;
   late Animation<Offset> _offsetAnimation;
 
-  @override
-  void dispose() {
-    // Trigger the debounce action immediately if the timer is active
-    if (widget.categoryPageUpdateData != null) {
-      widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
-    }
-    if (_debounce?.isActive ?? false) {
-      _debounce?.cancel();
-      _updateItemCountServerCall();
-    }
-    super.dispose();
-  }
-
-  @override
-  void initState() {
-    print(widget.element["cart"]);
-    // TODO: implement initState
-    super.initState();
-    if (widget.element["cart"] != null) {
-      print("CART FROM ITEM ${widget.element["cart"]}");
-    }
-    setState(() {
-      element = widget.element;
-      amountInCart = int.parse(element["amount"] ?? "0");
-      previousAmount = amountInCart;
-      cart = widget.element["cart"] == null ? [] : widget.element["cart"];
-      // options = widget.element["cart"] == null ? [] : widget.element["cart"];
-    });
-
-    // getProperties();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 150),
-      vsync: this,
-    );
-
-    _offsetAnimation = Tween<Offset>(
-      begin: Offset(0.70, 0),
-      end: Offset(-0.1, 0),
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeOut,
-      ),
-    );
-
-    if (amountInCart > 0) {
-      // _controller.forward();
-    }
-    // _offsetAnimationReverse = Tween<Offset>(
-    //   begin: Offset(0, 0),
-    //   end: Offset(1, 0),
-    // ).animate(CurvedAnimation(
-    //   parent: _controller,
-    //   curve: Curves.linear,
-    // ));
-  }
-
-  Future<void> updateCurrentItem(int amount, [int index = 0]) async {
-    if (amountInCart == 0 && amount != 0) {
-      _controller.forward();
-    } else if (amount == 0) {
-      _controller.reverse();
-    }
+  Future<void> updateCurrentItem(int amount,
+      [int index = 0, Map cartNewItem = const {}]) async {
+    // if (amountInCart == 0 && amount != 0) {
+    //   _controller.forward();
+    // } else if (amount == 0) {
+    //   _controller.reverse();
+    // }
     print("AMOUNT IS $amount");
     setState(() {
       amountInCart = amount;
     });
-    await getItem(widget.element["item_id"], widget.business["business_id"])
-        .then((value) {
-      print(value);
-      if (value.isNotEmpty) {
-        setState(() {
-          options = value["item_options"] ?? [];
-          cart = value["cart"] ?? [];
-        });
-      }
-    });
+    // ! INSTEAD OF CALLING TO THE BACKEND WE WILL SIMPLY ADD NEW ITEM TO CART
+    // ! THIS IS BECAUSE getItem DOESN'T RETURN CART!!!!!!!!!
+    // await getItem(widget.element["item_id"], widget.business["business_id"])
+    //     .then((value) {
+    //   print(value);
+    //   if (value.isNotEmpty) {
+    //     setState(() {
+    //       // options = value["item_options"] ?? [];
+    //       // cart = value["cart"] ?? [];
+    //     });
+    //   }
+    // });
   }
 
-  Future<void> refreshItemCard() async {
-    Map<String, dynamic>? element = await getItem(
-        widget.element["item_id"], widget.business["business_id"]);
-    print(element);
-    setState(() {
-      element!["name"] = "123";
-      element = element!;
-    });
-  }
+  // Future<void> refreshItemCard() async {
+  //   Map<String, dynamic>? element = await getItem(
+  //       widget.element["item_id"], widget.business["business_id"]);
+  //   print(element);
+  //   setState(() {
+  //     element!["name"] = "123";
+  //     element = element!;
+  //   });
+  // }
 
   void getProperties() {
     if (widget.element["properties"] != null) {
@@ -2599,9 +2545,9 @@ class _ItemCardListTileState extends State<ItemCardListTile>
       //   widget.updateCategoryPageInfo!(
       //       amountInCart.toString(), widget.index);
       // }
-      if (widget.categoryPageUpdateData != null) {
-        widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
-      }
+      // if (widget.categoryPageUpdateData != null) {
+      //   widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
+      // }
       print(value);
     });
   }
@@ -2644,30 +2590,64 @@ class _ItemCardListTileState extends State<ItemCardListTile>
             fontSize: 24 * globals.scaleParam, fontWeight: FontWeight.w800),
       ));
     }
-    // if (itemOptions is List) {
-    //   itemOptions.forEach((itemOption) {
-    //     dynamic s_option = cart.firstWhere((option) =>
-    //         option["relation_id"].toString() == itemOption.toString());
-    //     print("=======================================");
-    //     print(s_option);
-    //     selectedOptions.add(Text(
-    //       s_option["name"],
-    //       style: TextStyle(
-    //           fontSize: 24 * globals.scaleParam, fontWeight: FontWeight.w800),
-    //     ));
-    //   });
-    // } else {
-    //   dynamic s_option = cart.firstWhere((option) =>
-    //       option["relation_id"].toString() == itemOptions.toString());
-    //   print("=======================================");
-    //   print(s_option);
-    //   selectedOptions.add(Text(
-    //     s_option["name"],
-    //     style: TextStyle(
-    //         fontSize: 24 * globals.scaleParam, fontWeight: FontWeight.w800),
-    //   ));
-    // }
     return selectedOptions;
+  }
+
+  @override
+  void initState() {
+    print(widget.element["cart"]);
+    // TODO: implement initState
+    super.initState();
+    if (widget.element["cart"] != null) {
+      print("CART FROM ITEM ${widget.element["cart"]}");
+    }
+    setState(() {
+      element = widget.element;
+      amountInCart = int.parse(element["amount"] ?? "0");
+      previousAmount = amountInCart;
+      cart = widget.element["cart"] == null ? [] : widget.element["cart"];
+      // options = widget.element["cart"] == null ? [] : widget.element["cart"];
+    });
+
+    // getProperties();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+
+    _offsetAnimation = Tween<Offset>(
+      begin: Offset(0.70, 0),
+      end: Offset(-0.1, 0),
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    if (amountInCart > 0) {
+      // _controller.forward();
+    }
+    // _offsetAnimationReverse = Tween<Offset>(
+    //   begin: Offset(0, 0),
+    //   end: Offset(1, 0),
+    // ).animate(CurvedAnimation(
+    //   parent: _controller,
+    //   curve: Curves.linear,
+    // ));
+  }
+
+  @override
+  void dispose() {
+    // Trigger the debounce action immediately if the timer is active
+    // if (widget.categoryPageUpdateData != null) {
+    //   widget.categoryPageUpdateData!(amountInCart.toString(), widget.index);
+    // }
+    if (_debounce?.isActive ?? false) {
+      _debounce?.cancel();
+      _updateItemCountServerCall();
+    }
+    super.dispose();
   }
 
   @override
