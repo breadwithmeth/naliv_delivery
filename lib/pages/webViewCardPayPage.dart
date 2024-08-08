@@ -139,6 +139,9 @@ class _WebViewCardPayPageState extends State<WebViewCardPayPage> {
                 },
                 onReceivedError: (controller, request, error) {
                   pullToRefreshController?.endRefreshing();
+                  if (request.url.rawValue == failureUrl) {
+                    _handlePaymentFailure();
+                  }
                 },
                 onProgressChanged: (controller, progress) {
                   if (progress == 100) {
