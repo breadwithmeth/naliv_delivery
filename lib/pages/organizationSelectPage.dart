@@ -106,7 +106,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
     await getGeoData(lon.toString() + "," + lat.toString()).then((value) {
       print(value);
       if (value != null) {
-        List objects = value["response"]["GeoObjectCollection"]["featureMember"];
+        List objects =
+            value;
 
         double lat = double.parse(objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
         double lon = double.parse(objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
