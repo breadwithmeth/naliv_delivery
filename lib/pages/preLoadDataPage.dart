@@ -61,7 +61,6 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     // FlutterView view = WidgetsBinding.instance.platformDispatcher.views.first;
     // Size size = view.physicalSize / view.devicePixelRatio;
@@ -135,7 +134,6 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
 
   @override
   void dispose() {
-    // TODO: implement dispose
     super.dispose();
   }
 

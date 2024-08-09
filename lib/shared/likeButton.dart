@@ -13,7 +13,6 @@ class _LikeButtonState extends State<LikeButton> {
   bool is_liked = false;
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     if (widget.is_liked != null) {
       setState(() {

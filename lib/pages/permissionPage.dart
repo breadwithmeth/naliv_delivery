@@ -9,8 +9,7 @@ class PermissionPage extends StatefulWidget {
   State<PermissionPage> createState() => _PermissionPageState();
 }
 
-class _PermissionPageState extends State<PermissionPage>
-    with WidgetsBindingObserver {
+class _PermissionPageState extends State<PermissionPage> with WidgetsBindingObserver {
   Future<void> _requestPermission() async {
     final location = Permission.locationWhenInUse;
 
@@ -26,7 +25,6 @@ class _PermissionPageState extends State<PermissionPage>
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _requestPermission();
     WidgetsBinding.instance.addObserver(this);
@@ -66,10 +64,7 @@ class _PermissionPageState extends State<PermissionPage>
           children: [
             const Text(
               "Разрешите приложению доступ к:",
-              style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black,
-                  fontSize: 18),
+              style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black, fontSize: 18),
               softWrap: true,
             ),
             const SizedBox(
@@ -89,12 +84,8 @@ class _PermissionPageState extends State<PermissionPage>
                     text: const TextSpan(
                       style: TextStyle(color: Colors.black, fontSize: 16),
                       children: [
-                        TextSpan(
-                            text: 'Геолокации:',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        TextSpan(
-                            text:
-                                ' для оперделения адреса доставки и поиска оптимального маршрута доставки!'),
+                        TextSpan(text: 'Геолокации:', style: TextStyle(fontWeight: FontWeight.bold)),
+                        TextSpan(text: ' для оперделения адреса доставки и поиска оптимального маршрута доставки!'),
                       ],
                     ),
                   ),
@@ -118,9 +109,7 @@ class _PermissionPageState extends State<PermissionPage>
                     text: const TextSpan(
                       style: TextStyle(color: Colors.black, fontSize: 16),
                       children: [
-                        TextSpan(
-                            text: 'Камере:',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        TextSpan(text: 'Камере:', style: TextStyle(fontWeight: FontWeight.bold)),
                         TextSpan(text: '  для сканирования QR-кодов.'),
                       ],
                     ),
@@ -145,12 +134,8 @@ class _PermissionPageState extends State<PermissionPage>
                     text: const TextSpan(
                       style: TextStyle(color: Colors.black, fontSize: 16),
                       children: [
-                        TextSpan(
-                            text: 'Хранилищу:',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        TextSpan(
-                            text:
-                                ' для кэширования данных - более быстрой загрузки и бесперебойной работы!'),
+                        TextSpan(text: 'Хранилищу:', style: TextStyle(fontWeight: FontWeight.bold)),
+                        TextSpan(text: ' для кэширования данных - более быстрой загрузки и бесперебойной работы!'),
                       ],
                     ),
                   ),

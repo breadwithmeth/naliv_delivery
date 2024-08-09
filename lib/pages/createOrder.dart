@@ -47,8 +47,7 @@ class CreateOrderPage extends StatefulWidget {
   State<CreateOrderPage> createState() => _CreateOrderPageState();
 }
 
-class _CreateOrderPageState extends State<CreateOrderPage>
-    with SingleTickerProviderStateMixin {
+class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProviderStateMixin {
   bool delivery = true;
   String cartInfo = "";
   // Widget? currentAddressWidget;
@@ -102,9 +101,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
         child: ElevatedButton(
             style: ElevatedButton.styleFrom(
                 side: BorderSide(color: Colors.grey.shade200),
-                backgroundColor: element["is_selected"] == "1"
-                    ? Colors.grey.shade200
-                    : Colors.white,
+                backgroundColor: element["is_selected"] == "1" ? Colors.grey.shade200 : Colors.white,
                 padding: EdgeInsets.symmetric(vertical: 20, horizontal: 5)),
             onPressed: () {
               selectAddress(element["address_id"]);
@@ -174,9 +171,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
         child: ElevatedButton(
             style: ElevatedButton.styleFrom(
                 side: BorderSide(color: Colors.grey.shade200),
-                backgroundColor: element["is_selected"] == "1"
-                    ? Colors.grey.shade200
-                    : Colors.white,
+                backgroundColor: element["is_selected"] == "1" ? Colors.grey.shade200 : Colors.white,
                 padding: EdgeInsets.symmetric(vertical: 20, horizontal: 5)),
             onPressed: () {
               selectAddress(element["address_id"]);
@@ -231,16 +226,25 @@ class _CreateOrderPageState extends State<CreateOrderPage>
   void setPaymentType() {
     switch (paymentType) {
       case PaymentType.kaspi:
-        paymentDescText =
-            "${globals.formatCost((widget.finalSum + widget.deliveryInfo["price"]).toString())} ₸   ${widget.user["login"]} ";
+        if (delivery) {
+          paymentDescText = "${globals.formatCost((widget.finalSum + widget.deliveryInfo["price"]).toString())} ₸   ${widget.user["login"]} ";
+        } else {
+          paymentDescText = "${globals.formatCost((widget.finalSum).toString())} ₸   ${widget.user["login"]} ";
+        }
         break;
       case PaymentType.card:
-        paymentDescText =
-            "${globals.formatCost((widget.finalSum + widget.deliveryInfo["price"]).toString())} ₸";
+        if (delivery) {
+          paymentDescText = "${globals.formatCost((widget.finalSum + widget.deliveryInfo["price"]).toString())} ₸";
+        } else {
+          paymentDescText = "${globals.formatCost((widget.finalSum).toString())} ₸";
+        }
         break;
       case PaymentType.cash:
-        paymentDescText =
-            "${globals.formatCost((widget.finalSum + widget.deliveryInfo["price"]).toString())} ₸";
+        if (delivery) {
+          paymentDescText = "${globals.formatCost((widget.finalSum + widget.deliveryInfo["price"]).toString())} ₸";
+        } else {
+          paymentDescText = "${globals.formatCost((widget.finalSum).toString())} ₸";
+        }
         break;
     }
   }
@@ -267,7 +271,6 @@ class _CreateOrderPageState extends State<CreateOrderPage>
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _controller = AnimationController(
       vsync: this,
@@ -325,14 +328,10 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                               business: widget.business,
                               user: widget.user,
                               finalSum: delivery
-                                  ? int.parse(((widget.finalSum - 0) +
-                                          widget.deliveryInfo["price"])
-                                      .toString())
-                                  : int.parse(
-                                      ((widget.finalSum - 0)).toString()),
-                              paymentType: paymentType == PaymentType.kaspi
-                                  ? "${paymentType.description}: ${widget.user["login"]}"
-                                  : paymentType.description,
+                                  ? int.parse(((widget.finalSum - 0) + widget.deliveryInfo["price"]).toString())
+                                  : int.parse(((widget.finalSum - 0)).toString()),
+                              paymentType:
+                                  paymentType == PaymentType.kaspi ? "${paymentType.description}: ${widget.user["login"]}" : paymentType.description,
                             ),
                           ),
                         );
@@ -427,8 +426,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                             Flexible(
                               child: Text(
                                 "Заказ",
-                                style: TextStyle(
-                                    fontSize: 40 * globals.scaleParam),
+                                style: TextStyle(fontSize: 40 * globals.scaleParam),
                               ),
                             ),
                           ],
@@ -439,8 +437,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                               child: Text(
                                 "${widget.business["name"]} ${widget.business["address"]}",
                                 maxLines: 1,
-                                style: TextStyle(
-                                    fontSize: 32 * globals.scaleParam),
+                                style: TextStyle(fontSize: 32 * globals.scaleParam),
                               ),
                             ),
                           ],
@@ -505,8 +502,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                     child: Container(
                                       alignment: Alignment.center,
                                       height: double.infinity,
-                                      padding: EdgeInsets.all(
-                                          15 * globals.scaleParam),
+                                      padding: EdgeInsets.all(15 * globals.scaleParam),
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.all(
                                           Radius.circular(10),
@@ -578,15 +574,13 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                     position: _deliveryChooseAnim,
                                     child: GestureDetector(
                                       onPanUpdate: (details) {
-                                        if (details.delta.dx > 0 &&
-                                            !_controller.isAnimating) {
+                                        if (details.delta.dx > 0 && !_controller.isAnimating) {
                                           // print("Dragging in +X direction");
                                           _controller.forward();
                                           setState(() {
                                             delivery = false;
                                           });
-                                        } else if (details.delta.dx < 0 &&
-                                            !_controller.isAnimating) {
+                                        } else if (details.delta.dx < 0 && !_controller.isAnimating) {
                                           // print("Dragging in -X direction");
                                           _controller.reverse();
                                           setState(() {
@@ -606,8 +600,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Color.fromARGB(
-                                                  255, 94, 94, 94),
+                                              color: Color.fromARGB(255, 94, 94, 94),
                                               blurRadius: 10,
                                               spreadRadius: -6,
                                             ),
@@ -615,24 +608,19 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                           color: Colors.black,
                                         ),
                                         child: AnimatedSwitcher(
-                                            duration:
-                                                Duration(milliseconds: 300),
-                                            transitionBuilder:
-                                                (child, animation) {
+                                            duration: Duration(milliseconds: 300),
+                                            transitionBuilder: (child, animation) {
                                               return FadeTransition(
                                                 opacity: animation,
                                                 child: child,
                                               );
                                             },
                                             child: Text(
-                                              delivery
-                                                  ? "Доставка"
-                                                  : "Самовывоз",
+                                              delivery ? "Доставка" : "Самовывоз",
                                               key: ValueKey<bool>(delivery),
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
-                                                fontSize:
-                                                    38 * globals.scaleParam,
+                                                fontSize: 38 * globals.scaleParam,
                                                 fontWeight: FontWeight.w600,
                                                 // shadows: [
                                                 //   Shadow(
@@ -640,9 +628,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                                 //     blurRadius: 5,
                                                 //   ),
                                                 // ],
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onPrimary,
+                                                color: Theme.of(context).colorScheme.onPrimary,
                                               ),
                                             )),
                                       ),
@@ -680,9 +666,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                       style: TextStyle(
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w600,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
+                                        color: Theme.of(context).colorScheme.primary,
                                       ),
                                     ),
                                   ),
@@ -716,22 +700,17 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                         });
                                       },
                                       child: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
+                                        crossAxisAlignment: CrossAxisAlignment.center,
                                         children: [
                                           Flexible(
                                             flex: 7,
                                             fit: FlexFit.tight,
                                             child: Text(
-                                              currentAddress["address"] ??
-                                                  "Загружаю...",
+                                              currentAddress["address"] ?? "Загружаю...",
                                               style: TextStyle(
-                                                fontSize:
-                                                    32 * globals.scaleParam,
+                                                fontSize: 32 * globals.scaleParam,
                                                 fontWeight: FontWeight.w600,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .primary,
+                                                color: Theme.of(context).colorScheme.primary,
                                               ),
                                             ),
                                           ),
@@ -758,9 +737,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                       style: TextStyle(
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w600,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
+                                        color: Theme.of(context).colorScheme.primary,
                                       ),
                                     ),
                                   ),
@@ -794,22 +771,17 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                         // });
                                       },
                                       child: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
+                                        crossAxisAlignment: CrossAxisAlignment.center,
                                         children: [
                                           Flexible(
                                             flex: 7,
                                             fit: FlexFit.tight,
                                             child: Text(
-                                              widget.business["address"] ??
-                                                  "Загружаю...",
+                                              widget.business["address"] ?? "Загружаю...",
                                               style: TextStyle(
-                                                fontSize:
-                                                    32 * globals.scaleParam,
+                                                fontSize: 32 * globals.scaleParam,
                                                 fontWeight: FontWeight.w600,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .primary,
+                                                color: Theme.of(context).colorScheme.primary,
                                               ),
                                             ),
                                           ),
@@ -853,9 +825,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                       style: TextStyle(
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w500,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
+                                        color: Theme.of(context).colorScheme.primary,
                                       ),
                                     ),
                                   ),
@@ -1223,9 +1193,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                         style: TextStyle(
                                           fontSize: 32 * globals.scaleParam,
                                           fontWeight: FontWeight.w600,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primary,
+                                          color: Theme.of(context).colorScheme.primary,
                                         ),
                                       ),
                                     ),
@@ -1267,9 +1235,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                       style: TextStyle(
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w500,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
+                                        color: Theme.of(context).colorScheme.primary,
                                       ),
                                     ),
                                   ),
@@ -1357,9 +1323,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                             Flexible(
                               fit: FlexFit.tight,
                               child: Text(
-                                delivery
-                                    ? "${globals.formatCost(widget.deliveryInfo["price"].toString())} ₸"
-                                    : "0 ₸",
+                                delivery ? "${globals.formatCost(widget.deliveryInfo["price"].toString())} ₸" : "0 ₸",
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w600,

@@ -11,11 +11,7 @@ import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 
 class PickOnMapPage extends StatefulWidget {
-  const PickOnMapPage(
-      {super.key,
-      required this.currentPosition,
-      required this.cities,
-      this.isFromCreateOrder = false});
+  const PickOnMapPage({super.key, required this.currentPosition, required this.cities, this.isFromCreateOrder = false});
   final Position currentPosition;
   final List cities;
   final bool isFromCreateOrder;
@@ -28,8 +24,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
   MapController _mapController = MapController();
   String? _currentAddressName;
   bool isMapSetteled = false;
-  String styleUrl =
-      "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png";
+  String styleUrl = "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png";
   String apiKey = "YOUR-API-KEY";
   String _currentCity = "";
 
@@ -59,10 +54,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
       print(value);
       List objects = value?["response"]["GeoObjectCollection"]["featureMember"];
 
-      double lat = double.parse(
-          objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
-      double lon = double.parse(
-          objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
+      double lat = double.parse(objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
+      double lon = double.parse(objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
       setState(() {
         _currentAddressName = objects.first["GeoObject"]["name"];
         _lat = lat;
@@ -76,10 +69,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
       print(value);
       List objects = value?["response"]["GeoObjectCollection"]["featureMember"];
 
-      double lat = double.parse(
-          objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
-      double lon = double.parse(
-          objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
+      double lat = double.parse(objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
+      double lon = double.parse(objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
       _mapController.move(LatLng(lat, lon), 20);
       setState(() {
         _currentAddressName = objects.first["GeoObject"]["name"];
@@ -91,7 +82,6 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     setCurrentCity();
 
@@ -99,13 +89,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
     Future.delayed(
       Durations.extralong4,
     ).then((v) {
-      _mapController.move(
-          LatLng(widget.currentPosition.latitude,
-              widget.currentPosition.longitude),
-          15);
-      searchGeoData(
-              widget.currentPosition.longitude, widget.currentPosition.latitude)
-          .then((v) {
+      _mapController.move(LatLng(widget.currentPosition.latitude, widget.currentPosition.longitude), 15);
+      searchGeoData(widget.currentPosition.longitude, widget.currentPosition.latitude).then((v) {
         setState(() {
           _searchAddress.text = _currentAddressName ?? "";
           isMapSetteled = true;
@@ -150,9 +135,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.all(Radius.circular(15)),
                 ),
-                padding: EdgeInsets.symmetric(
-                    horizontal: 15 * globals.scaleParam,
-                    vertical: 15 * globals.scaleParam),
+                padding: EdgeInsets.symmetric(horizontal: 15 * globals.scaleParam, vertical: 15 * globals.scaleParam),
               ),
               onPressed: () {
                 showDialog(
@@ -178,23 +161,13 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                     _currentCity = widget.cities[index]["name"];
                                   });
                                   _mapController.move(
-                                      LatLng(
-                                          (double.parse(widget.cities[index]
-                                                      ["x1"]) +
-                                                  double.parse(widget
-                                                      .cities[index]["x2"])) /
-                                              2,
-                                          (double.parse(widget.cities[index]
-                                                      ["y1"]) +
-                                                  double.parse(widget
-                                                      .cities[index]["y1"])) /
-                                              2),
+                                      LatLng((double.parse(widget.cities[index]["x1"]) + double.parse(widget.cities[index]["x2"])) / 2,
+                                          (double.parse(widget.cities[index]["y1"]) + double.parse(widget.cities[index]["y1"])) / 2),
                                       10);
                                   Navigator.pop(context);
                                 },
                                 child: Container(
-                                  padding:
-                                      EdgeInsets.all(10 * globals.scaleParam),
+                                  padding: EdgeInsets.all(10 * globals.scaleParam),
                                   child: Row(
                                     children: [
                                       Text(
@@ -252,9 +225,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                     options: MapOptions(
                       onPointerUp: (event, point) {
                         if (event.down == false) {
-                          searchGeoData(_mapController.camera.center.longitude,
-                                  _mapController.camera.center.latitude)
-                              .then(
+                          searchGeoData(_mapController.camera.center.longitude, _mapController.camera.center.latitude).then(
                             (value) {
                               setState(() {
                                 isMapSetteled = true;
@@ -268,16 +239,14 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                           isMapSetteled = false;
                         });
                       },
-                      interactionOptions: InteractionOptions(
-                          enableMultiFingerGestureRace: true),
+                      interactionOptions: InteractionOptions(enableMultiFingerGestureRace: true),
                       initialCenter: LatLng(0, 0),
                       initialZoom: 9.2,
                     ),
                     children: [
                       TileLayer(
                         // tileBuilder: _darkModeTileBuilder,
-                        urlTemplate:
-                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                         // urlTemplate:
                         //     'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
                         tileProvider: CancellableNetworkTileProvider(),
@@ -288,8 +257,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                       // MarkerLayer(markers: _markers),
                       MarkerLayer(markers: [
                         Marker(
-                          point: LatLng(widget.currentPosition.latitude,
-                              widget.currentPosition.longitude),
+                          point: LatLng(widget.currentPosition.latitude, widget.currentPosition.longitude),
                           child: Stack(
                             alignment: Alignment.center,
                             children: [
@@ -297,12 +265,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                               Icon(
                                 Icons.circle,
                                 color: globals.mainColor,
-                                shadows: [
-                                  BoxShadow(
-                                      color: Colors.orange,
-                                      blurRadius: 10,
-                                      spreadRadius: 200 * globals.scaleParam)
-                                ],
+                                shadows: [BoxShadow(color: Colors.orange, blurRadius: 10, spreadRadius: 200 * globals.scaleParam)],
                               ),
                             ],
                           ),
@@ -340,9 +303,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
               flex: MediaQuery.sizeOf(context).height > 400 ? 15 : 28,
               fit: FlexFit.tight,
               child: Container(
-                padding: EdgeInsets.symmetric(
-                    horizontal: 30 * globals.scaleParam,
-                    vertical: 20 * globals.scaleParam),
+                padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam, vertical: 20 * globals.scaleParam),
                 child: !isMapSetteled
                     ? Center(
                         child: CircularProgressIndicator.adaptive(),
@@ -356,8 +317,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                             flex: 10,
                             fit: FlexFit.tight,
                             child: Padding(
-                              padding: EdgeInsets.symmetric(
-                                  vertical: 5 * globals.scaleParam),
+                              padding: EdgeInsets.symmetric(vertical: 5 * globals.scaleParam),
                               child: Column(
                                 children: [
                                   Flexible(
@@ -400,20 +360,14 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                   Flexible(
                                     flex: 1,
                                     child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
                                       children: [
                                         Flexible(
                                           fit: FlexFit.tight,
                                           child: Text(
                                             _currentAddressName ?? "",
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize:
-                                                    32 * globals.scaleParam,
-                                                color: Colors.black),
+                                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 32 * globals.scaleParam, color: Colors.black),
                                           ),
                                         ),
                                         Flexible(
@@ -428,88 +382,54 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                                 context: context,
                                                 builder: (context) {
                                                   return Dialog(
-                                                    backgroundColor:
-                                                        Colors.transparent,
-                                                    shape:
-                                                        RoundedRectangleBorder(),
+                                                    backgroundColor: Colors.transparent,
+                                                    shape: RoundedRectangleBorder(),
                                                     child: Container(
                                                       color: Colors.transparent,
-                                                      padding: EdgeInsets.all(
-                                                          20 *
-                                                              globals
-                                                                  .scaleParam),
+                                                      padding: EdgeInsets.all(20 * globals.scaleParam),
                                                       child: Column(
-                                                        mainAxisSize:
-                                                            MainAxisSize.min,
+                                                        mainAxisSize: MainAxisSize.min,
                                                         children: [
                                                           Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .end,
-                                                            mainAxisSize:
-                                                                MainAxisSize
-                                                                    .max,
+                                                            mainAxisAlignment: MainAxisAlignment.end,
+                                                            mainAxisSize: MainAxisSize.max,
                                                             children: [
                                                               IconButton(
-                                                                  onPressed:
-                                                                      () {
-                                                                    Navigator.pop(
-                                                                        context);
+                                                                  onPressed: () {
+                                                                    Navigator.pop(context);
                                                                   },
-                                                                  icon: Icon(Icons
-                                                                      .close))
+                                                                  icon: Icon(Icons.close))
                                                             ],
                                                           ),
                                                           Flexible(
                                                               child: TextField(
-                                                            controller:
-                                                                _searchAddress,
-                                                            decoration: InputDecoration(
-                                                                border:
-                                                                    OutlineInputBorder(),
-                                                                labelText:
-                                                                    "Введите адрес"),
+                                                            controller: _searchAddress,
+                                                            decoration: InputDecoration(border: OutlineInputBorder(), labelText: "Введите адрес"),
                                                           )),
                                                           SizedBox(
-                                                            height: 40 *
-                                                                globals
-                                                                    .scaleParam,
+                                                            height: 40 * globals.scaleParam,
                                                           ),
                                                           Flexible(
-                                                            child:
-                                                                GestureDetector(
+                                                            child: GestureDetector(
                                                               onTap: () {
-                                                                searchGeoDataByString(
-                                                                    _searchAddress
-                                                                        .text);
-                                                                Navigator.pop(
-                                                                    context);
+                                                                searchGeoDataByString(_searchAddress.text);
+                                                                Navigator.pop(context);
                                                                 setState(() {
-                                                                  isMapSetteled =
-                                                                      true;
+                                                                  isMapSetteled = true;
                                                                 });
                                                               },
                                                               child: Container(
-                                                                padding: EdgeInsets
-                                                                    .all(30 *
-                                                                        globals
-                                                                            .scaleParam),
+                                                                padding: EdgeInsets.all(30 * globals.scaleParam),
                                                                 decoration: BoxDecoration(
-                                                                    color: Colors
-                                                                        .deepOrangeAccent,
-                                                                    borderRadius:
-                                                                        BorderRadius.all(
-                                                                            Radius.circular(5))),
+                                                                    color: Colors.deepOrangeAccent,
+                                                                    borderRadius: BorderRadius.all(Radius.circular(5))),
                                                                 child: Row(
                                                                   children: [
                                                                     Text(
                                                                       "Поиск",
-                                                                      style:
-                                                                          TextStyle(
-                                                                        color: Colors
-                                                                            .white,
-                                                                        fontWeight:
-                                                                            FontWeight.w900,
+                                                                      style: TextStyle(
+                                                                        color: Colors.white,
+                                                                        fontWeight: FontWeight.w900,
                                                                       ),
                                                                     )
                                                                   ],
@@ -563,12 +483,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                 );
                               },
                               child: Container(
-                                padding:
-                                    EdgeInsets.all(15 * globals.scaleParam),
-                                decoration: BoxDecoration(
-                                    color: globals.mainColor,
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(5))),
+                                padding: EdgeInsets.all(15 * globals.scaleParam),
+                                decoration: BoxDecoration(color: globals.mainColor, borderRadius: BorderRadius.all(Radius.circular(5))),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -605,12 +521,10 @@ class AnimatedCurrentPosition extends StatefulWidget {
   final bool isFromCreateOrder;
 
   @override
-  State<AnimatedCurrentPosition> createState() =>
-      _AnimatedCurrentPositionState();
+  State<AnimatedCurrentPosition> createState() => _AnimatedCurrentPositionState();
 }
 
-class _AnimatedCurrentPositionState extends State<AnimatedCurrentPosition>
-    with SingleTickerProviderStateMixin {
+class _AnimatedCurrentPositionState extends State<AnimatedCurrentPosition> with SingleTickerProviderStateMixin {
   late AnimationController controller;
 
   @override
@@ -658,9 +572,7 @@ class _AnimatedCurrentPositionState extends State<AnimatedCurrentPosition>
               width: 100,
               // color: Colors.red,
               decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  border: Border.all(color: Colors.blue.shade800),
-                  borderRadius: BorderRadius.all(Radius.circular(100))),
+                  color: Colors.transparent, border: Border.all(color: Colors.blue.shade800), borderRadius: BorderRadius.all(Radius.circular(100))),
             ),
           ),
         ),
@@ -674,12 +586,7 @@ class _AnimatedCurrentPositionState extends State<AnimatedCurrentPosition>
 }
 
 class CreateAddressPage extends StatefulWidget {
-  const CreateAddressPage(
-      {super.key,
-      required this.lat,
-      required this.lon,
-      required this.addressName,
-      required this.isFromCreateOrder});
+  const CreateAddressPage({super.key, required this.lat, required this.lon, required this.addressName, required this.isFromCreateOrder});
   final double lat;
   final double lon;
   final String addressName;
@@ -724,11 +631,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(
-          top: 20,
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 20,
-          right: 20),
+      padding: EdgeInsets.only(top: 20, bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20),
       child: Container(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -739,10 +642,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                 Flexible(
                     child: Text(
                   widget.addressName,
-                  style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black),
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: Colors.black),
                 )),
               ],
             ),
@@ -752,10 +652,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
             Flexible(
               child: TextField(
                 maxLength: 250,
-                buildCounter: (context,
-                    {required currentLength,
-                    required isFocused,
-                    required maxLength}) {
+                buildCounter: (context, {required currentLength, required isFocused, required maxLength}) {
                   return null;
                 },
                 decoration: InputDecoration(
@@ -841,10 +738,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
             ),
             TextField(
               maxLength: 500,
-              buildCounter: (context,
-                  {required currentLength,
-                  required isFocused,
-                  required maxLength}) {
+              buildCounter: (context, {required currentLength, required isFocused, required maxLength}) {
                 if (isFocused) {
                   return Text(
                     '$currentLength/$maxLength',

@@ -68,7 +68,6 @@ class _PickAddressPageState extends State<PickAddressPage> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     // _getAddresses();
     _getGeolocation();
@@ -78,7 +77,6 @@ class _PickAddressPageState extends State<PickAddressPage> {
 
   @override
   void dispose() {
-    // TODO: implement dispose
     super.dispose();
   }
 
@@ -151,12 +149,10 @@ class _PickAddressPageState extends State<PickAddressPage> {
                 return GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () {
-                    selectAddressClient(_addresses[index]["address_id"],
-                        widget.client["user_id"]);
+                    selectAddressClient(_addresses[index]["address_id"], widget.client["user_id"]);
                     widget.isFromCreateOrder
                         ? Navigator.pop(context)
-                        : Navigator.pushAndRemoveUntil(context,
-                            MaterialPageRoute(
+                        : Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
                             builder: (context) {
                               return Main(
                                   // business: widget.business,
@@ -170,13 +166,10 @@ class _PickAddressPageState extends State<PickAddressPage> {
                     decoration: BoxDecoration(
                         border: _addresses[index]["is_selected"] == "1"
                             ? Border(
-                                left: BorderSide(
-                                    color: globals.mainColor, width: 10),
+                                left: BorderSide(color: globals.mainColor, width: 10),
                               )
                             : Border()),
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 50 * globals.scaleParam,
-                        vertical: 30 * globals.scaleParam),
+                    padding: EdgeInsets.symmetric(horizontal: 50 * globals.scaleParam, vertical: 30 * globals.scaleParam),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -215,9 +208,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                     child: Text(
                                       _addresses[index]["name"],
                                       textAlign: TextAlign.end,
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 32 * globals.scaleParam),
+                                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 32 * globals.scaleParam),
                                     ),
                                   ),
                                 ],
@@ -232,17 +223,13 @@ class _PickAddressPageState extends State<PickAddressPage> {
                             Flexible(
                               child: Text(
                                 "Подъезд/Вход: ",
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 32 * globals.scaleParam),
+                                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 32 * globals.scaleParam),
                               ),
                             ),
                             Flexible(
                               child: Text(
                                 _addresses[index]["entrance"] ?? "-",
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 32 * globals.scaleParam),
+                                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 32 * globals.scaleParam),
                               ),
                             )
                           ],

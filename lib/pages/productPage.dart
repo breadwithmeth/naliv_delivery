@@ -3,9 +3,7 @@ import 'dart:async';
 import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
 import '../globals.dart' as globals;
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 
 class ProductPage extends StatefulWidget {
@@ -15,21 +13,25 @@ class ProductPage extends StatefulWidget {
       required this.index,
       required this.business,
       this.returnDataAmount,
+      this.returnDataAmountSearchPage,
       this.cartPageExclusiveCallbackFunc,
-      this.openedFromCart = false});
+      this.cartItemId,
+      this.openedFromCart = false,
+      this.dontClearOptions = false});
   final Map<String, dynamic> item;
   final int index;
-  final Function(int, int)?
-      returnDataAmount; // NEWAMOUNT, INDEX, MAP of cart item
+  final Function(List)? returnDataAmount; // NEW_AMOUNT, INDEX, MAP of cart item
+  final Function(int, int)? returnDataAmountSearchPage; // NEW_AMOUNT, INDEX
   final Function(int, int)? cartPageExclusiveCallbackFunc;
   final Map<dynamic, dynamic> business;
+  final int? cartItemId;
   final bool openedFromCart;
+  final bool dontClearOptions;
   @override
   State<ProductPage> createState() => _ProductPageState();
 }
 
 class _ProductPageState extends State<ProductPage> {
-  Widget _image = Container();
   late Map<String, dynamic> item = widget.item;
   List<Widget> groupItems = [];
   List<TableRow> properties = [];
@@ -43,8 +45,7 @@ class _ProductPageState extends State<ProductPage> {
   // bool isDescriptionLoaded = false;
 
   Future<void> _getItem() async {
-    await getItem(widget.item["item_id"], widget.business["business_id"])
-        .then((value) {
+    await getItem(widget.item["item_id"], widget.business["business_id"]).then((value) {
       // // print(value);
       if (value.isNotEmpty) {
         setState(() {
@@ -63,17 +64,13 @@ class _ProductPageState extends State<ProductPage> {
 
   bool isServerCallOnGoing = false;
   bool isLastServerCallWasSucceed = false;
-  bool isOptionsLoaded = false;
   bool isRequiredSelected = false;
 
-  Map<String, String> buyButtonActionTextMap = {
-    "add": "Добавить",
-    "remove": "Убрать всё",
-    "update": "Обновить заказ"
-  };
+  Map<String, String> buyButtonActionTextMap = {"add": "Добавить", "remove": "Убрать всё", "update": "Обновить заказ", "loading": "Загружаю.."};
   late String buyButtonActionText;
   late Color buyButtonActionColor;
-  late int inStock;
+  double inStock = 0.0;
+  List newCart = [];
 
   Widget optionSelector = Container();
 
@@ -94,15 +91,17 @@ class _ProductPageState extends State<ProductPage> {
           });
           return;
         }
-        // setState(() {
+        // if (!widget.dontClearOptions) {
         //   setState(() {
         //     options[i]["selected_relation_id"] = null;
         //   });
-        // });
+        // }
       } else {
-        // setState(() {
-        //   options[i]["selected_relation_id"] = [];
-        // });
+        // if (!widget.dontClearOptions) {
+        //   setState(() {
+        //     options[i]["selected_relation_id"] = [];
+        //   });
+        // }
       }
     }
     setState(() {
@@ -112,7 +111,10 @@ class _ProductPageState extends State<ProductPage> {
   }
 
   initOptionSelector() {
-    if (options.length == 0) {
+    setState(() {
+      options = widget.item["options"];
+    });
+    if (options.isEmpty) {
       setState(() {
         isRequired = false;
       });
@@ -121,17 +123,31 @@ class _ProductPageState extends State<ProductPage> {
         isRequired = true;
       });
     }
+    print("HELLO");
 
-    // ! TODO: REWRITE THIS, WHEN BACKEND START SENDING ACTUAL SELECTED RELATION ID IN CART
+    if (widget.dontClearOptions) {
+      amountInCart = widget.item["cart"][widget.cartItemId!]["amount"];
+    }
+
     for (var i = 0; i < options.length; i++) {
       if (options[i]["selection"] == "SINGLE") {
-        setState(() {
-          options[i]["selected_relation_id"] = null;
-        });
+        if (!widget.dontClearOptions) {
+          setState(() {
+            options[i]["selected_relation_id"] = null;
+          });
+        } else {
+          if (options[i]["selected_relation_id"] != null) {
+            setState(() {
+              isRequiredSelected = true;
+            });
+          }
+        }
       } else {
-        setState(() {
-          options[i]["selected_relation_id"] = [];
-        });
+        if (!widget.dontClearOptions) {
+          setState(() {
+            options[i]["selected_relation_id"] = [];
+          });
+        }
       }
     }
   }
@@ -141,40 +157,79 @@ class _ProductPageState extends State<ProductPage> {
       isServerCallOnGoing = true;
       isLastServerCallWasSucceed = false;
     });
-    await changeCartItem(
-            item["item_id"], amountInCart, widget.business["business_id"],
-            options: options)
-        .then(
+    await changeCartItem(item["item_id"], amountInCart, widget.business["business_id"], options: options).then(
       (value) {
-        // // print(value);
         if (value != null) {
-          if (mounted) {
+          if (options.isEmpty) {
             setState(() {
-              actualCartAmount = int.parse(value);
+              newCart = [
+                value.firstWhere(
+                  (el) => el["item_id"] == widget.item["item_id"],
+                  orElse: () => [],
+                )
+              ];
             });
           } else {
-            actualCartAmount = int.parse(value);
-          }
-        } else {
-          if (mounted) {
             setState(() {
-              actualCartAmount = 0;
+              newCart = value.where((el) => el["item_id"] == widget.item["item_id"]).toList();
             });
-          } else {
-            actualCartAmount = 0;
+            print("asdasd");
           }
+          // setState(() {
+          //   newCart = value;
+          //   // List newOptions = [];
+          //   // for (Map selection in options) {
+          //   //   if (selection["selection"] == "SINGLE") {
+          //   //     newOptions.add(
+          //   //       selection["options"].firstWhere(
+          //   //         (element) => element["relation_id"] == selection["selected_relation_id"],
+          //   //         orElse: () => null,
+          //   //       ),
+          //   //     );
+          //   //   } else {
+          //   //     for (int selected_relation_id in selection["selected_relation_id"]) {
+          //   //       newOptions.add(
+          //   //         selection["options"].firstWhere(
+          //   //           (element) => element["relation_id"] == selected_relation_id,
+          //   //           orElse: () => null,
+          //   //         ),
+          //   //       );
+          //   //     }
+          //   //   }
+          //   // }
+          //   // newCartItem["selected_options"] = newOptions;
+          // });
+          widget.returnDataAmount!(newCart);
         }
-        if (mounted) {
-          setState(() {
-            isLastServerCallWasSucceed = true;
-          });
-          getBuyButtonCurrentActionText();
-        }
-        // print("TRIGGERED WIDGET.RETURNDATAAMOUNT!");
-        widget.returnDataAmount!(actualCartAmount, widget.index);
-        if (widget.cartPageExclusiveCallbackFunc != null) {
-          widget.cartPageExclusiveCallbackFunc!(widget.index, actualCartAmount);
-        }
+        // // print(value);
+        // if (value != null) {
+        //   if (mounted) {
+        //     setState(() {
+        //       actualCartAmount = int.parse(value);
+        //     });
+        //   } else {
+        //     actualCartAmount = int.parse(value);
+        //   }
+        // } else {
+        //   if (mounted) {
+        //     setState(() {
+        //       actualCartAmount = 0;
+        //     });
+        //   } else {
+        //     actualCartAmount = 0;
+        //   }
+        // }
+        // if (mounted) {
+        //   setState(() {
+        //     isLastServerCallWasSucceed = true;
+        //   });
+        //   getBuyButtonCurrentActionText();
+        // }
+        // // print("TRIGGERED WIDGET.RETURNDATAAMOUNT!");
+        // widget.returnDataAmount!(actualCartAmount, widget.index);
+        // if (widget.cartPageExclusiveCallbackFunc != null) {
+        //   widget.cartPageExclusiveCallbackFunc!(widget.index, actualCartAmount);
+        // }
       },
     );
     // ).onError(
@@ -207,7 +262,7 @@ class _ProductPageState extends State<ProductPage> {
 
   void _addToCart() {
     setState(() {
-      if (amountInCart < inStock) {
+      if (amountInCart < widget.item["in_stock"]) {
         amountInCart++;
         getBuyButtonCurrentActionText();
       }
@@ -242,81 +297,45 @@ class _ProductPageState extends State<ProductPage> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      setState(() {
-        isOptionsLoaded = false;
-      });
-      _getItem().then((value) {
-        initOptionSelector();
-        setState(() {
-          isOptionsLoaded = true;
-        });
-      });
-    });
-
-    setState(() {
-      amountInCart = int.parse(widget.item["amount"] ?? "0");
-      actualCartAmount = amountInCart;
-      getBuyButtonCurrentActionText();
-      if (widget.item["in_stock"] != null) {
-        inStock = widget.item["in_stock"].truncate();
-      } else {
-        inStock = 0;
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   setState(() {
+    //     isOptionsLoaded = false;
+    //   });
+    //   _getItem().then((value) {
+    //     initOptionSelector();
+    //     setState(
+    //       () {
+    //         if (options.isNotEmpty || widget.item["cart"] == null) {
+    //           amountInCart = 0;
+    //         } else {
+    //           amountInCart = widget.item["cart"][0]["amount"] ?? 0;
+    //           actualCartAmount = amountInCart;
+    //         }
+    //         if (widget.item["in_stock"] != null) {
+    //           inStock = widget.item["in_stock"];
+    //         } else {
+    //           inStock = 0.0;
+    //         }
+    //         isOptionsLoaded = true;
+    //       },
+    //     );
+    //   });
+    // });
+    if (widget.item["options"] != null) {
+      initOptionSelector();
+    } else {
+      // amountInCart = widget.item["cart"].firstWhere((el) => el["item_id"] == widget.item["item_id"])["amount"];
+      if (widget.item["cart"] != [] && widget.item["cart"] != null) {
+        if (widget.item["cart"].isNotEmpty) {
+          setState(() {
+            amountInCart = widget.item["cart"][0]["amount"];
+          });
+        }
       }
+    }
 
-      bool isImageDownloaded = false;
-      _image = Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.all(Radius.circular(10)),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: ExtendedImage.network(
-            item["img"],
-          )
-          // child: CachedNetworkImage(
-          //   fit: BoxFit.fitHeight,
-          //   cacheManager: CacheManager(Config(
-          //     "itemImage",
-          //     stalePeriod: const Duration(days: 7),
-          //     //one week cache period
-          //   )),
-          //   imageUrl: item["img"],
-          //   progressIndicatorBuilder: (context, url, progress) {
-          //     if (progress.progress == 1) isImageDownloaded = true;
-          //     return Padding(
-          //       padding: const EdgeInsets.all(2),
-          //       child: CircularProgressIndicator(
-          //         value: isImageDownloaded ? 1 : progress.progress,
-          //       ),
-          //     );
-          //   },
-          //   // placeholder: ((context, url) {
-          //   //   return const CircularProgressIndicator();
-          //   // }),
-          //   errorWidget: (context, url, error) {
-          //     return LayoutBuilder(
-          //       builder: (context, constraints) {
-          //         return FractionallySizedBox(
-          //           heightFactor: 1,
-          //           widthFactor: 2 / 4,
-          //           child: Image.asset(
-          //             'assets/category_icons/no_image_ico.png',
-          //             opacity: AlwaysStoppedAnimation(0.5),
-          //           ),
-          //         );
-          //       },
-          //     );
-          //   },
-          // ),
-          );
-      // Future.delayed(const Duration(milliseconds: 0)).whenComplete(() async {
-      //   await _getItem().then((value) {
-      //     // print("DATA RECIEVED!");
-      //   });
-      // });
-    });
+    getBuyButtonCurrentActionText();
   }
 
   @override
@@ -324,9 +343,10 @@ class _ProductPageState extends State<ProductPage> {
     if (isServerCallOnGoing && !isLastServerCallWasSucceed) {
       Future.delayed(Duration.zero, () {
         if (widget.cartPageExclusiveCallbackFunc != null) {
+          // TODO: Issue here, rewriting needed to work with options
           widget.cartPageExclusiveCallbackFunc!(widget.index, amountInCart);
         }
-        widget.returnDataAmount!(actualCartAmount, widget.index);
+        // widget.returnDataAmount!(newCart);
       });
     }
     super.dispose();
@@ -354,8 +374,7 @@ class _ProductPageState extends State<ProductPage> {
                 height: 16 * globals.scaleParam,
                 margin: EdgeInsets.symmetric(vertical: 35 * globals.scaleParam),
                 decoration: BoxDecoration(
-                  color:
-                      Colors.black, // Change this color to your desired color
+                  color: Colors.black, // Change this color to your desired color
                   borderRadius: BorderRadius.circular(4.0),
                 ),
               ),
@@ -381,8 +400,7 @@ class _ProductPageState extends State<ProductPage> {
     );
   }
 
-  Scaffold _productPage(
-      BuildContext context, ScrollController scrollController) {
+  Scaffold _productPage(BuildContext context, ScrollController scrollController) {
     return Scaffold(
       // color: Colors.white,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -390,80 +408,24 @@ class _ProductPageState extends State<ProductPage> {
         position: AlwaysStoppedAnimation(Offset(0, -0.25)),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            if (!isOptionsLoaded) {
-              return Container(
-                width: constraints.maxWidth * 0.95,
-                height: 125 * globals.scaleParam,
-                child: Stack(
-                  alignment: Alignment.bottomCenter,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          fit: FlexFit.tight,
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 10 * globals.scaleParam),
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: buyButtonActionColor,
-                                padding: EdgeInsets.zero,
-                              ),
-                              onPressed: null,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Flexible(
-                                        fit: FlexFit.tight,
-                                        child: Text(
-                                          "Загружаю...",
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 38 * globals.scaleParam,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onPrimary,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            }
             if (isRequired && !isRequiredSelected && amountInCart == 0) {
               return Container(
                 decoration: BoxDecoration(
                     color: Colors.black,
-                    boxShadow: [
+                    boxShadow: const [
                       BoxShadow(
                         offset: Offset(3, 5),
                         color: Colors.black38,
                         blurRadius: 5,
                       )
                     ],
-                    borderRadius: BorderRadius.all(
-                        Radius.circular(30 * globals.scaleParam))),
+                    borderRadius: BorderRadius.all(Radius.circular(30 * globals.scaleParam))),
                 alignment: Alignment.center,
                 width: constraints.maxWidth * 0.95,
                 height: 125 * globals.scaleParam,
                 child: Text(
                   "Выберите опцию",
-                  style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      fontSize: 48 * globals.scaleParam),
+                  style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 48 * globals.scaleParam),
                 ),
               );
             } else {
@@ -479,8 +441,7 @@ class _ProductPageState extends State<ProductPage> {
                           flex: 5,
                           fit: FlexFit.tight,
                           child: Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 10 * globals.scaleParam),
+                            padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 disabledBackgroundColor: Colors.grey.shade200,
@@ -489,14 +450,11 @@ class _ProductPageState extends State<ProductPage> {
                               onPressed: null,
                               child: Container(
                                 child: ClipRRect(
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(8)),
+                                  borderRadius: BorderRadius.all(Radius.circular(8)),
                                   clipBehavior: Clip.antiAliasWithSaveLayer,
                                   child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
                                     children: [
                                       Flexible(
                                         fit: FlexFit.tight,
@@ -506,8 +464,7 @@ class _ProductPageState extends State<ProductPage> {
                                             _removeFromCart();
                                           },
                                           icon: Container(
-                                            padding: EdgeInsets.all(
-                                                5 * globals.scaleParam),
+                                            padding: EdgeInsets.all(5 * globals.scaleParam),
                                             decoration: BoxDecoration(
                                               borderRadius: BorderRadius.all(
                                                 Radius.circular(100),
@@ -516,9 +473,7 @@ class _ProductPageState extends State<ProductPage> {
                                             ),
                                             child: Icon(
                                               Icons.remove_rounded,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface,
+                                              color: Theme.of(context).colorScheme.onSurface,
                                             ),
                                           ),
                                         ),
@@ -526,23 +481,18 @@ class _ProductPageState extends State<ProductPage> {
                                       Flexible(
                                         fit: FlexFit.tight,
                                         child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
+                                          mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
                                             Text(
                                               amountInCart.toString(),
-                                              textHeightBehavior:
-                                                  const TextHeightBehavior(
+                                              textHeightBehavior: const TextHeightBehavior(
                                                 applyHeightToFirstAscent: false,
                                               ),
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
                                                 fontWeight: FontWeight.w700,
-                                                fontSize:
-                                                    34 * globals.scaleParam,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurface,
+                                                fontSize: 34 * globals.scaleParam,
+                                                color: Theme.of(context).colorScheme.onSurface,
                                               ),
                                             ),
                                           ],
@@ -556,8 +506,7 @@ class _ProductPageState extends State<ProductPage> {
                                             _addToCart();
                                           },
                                           icon: Container(
-                                            padding: EdgeInsets.all(
-                                                5 * globals.scaleParam),
+                                            padding: EdgeInsets.all(5 * globals.scaleParam),
                                             decoration: BoxDecoration(
                                               borderRadius: BorderRadius.all(
                                                 Radius.circular(100),
@@ -566,9 +515,7 @@ class _ProductPageState extends State<ProductPage> {
                                             ),
                                             child: Icon(
                                               Icons.add_rounded,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface,
+                                              color: Theme.of(context).colorScheme.onSurface,
                                             ),
                                           ),
                                         ),
@@ -584,8 +531,7 @@ class _ProductPageState extends State<ProductPage> {
                           flex: 7,
                           fit: FlexFit.tight,
                           child: Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 10 * globals.scaleParam),
+                            padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: buyButtonActionColor,
@@ -594,8 +540,7 @@ class _ProductPageState extends State<ProductPage> {
                               onPressed: () {
                                 if (actualCartAmount == 0) {
                                   _finalizeCartAmount();
-                                } else if (actualCartAmount == amountInCart ||
-                                    amountInCart == 0) {
+                                } else if (actualCartAmount == amountInCart || amountInCart == 0) {
                                   setState(() {
                                     amountInCart = 0;
                                   });
@@ -617,9 +562,7 @@ class _ProductPageState extends State<ProductPage> {
                                           style: TextStyle(
                                             fontWeight: FontWeight.w700,
                                             fontSize: 38 * globals.scaleParam,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onPrimary,
+                                            color: Theme.of(context).colorScheme.onPrimary,
                                           ),
                                         ),
                                       ),
@@ -656,7 +599,9 @@ class _ProductPageState extends State<ProductPage> {
                 ),
               ),
               clipBehavior: Clip.none,
-              child: _image,
+              child: ExtendedImage.network(
+                item["img"],
+              ),
             ),
           ),
           item.isNotEmpty
@@ -714,13 +659,11 @@ class _ProductPageState extends State<ProductPage> {
                               children: [
                                 Flexible(
                                   child: Text(
-                                    "${(item["in_stock"] ?? 0.0).truncate().toString()} ${item["unit"]} в наличии",
+                                    "${item["in_stock"]} ${item["unit"]} в наличии",
                                     style: TextStyle(
                                       fontSize: 28 * globals.scaleParam,
                                       fontWeight: FontWeight.w700,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .secondary,
+                                      color: Theme.of(context).colorScheme.secondary,
                                     ),
                                   ),
                                 ),
@@ -734,8 +677,7 @@ class _ProductPageState extends State<ProductPage> {
                 )
               // TODO: Maybe not even needed anymore, content inside productPage loads immediately because data recieved from categoryPage
               : Shimmer.fromColors(
-                  baseColor:
-                      Theme.of(context).colorScheme.secondary.withOpacity(0.05),
+                  baseColor: Theme.of(context).colorScheme.secondary.withOpacity(0.05),
                   highlightColor: Theme.of(context).colorScheme.secondary,
                   child: Container(
                     width: MediaQuery.of(context).size.width * 0.8,
@@ -771,19 +713,14 @@ class _ProductPageState extends State<ProductPage> {
                       children: [
                         Text(
                           options[indexOption]["name"],
-                          style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 48 * globals.scaleParam),
+                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 48 * globals.scaleParam),
                         ),
-                        int.parse(options[indexOption]["required"]) == 1
+                        options[indexOption]["required"] == 1
                             ? Container(
                                 color: Colors.white,
                                 child: Text(
                                   "Обязательно",
-                                  style: TextStyle(
-                                      color: Colors.red,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 36 * globals.scaleParam),
+                                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.w700, fontSize: 36 * globals.scaleParam),
                                 ),
                               )
                             : Container(),
@@ -792,41 +729,30 @@ class _ProductPageState extends State<ProductPage> {
                     ListView.builder(
                       primary: false,
                       shrinkWrap: true,
-                      itemCount: options[indexOption]["option_items"].length,
+                      itemCount: options[indexOption]["options"].length,
                       itemBuilder: (context, index) {
                         return options[indexOption]["selection"] == "SINGLE"
                             ? Row(
                                 children: [
                                   ChoiceChip(
-                                      selectedColor:
-                                          Colors.amberAccent.shade200,
+                                      selectedColor: Colors.amberAccent.shade200,
                                       disabledColor: Colors.white,
                                       backgroundColor: Colors.white,
                                       label: Text(
-                                        options[indexOption]["option_items"]
-                                            [index]["name"],
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.w700),
+                                        options[indexOption]["options"][index]["name"],
+                                        style: TextStyle(fontWeight: FontWeight.w700),
                                       ),
-                                      selected: options[indexOption]
-                                              ["selected_relation_id"] ==
-                                          options[indexOption]["option_items"]
-                                              [index]["relation_id"],
+                                      selected: options[indexOption]["selected_relation_id"] == options[indexOption]["options"][index]["relation_id"],
                                       onSelected: (v) {
                                         // print(v);
                                         print(options);
                                         if (v) {
                                           setState(() {
-                                            options[indexOption]
-                                                    ["selected_relation_id"] =
-                                                options[indexOption]
-                                                        ["option_items"][index]
-                                                    ["relation_id"];
+                                            options[indexOption]["selected_relation_id"] = options[indexOption]["options"][index]["relation_id"];
                                           });
                                         } else {
                                           setState(() {
-                                            options[indexOption]
-                                                ["selected_relation_id"] = null;
+                                            options[indexOption]["selected_relation_id"] = null;
                                           });
 
                                           // setState(() {
@@ -843,7 +769,7 @@ class _ProductPageState extends State<ProductPage> {
                                       //   groupValue: options[index_option]
                                       //       ["selected_relation_id"],
                                       //   value: options[index_option]
-                                      //           ["option_items"][index]
+                                      //           ["options"][index]
                                       //       ["relation_id"],
                                       //
                                       )
@@ -859,46 +785,29 @@ class _ProductPageState extends State<ProductPage> {
                                     //       color: Colors.grey.shade400)
                                     // ],
                                     // color: Colors.white,
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(15))),
+                                    borderRadius: BorderRadius.all(Radius.circular(15))),
                                 // margin: EdgeInsets.all(10 * globals.scaleParam),
                                 child: Row(
                                   children: [
                                     FilterChip(
                                       backgroundColor: Colors.white,
                                       deleteIcon: Container(),
-                                      deleteIconBoxConstraints:
-                                          BoxConstraints(),
+                                      deleteIconBoxConstraints: BoxConstraints(),
                                       label: Text(
-                                        options[indexOption]["option_items"]
-                                            [index]["name"],
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.w700),
+                                        options[indexOption]["options"][index]["name"],
+                                        style: TextStyle(fontWeight: FontWeight.w700),
                                       ),
-                                      selected: List.castFrom(
-                                              options[indexOption]
-                                                  ["selected_relation_id"])
-                                          .contains(options[indexOption]
-                                                  ["option_items"][index]
-                                              ["relation_id"]),
+                                      selected: List.castFrom(options[indexOption]["selected_relation_id"])
+                                          .contains(options[indexOption]["options"][index]["relation_id"]),
                                       onSelected: (v) {
                                         if (v) {
                                           setState(() {
-                                            options[indexOption]
-                                                    ["selected_relation_id"]
-                                                .add(options[indexOption]
-                                                        ["option_items"][index]
-                                                    ["relation_id"]);
+                                            options[indexOption]["selected_relation_id"].add(options[indexOption]["options"][index]["relation_id"]);
                                           });
                                         } else {
                                           setState(() {
-                                            options[indexOption]
-                                                    ["selected_relation_id"]
-                                                .removeWhere((item) =>
-                                                    item ==
-                                                    options[indexOption]
-                                                            ["option_items"]
-                                                        [index]["relation_id"]);
+                                            options[indexOption]["selected_relation_id"]
+                                                .removeWhere((item) => item == options[indexOption]["options"][index]["relation_id"]);
                                           });
                                         }
                                         _checkOptions();
@@ -919,8 +828,7 @@ class _ProductPageState extends State<ProductPage> {
           ),
           item["group"] != null
               ? Container(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
+                  padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
                   height: 50,
                   width: MediaQuery.of(context).size.width,
                   child: ListView(
@@ -969,9 +877,7 @@ class _ProductPageState extends State<ProductPage> {
                           border: Border(
                             bottom: BorderSide(
                               width: 3,
-                              color: currentTab == 0
-                                  ? Colors.black
-                                  : Colors.grey.shade200,
+                              color: currentTab == 0 ? Colors.black : Colors.grey.shade200,
                             ),
                           ),
                         ),
@@ -979,9 +885,7 @@ class _ProductPageState extends State<ProductPage> {
                           "Описание",
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 32 * globals.scaleParam),
+                          style: TextStyle(color: Colors.black, fontSize: 32 * globals.scaleParam),
                         ),
                       ),
                       onTap: () {
@@ -1000,9 +904,7 @@ class _ProductPageState extends State<ProductPage> {
                           border: Border(
                             bottom: BorderSide(
                               width: 3,
-                              color: currentTab == 1
-                                  ? Colors.black
-                                  : Colors.grey.shade200,
+                              color: currentTab == 1 ? Colors.black : Colors.grey.shade200,
                             ),
                           ),
                         ),
@@ -1010,9 +912,7 @@ class _ProductPageState extends State<ProductPage> {
                           "О бренде",
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 32 * globals.scaleParam),
+                          style: TextStyle(color: Colors.black, fontSize: 32 * globals.scaleParam),
                         ),
                       ),
                       onTap: () {
@@ -1031,9 +931,7 @@ class _ProductPageState extends State<ProductPage> {
                           border: Border(
                             bottom: BorderSide(
                               width: 3,
-                              color: currentTab == 2
-                                  ? Colors.black
-                                  : Colors.grey.shade200,
+                              color: currentTab == 2 ? Colors.black : Colors.grey.shade200,
                             ),
                           ),
                         ),
@@ -1041,9 +939,7 @@ class _ProductPageState extends State<ProductPage> {
                           "Производитель",
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 32 * globals.scaleParam),
+                          style: TextStyle(color: Colors.black, fontSize: 32 * globals.scaleParam),
                         ),
                       ),
                       onTap: () {
@@ -1060,19 +956,14 @@ class _ProductPageState extends State<ProductPage> {
           Container(
             padding: EdgeInsets.all(30 * globals.scaleParam),
             child: Text(TabText[currentTab],
-                style: TextStyle(
-                    color: Colors.grey.shade700,
-                    fontWeight: FontWeight.w400,
-                    fontSize: 32 * globals.scaleParam)),
+                style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w400, fontSize: 32 * globals.scaleParam)),
           ),
           Container(
             padding: EdgeInsets.all(30 * globals.scaleParam),
             child: Table(
               columnWidths: const {0: FlexColumnWidth(), 1: FlexColumnWidth()},
               border: TableBorder(
-                  horizontalInside:
-                      BorderSide(width: 1, color: Colors.grey.shade400),
-                  bottom: BorderSide(width: 1, color: Colors.grey.shade400)),
+                  horizontalInside: BorderSide(width: 1, color: Colors.grey.shade400), bottom: BorderSide(width: 1, color: Colors.grey.shade400)),
               children: properties,
             ),
           ),

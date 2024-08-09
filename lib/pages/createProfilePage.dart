@@ -37,7 +37,6 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _name = TextEditingController()
       ..addListener(() {
@@ -102,10 +101,7 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                 fit: FlexFit.tight,
                                 child: TextField(
                                   controller: _name,
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 50 * globals.scaleParam,
-                                      color: Colors.black),
+                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 50 * globals.scaleParam, color: Colors.black),
                                   minLines: 1,
                                   autofocus: true,
                                   decoration: const InputDecoration.collapsed(
@@ -120,10 +116,7 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                 fit: FlexFit.tight,
                                 child: TextField(
                                   controller: _lastName,
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 50 * globals.scaleParam,
-                                      color: Colors.black),
+                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 50 * globals.scaleParam, color: Colors.black),
                                   minLines: 1,
                                   autofocus: true,
                                   decoration: const InputDecoration.collapsed(
@@ -157,16 +150,13 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                 builder: (context, setState) {
                                   return AlertDialog(
                                     contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 30 * globals.scaleParam, ),
-                                    titlePadding: EdgeInsets.symmetric(
-                                        horizontal: 30 * globals.scaleParam, vertical: 30 * globals.scaleParam),
-                                    actionsPadding: EdgeInsets.symmetric(
-                                        horizontal: 30 * globals.scaleParam, vertical: 15 * globals.scaleParam),
+                                      horizontal: 30 * globals.scaleParam,
+                                    ),
+                                    titlePadding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam, vertical: 30 * globals.scaleParam),
+                                    actionsPadding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam, vertical: 15 * globals.scaleParam),
                                     title: Text(
                                       "Дата рождения",
-                                      style: TextStyle(
-                                          fontSize: 48 * globals.scaleParam,
-                                          fontWeight: FontWeight.w700),
+                                      style: TextStyle(fontSize: 48 * globals.scaleParam, fontWeight: FontWeight.w700),
                                     ),
                                     content: Row(
                                       children: [
@@ -177,29 +167,21 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                           child: Text(
                                             "${selectedDate.day}.${selectedDate.month}.${selectedDate.year}",
                                             style: TextStyle(
-                                                fontSize:
-                                                    36 * globals.scaleParam,
-                                                color: Colors.grey.shade700,
-                                                fontWeight: FontWeight.w700),
+                                                fontSize: 36 * globals.scaleParam, color: Colors.grey.shade700, fontWeight: FontWeight.w700),
                                           ),
                                         ),
                                       ],
                                     ),
                                     actions: [
                                       Padding(
-                                        padding: EdgeInsets.only(
-                                            top: 5 * globals.scaleParam),
+                                        padding: EdgeInsets.only(top: 5 * globals.scaleParam),
                                         child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.start,
+                                          mainAxisAlignment: MainAxisAlignment.start,
                                           children: [
                                             TextButton(
                                               onPressed: () async {
-                                                await changeName(_name.text)
-                                                    .then((v) {
-                                                  Navigator.pushAndRemoveUntil(
-                                                      context,
-                                                      MaterialPageRoute(
+                                                await changeName(_name.text).then((v) {
+                                                  Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
                                                     builder: (context) {
                                                       return PreLoadDataPage();
                                                     },
@@ -208,12 +190,7 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                               },
                                               child: Text(
                                                 "Продолжить",
-                                                style: TextStyle(
-                                                    fontSize:
-                                                        36 * globals.scaleParam,
-                                                    color: Colors.black,
-                                                    fontWeight:
-                                                        FontWeight.w700),
+                                                style: TextStyle(fontSize: 36 * globals.scaleParam, color: Colors.black, fontWeight: FontWeight.w700),
                                               ),
                                             ),
                                           ],
@@ -240,10 +217,7 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                           "продолжить",
                           style: TextStyle(
                             fontSize: 32,
-                            color: _name.text.isNotEmpty &&
-                                    _lastName.text.isNotEmpty
-                                ? Colors.white
-                                : Colors.white54,
+                            color: _name.text.isNotEmpty && _lastName.text.isNotEmpty ? Colors.white : Colors.white54,
                           ),
                         ),
                       ],

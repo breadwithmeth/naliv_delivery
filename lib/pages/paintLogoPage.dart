@@ -9,11 +9,9 @@ class PaintLogoPage extends StatefulWidget {
   State<PaintLogoPage> createState() => _PaintLogoPageState();
 }
 
-class _PaintLogoPageState extends State<PaintLogoPage>
-    with SingleTickerProviderStateMixin {
+class _PaintLogoPageState extends State<PaintLogoPage> with SingleTickerProviderStateMixin {
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
   }
 
@@ -42,8 +40,7 @@ class _PaintLogoPageState extends State<PaintLogoPage>
                             height: constraints.maxHeight,
                             child: widget.city == "Павлодар"
                                 ? Image.asset("./assets/naliv_logo_loading.png")
-                                : Image.asset(
-                                    "./assets/gradusy_logo_loading.png"),
+                                : Image.asset("./assets/gradusy_logo_loading.png"),
                           ),
                         ),
                       ],

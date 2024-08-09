@@ -106,7 +106,6 @@ class _ActiveOrderButtonState extends State<ActiveOrderButton> {
 
   @override
   void dispose() {
-    // TODO: implement dispose
     _timer.cancel();
     super.dispose();
   }

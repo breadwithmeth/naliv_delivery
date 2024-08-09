@@ -16,12 +16,7 @@ import 'package:naliv_delivery/pages/supportPage.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class OrganizationSelectPage extends StatefulWidget {
-  const OrganizationSelectPage(
-      {super.key,
-      required this.addresses,
-      required this.currentAddress,
-      required this.user,
-      required this.businesses});
+  const OrganizationSelectPage({super.key, required this.addresses, required this.currentAddress, required this.user, required this.businesses});
   final List addresses;
   final Map currentAddress;
   final Map<String, dynamic> user;
@@ -30,8 +25,7 @@ class OrganizationSelectPage extends StatefulWidget {
   State<OrganizationSelectPage> createState() => _OrganizationSelectPageState();
 }
 
-class _OrganizationSelectPageState extends State<OrganizationSelectPage>
-    with AutomaticKeepAliveClientMixin {
+class _OrganizationSelectPageState extends State<OrganizationSelectPage> with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -51,36 +45,12 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
 
   // ! TODO: TAKE THIS DATA FROM BACKEND
   List<Map> _carouselItems = [
-    {
-      "name": "Алкоголь",
-      "image":
-          "https://status-k.ru/wp-content/uploads/2021/06/alkogol-440x440.png"
-    },
-    {
-      "name": "Восточная кухня",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
-    {
-      "name": "Какая-то еще кухня",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
-    {
-      "name": "Надо будет написать бэк для этого",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
-    {
-      "name": "Потому что здесь",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
-    {
-      "name": "просто массив",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
+    {"name": "Алкоголь", "image": "https://status-k.ru/wp-content/uploads/2021/06/alkogol-440x440.png"},
+    {"name": "Восточная кухня", "image": "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"},
+    {"name": "Какая-то еще кухня", "image": "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"},
+    {"name": "Надо будет написать бэк для этого", "image": "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"},
+    {"name": "Потому что здесь", "image": "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"},
+    {"name": "просто массив", "image": "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"},
   ];
 
   void _initData() {
@@ -136,15 +106,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     await getGeoData(lon.toString() + "," + lat.toString()).then((value) {
       print(value);
       if (value != null) {
-        List objects =
-            value["response"]["GeoObjectCollection"]["featureMember"];
+        List objects = value["response"]["GeoObjectCollection"]["featureMember"];
 
-        double lat = double.parse(objects.first["GeoObject"]["Point"]["pos"]
-            .toString()
-            .split(' ')[1]);
-        double lon = double.parse(objects.first["GeoObject"]["Point"]["pos"]
-            .toString()
-            .split(' ')[0]);
+        double lat = double.parse(objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
+        double lon = double.parse(objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
         if (mounted) {
           setState(() {
             _currentAddressName = objects.first["GeoObject"]["name"] ?? "";
@@ -185,10 +150,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                 Flexible(
                                     child: Text(
                                   "Изменить адрес доставки?",
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 76 * globals.scaleParam,
-                                      color: Colors.black),
+                                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 76 * globals.scaleParam, color: Colors.black),
                                 )),
                                 SizedBox(
                                   height: 10 * globals.scaleParam,
@@ -196,10 +158,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                 Flexible(
                                     child: Text(
                                   _currentAddressName!,
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 48 * globals.scaleParam,
-                                      color: Colors.black),
+                                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 48 * globals.scaleParam, color: Colors.black),
                                 )),
                                 SizedBox(
                                   height: 10 * globals.scaleParam,
@@ -211,17 +170,13 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                     Flexible(
                                       child: Text(
                                         "Подъезд/Вход: ",
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 32 * globals.scaleParam),
+                                        style: TextStyle(fontWeight: FontWeight.w500, fontSize: 32 * globals.scaleParam),
                                       ),
                                     ),
                                     Flexible(
                                       child: Text(
                                         address["entrance"] ?? "-",
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 32 * globals.scaleParam),
+                                        style: TextStyle(fontWeight: FontWeight.w500, fontSize: 32 * globals.scaleParam),
                                       ),
                                     )
                                   ],
@@ -295,16 +250,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                             children: [
                               IconButton(
                                   style: IconButton.styleFrom(
-                                      backgroundColor:
-                                          Colors.tealAccent.shade700,
-                                      padding: EdgeInsets.all(
-                                          20 * globals.scaleParam)),
+                                      backgroundColor: Colors.tealAccent.shade700, padding: EdgeInsets.all(20 * globals.scaleParam)),
                                   onPressed: () {
-                                    selectAddressClient(address["address_id"],
-                                            widget.user["user_id"])
-                                        .then((q) {
-                                      Navigator.pushAndRemoveUntil(context,
-                                          MaterialPageRoute(
+                                    selectAddressClient(address["address_id"], widget.user["user_id"]).then((q) {
+                                      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
                                         builder: (context) {
                                           return PreLoadDataPage(
                                               // business: widget.business,
@@ -325,10 +274,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                               ),
                               IconButton(
                                   style: IconButton.styleFrom(
-                                      backgroundColor:
-                                          Colors.redAccent.shade700,
-                                      padding: EdgeInsets.all(
-                                          20 * globals.scaleParam)),
+                                      backgroundColor: Colors.redAccent.shade700, padding: EdgeInsets.all(20 * globals.scaleParam)),
                                   onPressed: () {
                                     Navigator.pop(context);
                                   },
@@ -366,10 +312,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                               Flexible(
                                   child: Text(
                                 "Изменить адрес доставки?",
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 76 * globals.scaleParam,
-                                    color: Colors.black),
+                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 76 * globals.scaleParam, color: Colors.black),
                               )),
                               SizedBox(
                                 height: 10 * globals.scaleParam,
@@ -377,10 +320,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                               Flexible(
                                   child: Text(
                                 _currentAddressName!,
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 48 * globals.scaleParam,
-                                    color: Colors.black),
+                                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 48 * globals.scaleParam, color: Colors.black),
                               )),
                             ],
                           ),
@@ -390,9 +330,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                           children: [
                             IconButton(
                                 style: IconButton.styleFrom(
-                                    backgroundColor: Colors.tealAccent.shade700,
-                                    padding: EdgeInsets.all(
-                                        20 * globals.scaleParam)),
+                                    backgroundColor: Colors.tealAccent.shade700, padding: EdgeInsets.all(20 * globals.scaleParam)),
                                 onPressed: () {
                                   globals.addressSelectPopUpDone = true;
 
@@ -422,9 +360,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                             ),
                             IconButton(
                                 style: IconButton.styleFrom(
-                                    backgroundColor: Colors.redAccent.shade700,
-                                    padding: EdgeInsets.all(
-                                        20 * globals.scaleParam)),
+                                    backgroundColor: Colors.redAccent.shade700, padding: EdgeInsets.all(20 * globals.scaleParam)),
                                 onPressed: () {
                                   globals.addressSelectPopUpDone = true;
                                   Navigator.pop(context);
@@ -474,9 +410,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
   bool isStartingToCollapse = false;
   double scrollExtent = 0;
   bool isMenuOpen = false;
-  final GlobalKey<ScaffoldState> _key = GlobalKey(
-      debugLabel:
-          "вот это ключ, всем ключам ключ, надеюсь он тут не потеряется"); // lol, за что он отвечает?
+  final GlobalKey<ScaffoldState> _key =
+      GlobalKey(debugLabel: "вот это ключ, всем ключам ключ, надеюсь он тут не потеряется"); // lol, за что он отвечает?
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -540,9 +475,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                       Text(
                         "НАЛИВ/ГРАДУСЫ24",
                         style: GoogleFonts.montserratAlternates(
-                          textStyle: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 48 * globals.scaleParam),
+                          textStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 48 * globals.scaleParam),
                         ),
                       ),
                       Icon(
@@ -633,10 +566,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
               title: AnimatedSwitcher(
                 transitionBuilder: (child, animation) {
                   return SlideTransition(
-                    position: Tween<Offset>(
-                            begin: const Offset(0, -1),
-                            end: const Offset(0, -0.16))
-                        .animate(animation),
+                    position: Tween<Offset>(begin: const Offset(0, -1), end: const Offset(0, -0.16)).animate(animation),
                     child: child,
                   );
                 },
@@ -644,9 +574,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                 child: isCollapsed
                     ? Container(
                         key: ValueKey<bool>(isCollapsed),
-                        decoration: BoxDecoration(
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(20))),
+                        decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(20))),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.start,
                           mainAxisSize: MainAxisSize.max,
@@ -663,24 +591,16 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                 ));
                               },
                               child: Container(
-                                padding:
-                                    EdgeInsets.all(40 * globals.scaleParam),
-                                decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: const BorderRadius.all(
-                                        Radius.circular(20))),
+                                padding: EdgeInsets.all(40 * globals.scaleParam),
+                                decoration: BoxDecoration(color: Colors.white, borderRadius: const BorderRadius.all(Radius.circular(20))),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Flexible(
                                       child: Text(
-                                        widget.currentAddress.isNotEmpty
-                                            ? widget.currentAddress["address"]
-                                            : "Нет адреса",
-                                        style: TextStyle(
-                                            fontSize: 32 * globals.scaleParam,
-                                            fontWeight: FontWeight.w700),
+                                        widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
+                                        style: TextStyle(fontSize: 32 * globals.scaleParam, fontWeight: FontWeight.w700),
                                       ),
                                     ),
                                     SizedBox(
@@ -727,8 +647,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                   children: [
                                     Flexible(
                                       child: Text(
-                                        widget.currentAddress["city_name"] ??
-                                            "",
+                                        widget.currentAddress["city_name"] ?? "",
                                         style: TextStyle(
                                           fontWeight: FontWeight.w700,
                                           fontSize: 36 * globals.scaleParam,
@@ -795,8 +714,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                 }
                 return SliverToBoxAdapter(
                   child: Container(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 60 * globals.scaleParam),
+                    padding: EdgeInsets.symmetric(horizontal: 60 * globals.scaleParam),
                     color: Colors.white,
                     child: TextButton(
                       style: TextButton.styleFrom(
@@ -822,15 +740,11 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                         children: [
                           Flexible(
                             child: Text(
-                              widget.currentAddress.isNotEmpty
-                                  ? widget.currentAddress["address"]
-                                  : "Нет адреса",
+                              widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
                               style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w500,
-                                  color: !isCollapsed
-                                      ? Colors.black
-                                      : Colors.transparent),
+                                  color: !isCollapsed ? Colors.black : Colors.transparent),
                             ),
                           ),
                           SizedBox(
@@ -850,18 +764,13 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
             ),
             SliverToBoxAdapter(
                 child: Container(
-              padding: EdgeInsets.symmetric(
-                  horizontal: 50 * globals.scaleParam,
-                  vertical: 20 * globals.scaleParam),
+              padding: EdgeInsets.symmetric(horizontal: 50 * globals.scaleParam, vertical: 20 * globals.scaleParam),
               child: Row(
                 children: [
                   Flexible(
                     child: Text(
                       "Категории",
-                      style: TextStyle(
-                          fontSize: 48 * globals.scaleParam,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.black),
+                      style: TextStyle(fontSize: 48 * globals.scaleParam, fontWeight: FontWeight.w900, color: Colors.black),
                     ),
                   ),
                 ],
@@ -885,24 +794,15 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                           width: 200 * globals.scaleParam,
                           height: 200 * globals.scaleParam,
                           clipBehavior: Clip.antiAlias,
-                          margin: EdgeInsets.only(
-                              top: 5 * globals.scaleParam,
-                              bottom: 5 * globals.scaleParam,
-                              left: 25 * globals.scaleParam),
+                          margin: EdgeInsets.only(top: 5 * globals.scaleParam, bottom: 5 * globals.scaleParam, left: 25 * globals.scaleParam),
                           decoration: BoxDecoration(
-                              boxShadow: [
-                                BoxShadow(
-                                    color: Colors.grey.shade300,
-                                    blurRadius: 5 * globals.scaleParam)
-                              ],
+                              boxShadow: [BoxShadow(color: Colors.grey.shade300, blurRadius: 5 * globals.scaleParam)],
                               color: Colors.grey.shade100,
-                              borderRadius:
-                                  const BorderRadius.all(Radius.circular(10))),
+                              borderRadius: const BorderRadius.all(Radius.circular(10))),
                           child: Stack(
                             children: [
                               Container(
-                                padding:
-                                    EdgeInsets.all(10 * globals.scaleParam),
+                                padding: EdgeInsets.all(10 * globals.scaleParam),
                                 child: Image.network(
                                   _carouselItems[index]["image"],
                                   fit: BoxFit.cover,
@@ -929,18 +829,13 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                         alignment: Alignment.topLeft,
                                         color: Colors.white,
                                         height: 80 * globals.scaleParam,
-                                        padding: EdgeInsets.all(
-                                            10 * globals.scaleParam),
+                                        padding: EdgeInsets.all(10 * globals.scaleParam),
                                         child: Row(
                                           children: [
                                             Flexible(
                                                 child: Text(
                                               _carouselItems[index]["name"],
-                                              style: TextStyle(
-                                                  color: Colors.black,
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize:
-                                                      24 * globals.scaleParam),
+                                              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 24 * globals.scaleParam),
                                             )),
                                           ],
                                         ))
@@ -979,8 +874,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
 }
 
 class DrawerMenuItem extends StatefulWidget {
-  const DrawerMenuItem(
-      {super.key, required this.name, required this.icon, required this.route});
+  const DrawerMenuItem({super.key, required this.name, required this.icon, required this.route});
   final String name;
   final IconData icon;
   final Widget route;
@@ -1003,10 +897,7 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
         decoration: const BoxDecoration(
           borderRadius: BorderRadius.only(bottomRight: Radius.circular(15)),
           color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-                offset: Offset(5, 3), blurRadius: 5, color: Colors.black12)
-          ],
+          boxShadow: [BoxShadow(offset: Offset(5, 3), blurRadius: 5, color: Colors.black12)],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.start,
@@ -1075,8 +966,7 @@ class BusinessItemState extends State<BusinessItem> {
         decoration: const BoxDecoration(
           color: Colors.white,
           boxShadow: [
-            BoxShadow(
-                offset: Offset(2, 2), blurRadius: 2, color: Colors.black12),
+            BoxShadow(offset: Offset(2, 2), blurRadius: 2, color: Colors.black12),
           ],
           borderRadius: BorderRadius.all(
             Radius.circular(10),
@@ -1101,8 +991,7 @@ class BusinessItemState extends State<BusinessItem> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 10 * globals.scaleParam),
+                      padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade50,
                       ),
@@ -1157,9 +1046,7 @@ class BusinessItemState extends State<BusinessItem> {
                                     fit: FlexFit.tight,
                                     child: Text(
                                       widget.business["address"],
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 30 * globals.scaleParam),
+                                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 30 * globals.scaleParam),
                                     ),
                                   )
                                 ],
@@ -1174,9 +1061,7 @@ class BusinessItemState extends State<BusinessItem> {
                                   Flexible(
                                     child: Text(
                                       "Короткое описание",
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 30 * globals.scaleParam),
+                                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 30 * globals.scaleParam),
                                     ),
                                   ),
                                 ],
@@ -1198,11 +1083,7 @@ class BusinessItemState extends State<BusinessItem> {
 }
 
 class BusinessSelectCarousel extends StatefulWidget {
-  const BusinessSelectCarousel(
-      {super.key,
-      required this.businesses,
-      required this.user,
-      required this.currentAddress});
+  const BusinessSelectCarousel({super.key, required this.businesses, required this.user, required this.currentAddress});
   final List<Map> businesses;
   final Map user;
   final Map currentAddress;
@@ -1214,7 +1095,6 @@ class BusinessSelectCarousel extends StatefulWidget {
 class _BusinessSelectCarouselState extends State<BusinessSelectCarousel> {
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
   }
 

@@ -6,16 +6,14 @@ import 'package:geolocator/geolocator.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 
 class AddressesPage extends StatefulWidget {
-  const AddressesPage(
-      {super.key, required this.addresses, required this.isExtended});
+  const AddressesPage({super.key, required this.addresses, required this.isExtended});
   final List addresses;
   final bool isExtended;
   @override
   State<AddressesPage> createState() => _AddressesPageState();
 }
 
-class _AddressesPageState extends State<AddressesPage>
-    with TickerProviderStateMixin {
+class _AddressesPageState extends State<AddressesPage> with TickerProviderStateMixin {
   // double _sheetPosition = 0.25;
 
   // Future<void> _showBottomSheet() async {
@@ -51,8 +49,6 @@ class _AddressesPageState extends State<AddressesPage>
 
   @override
   void initState() {
-    // TODO: implement initState
-
     super.initState();
     // _showBottomSheet();
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
@@ -62,8 +58,7 @@ class _AddressesPageState extends State<AddressesPage>
         });
         _mapController.move(_selectedAddress, 20);
         setState(() {
-          _markers.add(Marker(
-              point: _mapController.camera.center, child: Icon(Icons.pin)));
+          _markers.add(Marker(point: _mapController.camera.center, child: Icon(Icons.pin)));
         });
       });
     });
@@ -97,8 +92,7 @@ class _AddressesPageState extends State<AddressesPage>
 
     if (permission == LocationPermission.deniedForever) {
       // Permissions are denied forever, handle appropriately.
-      return Future.error(
-          'Доступ к местоположению полностью заблокирован, мы не можем запросить разрешение.');
+      return Future.error('Доступ к местоположению полностью заблокирован, мы не можем запросить разрешение.');
     }
 
     // When we reach here, permissions are granted and we can
@@ -150,14 +144,11 @@ class _AddressesPageState extends State<AddressesPage>
                       children: [
                         TileLayer(
                           tileBuilder: _darkModeTileBuilder,
-                          urlTemplate:
-                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                           userAgentPackageName: 'com.example.app',
                           tileProvider: CancellableNetworkTileProvider(),
                         ),
-                        MarkerLayer(markers: [
-                          Marker(point: _selectedAddress, child: FlutterLogo())
-                        ]),
+                        MarkerLayer(markers: [Marker(point: _selectedAddress, child: FlutterLogo())]),
                         MarkerLayer(markers: _markers),
                         RichAttributionWidget(
                           attributions: [
@@ -186,17 +177,14 @@ class _AddressesPageState extends State<AddressesPage>
                         padding: EdgeInsets.all(10),
                         decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.only(
-                                topLeft: Radius.circular(50),
-                                topRight: Radius.circular(50),
-                                bottomRight: Radius.circular(50))),
+                            borderRadius:
+                                BorderRadius.only(topLeft: Radius.circular(50), topRight: Radius.circular(50), bottomRight: Radius.circular(50))),
                         child: _isAddressPicked == null
                             ? Container(child: CircularProgressIndicator())
                             : (_isAddressPicked!
                                 ? GestureDetector(
                                     child: Container(
-                                      width: MediaQuery.of(context).size.width *
-                                          0.3,
+                                      width: MediaQuery.of(context).size.width * 0.3,
                                       child: Text("Использовать этот адрес"),
                                     ),
                                     onTap: () {
@@ -211,8 +199,7 @@ class _AddressesPageState extends State<AddressesPage>
                                     },
                                   )
                                 : Container(
-                                    width:
-                                        MediaQuery.of(context).size.width * 0.3,
+                                    width: MediaQuery.of(context).size.width * 0.3,
                                     child: TextButton(
                                       child: Text("Выбрать"),
                                       onPressed: () {},
@@ -240,32 +227,22 @@ class _AddressesPageState extends State<AddressesPage>
                                 itemBuilder: (context, index) {
                                   return GestureDetector(
                                     onTap: () async {
-                                      await selectAddress(widget
-                                              .addresses[index]["address_id"])
-                                          .then((value) =>
-                                              Navigator.pop(context));
+                                      await selectAddress(widget.addresses[index]["address_id"]).then((value) => Navigator.pop(context));
                                     },
                                     child: Container(
                                       padding: EdgeInsets.all(20),
                                       margin: EdgeInsets.all(10),
                                       decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.all(
-                                              Radius.circular(10)),
-                                          border: Border.all(
-                                              color: Colors.grey.shade400),
+                                          borderRadius: BorderRadius.all(Radius.circular(10)),
+                                          border: Border.all(color: Colors.grey.shade400),
                                           color: Colors.white),
                                       child: Column(
                                         children: [
                                           Row(
                                             children: [
                                               Text(
-                                                widget.addresses[index]
-                                                        ["name"] +
-                                                    " ",
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.w500,
-                                                    color: Colors.black,
-                                                    fontSize: 24),
+                                                widget.addresses[index]["name"] + " ",
+                                                style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black, fontSize: 24),
                                               ),
                                             ],
                                           ),
@@ -273,32 +250,19 @@ class _AddressesPageState extends State<AddressesPage>
                                             children: [
                                               Expanded(
                                                 child: Wrap(
-                                                  crossAxisAlignment:
-                                                      WrapCrossAlignment.center,
+                                                  crossAxisAlignment: WrapCrossAlignment.center,
                                                   children: [
                                                     Text(
-                                                      widget.addresses[index]
-                                                          ["address"],
-                                                      style: TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                          color: Colors.black,
-                                                          fontSize: 16),
+                                                      widget.addresses[index]["address"],
+                                                      style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black, fontSize: 16),
                                                     ),
                                                     Icon(
                                                       Icons.arrow_forward_ios,
                                                       size: 16,
                                                     ),
                                                     Text(
-                                                      "кв./офис " +
-                                                          widget.addresses[
-                                                                  index]
-                                                              ["apartment"],
-                                                      style: TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                          color: Colors.black,
-                                                          fontSize: 16),
+                                                      "кв./офис " + widget.addresses[index]["apartment"],
+                                                      style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black, fontSize: 16),
                                                     ),
                                                   ],
                                                 ),
@@ -314,20 +278,11 @@ class _AddressesPageState extends State<AddressesPage>
                                                 children: [
                                                   Text(
                                                     "Этаж: ",
-                                                    style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        color: Colors.black,
-                                                        fontSize: 16),
+                                                    style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black, fontSize: 16),
                                                   ),
                                                   Text(
-                                                    widget.addresses[index]
-                                                        ["floor"],
-                                                    style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        color: Colors.black,
-                                                        fontSize: 16),
+                                                    widget.addresses[index]["floor"],
+                                                    style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black, fontSize: 16),
                                                   ),
                                                 ],
                                               ),
@@ -342,20 +297,11 @@ class _AddressesPageState extends State<AddressesPage>
                                                 children: [
                                                   Text(
                                                     "Вход: ",
-                                                    style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        color: Colors.black,
-                                                        fontSize: 16),
+                                                    style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black, fontSize: 16),
                                                   ),
                                                   Text(
-                                                    widget.addresses[index]
-                                                        ["entrance"],
-                                                    style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        color: Colors.black,
-                                                        fontSize: 16),
+                                                    widget.addresses[index]["entrance"],
+                                                    style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black, fontSize: 16),
                                                   ),
                                                 ],
                                               ),
@@ -414,24 +360,13 @@ class _AddressesPageState extends State<AddressesPage>
                               flex: 4,
                               child: ElevatedButton(
                                   style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.black,
-                                      foregroundColor: Colors.white,
-                                      surfaceTintColor: Colors.white),
+                                      backgroundColor: Colors.black, foregroundColor: Colors.white, surfaceTintColor: Colors.white),
                                   onPressed: () async {
-                                    await getGeoData(_search.text)
-                                        .then((value) {
-                                      List objects = value?["response"]
-                                              ["GeoObjectCollection"]
-                                          ["featureMember"];
+                                    await getGeoData(_search.text).then((value) {
+                                      List objects = value?["response"]["GeoObjectCollection"]["featureMember"];
 
-                                      double lat = double.parse(objects
-                                          .first["GeoObject"]["Point"]["pos"]
-                                          .toString()
-                                          .split(' ')[1]);
-                                      double lon = double.parse(objects
-                                          .first["GeoObject"]["Point"]["pos"]
-                                          .toString()
-                                          .split(' ')[0]);
+                                      double lat = double.parse(objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
+                                      double lon = double.parse(objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
 
                                       print(value);
                                       setState(() {

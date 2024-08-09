@@ -81,7 +81,6 @@ class _MainState extends State<Main> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
@@ -122,7 +121,6 @@ class _MainState extends State<Main> {
 
   @override
   void dispose() {
-    // TODO: implement dispose
     super.dispose();
     // _timer.cancel();
   }
@@ -136,16 +134,13 @@ class _MainState extends State<Main> {
     // ]);
     // First get the FlutterView.
     FlutterView view = WidgetsBinding.instance.platformDispatcher.views.first;
-    print(
-        "SCREEN WIDTH IS: ${view.display.size.width}; SCREEN HEIGHT IS: ${view.display.size.height}");
+    print("SCREEN WIDTH IS: ${view.display.size.width}; SCREEN HEIGHT IS: ${view.display.size.height}");
     // 1560 + 720
     if (view.display.size.width + view.display.size.height >= 2560 + 1600) {
       globals.scaleParam = (view.display.size.shortestSide / 720) * 0.3;
-    } else if (view.display.size.width + view.display.size.height >=
-        1920 + 1080) {
+    } else if (view.display.size.width + view.display.size.height >= 1920 + 1080) {
       globals.scaleParam = (view.display.size.shortestSide / 720) * 0.3;
-    } else if (view.display.size.width + view.display.size.height >=
-        (1560 + 720)) {
+    } else if (view.display.size.width + view.display.size.height >= (1560 + 720)) {
       globals.scaleParam = (view.display.size.shortestSide / 720) * 0.4;
     } else {
       globals.scaleParam = 0.5;
@@ -153,7 +148,6 @@ class _MainState extends State<Main> {
     print("SCALE PARAM IS: ${globals.scaleParam}");
     // globals.scaleParam = 1;
     return MaterialApp(
-      
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -172,16 +166,13 @@ class _MainState extends State<Main> {
           primary: Colors.black,
           onPrimary: Colors.white,
           onError: Colors.white,
-          secondary: Colors
-              .black38, // TODO: Change this later? To make more sense with black/white style
+          secondary: Colors.black38, // TODO: Change this later? To make more sense with black/white style
           onSecondary: Colors.black,
         ),
         useMaterial3: true,
         brightness: Brightness.light,
-        pageTransitionsTheme: const PageTransitionsTheme(builders: {
-          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-          TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder()
-        }),
+        pageTransitionsTheme: const PageTransitionsTheme(
+            builders: {TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(), TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder()}),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(),
         scaffoldBackgroundColor: Colors.white,
         appBarTheme: AppBarTheme(
@@ -191,16 +182,14 @@ class _MainState extends State<Main> {
           surfaceTintColor: Colors.white,
           elevation: 4,
           scrolledUnderElevation: 4,
-          titleTextStyle: GoogleFonts.inter(
-              fontSize: 24, fontWeight: FontWeight.w700, color: Colors.black),
+          titleTextStyle: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w700, color: Colors.black),
           // backgroundColor: Colors.white,
           // shadowColor: Colors.grey.withOpacity(0.2),
           // foregroundColor: Colors.black
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(10))),
+            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
             backgroundColor: Colors.black,
             // backgroundColor: Color(0xFFFFCA3C),
             foregroundColor: Colors.white,

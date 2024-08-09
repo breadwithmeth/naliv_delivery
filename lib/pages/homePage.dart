@@ -20,8 +20,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage>
-    with AutomaticKeepAliveClientMixin<HomePage> {
+class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin<HomePage> {
   @override
   bool get wantKeepAlive => true;
 
@@ -34,20 +33,12 @@ class _HomePageState extends State<HomePage>
     //   "image":
     //       "https://podacha-blud.com/uploads/posts/2022-12/1670216296_41-podacha-blud-com-p-zhenskie-kokteili-alkogolnie-foto-55.jpg"
     // },
+    {"text": "123", "image": "https://pogarchik.com/wp-content/uploads/2019/03/5-1.jpg"},
     {
-      "text": "123",
-      "image": "https://pogarchik.com/wp-content/uploads/2019/03/5-1.jpg"
+      "text": "Очень длинный текст акции 123 123 123 123 123 12312312312312313213",
+      "image": "https://podacha-blud.com/uploads/posts/2022-12/1670216296_41-podacha-blud-com-p-zhenskie-kokteili-alkogolnie-foto-55.jpg"
     },
-    {
-      "text":
-          "Очень длинный текст акции 123 123 123 123 123 12312312312312313213",
-      "image":
-          "https://podacha-blud.com/uploads/posts/2022-12/1670216296_41-podacha-blud-com-p-zhenskie-kokteili-alkogolnie-foto-55.jpg"
-    },
-    {
-      "text": "123",
-      "image": "https://pogarchik.com/wp-content/uploads/2019/03/5-1.jpg"
-    },
+    {"text": "123", "image": "https://pogarchik.com/wp-content/uploads/2019/03/5-1.jpg"},
   ];
 
   List<Widget> indicators(imagesLength, currentIndex) {
@@ -58,10 +49,7 @@ class _HomePageState extends State<HomePage>
           margin: EdgeInsets.all(3),
           width: 5,
           height: 5,
-          decoration: BoxDecoration(
-              color:
-                  currentIndex == index ? Colors.grey.shade200 : Colors.black12,
-              shape: BoxShape.circle),
+          decoration: BoxDecoration(color: currentIndex == index ? Colors.grey.shade200 : Colors.black12, shape: BoxShape.circle),
         );
       },
     );
@@ -112,7 +100,6 @@ class _HomePageState extends State<HomePage>
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
 
     Timer(Duration(seconds: 1), () {
@@ -171,8 +158,7 @@ class _HomePageState extends State<HomePage>
               automaticallyImplyLeading: false,
               titleSpacing: 0,
               title: Padding(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
+                padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -199,14 +185,12 @@ class _HomePageState extends State<HomePage>
                               Text(
                                 widget.business["name"],
                                 maxLines: 1,
-                                style: TextStyle(
-                                    fontSize: 40 * globals.scaleParam),
+                                style: TextStyle(fontSize: 40 * globals.scaleParam),
                               ),
                               Text(
                                 widget.business["address"],
                                 maxLines: 1,
-                                style: TextStyle(
-                                    fontSize: 32 * globals.scaleParam),
+                                style: TextStyle(fontSize: 32 * globals.scaleParam),
                               ),
                             ],
                           ),
@@ -232,13 +216,9 @@ class _HomePageState extends State<HomePage>
                                 ),
                               );
                             },
-                            style: TextButton.styleFrom(
-                                foregroundColor: Colors.white.withOpacity(0)),
+                            style: TextButton.styleFrom(foregroundColor: Colors.white.withOpacity(0)),
                             child: Container(
-                              decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.1),
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(10))),
+                              decoration: BoxDecoration(color: Colors.black.withOpacity(0.1), borderRadius: BorderRadius.all(Radius.circular(10))),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
@@ -254,8 +234,7 @@ class _HomePageState extends State<HomePage>
                                     ),
                                   ),
                                   Container(
-                                    padding:
-                                        EdgeInsets.all(20 * globals.scaleParam),
+                                    padding: EdgeInsets.all(20 * globals.scaleParam),
                                     child: Icon(
                                       Icons.search,
                                       color: Colors.black,
@@ -296,27 +275,19 @@ class _HomePageState extends State<HomePage>
                               padding: EdgeInsets.all(0),
                               physics: NeverScrollableScrollPhysics(),
                               shrinkWrap: true,
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                 // maxCrossAxisExtent: 650 * globals.scaleParam,
-                                crossAxisCount:
-                                    MediaQuery.of(context).size.aspectRatio > 1
-                                        ? 3
-                                        : 2,
+                                crossAxisCount: MediaQuery.of(context).size.aspectRatio > 1 ? 3 : 2,
                                 childAspectRatio: 1,
                                 crossAxisSpacing: 0,
                                 mainAxisSpacing: 0,
                               ),
-                              itemCount: snapshot.data!.length % 2 != 0
-                                  ? snapshot.data!.length + 1
-                                  : snapshot.data!.length,
+                              itemCount: snapshot.data!.length % 2 != 0 ? snapshot.data!.length + 1 : snapshot.data!.length,
                               itemBuilder: (BuildContext ctx, index) {
-                                return snapshot.data!.length % 2 != 0 &&
-                                        index == snapshot.data!.length
+                                return snapshot.data!.length % 2 != 0 && index == snapshot.data!.length
                                     ? Container(color: Colors.white)
                                     : CategoryItem(
-                                        category_id: snapshot.data![index]
-                                            ["category_id"],
+                                        category_id: snapshot.data![index]["category_id"],
                                         name: snapshot.data![index]["name"],
                                         image: snapshot.data![index]["photo"],
                                         categories: snapshot.data!,
@@ -502,7 +473,6 @@ class _CategoryItemState extends State<CategoryItem> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _getColors();
   }

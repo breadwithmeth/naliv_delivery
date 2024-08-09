@@ -16,8 +16,7 @@ class CartPage extends StatefulWidget {
   State<CartPage> createState() => _CartPageState();
 }
 
-class _CartPageState extends State<CartPage>
-    with SingleTickerProviderStateMixin {
+class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin {
   late List items = [];
   double itemsAmount = 0;
   late Map<String, dynamic> cartInfo = {};
@@ -193,8 +192,7 @@ class _CartPageState extends State<CartPage>
     itemsAmount = 0;
     if (items.isNotEmpty) {
       for (dynamic item in items) {
-        localSum +=
-            double.parse((item["price"] * item["amount"]).toString()).round();
+        localSum += double.parse((item["price"] * item["amount"]).toString()).round();
         itemsAmount += double.parse(item["amount"].toString());
       }
     } else {
@@ -212,7 +210,6 @@ class _CartPageState extends State<CartPage>
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _setAnimationController();
 
@@ -280,8 +277,7 @@ class _CartPageState extends State<CartPage>
                             Flexible(
                               child: Text(
                                 "Корзина",
-                                style: TextStyle(
-                                    fontSize: 40 * globals.scaleParam),
+                                style: TextStyle(fontSize: 40 * globals.scaleParam),
                               ),
                             ),
                           ],
@@ -292,8 +288,7 @@ class _CartPageState extends State<CartPage>
                               child: Text(
                                 "${widget.business["name"]} ${widget.business["address"]}",
                                 maxLines: 1,
-                                style: TextStyle(
-                                    fontSize: 32 * globals.scaleParam),
+                                style: TextStyle(fontSize: 32 * globals.scaleParam),
                               ),
                             ),
                           ],
@@ -310,12 +305,10 @@ class _CartPageState extends State<CartPage>
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: items.isNotEmpty || isCartLoading
           ? Padding(
-              padding:
-                  EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
+              padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
               child: Row(
                 children: [
-                  MediaQuery.sizeOf(context).width >
-                          MediaQuery.sizeOf(context).height
+                  MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height
                       ? Flexible(
                           flex: 2,
                           fit: FlexFit.tight,
@@ -470,8 +463,7 @@ class _CartPageState extends State<CartPage>
                                 setState(() {
                                   dismissingItem = true;
                                 });
-                                bool result = await _deleteFromCart(
-                                    items[index]["item_id"].toString());
+                                bool result = await _deleteFromCart(items[index]["item_id"].toString());
 
                                 if (result) {
                                   updatePrices(index);
@@ -483,8 +475,7 @@ class _CartPageState extends State<CartPage>
                                 return result;
                               },
                               onDismissed: ((direction) {
-                                print(MediaQuery.of(context).size.height *
-                                    ((4 - items.length) / 10));
+                                print(MediaQuery.of(context).size.height * ((4 - items.length) / 10));
                               }),
                               // Provide a function that tells the app
                               // what to do after an item has been swiped away.
@@ -498,25 +489,19 @@ class _CartPageState extends State<CartPage>
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Container(
-                                      width: MediaQuery.of(context).size.width *
-                                          0.7,
+                                      width: MediaQuery.of(context).size.width * 0.7,
                                       alignment: Alignment.center,
                                       padding: EdgeInsets.only(right: 10),
                                       color: Colors.grey.shade100,
                                     ),
                                     Container(
-                                      width: MediaQuery.of(context).size.width *
-                                          0.3,
+                                      width: MediaQuery.of(context).size.width * 0.3,
                                       alignment: Alignment.center,
                                       padding: EdgeInsets.only(right: 10),
                                       color: Colors.grey.shade100,
                                       child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.delete),
-                                          Text("Удалить")
-                                        ],
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [Icon(Icons.delete), Text("Удалить")],
                                       ),
                                     )
                                   ],
@@ -540,9 +525,7 @@ class _CartPageState extends State<CartPage>
                                   ),
                                   items.length - 1 != index
                                       ? Padding(
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal:
-                                                  16 * globals.scaleParam),
+                                          padding: EdgeInsets.symmetric(horizontal: 16 * globals.scaleParam),
                                           child: Divider(),
                                         )
                                       : Container(),
@@ -558,9 +541,7 @@ class _CartPageState extends State<CartPage>
                       children: [
                         SizedBox(
                           width: MediaQuery.of(context).size.width,
-                          height: items.length < 4
-                              ? (165 * globals.scaleParam) * (4 - items.length)
-                              : 0,
+                          height: items.length < 4 ? (165 * globals.scaleParam) * (4 - items.length) : 0,
                         ),
                         Divider(
                           color: Colors.transparent,
@@ -602,8 +583,7 @@ class _CartPageState extends State<CartPage>
                             child: Container(
                               margin: EdgeInsets.all(20 * globals.scaleParam),
                               decoration: BoxDecoration(
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(10)),
+                                borderRadius: BorderRadius.all(Radius.circular(10)),
                                 color: Colors.black12,
                               ),
                               clipBehavior: Clip.antiAlias,
@@ -615,15 +595,13 @@ class _CartPageState extends State<CartPage>
                                         flex: 20,
                                         fit: FlexFit.tight,
                                         child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
+                                          mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
                                             Flexible(
                                               child: Text(
                                                 "Сигареты/Закуски",
                                                 style: TextStyle(
-                                                  fontSize:
-                                                      36 * globals.scaleParam,
+                                                  fontSize: 36 * globals.scaleParam,
                                                   fontWeight: FontWeight.w700,
                                                   color: Colors.black,
                                                 ),
@@ -647,8 +625,7 @@ class _CartPageState extends State<CartPage>
                                                   "0 тг",
                                                   textAlign: TextAlign.center,
                                                   style: TextStyle(
-                                                    fontSize:
-                                                        36 * globals.scaleParam,
+                                                    fontSize: 36 * globals.scaleParam,
                                                     fontWeight: FontWeight.w700,
                                                     color: Colors.white,
                                                   ),

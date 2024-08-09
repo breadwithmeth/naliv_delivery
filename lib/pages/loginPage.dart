@@ -32,7 +32,6 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     if (!(widget.login.isEmpty && widget.password.isEmpty)) {
       setState(() {
@@ -127,8 +126,7 @@ class _LoginPageState extends State<LoginPage> {
                                   decoration: const InputDecoration(
                                     labelText: 'Номер телефона',
                                     border: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.all(Radius.circular(10)),
+                                      borderRadius: BorderRadius.all(Radius.circular(10)),
                                     ),
                                   ),
                                   initialCountryCode: 'KZ',
@@ -142,8 +140,7 @@ class _LoginPageState extends State<LoginPage> {
                             ],
                           ),
                         ),
-                        Flexible(
-                            flex: 1, fit: FlexFit.tight, child: SizedBox()),
+                        Flexible(flex: 1, fit: FlexFit.tight, child: SizedBox()),
                         Flexible(
                           flex: 6,
                           fit: FlexFit.tight,
@@ -153,10 +150,8 @@ class _LoginPageState extends State<LoginPage> {
                               Flexible(
                                 child: AnimatedSwitcher(
                                   duration: const Duration(milliseconds: 500),
-                                  transitionBuilder: (Widget child,
-                                      Animation<double> animation) {
-                                    return ScaleTransition(
-                                        scale: animation, child: child);
+                                  transitionBuilder: (Widget child, Animation<double> animation) {
+                                    return ScaleTransition(scale: animation, child: child);
                                   },
                                   child: isCodeSend
                                       ? TextField(
@@ -165,11 +160,9 @@ class _LoginPageState extends State<LoginPage> {
                                           maxLength: 6,
                                           textAlign: TextAlign.center,
                                           decoration: const InputDecoration(
-                                            labelText:
-                                                "Введите одноразовый код из СМС",
+                                            labelText: "Введите одноразовый код из СМС",
                                             border: OutlineInputBorder(
-                                              borderRadius: BorderRadius.all(
-                                                  Radius.circular(10)),
+                                              borderRadius: BorderRadius.all(Radius.circular(10)),
                                             ),
                                           ),
                                         )
@@ -256,8 +249,7 @@ class _LoginPageState extends State<LoginPage> {
                                   } else {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text(
-                                            "Проверьте правильность номера"),
+                                        content: Text("Проверьте правильность номера"),
                                       ),
                                     );
                                   }
@@ -283,9 +275,7 @@ class _LoginPageState extends State<LoginPage> {
                                         "Получить код подтверждения",
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onPrimary,
+                                          color: Theme.of(context).colorScheme.onPrimary,
                                           fontSize: 16,
                                           fontWeight: FontWeight.w700,
                                         ),
@@ -298,13 +288,11 @@ class _LoginPageState extends State<LoginPage> {
                           : Flexible(
                               child: ElevatedButton(
                                 onPressed: () async {
-                                  await verify(_number, _one_time_code.text)
-                                      .then(
+                                  await verify(_number, _one_time_code.text).then(
                                     (value) => {
                                       if (value == true)
                                         {
-                                          Navigator.pushAndRemoveUntil(context,
-                                              MaterialPageRoute(
+                                          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
                                             builder: (context) {
                                               return const Main();
                                             },

@@ -36,7 +36,6 @@ class _StartPageState extends State<StartPage> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
 
     setState(() {
@@ -48,15 +47,13 @@ class _StartPageState extends State<StartPage> {
             currentPage = currentPage + 1;
           }
         });
-        p_controller.animateToPage(currentPage,
-            duration: const Duration(seconds: 1), curve: Curves.decelerate);
+        p_controller.animateToPage(currentPage, duration: const Duration(seconds: 1), curve: Curves.decelerate);
       });
     });
   }
 
   @override
   void dispose() {
-    // TODO: implement dispose
     super.dispose();
     p_controller.dispose();
     _timer.cancel();
@@ -106,10 +103,7 @@ class _StartPageState extends State<StartPage> {
                 children: [
                   Text(
                     "Войти",
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Theme.of(context).colorScheme.onPrimary),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onPrimary),
                   )
                 ],
               ),
