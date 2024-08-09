@@ -420,9 +420,7 @@ class _AddressesPageState extends State<AddressesPage>
                                   onPressed: () async {
                                     await getGeoData(_search.text)
                                         .then((value) {
-                                      List objects = value?["response"]
-                                              ["GeoObjectCollection"]
-                                          ["featureMember"];
+                                      List objects = value;
 
                                       double lat = double.parse(objects
                                           .first["GeoObject"]["Point"]["pos"]

@@ -137,7 +137,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
       print(value);
       if (value != null) {
         List objects =
-            value["response"]["GeoObjectCollection"]["featureMember"];
+            value;
 
         double lat = double.parse(objects.first["GeoObject"]["Point"]["pos"]
             .toString()

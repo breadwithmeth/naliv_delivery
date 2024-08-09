@@ -744,21 +744,48 @@ Future<bool> verify(String phoneNumber, String code) async {
   }
 }
 
-Future<Map?> getGeoData(String search) async {
+Future<List> getGeoData(String search) async {
   String? token = await getToken();
   if (token == null) {
-    return null;
+    return [];
   }
+  List<dynamic> list = [];
   var url = Uri.https(URL_API, 'api/user/getAddressGeoData');
+
   var response = await client.post(
     url,
     body: json.encode({"search": search}),
     headers: {"Content-Type": "application/json", "AUTH": token},
+  ).timeout(Duration(seconds: 2), onTimeout: () {
+    return http.Response('Time out!', 500);
+
+    /// here is the response if api call time out
+    /// you can show snackBar here or where you handle api call
+  });
+  print(response.body);
+  list = json.decode(response.body);
+
+  return list;
+
+  // List<dynamic> list = json.decode(response.body);
+  // Map data = json.decode(utf8.decode(response.bodyBytes));
+}
+
+Future<List> getGeoDataByCoord(double lat, double lon) async {
+  String? token = await getToken();
+  if (token == null) {
+    return [];
+  }
+  var url = Uri.https(URL_API, 'api/user/getAddressGeoData');
+  var response = await client.post(
+    url,
+    body: json.encode({"lat": lat, "lon": lon}),
+    headers: {"Content-Type": "application/json", "AUTH": token},
   );
 
   // List<dynamic> list = json.decode(response.body);
-  Map? data = json.decode(utf8.decode(response.bodyBytes));
-  return data;
+  List<dynamic> list = json.decode(response.body);
+  return list;
 }
 
 Future<Map<String, dynamic>> getCreateUser(String phoneNumber) async {

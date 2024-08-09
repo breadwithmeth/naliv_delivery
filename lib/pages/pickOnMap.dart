@@ -35,6 +35,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
 
   double _lat = 0;
   double _lon = 0;
+
+  List foundAddresses = [];
   void setCurrentCity() {
     widget.cities.forEach((city) {
       print(city);
@@ -55,16 +57,16 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
   }
 
   Future<void> searchGeoData(double lon, double lat) async {
-    await getGeoData(lon.toString() + "," + lat.toString()).then((value) {
-      print(value);
-      List objects = value?["response"]["GeoObjectCollection"]["featureMember"];
+    await getGeoDataByCoord(lat, lon).then((value) {
+      // print(value);
+      List objects = value;
 
-      double lat = double.parse(
-          objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
-      double lon = double.parse(
-          objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
+      // double lat = double.parse(
+      //     objects.first["address_name"]["Point"]["pos"].toString().split(' ')[1]);
+      // double lon = double.parse(
+      //     objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
       setState(() {
-        _currentAddressName = objects.first["GeoObject"]["name"];
+        _currentAddressName = objects.first["address_name"];
         _lat = lat;
         _lon = lon;
       });
@@ -72,20 +74,32 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
   }
 
   Future<void> searchGeoDataByString(String search) async {
+    print(search);
     await getGeoData(_currentCity + " " + search).then((value) {
+      // print(value["result"]["items"]);
+      // List? _fa = value["result"]["items"];
       print(value);
-      List objects = value?["response"]["GeoObjectCollection"]["featureMember"];
-
-      double lat = double.parse(
-          objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
-      double lon = double.parse(
-          objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
-      _mapController.move(LatLng(lat, lon), 20);
       setState(() {
-        _currentAddressName = objects.first["GeoObject"]["name"];
-        _lat = lat;
-        _lon = lon;
+        foundAddresses = [];
+        foundAddresses = value;
       });
+      // List objects = value?["result"]["items"];
+      // double lat = objects.first["point"]["lat"];
+      // double lon = objects.first["point"]["lon"];
+      // _mapController.move(LatLng(lat, lon), 20);
+
+      // List objects = value?["response"]["GeoObjectCollection"]["featureMember"];
+
+      // double lat = double.parse(
+      //     objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
+      // double lon = double.parse(
+      //     objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
+      // _mapController.move(LatLng(lat, lon), 20);
+      // setState(() {
+      //   _currentAddressName = objects.first["address_name"];
+      //   _lat = lat;
+      //   _lon = lon;
+      // });
     });
   }
 
@@ -147,7 +161,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
             TextButton(
               style: ElevatedButton.styleFrom(
                 foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(
+                shape: const RoundedRectangleBorder(
                   borderRadius: BorderRadius.all(Radius.circular(15)),
                 ),
                 padding: EdgeInsets.symmetric(
@@ -161,7 +175,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                   builder: (context) {
                     return Dialog(
                       backgroundColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(),
+                      shape: const RoundedRectangleBorder(),
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
                         child: Container(
@@ -250,6 +264,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                   FlutterMap(
                     mapController: _mapController,
                     options: MapOptions(
+                      maxZoom: 17,
                       onPointerUp: (event, point) {
                         if (event.down == false) {
                           searchGeoData(_mapController.camera.center.longitude,
@@ -268,16 +283,19 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                           isMapSetteled = false;
                         });
                       },
-                      interactionOptions: InteractionOptions(
+                      interactionOptions: const InteractionOptions(
                           enableMultiFingerGestureRace: true),
-                      initialCenter: LatLng(0, 0),
+                      initialCenter: const LatLng(0, 0),
                       initialZoom: 9.2,
                     ),
                     children: [
                       TileLayer(
                         // tileBuilder: _darkModeTileBuilder,
                         urlTemplate:
-                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            'https://tile3.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
+
+                        // urlTemplate:
+                        //     'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                         // urlTemplate:
                         //     'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
                         tileProvider: CancellableNetworkTileProvider(),
@@ -315,7 +333,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                         //         widget.currentPosition.longitude),
                         //     child: )
                       ]),
-                      RichAttributionWidget(
+                      const RichAttributionWidget(
                         attributions: [
                           TextSourceAttribution(
                             'OpenStreetMap contributors',
@@ -344,14 +362,14 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                     horizontal: 30 * globals.scaleParam,
                     vertical: 20 * globals.scaleParam),
                 child: !isMapSetteled
-                    ? Center(
+                    ? const Center(
                         child: CircularProgressIndicator.adaptive(),
                       )
                     : Column(
                         mainAxisAlignment: MainAxisAlignment.end,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Spacer(),
+                          const Spacer(),
                           Flexible(
                             flex: 10,
                             fit: FlexFit.tight,
@@ -398,7 +416,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                     ),
                                   ),
                                   Flexible(
-                                    flex: 1,
+                                    flex: 2,
                                     child: Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
@@ -406,130 +424,129 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                           CrossAxisAlignment.center,
                                       children: [
                                         Flexible(
+                                          flex: 3,
                                           fit: FlexFit.tight,
-                                          child: Text(
-                                            _currentAddressName ?? "",
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize:
-                                                    32 * globals.scaleParam,
-                                                color: Colors.black),
-                                          ),
-                                        ),
-                                        Flexible(
-                                          child: IconButton(
-                                            padding: EdgeInsets.zero,
-                                            onPressed: () {
-                                              setState(() {
-                                                isMapSetteled = false;
-                                              });
-                                              showDialog(
-                                                barrierColor: Colors.white70,
-                                                context: context,
-                                                builder: (context) {
-                                                  return Dialog(
-                                                    backgroundColor:
-                                                        Colors.transparent,
-                                                    shape:
-                                                        RoundedRectangleBorder(),
-                                                    child: Container(
-                                                      color: Colors.transparent,
-                                                      padding: EdgeInsets.all(
-                                                          20 *
-                                                              globals
-                                                                  .scaleParam),
-                                                      child: Column(
-                                                        mainAxisSize:
-                                                            MainAxisSize.min,
-                                                        children: [
-                                                          Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .end,
-                                                            mainAxisSize:
-                                                                MainAxisSize
-                                                                    .max,
-                                                            children: [
-                                                              IconButton(
-                                                                  onPressed:
-                                                                      () {
-                                                                    Navigator.pop(
-                                                                        context);
-                                                                  },
-                                                                  icon: Icon(Icons
-                                                                      .close))
-                                                            ],
-                                                          ),
-                                                          Flexible(
-                                                              child: TextField(
-                                                            controller:
-                                                                _searchAddress,
-                                                            decoration: InputDecoration(
-                                                                border:
-                                                                    OutlineInputBorder(),
-                                                                labelText:
-                                                                    "Введите адрес"),
-                                                          )),
-                                                          SizedBox(
-                                                            height: 40 *
-                                                                globals
-                                                                    .scaleParam,
-                                                          ),
-                                                          Flexible(
+                                          child: TextField(
+                                            controller: _searchAddress,
+                                            onSubmitted: (value) {
+                                              searchGeoDataByString(
+                                                      _searchAddress.text)
+                                                  .then((v) {
+                                                showDialog(
+                                                  context: context,
+                                                  builder: (context) {
+                                                    print(
+                                                        foundAddresses.length);
+                                                    return AlertDialog(
+                                                        backgroundColor:
+                                                            Colors.white,
+                                                        title: const Text(
+                                                            "Выберите адрес"),
+                                                        content: Container(
+                                                            width: MediaQuery.of(
+                                                                        context)
+                                                                    .size
+                                                                    .width *
+                                                                0.8,
+                                                            height: MediaQuery.of(
+                                                                        context)
+                                                                    .size
+                                                                    .height *
+                                                                0.4,
                                                             child:
-                                                                GestureDetector(
-                                                              onTap: () {
-                                                                searchGeoDataByString(
-                                                                    _searchAddress
-                                                                        .text);
-                                                                Navigator.pop(
-                                                                    context);
-                                                                setState(() {
-                                                                  isMapSetteled =
-                                                                      true;
-                                                                });
-                                                              },
-                                                              child: Container(
-                                                                padding: EdgeInsets
-                                                                    .all(30 *
-                                                                        globals
-                                                                            .scaleParam),
-                                                                decoration: BoxDecoration(
-                                                                    color: Colors
-                                                                        .deepOrangeAccent,
-                                                                    borderRadius:
-                                                                        BorderRadius.all(
-                                                                            Radius.circular(5))),
-                                                                child: Row(
-                                                                  children: [
-                                                                    Text(
-                                                                      "Поиск",
-                                                                      style:
-                                                                          TextStyle(
+                                                                SingleChildScrollView(
+                                                              child: Column(
+                                                                children: [
+                                                                  ListView
+                                                                      .builder(
+                                                                    itemCount:
+                                                                        foundAddresses
+                                                                            .length,
+                                                                    primary:
+                                                                        false,
+                                                                    shrinkWrap:
+                                                                        true,
+                                                                    itemBuilder:
+                                                                        (context,
+                                                                            index) {
+                                                                      return Material(
                                                                         color: Colors
                                                                             .white,
-                                                                        fontWeight:
-                                                                            FontWeight.w900,
-                                                                      ),
-                                                                    )
-                                                                  ],
-                                                                ),
+                                                                        shadowColor:
+                                                                            Colors.black,
+                                                                        elevation:
+                                                                            10,
+                                                                        child:
+                                                                            ListTile(
+                                                                          tileColor:
+                                                                              Colors.white,
+                                                                          onTap:
+                                                                              () {
+                                                                            showModalBottomSheet(
+                                                                              backgroundColor: Colors.white,
+                                                                              barrierColor: Colors.black45,
+                                                                              isScrollControlled: true,
+                                                                              context: context,
+                                                                              useSafeArea: true,
+                                                                              builder: (context) {
+                                                                                return CreateAddressPage(
+                                                                                  lat: foundAddresses[index]["point"]["lat"],
+                                                                                  lon: foundAddresses[index]["point"]["lon"],
+                                                                                  addressName: foundAddresses[index]["name"]!,
+                                                                                  isFromCreateOrder: true,
+                                                                                );
+                                                                              },
+                                                                            );
+                                                                          },
+                                                                          title:
+                                                                              Text(foundAddresses[index]["name"]),
+                                                                          titleTextStyle: TextStyle(
+                                                                              fontWeight: FontWeight.w700,
+                                                                              color: Colors.black),
+                                                                          subtitle:
+                                                                              Wrap(
+                                                                            spacing:
+                                                                                5,
+                                                                            children: [
+                                                                              for (var v in foundAddresses[index]["adm_div"])
+                                                                                Text(v["name"])
+                                                                            ],
+                                                                          ),
+                                                                        ),
+                                                                      );
+                                                                    },
+                                                                  )
+                                                                ],
                                                               ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  );
-                                                },
-                                              );
+                                                            )));
+                                                  },
+                                                );
+                                              });
                                             },
-                                            icon: Icon(
-                                              Icons.search,
-                                              color: globals.mainColor,
-                                              size: 48 * globals.scaleParam,
+                                            maxLines: 1,
+                                            textAlign: TextAlign.start,
+                                            textAlignVertical:
+                                                TextAlignVertical.center,
+                                            decoration: InputDecoration(
+                                              hintText: "Поиск",
+                                              suffixIcon: Icon(Icons.search),
+                                              fillColor:
+                                                  Colors.blueGrey.shade50,
+                                              filled: true,
+                                              border: InputBorder.none,
+                                              errorBorder: InputBorder.none,
+                                              enabledBorder: InputBorder.none,
+                                              focusedBorder: InputBorder.none,
+                                              disabledBorder: InputBorder.none,
                                             ),
                                           ),
+                                          // Text(
+                                          //   style: TextStyle(
+                                          //       fontWeight: FontWeight.w700,
+                                          //       fontSize:
+                                          //           32 * globals.scaleParam,
+                                          //       color: Colors.black),
+                                          // ),
                                         ),
                                       ],
                                     ),
@@ -567,8 +584,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                     EdgeInsets.all(15 * globals.scaleParam),
                                 decoration: BoxDecoration(
                                     color: globals.mainColor,
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(5))),
+                                    borderRadius: const BorderRadius.all(
+                                        Radius.circular(5))),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -617,7 +634,7 @@ class _AnimatedCurrentPositionState extends State<AnimatedCurrentPosition>
   void initState() {
     super.initState();
     controller = AnimationController(
-      duration: Duration(seconds: 5),
+      duration: const Duration(seconds: 5),
       vsync: this,
     )
       ..forward()
@@ -651,7 +668,7 @@ class _AnimatedCurrentPositionState extends State<AnimatedCurrentPosition>
             decoration: BoxDecoration(
                 color: Colors.transparent,
                 border: Border.all(color: Colors.blue.shade500, width: 1),
-                borderRadius: BorderRadius.all(Radius.circular(100))),
+                borderRadius: const BorderRadius.all(Radius.circular(100))),
             child: Container(
               // clipBehavior: Clip.antiAlias,
               height: 100,
@@ -660,11 +677,11 @@ class _AnimatedCurrentPositionState extends State<AnimatedCurrentPosition>
               decoration: BoxDecoration(
                   color: Colors.transparent,
                   border: Border.all(color: Colors.blue.shade800),
-                  borderRadius: BorderRadius.all(Radius.circular(100))),
+                  borderRadius: const BorderRadius.all(Radius.circular(100))),
             ),
           ),
         ),
-        child: Icon(
+        child: const Icon(
           Icons.circle,
           size: 48,
         ),
@@ -708,13 +725,13 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
       if (widget.isFromCreateOrder) {
         Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
           builder: (context) {
-            return Main();
+            return const Main();
           },
         ), (route) => false);
       } else {
         Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
           builder: (context) {
-            return Main();
+            return const Main();
           },
         ), (route) => false);
       }
@@ -739,14 +756,14 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                 Flexible(
                     child: Text(
                   widget.addressName,
-                  style: TextStyle(
+                  style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
                       color: Colors.black),
                 )),
               ],
             ),
-            Divider(
+            const Divider(
               thickness: 1,
             ),
             Flexible(
@@ -762,7 +779,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                   labelText: "Название",
                   filled: true,
                   fillColor: Colors.white,
-                  border: UnderlineInputBorder(),
+                  border: const UnderlineInputBorder(),
                   labelStyle: TextStyle(fontSize: 38 * globals.scaleParam),
                 ),
                 style: TextStyle(
@@ -801,7 +818,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                       labelText: "Квартира/Офис",
                       filled: true,
                       fillColor: Colors.white,
-                      border: UnderlineInputBorder(),
+                      border: const UnderlineInputBorder(),
                       labelStyle: TextStyle(fontSize: 32 * globals.scaleParam),
                     ),
                     style: TextStyle(fontSize: 32 * globals.scaleParam),
@@ -816,7 +833,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                       labelText: "Подъезд/Вход",
                       filled: true,
                       fillColor: Colors.white,
-                      border: UnderlineInputBorder(),
+                      border: const UnderlineInputBorder(),
                       labelStyle: TextStyle(fontSize: 32 * globals.scaleParam),
                     ),
                     style: TextStyle(fontSize: 32 * globals.scaleParam),
@@ -831,7 +848,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                       labelText: "Этаж",
                       filled: true,
                       fillColor: Colors.white,
-                      border: UnderlineInputBorder(),
+                      border: const UnderlineInputBorder(),
                       labelStyle: TextStyle(fontSize: 32 * globals.scaleParam),
                     ),
                     style: TextStyle(fontSize: 32 * globals.scaleParam),
@@ -859,7 +876,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                 labelText: "Комментарий",
                 filled: true,
                 fillColor: Colors.white,
-                border: UnderlineInputBorder(),
+                border: const UnderlineInputBorder(),
                 labelStyle: TextStyle(fontSize: 38 * globals.scaleParam),
               ),
               style: TextStyle(fontSize: 38 * globals.scaleParam),
@@ -882,10 +899,10 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
               },
               child: Container(
                 padding: EdgeInsets.all(30 * globals.scaleParam),
-                margin: EdgeInsets.only(bottom: 30),
+                margin: const EdgeInsets.only(bottom: 30),
                 decoration: BoxDecoration(
                   color: globals.mainColor,
-                  borderRadius: BorderRadius.all(Radius.circular(10)),
+                  borderRadius: const BorderRadius.all(Radius.circular(10)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
