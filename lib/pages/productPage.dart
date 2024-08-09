@@ -334,6 +334,7 @@ class _ProductPageState extends State<ProductPage> {
         }
       }
     }
+    TabText[0] = widget.item["description"];
 
     getBuyButtonCurrentActionText();
   }
@@ -955,8 +956,14 @@ class _ProductPageState extends State<ProductPage> {
           ),
           Container(
             padding: EdgeInsets.all(30 * globals.scaleParam),
-            child: Text(TabText[currentTab],
-                style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w400, fontSize: 32 * globals.scaleParam)),
+            child: Text(
+              TabText[currentTab],
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w400,
+                fontSize: 34 * globals.scaleParam,
+              ),
+            ),
           ),
           Container(
             padding: EdgeInsets.all(30 * globals.scaleParam),

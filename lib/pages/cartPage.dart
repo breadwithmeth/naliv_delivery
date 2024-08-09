@@ -244,6 +244,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         titleSpacing: 0,
@@ -492,13 +493,13 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                       width: MediaQuery.of(context).size.width * 0.7,
                                       alignment: Alignment.center,
                                       padding: EdgeInsets.only(right: 10),
-                                      color: Colors.grey.shade100,
+                                      color: Color.fromARGB(255, 228, 209, 209),
                                     ),
                                     Container(
                                       width: MediaQuery.of(context).size.width * 0.3,
                                       alignment: Alignment.center,
                                       padding: EdgeInsets.only(right: 10),
-                                      color: Colors.grey.shade100,
+                                      color: Color.fromARGB(255, 228, 209, 209),
                                       child: Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [Icon(Icons.delete), Text("Удалить")],
@@ -511,7 +512,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                 children: [
                                   index == 0
                                       ? SizedBox(
-                                          height: 20 * globals.scaleParam,
+                                          height: 5 * globals.scaleParam,
                                         )
                                       : SizedBox(),
                                   ItemCardMinimal(
@@ -525,8 +526,10 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                   ),
                                   items.length - 1 != index
                                       ? Padding(
-                                          padding: EdgeInsets.symmetric(horizontal: 16 * globals.scaleParam),
-                                          child: Divider(),
+                                          padding: EdgeInsets.symmetric(horizontal: 5 * globals.scaleParam),
+                                          child: Divider(
+                                            height: 15 * globals.scaleParam,
+                                          ),
                                         )
                                       : Container(),
                                 ],
@@ -584,7 +587,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                               margin: EdgeInsets.all(20 * globals.scaleParam),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.all(Radius.circular(10)),
-                                color: Colors.black12,
+                                color: Colors.white,
                               ),
                               clipBehavior: Clip.antiAlias,
                               child: LayoutBuilder(

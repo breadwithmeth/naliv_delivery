@@ -1073,210 +1073,285 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
 
   @override
   Widget build(BuildContext context) {
-    chack = widget.chack;
     return Container(
-      // margin:  EdgeInsets.all(10),
-      padding: EdgeInsets.symmetric(horizontal: 5 * globals.scaleParam),
-      width: double.infinity,
-      height: 125 * globals.scaleParam,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          // ! TODO: CAN'T DO THAT BECAUSE AFTER cart, options UPDATES NOTHING HERE IS WORKING PROPERLY!!!!!
-          // showModalBottomSheet(
-          //   context: context,
-          //   clipBehavior: Clip.antiAlias,
-          //   useSafeArea: true,
-          //   showDragHandle: false,
-          //   isScrollControlled: true,
-          //   builder: (context) {
-          //     return ProductPage(
-          //       item: element,
-          //       index: widget.index,
-          //       returnDataAmount: updateCurrentItem,
-          //       cartPageExclusiveCallbackFunc: widget.updateExternalInfo,
-          //       business: widget.business,
-          //       openedFromCart: true,
-          //     );
-          //   },
-          // ).then((value) {
-          //   print("object");
-          // });
-        },
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            Flexible(
-              flex: 3,
-              fit: FlexFit.tight,
-              child: CachedNetworkImage(
-                imageUrl: element["thumb"],
-                // width: MediaQuery.of(context).size.width * 0.2,
-                // height: MediaQuery.of(context).size.width * 0.7,
-                fit: BoxFit.fitHeight,
-                // cacheManager: CacheManager(
-                //   Config(
-                //     "itemImage ${element["item_id"].toString()}",
-                //     stalePeriod: Duration(days: 7),
-                //     //one week cache period
-                //   ),
-                // ),
-                imageBuilder: (context, imageProvider) {
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+      clipBehavior: Clip.antiAliasWithSaveLayer,
+      margin: EdgeInsets.symmetric(
+        vertical: 10 * globals.scaleParam,
+        horizontal: 15 * globals.scaleParam,
+      ),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.all(
+          Radius.circular(30 * globals.scaleParam),
+        ),
+        color: Colors.white,
+      ),
+      child: Column(
+        children: [
+          SizedBox(
+            height: 150 * globals.scaleParam,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Padding(
+                  padding: EdgeInsets.all(5 * globals.scaleParam),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    mainAxisSize: MainAxisSize.max,
                     children: [
                       Flexible(
+                        flex: 3,
                         fit: FlexFit.tight,
-                        child: Container(
-                          clipBehavior: Clip.antiAlias,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.all(Radius.circular(5)),
-                            color: Colors.white,
-                          ),
-                          child: Image(
-                            image: imageProvider,
-                            fit: BoxFit.fitHeight,
-                          ),
+                        child: ExtendedImage.network(
+                          element["thumb"],
+                          fit: BoxFit.contain,
+                        ),
+                        // child: CachedNetworkImage(
+                        //   imageUrl: element["thumb"],
+                        //   // width: MediaQuery.of(context).size.width * 0.2,
+                        //   // height: MediaQuery.of(context).size.width * 0.7,
+                        //   fit: BoxFit.fitHeight,
+                        //   // cacheManager: CacheManager(
+                        //   //   Config(
+                        //   //     "itemImage ${element["item_id"].toString()}",
+                        //   //     stalePeriod: Duration(days: 7),
+                        //   //     //one week cache period
+                        //   //   ),
+                        //   // ),
+                        //   imageBuilder: (context, imageProvider) {
+                        //     return Column(
+                        //       mainAxisAlignment: MainAxisAlignment.center,
+                        //       children: [
+                        //         Flexible(
+                        //           fit: FlexFit.tight,
+                        //           child: Container(
+                        //             clipBehavior: Clip.antiAlias,
+                        //             decoration: BoxDecoration(
+                        //               borderRadius: BorderRadius.all(Radius.circular(5)),
+                        //               color: Colors.white,
+                        //             ),
+                        //             child: Image(
+                        //               image: imageProvider,
+                        //               fit: BoxFit.fitHeight,
+                        //             ),
+                        //           ),
+                        //         ),
+                        //       ],
+                        //     );
+                        //   },
+                        //   errorWidget: (context, url, error) {
+                        //     return LayoutBuilder(
+                        //       builder: (context, constraints) {
+                        //         return FractionallySizedBox(
+                        //           heightFactor: 1,
+                        //           widthFactor: 2 / 4,
+                        //           child: Image.asset(
+                        //             'assets/category_icons/no_image_ico.png',
+                        //             opacity: AlwaysStoppedAnimation(0.5),
+                        //           ),
+                        //         );
+                        //       },
+                        //     );
+                        //   },
+                        // ),
+                      ),
+                      Expanded(
+                        flex: 12,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          mainAxisSize: MainAxisSize.max,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Flexible(
+                              fit: FlexFit.tight,
+                              child: Padding(
+                                padding: EdgeInsets.all(1 * globals.scaleParam),
+                                child: RichText(
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  text: TextSpan(
+                                    style: TextStyle(
+                                      textBaseline: TextBaseline.alphabetic,
+                                      color: Colors.black,
+                                    ),
+                                    children: [
+                                      TextSpan(
+                                        text: element["name"],
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 30 * globals.scaleParam,
+                                        ),
+                                      ),
+                                      element["country"] != null
+                                          ? WidgetSpan(
+                                              child: Container(
+                                                padding: EdgeInsets.symmetric(horizontal: 4 * globals.scaleParam, vertical: 2 * globals.scaleParam),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.grey.shade200,
+                                                  borderRadius: BorderRadius.all(
+                                                    Radius.circular(10),
+                                                  ),
+                                                ),
+                                                child: Text(
+                                                  element["country"] ?? "",
+                                                  style: TextStyle(
+                                                    color: Colors.black,
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 28 * globals.scaleParam,
+                                                  ),
+                                                ),
+                                              ),
+                                            )
+                                          : TextSpan()
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Flexible(
+                              fit: FlexFit.tight,
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      "${globals.formatCost(element["price"].toString())} ₸ за шт",
+                                      style: TextStyle(
+                                        color: Theme.of(context).colorScheme.secondary.withOpacity(0.2),
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 24 * globals.scaleParam,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Flexible(
+                              fit: FlexFit.tight,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Flexible(
+                                    fit: FlexFit.tight,
+                                    child: Text(
+                                      "${globals.formatCost((element['price'] * element["amount"]).toString())} ₸",
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 32 * globals.scaleParam,
+                                      ),
+                                    ),
+                                  ),
+                                  Flexible(
+                                    fit: FlexFit.tight,
+                                    child: Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 8 * globals.scaleParam),
+                                      child: Text(
+                                        "${element["amount"]} шт",
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 28 * globals.scaleParam,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  // Flexible(
+                                  //   child: LikeButton(
+                                  //     is_liked: element["is_liked"],
+                                  //     item_id: element["item_id"],
+                                  //   ),
+                                  // ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
-                  );
-                },
-                errorWidget: (context, url, error) {
-                  return LayoutBuilder(
-                    builder: (context, constraints) {
-                      return FractionallySizedBox(
-                        heightFactor: 1,
-                        widthFactor: 2 / 4,
-                        child: Image.asset(
-                          'assets/category_icons/no_image_ico.png',
-                          opacity: AlwaysStoppedAnimation(0.5),
+                  ),
+                );
+              },
+            ),
+          ),
+          element["selected_options"] != null
+              ? Padding(
+                  padding: EdgeInsets.only(top: 10 * globals.scaleParam, bottom: 20 * globals.scaleParam),
+                  child: ListView.builder(
+                    primary: false,
+                    physics: NeverScrollableScrollPhysics(),
+                    shrinkWrap: true,
+                    itemCount: element["selected_options"].length,
+                    itemBuilder: (context, index) {
+                      // List _selected_options = [];
+                      // if (cart[index]["selected_options"] != null) {
+                      //   _selected_options = cart[index]["selected_options"];
+                      //   // return SizedBox();
+                      // } else if (options.isEmpty) {
+                      //   _selected_options = [
+                      //     {"name": cart[index]["name"]}
+                      //   ];
+                      // }
+
+                      return Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20 * globals.scaleParam,
+                          vertical: 5 * globals.scaleParam,
+                        ),
+                        decoration: BoxDecoration(
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 3,
+                                offset: Offset(2, 2),
+                              ),
+                            ],
+                            color: Colors.white,
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(20 * globals.scaleParam),
+                            )
+                            // border: Border(
+                            //     top: BorderSide(color: Colors.black12))
+                            ),
+                        margin: EdgeInsets.only(
+                          top: 5 * globals.scaleParam,
+                          bottom: 5 * globals.scaleParam,
+                          left: 100 * globals.scaleParam,
+                          right: 20 * globals.scaleParam,
+                        ),
+                        child: Row(
+                          children: [
+                            Flexible(
+                              fit: FlexFit.tight,
+                              child: Text(
+                                "${element["selected_options"][index]["price"]} ₸",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            Spacer(),
+                            Flexible(
+                              flex: 5,
+                              fit: FlexFit.tight,
+                              child: Text("${element["selected_options"][index]["name"]}"),
+                            ),
+                          ],
                         ),
                       );
                     },
-                  );
-                },
-              ),
-            ),
-            Flexible(
-              flex: 12,
-              fit: FlexFit.tight,
-              child: Padding(
-                padding: EdgeInsets.only(right: 10 * globals.scaleParam),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  mainAxisSize: MainAxisSize.max,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Flexible(
-                      fit: FlexFit.tight,
-                      child: Padding(
-                        padding: EdgeInsets.all(1 * globals.scaleParam),
-                        child: RichText(
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          text: TextSpan(
-                            style: TextStyle(
-                              textBaseline: TextBaseline.alphabetic,
-                              color: Colors.black,
-                            ),
-                            children: [
-                              TextSpan(
-                                text: element["name"],
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 30 * globals.scaleParam,
-                                ),
-                              ),
-                              element["country"] != null
-                                  ? WidgetSpan(
-                                      child: Container(
-                                        padding: EdgeInsets.symmetric(horizontal: 4 * globals.scaleParam, vertical: 2 * globals.scaleParam),
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey.shade200,
-                                          borderRadius: BorderRadius.all(
-                                            Radius.circular(10),
-                                          ),
-                                        ),
-                                        child: Text(
-                                          element["country"] ?? "",
-                                          style: TextStyle(
-                                            color: Colors.black,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 28 * globals.scaleParam,
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                  : TextSpan()
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    Flexible(
-                      fit: FlexFit.tight,
-                      child: Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              "${globals.formatCost(element["price"].toString())} ₸ за шт",
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.secondary.withOpacity(0.2),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 24 * globals.scaleParam,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Flexible(
-                      fit: FlexFit.tight,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Flexible(
-                            fit: FlexFit.tight,
-                            child: Text(
-                              "${globals.formatCost((element['price'] * element["amount"]).toString())} ₸",
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 32 * globals.scaleParam,
-                              ),
-                            ),
-                          ),
-                          Flexible(
-                            fit: FlexFit.tight,
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8 * globals.scaleParam),
-                              child: Text(
-                                "${element["amount"]} шт",
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 28 * globals.scaleParam,
-                                ),
-                              ),
-                            ),
-                          ),
-                          Flexible(
-                            child: LikeButton(
-                              is_liked: element["is_liked"],
-                              item_id: element["item_id"],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+                  ),
+                )
+              : SizedBox(),
+          // Expanded(
+          //   child: element["selected_options"].isEmpty
+          //       ? Container(
+          //           height: 50,
+          //           color: Colors.green,
+          //         )
+          //       : Container(
+          //           height: 50,
+          //           color: Colors.red,
+          //         ),
+          // ),
+        ],
       ),
     );
   }
@@ -2473,7 +2548,10 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
     return AnimatedContainer(
       duration: Duration(milliseconds: 750),
       clipBehavior: Clip.antiAliasWithSaveLayer,
-      margin: EdgeInsets.all(10 * globals.scaleParam),
+      margin: EdgeInsets.symmetric(
+        vertical: 10 * globals.scaleParam,
+        horizontal: 15 * globals.scaleParam,
+      ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.all(
           Radius.circular(30 * globals.scaleParam),
@@ -2488,312 +2566,340 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                 height: 350 * globals.scaleParam,
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    return Row(
-                      children: [
-                        Flexible(
-                          flex: 8,
-                          fit: FlexFit.tight,
-                          child: SizedBox(
-                            height: constraints.maxHeight,
-                            child: Container(
-                              clipBehavior: Clip.antiAlias,
-                              decoration: BoxDecoration(
-                                // color: Colors.red,
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(30 * globals.scaleParam),
+                    return Padding(
+                      padding: EdgeInsets.all(5 * globals.scaleParam),
+                      child: Row(
+                        children: [
+                          Flexible(
+                            flex: 6,
+                            fit: FlexFit.tight,
+                            child: SizedBox(
+                              height: constraints.maxHeight,
+                              child: Container(
+                                clipBehavior: Clip.antiAlias,
+                                decoration: BoxDecoration(
+                                  // color: Colors.red,
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(30 * globals.scaleParam),
+                                  ),
                                 ),
-                              ),
-                              child: ExtendedImage.network(element["img"] ?? "https://upload.wikimedia.org/wikipedia/commons/8/8f/Example_image.svg",
-                                  // height: double.infinity,
+                                child:
+                                    ExtendedImage.network(element["img"] ?? "https://upload.wikimedia.org/wikipedia/commons/8/8f/Example_image.svg",
+                                        // height: double.infinity,
 
-                                  clearMemoryCacheWhenDispose: true,
-                                  enableMemoryCache: true,
-                                  enableLoadState: false,
-                                  fit: BoxFit.contain),
+                                        clearMemoryCacheWhenDispose: true,
+                                        enableMemoryCache: true,
+                                        enableLoadState: false,
+                                        fit: BoxFit.contain),
+                              ),
                             ),
                           ),
-                        ),
-                        Expanded(
-                          flex: 15,
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              left: 10 * globals.scaleParam,
-                              right: 10 * globals.scaleParam,
-                              top: 12 * globals.scaleParam,
-                              // bottom: 10 * globals.scaleParam,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              mainAxisSize: MainAxisSize.max,
-                              children: [
-                                Flexible(
-                                  flex: 7,
-                                  fit: FlexFit.tight,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Flexible(
-                                        fit: FlexFit.tight,
-                                        child: Container(
-                                          alignment: Alignment.topLeft,
-                                          child: Row(
-                                            children: [
-                                              Flexible(
-                                                fit: FlexFit.tight,
-                                                child: Text(
-                                                  element["name"],
-                                                  overflow: TextOverflow.ellipsis,
-                                                  maxLines: 2,
-                                                  style: TextStyle(fontSize: 32 * globals.scaleParam, fontWeight: FontWeight.w600),
-                                                ),
-                                              )
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Flexible(
-                                  flex: 5,
-                                  fit: FlexFit.tight,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          // Automatically sets units of choice
-                                          "В наличии: ${widget.element["unit"] != "шт" ? (element['in_stock'] ?? "") : (element["in_stock"]).round()} ${widget.element["unit"]}",
-                                          style: TextStyle(
-                                            color: Colors.grey,
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 28 * globals.scaleParam,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Flexible(
-                                  flex: 5,
-                                  fit: FlexFit.tight,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          globals.formatCost((element['price'] ?? "").toString()),
-                                          style: TextStyle(
-                                            color: Colors.black,
-                                            fontWeight: FontWeight.w900,
-                                            fontSize: 38 * globals.scaleParam,
-                                          ),
-                                        ),
-                                      ),
-                                      Flexible(
-                                        child: Text(
-                                          "₸",
-                                          textAlign: TextAlign.start,
-                                          style: TextStyle(
-                                            color: Colors.grey.shade600,
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 38 * globals.scaleParam,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Flexible(
-                                  flex: 10,
-                                  fit: FlexFit.tight,
-                                  child: Padding(
-                                    padding: EdgeInsets.only(
-                                      right: 40 * globals.scaleParam,
-                                      bottom: 20 * globals.scaleParam,
-                                    ),
-                                    child: AnimatedCrossFade(
-                                      alignment: Alignment.topRight,
-                                      duration: Durations.medium1,
-                                      crossFadeState: amountInCart == 0 || (amountInCart > 0 && hideButtons) || options.isNotEmpty
-                                          ? CrossFadeState.showFirst
-                                          : CrossFadeState.showSecond,
-                                      firstChild: Row(
-                                        mainAxisAlignment: MainAxisAlignment.end,
-                                        children: [
-                                          Flexible(
-                                            flex: 2,
-                                            fit: FlexFit.tight,
-                                            child: SizedBox(),
-                                          ),
-                                          options.isEmpty
-                                              ? Flexible(
+                          Expanded(
+                            flex: 15,
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                left: 10 * globals.scaleParam,
+                                right: 10 * globals.scaleParam,
+                                top: 12 * globals.scaleParam,
+                                // bottom: 10 * globals.scaleParam,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisSize: MainAxisSize.max,
+                                children: [
+                                  Flexible(
+                                    flex: 6,
+                                    fit: FlexFit.tight,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Flexible(
+                                          fit: FlexFit.tight,
+                                          child: Container(
+                                            alignment: Alignment.topLeft,
+                                            child: Row(
+                                              children: [
+                                                Flexible(
                                                   fit: FlexFit.tight,
-                                                  child: IconButton(
-                                                      style: IconButton.styleFrom(
-                                                        alignment: Alignment.center,
-                                                        // padding: EdgeInsets.all(0),
-                                                        // backgroundColor: amountInCart > 0
-                                                        // ? Colors.amberAccent.shade200
-                                                        //     : Colors.transparent,
-                                                        backgroundColor: Colors.amber,
-                                                      ),
-                                                      highlightColor: canButtonsBeUsed ? Colors.transparent : Colors.transparent,
-                                                      padding: EdgeInsets.all(0),
-                                                      onPressed: canButtonsBeUsed
-                                                          ? () {
-                                                              if (hideButtons && amountInCart > 0) {
-                                                                setState(() {
-                                                                  hideButtons = false;
-                                                                });
-                                                                _hideButtonsAfterTime();
-                                                                return;
-                                                              } else if (hideButtons && amountInCart == 0) {
-                                                                setState(() {
-                                                                  hideButtons = false;
-                                                                });
-                                                                _hideButtonsAfterTime();
-                                                              } else {
-                                                                _hideButtonsAfterTime();
-                                                              }
-                                                              _incrementAmountInCart();
-                                                              setState(
-                                                                () {
-                                                                  canButtonsBeUsed = false;
-                                                                },
-                                                              );
-                                                              Timer(
-                                                                Duration(milliseconds: 300),
-                                                                () {
-                                                                  setState(() {
-                                                                    canButtonsBeUsed = true;
-                                                                  });
-                                                                },
-                                                              );
-                                                            }
-                                                          : () {},
-                                                      icon: Icon(
-                                                        Icons.add_rounded,
-                                                        color: Theme.of(context).colorScheme.onSurface,
-                                                      )),
-                                                )
-                                              : Flexible(
-                                                  fit: FlexFit.tight,
-                                                  child: IconButton(
-                                                    style: IconButton.styleFrom(
-                                                      backgroundColor: Colors.red,
-                                                    ),
-                                                    onPressed: () {
-                                                      showModalBottomSheet(
-                                                        context: context,
-                                                        clipBehavior: Clip.antiAlias,
-                                                        useSafeArea: true,
-                                                        isScrollControlled: true,
-                                                        showDragHandle: false,
-                                                        builder: (context) {
-                                                          // widget.element["amount"] = amountInCart.toString();
-                                                          return ProductPage(
-                                                            item: element,
-                                                            index: widget.index,
-                                                            returnDataAmount: updateCurrentItem,
-                                                            business: widget.business,
-                                                          );
-                                                        },
-                                                      );
-                                                    },
-                                                    icon: Icon(
-                                                      Icons.add_rounded,
-                                                      color: Theme.of(context).colorScheme.onSurface,
+                                                  child: Text(
+                                                    element["name"],
+                                                    overflow: TextOverflow.ellipsis,
+                                                    maxLines: 2,
+                                                    style: TextStyle(
+                                                      fontSize: 32 * globals.scaleParam,
+                                                      fontWeight: FontWeight.w600,
+                                                      height: 1,
                                                     ),
                                                   ),
-                                                ),
-                                        ],
-                                      ),
-                                      secondChild: Row(
-                                        mainAxisAlignment: MainAxisAlignment.end,
-                                        children: [
-                                          Flexible(
-                                            fit: FlexFit.tight,
-                                            child: IconButton(
-                                              padding: EdgeInsets.all(0),
-                                              onPressed: canButtonsBeUsed
-                                                  ? () {
-                                                      _hideButtonsAfterTime();
-                                                      _decrementAmountInCart();
-                                                      if (amountInCart <= 0) {
-                                                        setState(() {
-                                                          canButtonsBeUsed = false;
-                                                        });
-                                                        Timer(
-                                                          Duration(milliseconds: 300),
-                                                          () {
-                                                            setState(() {
-                                                              canButtonsBeUsed = true;
-                                                            });
-                                                          },
-                                                        );
-                                                      }
-                                                    }
-                                                  : null,
-                                              icon: Container(
-                                                child: Icon(
-                                                  Icons.remove_rounded,
-                                                  color: amountInCart > 0
-                                                      ? Theme.of(context).colorScheme.onSurface
-                                                      : Theme.of(context).colorScheme.secondary,
-                                                ),
-                                              ),
+                                                )
+                                              ],
                                             ),
                                           ),
-                                          Flexible(
-                                            fit: FlexFit.tight,
-                                            child: Text(
-                                              "${amountInCart.toString()} ${widget.element["unit"]}", //"${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
-                                              textHeightBehavior: TextHeightBehavior(
-                                                applyHeightToFirstAscent: false,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 36 * globals.scaleParam,
-                                                color: amountInCart != 0 ? Theme.of(context).colorScheme.onSurface : Colors.grey.shade600,
-                                              ),
-                                            ),
-                                          ),
-                                          Flexible(
-                                            fit: FlexFit.tight,
-                                            child: IconButton(
-                                              padding: EdgeInsets.all(0),
-                                              onPressed: canButtonsBeUsed
-                                                  ? () {
-                                                      _incrementAmountInCart();
-                                                      _hideButtonsAfterTime();
-                                                    }
-                                                  : null,
-                                              icon: Container(
-                                                child: Icon(
-                                                  Icons.add_rounded,
-                                                  color: amountInCart < element["in_stock"].truncate()
-                                                      ? Theme.of(context).colorScheme.onSurface
-                                                      : Theme.of(context).colorScheme.secondary,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Flexible(
+                                    flex: 5,
+                                    fit: FlexFit.tight,
+                                    child: Text(
+                                      element["description"],
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 21 * globals.scaleParam,
+                                        height: 1,
                                       ),
                                     ),
                                   ),
-                                )
-                              ],
+                                  Flexible(
+                                    flex: 4,
+                                    fit: FlexFit.tight,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            // Automatically sets units of choice
+                                            "В наличии: ${widget.element["unit"] != "шт" ? (element['in_stock'] ?? "") : (element["in_stock"]).round()} ${widget.element["unit"]}",
+                                            style: TextStyle(
+                                              color: Colors.grey,
+                                              fontWeight: FontWeight.w500,
+                                              fontSize: 28 * globals.scaleParam,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Flexible(
+                                    flex: 4,
+                                    fit: FlexFit.tight,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            globals.formatCost((element['price'] ?? "").toString()),
+                                            style: TextStyle(
+                                              color: Colors.black,
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 38 * globals.scaleParam,
+                                            ),
+                                          ),
+                                        ),
+                                        Flexible(
+                                          child: Text(
+                                            "₸",
+                                            textAlign: TextAlign.start,
+                                            style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 38 * globals.scaleParam,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Flexible(
+                                    flex: 9,
+                                    fit: FlexFit.tight,
+                                    child: Padding(
+                                      padding: EdgeInsets.only(
+                                        right: 30 * globals.scaleParam,
+                                        bottom: 10 * globals.scaleParam,
+                                      ),
+                                      child: AnimatedCrossFade(
+                                        alignment: Alignment.topRight,
+                                        duration: Durations.medium1,
+                                        crossFadeState: amountInCart == 0 || (amountInCart > 0 && hideButtons) || options.isNotEmpty
+                                            ? CrossFadeState.showFirst
+                                            : CrossFadeState.showSecond,
+                                        firstChild: Row(
+                                          mainAxisAlignment: MainAxisAlignment.end,
+                                          children: [
+                                            Flexible(
+                                              flex: 2,
+                                              fit: FlexFit.tight,
+                                              child: SizedBox(),
+                                            ),
+                                            options.isEmpty
+                                                ? Flexible(
+                                                    fit: FlexFit.tight,
+                                                    child: IconButton(
+                                                        style: IconButton.styleFrom(
+                                                          alignment: Alignment.center,
+                                                          // padding: EdgeInsets.all(0),
+                                                          // backgroundColor: amountInCart > 0
+                                                          // ? Colors.amberAccent.shade200
+                                                          //     : Colors.transparent,
+                                                          // backgroundColor: Colors.amber,
+                                                        ),
+                                                        highlightColor: canButtonsBeUsed ? Colors.transparent : Colors.transparent,
+                                                        padding: EdgeInsets.zero,
+                                                        onPressed: canButtonsBeUsed
+                                                            ? () {
+                                                                if (hideButtons && amountInCart > 0) {
+                                                                  setState(() {
+                                                                    hideButtons = false;
+                                                                  });
+                                                                  _hideButtonsAfterTime();
+                                                                  return;
+                                                                } else if (hideButtons && amountInCart == 0) {
+                                                                  setState(() {
+                                                                    hideButtons = false;
+                                                                  });
+                                                                  _hideButtonsAfterTime();
+                                                                } else {
+                                                                  _hideButtonsAfterTime();
+                                                                }
+                                                                _incrementAmountInCart();
+                                                                setState(
+                                                                  () {
+                                                                    canButtonsBeUsed = false;
+                                                                  },
+                                                                );
+                                                                Timer(
+                                                                  Duration(milliseconds: 300),
+                                                                  () {
+                                                                    setState(() {
+                                                                      canButtonsBeUsed = true;
+                                                                    });
+                                                                  },
+                                                                );
+                                                              }
+                                                            : () {},
+                                                        icon: Icon(
+                                                          Icons.add_rounded,
+                                                          color: Theme.of(context).colorScheme.onSurface,
+                                                          size: 70 * globals.scaleParam,
+                                                        )),
+                                                  )
+                                                : Flexible(
+                                                    fit: FlexFit.tight,
+                                                    child: IconButton(
+                                                      padding: EdgeInsets.zero,
+                                                      style: IconButton.styleFrom(
+                                                          // backgroundColor: Colors.red,
+                                                          ),
+                                                      onPressed: () {
+                                                        showModalBottomSheet(
+                                                          context: context,
+                                                          clipBehavior: Clip.antiAlias,
+                                                          useSafeArea: true,
+                                                          isScrollControlled: true,
+                                                          showDragHandle: false,
+                                                          builder: (context) {
+                                                            // widget.element["amount"] = amountInCart.toString();
+                                                            return ProductPage(
+                                                              item: element,
+                                                              index: widget.index,
+                                                              returnDataAmount: updateCurrentItem,
+                                                              business: widget.business,
+                                                            );
+                                                          },
+                                                        );
+                                                      },
+                                                      icon: Icon(
+                                                        Icons.edit_note_rounded,
+                                                        color: Theme.of(context).colorScheme.onSurface,
+                                                        size: 70 * globals.scaleParam,
+                                                      ),
+                                                    ),
+                                                  ),
+                                          ],
+                                        ),
+                                        secondChild: Row(
+                                          mainAxisAlignment: MainAxisAlignment.end,
+                                          children: [
+                                            Flexible(
+                                              fit: FlexFit.tight,
+                                              child: IconButton(
+                                                padding: EdgeInsets.zero,
+                                                onPressed: canButtonsBeUsed
+                                                    ? () {
+                                                        _hideButtonsAfterTime();
+                                                        _decrementAmountInCart();
+                                                        if (amountInCart <= 0) {
+                                                          setState(() {
+                                                            canButtonsBeUsed = false;
+                                                          });
+                                                          Timer(
+                                                            Duration(milliseconds: 300),
+                                                            () {
+                                                              setState(() {
+                                                                canButtonsBeUsed = true;
+                                                              });
+                                                            },
+                                                          );
+                                                        }
+                                                      }
+                                                    : null,
+                                                icon: Container(
+                                                  child: Icon(
+                                                    Icons.remove_rounded,
+                                                    color: amountInCart > 0
+                                                        ? Theme.of(context).colorScheme.onSurface
+                                                        : Theme.of(context).colorScheme.secondary,
+                                                    size: 70 * globals.scaleParam,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            Flexible(
+                                              fit: FlexFit.tight,
+                                              child: Text(
+                                                "${amountInCart.toString()} ${widget.element["unit"]}", //"${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
+                                                textHeightBehavior: TextHeightBehavior(
+                                                  applyHeightToFirstAscent: false,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 36 * globals.scaleParam,
+                                                  color: amountInCart != 0 ? Theme.of(context).colorScheme.onSurface : Colors.grey.shade600,
+                                                ),
+                                              ),
+                                            ),
+                                            Flexible(
+                                              fit: FlexFit.tight,
+                                              child: IconButton(
+                                                padding: EdgeInsets.zero,
+                                                onPressed: canButtonsBeUsed
+                                                    ? () {
+                                                        _incrementAmountInCart();
+                                                        _hideButtonsAfterTime();
+                                                      }
+                                                    : null,
+                                                icon: Container(
+                                                  child: Icon(
+                                                    Icons.add_rounded,
+                                                    color: amountInCart < element["in_stock"].truncate()
+                                                        ? Theme.of(context).colorScheme.onSurface
+                                                        : Theme.of(context).colorScheme.secondary,
+                                                    size: 70 * globals.scaleParam,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     );
                   },
                 ),
@@ -2809,6 +2915,10 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                         if (cart[index]["selected_options"] != null) {
                           _selected_options = cart[index]["selected_options"];
                           // return SizedBox();
+                        } else if (options.isEmpty) {
+                          _selected_options = [
+                            {"name": cart[index]["name"]}
+                          ];
                         }
 
                         return GestureDetector(
