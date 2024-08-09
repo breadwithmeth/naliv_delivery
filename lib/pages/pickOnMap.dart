@@ -257,8 +257,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
         child: Column(
           children: [
             Flexible(
-              flex: 32,
-              fit: FlexFit.tight,
+              flex: 15,
+              fit: FlexFit.loose,
               child: Stack(
                 children: [
                   FlutterMap(
@@ -355,7 +355,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
               ),
             ),
             Flexible(
-              flex: MediaQuery.sizeOf(context).height > 400 ? 15 : 28,
+              flex: MediaQuery.sizeOf(context).height > 400 ? 9 : 12,
               fit: FlexFit.tight,
               child: Container(
                 padding: EdgeInsets.symmetric(
@@ -366,10 +366,9 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                         child: CircularProgressIndicator.adaptive(),
                       )
                     : Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.start,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Spacer(),
                           Flexible(
                             flex: 10,
                             fit: FlexFit.tight,
@@ -377,6 +376,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                               padding: EdgeInsets.symmetric(
                                   vertical: 5 * globals.scaleParam),
                               child: Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
                                 children: [
                                   Flexible(
                                     fit: FlexFit.tight,
@@ -385,18 +385,32 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                         Flexible(
                                           fit: FlexFit.tight,
                                           child: Text(
-                                            "Выберите адрес",
+                                            "Текущий адрес",
                                             maxLines: 1,
                                             style: TextStyle(
-                                              fontWeight: FontWeight.w900,
-                                              fontSize: 42 * globals.scaleParam,
-                                              height: 2 * globals.scaleParam,
-                                            ),
+                                                fontWeight: FontWeight.w900,
+                                                fontSize:
+                                                    42 * globals.scaleParam,
+                                                height: 2 * globals.scaleParam,
+                                                color: Colors.grey),
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
+                                  Flexible(
+                                      child: Row(
+                                    children: [
+                                      Text(
+                                        _currentAddressName ?? "Нет адреса",
+                                        textAlign: TextAlign.start,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 42 * globals.scaleParam,
+                                        ),
+                                      )
+                                    ],
+                                  )),
                                   Flexible(
                                     fit: FlexFit.tight,
                                     child: Row(
@@ -404,7 +418,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                         Flexible(
                                           fit: FlexFit.tight,
                                           child: Text(
-                                            "Ваш адрес",
+                                            "Поиск",
                                             style: TextStyle(
                                               fontWeight: FontWeight.w700,
                                               fontSize: 24 * globals.scaleParam,
@@ -473,7 +487,9 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                                                         color: Colors
                                                                             .white,
                                                                         shadowColor:
-                                                                            Colors.black,
+                                                                            Colors.black12,
+                                                                        borderRadius:
+                                                                            BorderRadius.all(Radius.circular(15)),
                                                                         elevation:
                                                                             10,
                                                                         child:
@@ -551,15 +567,12 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                       ],
                                     ),
                                   ),
-                                  Divider(
-                                    height: 15 * globals.scaleParam,
-                                  ),
                                 ],
                               ),
                             ),
                           ),
                           Flexible(
-                            flex: 4,
+                            flex: 3,
                             fit: FlexFit.tight,
                             child: GestureDetector(
                               onTap: () {
@@ -580,8 +593,10 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                 );
                               },
                               child: Container(
-                                padding:
-                                    EdgeInsets.all(15 * globals.scaleParam),
+                                padding: EdgeInsets.only(
+                                    left: 15 * globals.scaleParam,
+                                    right: 15 * globals.scaleParam,
+                                    bottom: 15 * globals.scaleParam),
                                 decoration: BoxDecoration(
                                     color: globals.mainColor,
                                     borderRadius: const BorderRadius.all(
