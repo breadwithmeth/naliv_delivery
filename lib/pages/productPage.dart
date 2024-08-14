@@ -175,61 +175,8 @@ class _ProductPageState extends State<ProductPage> {
             });
             print("asdasd");
           }
-          // setState(() {
-          //   newCart = value;
-          //   // List newOptions = [];
-          //   // for (Map selection in options) {
-          //   //   if (selection["selection"] == "SINGLE") {
-          //   //     newOptions.add(
-          //   //       selection["options"].firstWhere(
-          //   //         (element) => element["relation_id"] == selection["selected_relation_id"],
-          //   //         orElse: () => null,
-          //   //       ),
-          //   //     );
-          //   //   } else {
-          //   //     for (int selected_relation_id in selection["selected_relation_id"]) {
-          //   //       newOptions.add(
-          //   //         selection["options"].firstWhere(
-          //   //           (element) => element["relation_id"] == selected_relation_id,
-          //   //           orElse: () => null,
-          //   //         ),
-          //   //       );
-          //   //     }
-          //   //   }
-          //   // }
-          //   // newCartItem["selected_options"] = newOptions;
-          // });
           widget.returnDataAmount!(newCart);
         }
-        // // print(value);
-        // if (value != null) {
-        //   if (mounted) {
-        //     setState(() {
-        //       actualCartAmount = int.parse(value);
-        //     });
-        //   } else {
-        //     actualCartAmount = int.parse(value);
-        //   }
-        // } else {
-        //   if (mounted) {
-        //     setState(() {
-        //       actualCartAmount = 0;
-        //     });
-        //   } else {
-        //     actualCartAmount = 0;
-        //   }
-        // }
-        // if (mounted) {
-        //   setState(() {
-        //     isLastServerCallWasSucceed = true;
-        //   });
-        //   getBuyButtonCurrentActionText();
-        // }
-        // // print("TRIGGERED WIDGET.RETURNDATAAMOUNT!");
-        // widget.returnDataAmount!(actualCartAmount, widget.index);
-        // if (widget.cartPageExclusiveCallbackFunc != null) {
-        //   widget.cartPageExclusiveCallbackFunc!(widget.index, actualCartAmount);
-        // }
       },
     );
     // ).onError(

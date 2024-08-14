@@ -341,8 +341,10 @@ Future<List?> changeCartItem(dynamic itemId, int amount, String businessId, {Lis
     if (option["selection"] == "SINGLE") {
       options_selected_ids.add(option["selected_relation_id"]);
     } else {
-      for (int selected_id in option["selected_relation_id"]) {
-        options_selected_ids.add(selected_id);
+      if (option["selected_relation_id"] != null) {
+        for (int selected_id in option["selected_relation_id"]) {
+          options_selected_ids.add(selected_id);
+        }
       }
     }
   }
@@ -366,11 +368,13 @@ Future<List?> changeCartItem(dynamic itemId, int amount, String businessId, {Lis
     );
   }
 
-  List? data;
+  List? data = [];
   if (jsonDecode(response.body) == null && response.body == "[]") {
     data = [];
   } else {
-    data = jsonDecode(response.body)["cart"];
+    if (jsonDecode(response.body)["cart"] != null) {
+      data = jsonDecode(response.body)["cart"];
+    }
     // if (jsonDecode(response.body) is Map) {
     //   data = [jsonDecode(response.body)];
     //   data[0]["amount"] = 0;

@@ -2495,12 +2495,54 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
       print("OPTIONS TEST");
     }
     for (Map itemOption in itemOptions) {
-      selectedOptions.add(Text(
-        itemOption["name"],
-        style: TextStyle(fontSize: 24 * globals.scaleParam, fontWeight: FontWeight.w800),
-      ));
+      if (itemOption["name"] != null) {
+        selectedOptions.add(Text(
+          itemOption["name"],
+          style: TextStyle(fontSize: 24 * globals.scaleParam, fontWeight: FontWeight.w800),
+        ));
+      }
     }
     return selectedOptions;
+  }
+
+  Map<String, dynamic> _getElementWithSelectedItemsByIndex(int index) {
+    Map<String, dynamic> cartItemElement = element;
+    if (cartItemElement["options"] != null) {
+      for (Map option in cartItemElement["options"]) {
+        if (option["selection"] == "SINGLE") {
+          option["selected_relation_id"] = null;
+        } else {
+          option["selected_relation_id"] = [];
+        }
+      }
+      for (Map cartOption in cartItemElement["cart"][index]["selected_options"]) {
+        for (Map option in cartItemElement["options"]) {
+          for (Map optionData in option["options"]) {
+            if (optionData["relation_id"] == cartOption["relation_id"]) {
+              if (option["selection"] == "SINGLE") {
+                option["selected_relation_id"] = optionData["relation_id"];
+              } else {
+                if (option["selected_relation_id"] == null) {
+                  option["selected_relation_id"] = [];
+                }
+                option["selected_relation_id"].add(optionData["relation_id"]);
+              }
+            }
+          }
+        }
+      }
+    } else {
+      if (cartItemElement["cart"] != null) {
+        if (cartItemElement["cart"].isNotEmpty) {
+          cartItemElement["cart"][0]["amount"] = amountInCart;
+        }
+      } else {
+        cartItemElement["cart"] = [
+          {"amount": amountInCart, "name": cartItemElement["name"]}
+        ];
+      }
+    }
+    return cartItemElement;
   }
 
   @override
@@ -2517,16 +2559,19 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
     setState(() {
       element = widget.element;
       // amountInCart = int.parse(element["amount"] ?? "0");
+      options = widget.element["options"] ?? [];
       if (widget.element["cart"] != null) {
         cart = widget.element["cart"];
         amountInCart = element["cart"][0]["amount"];
+        if (options.isEmpty) {
+          element["cart"][0]["name"] = element["name"];
+        }
         previousAmount = amountInCart;
       } else {
         cart = [];
         amountInCart = 0;
         previousAmount = amountInCart;
       }
-      options = widget.element["options"] ?? [];
     });
   }
 
@@ -2583,14 +2628,25 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                     Radius.circular(30 * globals.scaleParam),
                                   ),
                                 ),
-                                child:
-                                    ExtendedImage.network(element["img"] ?? "https://upload.wikimedia.org/wikipedia/commons/8/8f/Example_image.svg",
+                                child: element["img"] != null
+                                    ? ExtendedImage.network(
+                                        element["img"],
                                         // height: double.infinity,
 
                                         clearMemoryCacheWhenDispose: true,
                                         enableMemoryCache: true,
                                         enableLoadState: false,
-                                        fit: BoxFit.contain),
+                                        fit: BoxFit.contain,
+                                      )
+                                    : ExtendedImage.asset(
+                                        "assets/category_items/no_image_ico.png",
+                                        // height: double.infinity,
+
+                                        clearMemoryCacheWhenDispose: true,
+                                        enableMemoryCache: true,
+                                        enableLoadState: false,
+                                        fit: BoxFit.contain,
+                                      ),
                               ),
                             ),
                           ),
@@ -2932,32 +2988,10 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                               showDragHandle: false,
                               builder: (context) {
                                 // widget.element["amount"] = amountInCart.toString();
-                                Map<String, dynamic> cartItemElement = element;
-                                for (Map option in cartItemElement["options"]) {
-                                  if (option["selection"] == "SINGLE") {
-                                    option["selected_relation_id"] = null;
-                                  } else {
-                                    option["selected_relation_id"] = [];
-                                  }
-                                }
-                                for (Map cartOption in cartItemElement["cart"][index]["selected_options"])
-                                  for (Map option in cartItemElement["options"]) {
-                                    for (Map optionData in option["options"]) {
-                                      if (optionData["relation_id"] == cartOption["relation_id"]) {
-                                        if (option["selection"] == "SINGLE") {
-                                          option["selected_relation_id"] = optionData["relation_id"];
-                                        } else {
-                                          if (option["selected_relation_id"] == null) {
-                                            option["selected_relation_id"] = [];
-                                          }
-                                          option["selected_relation_id"].add(optionData["relation_id"]);
-                                        }
-                                      }
-                                    }
-                                  }
+
                                 // cartItemElement["options"] = element["cart"]["index"]
                                 return ProductPage(
-                                  item: cartItemElement,
+                                  item: _getElementWithSelectedItemsByIndex(index),
                                   index: widget.index,
                                   returnDataAmount: updateCurrentItem,
                                   business: widget.business,
@@ -2968,7 +3002,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                             );
                           },
                           child: Container(
-                            padding: EdgeInsets.all(20 * globals.scaleParam),
+                            padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
                             decoration: BoxDecoration(
                                 boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 3, offset: Offset(2, 2))],
                                 color: Colors.white,
@@ -2978,18 +3012,138 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                 ),
                             margin: EdgeInsets.symmetric(vertical: 5, horizontal: 20 * globals.scaleParam),
                             child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Flexible(
-                                    child: Text(
-                                  cart[index]["amount"].toString() + "x",
-                                  style: TextStyle(fontWeight: FontWeight.w900),
-                                )),
+                                  flex: 2,
+                                  fit: FlexFit.tight,
+                                  child: Text(
+                                    cart[index]["amount"].toString() + "x",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(fontWeight: FontWeight.w900),
+                                  ),
+                                ),
                                 Spacer(),
                                 Expanded(
-                                  flex: 9,
+                                  flex: 10,
                                   child: Wrap(
                                     spacing: 10,
                                     children: _getCartOptions(_selected_options),
+                                  ),
+                                ),
+                                Flexible(
+                                  flex: 2,
+                                  fit: FlexFit.tight,
+                                  child: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    icon: Icon(Icons.delete_forever_rounded),
+                                    onPressed: () {
+                                      showModalBottomSheet(
+                                        backgroundColor: Theme.of(context).colorScheme.surface,
+                                        context: context,
+                                        builder: (context) {
+                                          return SizedBox(
+                                            // decoration: BoxDecoration(
+                                            //   color: Theme.of(context).colorScheme.surface,
+                                            //   borderRadius: BorderRadius.all(Radius.circular(20)),
+                                            // ),
+                                            width: MediaQuery.sizeOf(context).width,
+                                            height: MediaQuery.sizeOf(context).height * 0.35,
+                                            child: Padding(
+                                              padding: EdgeInsets.symmetric(vertical: 35 * globals.scaleParam),
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  Flexible(
+                                                    fit: FlexFit.tight,
+                                                    child: Center(
+                                                      child: Text(
+                                                        "Убрать товар из корзины?",
+                                                        style: TextStyle(
+                                                          fontSize: 52 * globals.scaleParam,
+                                                          fontWeight: FontWeight.w900,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  Flexible(
+                                                    flex: 2,
+                                                    fit: FlexFit.tight,
+                                                    child: Row(
+                                                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                                      children: [
+                                                        Flexible(
+                                                          child: IconButton(
+                                                            style: IconButton.styleFrom(
+                                                              backgroundColor: Colors.tealAccent.shade700,
+                                                              padding: EdgeInsets.all(
+                                                                20 * globals.scaleParam,
+                                                              ),
+                                                            ),
+                                                            onPressed: () async {
+                                                              await changeCartItem(element["item_id"], 0, widget.business["business_id"],
+                                                                      options: _getElementWithSelectedItemsByIndex(index)["options"] ?? [])
+                                                                  .then(
+                                                                (value) {
+                                                                  List newCart = [];
+                                                                  if (value != null) {
+                                                                    if (options.isEmpty) {
+                                                                      setState(() {
+                                                                        newCart = [
+                                                                          value.firstWhere(
+                                                                            (el) => el["item_id"] == element["item_id"],
+                                                                            orElse: () => [],
+                                                                          )
+                                                                        ];
+                                                                      });
+                                                                    } else {
+                                                                      setState(() {
+                                                                        newCart = value.where((el) => el["item_id"] == element["item_id"]).toList();
+                                                                      });
+                                                                      print("asdasd");
+                                                                    }
+                                                                    updateCurrentItem(newCart);
+                                                                  }
+                                                                  Navigator.pop(context);
+                                                                },
+                                                              );
+                                                            },
+                                                            icon: Icon(
+                                                              Icons.done_sharp,
+                                                              size: 110 * globals.scaleParam,
+                                                              color: Colors.white,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        Flexible(
+                                                          child: IconButton(
+                                                            style: IconButton.styleFrom(
+                                                              backgroundColor: Colors.redAccent.shade700,
+                                                              padding: EdgeInsets.all(
+                                                                20 * globals.scaleParam,
+                                                              ),
+                                                            ),
+                                                            onPressed: () {
+                                                              Navigator.pop(context);
+                                                            },
+                                                            icon: Icon(
+                                                              Icons.close_sharp,
+                                                              size: 110 * globals.scaleParam,
+                                                              color: Colors.white,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    },
                                   ),
                                 ),
                               ],
