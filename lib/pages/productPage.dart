@@ -35,7 +35,6 @@ class _ProductPageState extends State<ProductPage> {
   late Map<String, dynamic> item = widget.item;
   List<Widget> groupItems = [];
   List<TableRow> properties = [];
-  bool isRequired = false;
   List<Widget> propertiesWidget = [];
 
   int currentTab = 0;
@@ -66,7 +65,7 @@ class _ProductPageState extends State<ProductPage> {
   bool isLastServerCallWasSucceed = false;
   bool isRequiredSelected = false;
 
-  Map<String, String> buyButtonActionTextMap = {"add": "Добавить", "remove": "Убрать всё", "update": "Обновить заказ", "loading": "Загружаю.."};
+  Map<String, String> buyButtonActionTextMap = {"add": "Добавить", "remove": "Убрать всё", "update": "Обновить", "loading": "Загружаю.."};
   late String buyButtonActionText;
   late Color buyButtonActionColor;
   double inStock = 0.0;
@@ -114,15 +113,6 @@ class _ProductPageState extends State<ProductPage> {
     setState(() {
       options = widget.item["options"];
     });
-    if (options.isEmpty) {
-      setState(() {
-        isRequired = false;
-      });
-    } else {
-      setState(() {
-        isRequired = true;
-      });
-    }
     print("HELLO");
 
     if (widget.dontClearOptions) {
@@ -168,6 +158,11 @@ class _ProductPageState extends State<ProductPage> {
                   orElse: () => [],
                 )
               ];
+              if (newCart[0].isEmpty) {
+                actualCartAmount = 0;
+              } else {
+                actualCartAmount = newCart[0]["amount"];
+              }
             });
           } else {
             setState(() {
@@ -176,6 +171,10 @@ class _ProductPageState extends State<ProductPage> {
             print("asdasd");
           }
           widget.returnDataAmount!(newCart);
+          getBuyButtonCurrentActionText();
+          if (options.isNotEmpty) {
+            Navigator.pop(context);
+          }
         }
       },
     );
@@ -219,57 +218,36 @@ class _ProductPageState extends State<ProductPage> {
   void getBuyButtonCurrentActionText() {
     if (actualCartAmount == 0) {
       setState(() {
-        buyButtonActionText = buyButtonActionTextMap["add"]!;
+        buyButtonActionText = "${buyButtonActionTextMap["add"]!} ${globals.formatCost((amountInCart * item["price"]).toString())} ₸";
         buyButtonActionColor = Colors.black;
       });
-    } else if (isRequired && isRequiredSelected && amountInCart > 0) {
+    } else if ((amountInCart > 0) && (actualCartAmount != amountInCart)) {
       setState(() {
-        buyButtonActionText = buyButtonActionTextMap["update"]!;
+        buyButtonActionText = "${buyButtonActionTextMap["update"]!} ${globals.formatCost((amountInCart * item["price"]).toString())} ₸";
         buyButtonActionColor = Colors.blueGrey;
       });
-    } else if (actualCartAmount == amountInCart || amountInCart == 0) {
+    } else if ((actualCartAmount == amountInCart || amountInCart == 0) && (options.isEmpty)) {
       setState(() {
         buyButtonActionText = buyButtonActionTextMap["remove"]!;
         buyButtonActionColor = Colors.red;
       });
     } else {
       setState(() {
-        buyButtonActionText = buyButtonActionTextMap["update"]!;
+        buyButtonActionText = "${buyButtonActionTextMap["update"]!} ${globals.formatCost((amountInCart * item["price"]).toString())} ₸";
         buyButtonActionColor = Colors.blueGrey;
       });
     }
   }
-// if (isRequired && isRequiredSelected && amountInCart > 0)
   // BUTTON VARIABLES/FUNCS END
 
   @override
   void initState() {
     super.initState();
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   setState(() {
-    //     isOptionsLoaded = false;
-    //   });
-    //   _getItem().then((value) {
-    //     initOptionSelector();
-    //     setState(
-    //       () {
-    //         if (options.isNotEmpty || widget.item["cart"] == null) {
-    //           amountInCart = 0;
-    //         } else {
-    //           amountInCart = widget.item["cart"][0]["amount"] ?? 0;
-    //           actualCartAmount = amountInCart;
-    //         }
-    //         if (widget.item["in_stock"] != null) {
-    //           inStock = widget.item["in_stock"];
-    //         } else {
-    //           inStock = 0.0;
-    //         }
-    //         isOptionsLoaded = true;
-    //       },
-    //     );
-    //   });
-    // });
     if (widget.item["options"] != null) {
+      setState(() {
+        amountInCart = widget.item["amount"] ?? 0;
+        actualCartAmount = amountInCart;
+      });
       initOptionSelector();
     } else {
       // amountInCart = widget.item["cart"].firstWhere((el) => el["item_id"] == widget.item["item_id"])["amount"];
@@ -277,6 +255,7 @@ class _ProductPageState extends State<ProductPage> {
         if (widget.item["cart"].isNotEmpty) {
           setState(() {
             amountInCart = widget.item["cart"][0]["amount"];
+            actualCartAmount = amountInCart;
           });
         }
       }
@@ -356,7 +335,7 @@ class _ProductPageState extends State<ProductPage> {
         position: AlwaysStoppedAnimation(Offset(0, -0.25)),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            if (isRequired && !isRequiredSelected && amountInCart == 0) {
+            if (options.isNotEmpty && !isRequiredSelected && amountInCart == 0) {
               return Container(
                 decoration: BoxDecoration(
                     color: Colors.black,
@@ -607,7 +586,7 @@ class _ProductPageState extends State<ProductPage> {
                               children: [
                                 Flexible(
                                   child: Text(
-                                    "${item["in_stock"]} ${item["unit"]} в наличии",
+                                    "${item["unit"] != "шт" ? (item['in_stock'] ?? "") : (item["in_stock"]).round()} ${item["unit"]} в наличии",
                                     style: TextStyle(
                                       fontSize: 28 * globals.scaleParam,
                                       fontWeight: FontWeight.w700,

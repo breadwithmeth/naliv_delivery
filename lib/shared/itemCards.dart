@@ -2506,43 +2506,80 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
   }
 
   Map<String, dynamic> _getElementWithSelectedItemsByIndex(int index) {
-    Map<String, dynamic> cartItemElement = element;
-    if (cartItemElement["options"] != null) {
-      for (Map option in cartItemElement["options"]) {
-        if (option["selection"] == "SINGLE") {
-          option["selected_relation_id"] = null;
-        } else {
-          option["selected_relation_id"] = [];
-        }
+    Map<String, dynamic> cartItemElement = Map<String, dynamic>.from(element);
+
+    void resetSelectedOptions(Map<dynamic, dynamic> option) {
+      if (option["selection"] == "SINGLE") {
+        option["selected_relation_id"] = null;
+      } else {
+        option["selected_relation_id"] = [];
       }
-      for (Map cartOption in cartItemElement["cart"][index]["selected_options"]) {
-        for (Map option in cartItemElement["options"]) {
-          for (Map optionData in option["options"]) {
-            if (optionData["relation_id"] == cartOption["relation_id"]) {
-              if (option["selection"] == "SINGLE") {
-                option["selected_relation_id"] = optionData["relation_id"];
-              } else {
-                if (option["selected_relation_id"] == null) {
-                  option["selected_relation_id"] = [];
-                }
-                option["selected_relation_id"].add(optionData["relation_id"]);
-              }
-            }
+    }
+
+    void updateSelectedOptions(Map<dynamic, dynamic> cartOption, Map<dynamic, dynamic> option) {
+      for (Map optionData in option["options"]) {
+        if (optionData["relation_id"] == cartOption["relation_id"]) {
+          if (option["selection"] == "SINGLE") {
+            option["selected_relation_id"] = optionData["relation_id"];
+          } else {
+            option["selected_relation_id"]?.add(optionData["relation_id"]);
           }
         }
       }
-    } else {
-      if (cartItemElement["cart"] != null) {
-        if (cartItemElement["cart"].isNotEmpty) {
-          cartItemElement["cart"][0]["amount"] = amountInCart;
+    }
+
+    void processOptions() {
+      if (cartItemElement["options"] != null) {
+        for (Map option in cartItemElement["options"]) {
+          resetSelectedOptions(option);
         }
+
+        for (Map cartOption in cartItemElement["cart"][index]["selected_options"]) {
+          for (Map option in cartItemElement["options"]) {
+            updateSelectedOptions(cartOption, option);
+          }
+        }
+      }
+    }
+
+    void processCart() {
+      if (cartItemElement["cart"] != null && cartItemElement["cart"].isNotEmpty) {
+        cartItemElement["cart"][0]["amount"] = amountInCart;
+        cartItemElement["amount"] = amountInCart;
       } else {
         cartItemElement["cart"] = [
           {"amount": amountInCart, "name": cartItemElement["name"]}
         ];
+        cartItemElement["amount"] = amountInCart;
       }
     }
+
+    processOptions();
+    processCart();
+
     return cartItemElement;
+  }
+
+  void showModalProductPageWithClearedState() {
+    // Map<String, dynamic> newElement = Map<String, dynamic>.from(element);
+    // newElement["amount"] = 0;
+    // newElement["cart"] = [];
+    showModalBottomSheet(
+      context: context,
+      clipBehavior: Clip.antiAlias,
+      useSafeArea: true,
+      isScrollControlled: true,
+      showDragHandle: false,
+      builder: (context) {
+        // widget.element["amount"] = amountInCart.toString();
+        return ProductPage(
+          item: element,
+          index: widget.index,
+          returnDataAmount: updateCurrentItem,
+          business: widget.business,
+        );
+      },
+    );
   }
 
   @override
@@ -2561,12 +2598,14 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
       // amountInCart = int.parse(element["amount"] ?? "0");
       options = widget.element["options"] ?? [];
       if (widget.element["cart"] != null) {
-        cart = widget.element["cart"];
-        amountInCart = element["cart"][0]["amount"];
-        if (options.isEmpty) {
-          element["cart"][0]["name"] = element["name"];
+        if (widget.element["cart"].isNotEmpty) {
+          cart = widget.element["cart"];
+          amountInCart = element["cart"][0]["amount"] ?? 0;
+          if (options.isEmpty) {
+            element["cart"][0]["name"] = element["name"];
+          }
+          previousAmount = amountInCart;
         }
-        previousAmount = amountInCart;
       } else {
         cart = [];
         amountInCart = 0;
@@ -2590,8 +2629,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: Duration(milliseconds: 750),
+    return Container(
       clipBehavior: Clip.antiAliasWithSaveLayer,
       margin: EdgeInsets.symmetric(
         vertical: 10 * globals.scaleParam,
@@ -2833,9 +2871,9 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                                               }
                                                             : () {},
                                                         icon: Icon(
-                                                          Icons.add_rounded,
+                                                          cart.isEmpty ? Icons.add_rounded : Icons.edit,
                                                           color: Theme.of(context).colorScheme.onSurface,
-                                                          size: 70 * globals.scaleParam,
+                                                          size: cart.isEmpty ? 70 * globals.scaleParam : 60 * globals.scaleParam,
                                                         )),
                                                   )
                                                 : Flexible(
@@ -2846,27 +2884,28 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                                           // backgroundColor: Colors.red,
                                                           ),
                                                       onPressed: () {
-                                                        showModalBottomSheet(
-                                                          context: context,
-                                                          clipBehavior: Clip.antiAlias,
-                                                          useSafeArea: true,
-                                                          isScrollControlled: true,
-                                                          showDragHandle: false,
-                                                          builder: (context) {
-                                                            // widget.element["amount"] = amountInCart.toString();
-                                                            return ProductPage(
-                                                              item: element,
-                                                              index: widget.index,
-                                                              returnDataAmount: updateCurrentItem,
-                                                              business: widget.business,
-                                                            );
-                                                          },
-                                                        );
+                                                        showModalProductPageWithClearedState();
+                                                        // showModalBottomSheet(
+                                                        //   context: context,
+                                                        //   clipBehavior: Clip.antiAlias,
+                                                        //   useSafeArea: true,
+                                                        //   isScrollControlled: true,
+                                                        //   showDragHandle: false,
+                                                        //   builder: (context) {
+                                                        //     // widget.element["amount"] = amountInCart.toString();
+                                                        //     return ProductPage(
+                                                        //       item: element,
+                                                        //       index: widget.index,
+                                                        //       returnDataAmount: updateCurrentItem,
+                                                        //       business: widget.business,
+                                                        //     );
+                                                        //   },
+                                                        // );
                                                       },
                                                       icon: Icon(
                                                         Icons.edit_note_rounded,
                                                         color: Theme.of(context).colorScheme.onSurface,
-                                                        size: 70 * globals.scaleParam,
+                                                        size: 80 * globals.scaleParam,
                                                       ),
                                                     ),
                                                   ),
@@ -2961,196 +3000,205 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                 ),
               ),
               cart.isNotEmpty
-                  ? ListView.builder(
-                      primary: false,
-                      physics: NeverScrollableScrollPhysics(),
-                      shrinkWrap: true,
-                      itemCount: cart.length,
-                      itemBuilder: (context, index) {
-                        List _selected_options = [];
-                        if (cart[index]["selected_options"] != null) {
-                          _selected_options = cart[index]["selected_options"];
-                          // return SizedBox();
-                        } else if (options.isEmpty) {
-                          _selected_options = [
-                            {"name": cart[index]["name"]}
-                          ];
-                        }
+                  ? AnimatedSize(
+                      duration: Duration(milliseconds: 800),
+                      curve: Curves.easeInOut,
+                      key: UniqueKey(),
+                      child: Container(
+                        key: UniqueKey(),
+                        child: ListView.builder(
+                          primary: false,
+                          physics: NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          itemCount: cart.length,
+                          itemBuilder: (context, index) {
+                            List selected_options = [];
+                            if (cart[index]["selected_options"] != null) {
+                              selected_options = cart[index]["selected_options"];
+                              // return SizedBox();
+                            } else if (options.isEmpty) {
+                              selected_options = [
+                                {"name": cart[index]["name"]}
+                              ];
+                            }
 
-                        return GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            showModalBottomSheet(
-                              context: context,
-                              clipBehavior: Clip.antiAlias,
-                              useSafeArea: true,
-                              isScrollControlled: true,
-                              showDragHandle: false,
-                              builder: (context) {
-                                // widget.element["amount"] = amountInCart.toString();
+                            return GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  clipBehavior: Clip.antiAlias,
+                                  useSafeArea: true,
+                                  isScrollControlled: true,
+                                  showDragHandle: false,
+                                  builder: (context) {
+                                    // widget.element["amount"] = amountInCart.toString();
 
-                                // cartItemElement["options"] = element["cart"]["index"]
-                                return ProductPage(
-                                  item: _getElementWithSelectedItemsByIndex(index),
-                                  index: widget.index,
-                                  returnDataAmount: updateCurrentItem,
-                                  business: widget.business,
-                                  dontClearOptions: true,
-                                  cartItemId: index,
+                                    // cartItemElement["options"] = element["cart"]["index"]
+                                    return ProductPage(
+                                      item: _getElementWithSelectedItemsByIndex(index),
+                                      index: widget.index,
+                                      returnDataAmount: updateCurrentItem,
+                                      business: widget.business,
+                                      dontClearOptions: true,
+                                      cartItemId: index,
+                                    );
+                                  },
                                 );
                               },
-                            );
-                          },
-                          child: Container(
-                            padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
-                            decoration: BoxDecoration(
-                                boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 3, offset: Offset(2, 2))],
-                                color: Colors.white,
-                                borderRadius: BorderRadius.all(Radius.circular(20 * globals.scaleParam))
-                                // border: Border(
-                                //     top: BorderSide(color: Colors.black12))
-                                ),
-                            margin: EdgeInsets.symmetric(vertical: 5, horizontal: 20 * globals.scaleParam),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Flexible(
-                                  flex: 2,
-                                  fit: FlexFit.tight,
-                                  child: Text(
-                                    cart[index]["amount"].toString() + "x",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(fontWeight: FontWeight.w900),
-                                  ),
-                                ),
-                                Spacer(),
-                                Expanded(
-                                  flex: 10,
-                                  child: Wrap(
-                                    spacing: 10,
-                                    children: _getCartOptions(_selected_options),
-                                  ),
-                                ),
-                                Flexible(
-                                  flex: 2,
-                                  fit: FlexFit.tight,
-                                  child: IconButton(
-                                    padding: EdgeInsets.zero,
-                                    icon: Icon(Icons.delete_forever_rounded),
-                                    onPressed: () {
-                                      showModalBottomSheet(
-                                        backgroundColor: Theme.of(context).colorScheme.surface,
-                                        context: context,
-                                        builder: (context) {
-                                          return SizedBox(
-                                            // decoration: BoxDecoration(
-                                            //   color: Theme.of(context).colorScheme.surface,
-                                            //   borderRadius: BorderRadius.all(Radius.circular(20)),
-                                            // ),
-                                            width: MediaQuery.sizeOf(context).width,
-                                            height: MediaQuery.sizeOf(context).height * 0.35,
-                                            child: Padding(
-                                              padding: EdgeInsets.symmetric(vertical: 35 * globals.scaleParam),
-                                              child: Column(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                children: [
-                                                  Flexible(
-                                                    fit: FlexFit.tight,
-                                                    child: Center(
-                                                      child: Text(
-                                                        "Убрать товар из корзины?",
-                                                        style: TextStyle(
-                                                          fontSize: 52 * globals.scaleParam,
-                                                          fontWeight: FontWeight.w900,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
+                                decoration: BoxDecoration(
+                                    boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 3, offset: Offset(2, 2))],
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.all(Radius.circular(20 * globals.scaleParam))
+                                    // border: Border(
+                                    //     top: BorderSide(color: Colors.black12))
+                                    ),
+                                margin: EdgeInsets.symmetric(vertical: 5, horizontal: 20 * globals.scaleParam),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Flexible(
+                                      flex: 2,
+                                      fit: FlexFit.tight,
+                                      child: Text(
+                                        cart[index]["amount"].toString() + "x",
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(fontWeight: FontWeight.w900),
+                                      ),
+                                    ),
+                                    Spacer(),
+                                    Expanded(
+                                      flex: 10,
+                                      child: Wrap(
+                                        spacing: 10,
+                                        children: _getCartOptions(selected_options),
+                                      ),
+                                    ),
+                                    Flexible(
+                                      flex: 2,
+                                      fit: FlexFit.tight,
+                                      child: IconButton(
+                                        padding: EdgeInsets.zero,
+                                        icon: Icon(Icons.delete_forever_rounded),
+                                        onPressed: () {
+                                          showModalBottomSheet(
+                                            backgroundColor: Theme.of(context).colorScheme.surface,
+                                            context: context,
+                                            builder: (context) {
+                                              return SizedBox(
+                                                // decoration: BoxDecoration(
+                                                //   color: Theme.of(context).colorScheme.surface,
+                                                //   borderRadius: BorderRadius.all(Radius.circular(20)),
+                                                // ),
+                                                width: MediaQuery.sizeOf(context).width,
+                                                height: MediaQuery.sizeOf(context).height * 0.35,
+                                                child: Padding(
+                                                  padding: EdgeInsets.symmetric(vertical: 35 * globals.scaleParam),
+                                                  child: Column(
+                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                    children: [
+                                                      Flexible(
+                                                        fit: FlexFit.tight,
+                                                        child: Center(
+                                                          child: Text(
+                                                            "Убрать товар из корзины?",
+                                                            style: TextStyle(
+                                                              fontSize: 52 * globals.scaleParam,
+                                                              fontWeight: FontWeight.w900,
+                                                            ),
+                                                          ),
                                                         ),
                                                       ),
-                                                    ),
-                                                  ),
-                                                  Flexible(
-                                                    flex: 2,
-                                                    fit: FlexFit.tight,
-                                                    child: Row(
-                                                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                                      children: [
-                                                        Flexible(
-                                                          child: IconButton(
-                                                            style: IconButton.styleFrom(
-                                                              backgroundColor: Colors.tealAccent.shade700,
-                                                              padding: EdgeInsets.all(
-                                                                20 * globals.scaleParam,
+                                                      Flexible(
+                                                        flex: 2,
+                                                        fit: FlexFit.tight,
+                                                        child: Row(
+                                                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                                          children: [
+                                                            Flexible(
+                                                              child: IconButton(
+                                                                style: IconButton.styleFrom(
+                                                                  backgroundColor: Colors.tealAccent.shade700,
+                                                                  padding: EdgeInsets.all(
+                                                                    20 * globals.scaleParam,
+                                                                  ),
+                                                                ),
+                                                                onPressed: () async {
+                                                                  await changeCartItem(element["item_id"], 0, widget.business["business_id"],
+                                                                          options: _getElementWithSelectedItemsByIndex(index)["options"] ?? [])
+                                                                      .then(
+                                                                    (value) {
+                                                                      List newCart = [];
+                                                                      if (value != null) {
+                                                                        if (options.isEmpty) {
+                                                                          setState(() {
+                                                                            newCart = [
+                                                                              value.firstWhere(
+                                                                                (el) => el["item_id"] == element["item_id"],
+                                                                                orElse: () => [],
+                                                                              )
+                                                                            ];
+                                                                          });
+                                                                        } else {
+                                                                          setState(() {
+                                                                            newCart =
+                                                                                value.where((el) => el["item_id"] == element["item_id"]).toList();
+                                                                          });
+                                                                          print("asdasd");
+                                                                        }
+                                                                        updateCurrentItem(newCart);
+                                                                      }
+                                                                      Navigator.pop(context);
+                                                                    },
+                                                                  );
+                                                                },
+                                                                icon: Icon(
+                                                                  Icons.done_sharp,
+                                                                  size: 110 * globals.scaleParam,
+                                                                  color: Colors.white,
+                                                                ),
                                                               ),
                                                             ),
-                                                            onPressed: () async {
-                                                              await changeCartItem(element["item_id"], 0, widget.business["business_id"],
-                                                                      options: _getElementWithSelectedItemsByIndex(index)["options"] ?? [])
-                                                                  .then(
-                                                                (value) {
-                                                                  List newCart = [];
-                                                                  if (value != null) {
-                                                                    if (options.isEmpty) {
-                                                                      setState(() {
-                                                                        newCart = [
-                                                                          value.firstWhere(
-                                                                            (el) => el["item_id"] == element["item_id"],
-                                                                            orElse: () => [],
-                                                                          )
-                                                                        ];
-                                                                      });
-                                                                    } else {
-                                                                      setState(() {
-                                                                        newCart = value.where((el) => el["item_id"] == element["item_id"]).toList();
-                                                                      });
-                                                                      print("asdasd");
-                                                                    }
-                                                                    updateCurrentItem(newCart);
-                                                                  }
+                                                            Flexible(
+                                                              child: IconButton(
+                                                                style: IconButton.styleFrom(
+                                                                  backgroundColor: Colors.redAccent.shade700,
+                                                                  padding: EdgeInsets.all(
+                                                                    20 * globals.scaleParam,
+                                                                  ),
+                                                                ),
+                                                                onPressed: () {
                                                                   Navigator.pop(context);
                                                                 },
-                                                              );
-                                                            },
-                                                            icon: Icon(
-                                                              Icons.done_sharp,
-                                                              size: 110 * globals.scaleParam,
-                                                              color: Colors.white,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                        Flexible(
-                                                          child: IconButton(
-                                                            style: IconButton.styleFrom(
-                                                              backgroundColor: Colors.redAccent.shade700,
-                                                              padding: EdgeInsets.all(
-                                                                20 * globals.scaleParam,
+                                                                icon: Icon(
+                                                                  Icons.close_sharp,
+                                                                  size: 110 * globals.scaleParam,
+                                                                  color: Colors.white,
+                                                                ),
                                                               ),
                                                             ),
-                                                            onPressed: () {
-                                                              Navigator.pop(context);
-                                                            },
-                                                            icon: Icon(
-                                                              Icons.close_sharp,
-                                                              size: 110 * globals.scaleParam,
-                                                              color: Colors.white,
-                                                            ),
-                                                          ),
+                                                          ],
                                                         ),
-                                                      ],
-                                                    ),
+                                                      ),
+                                                    ],
                                                   ),
-                                                ],
-                                              ),
-                                            ),
+                                                ),
+                                              );
+                                            },
                                           );
                                         },
-                                      );
-                                    },
-                                  ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                     )
                   : const SizedBox(),
             ],
@@ -3161,22 +3209,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    clipBehavior: Clip.antiAlias,
-                    useSafeArea: true,
-                    isScrollControlled: true,
-                    showDragHandle: false,
-                    builder: (context) {
-                      // widget.element["amount"] = amountInCart.toString();
-                      return ProductPage(
-                        item: element,
-                        index: widget.index,
-                        returnDataAmount: updateCurrentItem,
-                        business: widget.business,
-                      );
-                    },
-                  );
+                  showModalProductPageWithClearedState();
                 },
                 child: Container(
                   // color: Colors.amber,
@@ -3186,22 +3219,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    clipBehavior: Clip.antiAlias,
-                    useSafeArea: true,
-                    isScrollControlled: true,
-                    showDragHandle: false,
-                    builder: (context) {
-                      // widget.element["amount"] = amountInCart.toString();
-                      return ProductPage(
-                        item: element,
-                        index: widget.index,
-                        returnDataAmount: updateCurrentItem,
-                        business: widget.business,
-                      );
-                    },
-                  );
+                  showModalProductPageWithClearedState();
                 },
                 child: Container(
                   // color: Colors.red,

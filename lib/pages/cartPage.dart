@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
@@ -20,6 +21,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
   late List items = [];
   double itemsAmount = 0;
   late Map<String, dynamic> cartInfo = {};
+  late List recommendedItems = [];
   late AnimationController animController;
   final Duration animDuration = Duration(milliseconds: 250);
 
@@ -31,69 +33,6 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
   int price = 0;
   bool isCartLoading = true;
   bool dismissingItem = false;
-
-  // int userBonusPoints = 50000;
-  // int maxBonusPointsToSpend = 0;
-
-  // int bonusPercent = 10;
-
-  // void changeBonusPercent(int amount) {
-  //   setState(() {
-  //     maxBonusPointsToSpend = (localSum * 0.3).round();
-  //   });
-  //   if (0 <= amount && amount <= 30) {
-  //     switch (amount) {
-  //       case 0:
-  //         setState(() {
-  //           bonusPercent = amount;
-  //           bonusSum = localSum * 0;
-  //         });
-  //         break;
-  //       case 10:
-  //         if ((localSum * 0.1).round() > userBonusPoints) {
-  //           setState(() {
-  //             bonusPercent = 0;
-  //           });
-  //           changeBonusPercent(0);
-  //         } else {
-  //           setState(() {
-  //             bonusPercent = amount;
-  //             bonusSum = (localSum * 0.1).round();
-  //           });
-  //         }
-  //         break;
-  //       case 20:
-  //         if ((localSum * 0.2).round() > userBonusPoints) {
-  //           setState(() {
-  //             bonusPercent = 10;
-  //           });
-  //           changeBonusPercent(10);
-  //         } else {
-  //           setState(() {
-  //             bonusPercent = amount;
-  //             bonusSum = (localSum * 0.2).round();
-  //           });
-  //         }
-  //         break;
-  //       case 30:
-  //         if ((localSum * 0.3).round() > userBonusPoints) {
-  //           setState(() {
-  //             bonusPercent = 20;
-  //           });
-  //           changeBonusPercent(20);
-  //         } else {
-  //           setState(() {
-  //             bonusPercent = amount;
-  //             bonusSum = (localSum * 0.3).round();
-  //           });
-  //         }
-  //         break;
-  //       default:
-  //         print("No, bonus percent can only be [0, 10, 20, 30]");
-  //         break;
-  //     }
-  //   }
-  // }
 
   Future<void> _getCart() async {
     Map<String, dynamic> cart = await getCart(widget.business["business_id"]);
@@ -206,7 +145,23 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
     });
   }
 
-  // bool isCartLoading = false;
+  Future<void> _getRecommendedSectionsItems() async {
+    try {
+      List? responseList = await getItemsMain(0, widget.business["business_id"], "", "20");
+      if (responseList != null) {
+        List<dynamic> itemList = responseList;
+        // List<dynamic> itemList = responseList.map((data) => Item(data)).toList();
+
+        if (mounted) {
+          setState(() {
+            recommendedItems.addAll(itemList.map((e) => e));
+          });
+        }
+      }
+    } catch (e) {
+      print("error --> $e");
+    }
+  }
 
   @override
   void initState() {
@@ -214,6 +169,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
     _setAnimationController();
 
     _getCart();
+    _getRecommendedSectionsItems();
     // Future.delayed( Duration(milliseconds: 0), () async {
     //   setState(() {
     //     isCartLoading = true;
@@ -579,7 +535,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                       child: ListView.builder(
                         // itemExtent: MediaQuery.sizeOf(context).width * globals.scaleParam,
                         scrollDirection: Axis.horizontal,
-                        itemCount: 10,
+                        itemCount: recommendedItems.length,
                         itemBuilder: (context, index) {
                           return AspectRatio(
                             aspectRatio: 1,
@@ -597,20 +553,28 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                       Flexible(
                                         flex: 20,
                                         fit: FlexFit.tight,
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Flexible(
-                                              child: Text(
-                                                "Сигареты/Закуски",
-                                                style: TextStyle(
-                                                  fontSize: 36 * globals.scaleParam,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: Colors.black,
+                                        child: Padding(
+                                          padding: EdgeInsets.symmetric(vertical: 5 * globals.scaleParam),
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Flexible(flex: 5, fit: FlexFit.tight, child: ExtendedImage.network(recommendedItems[index]["img"])),
+                                              Flexible(
+                                                fit: FlexFit.tight,
+                                                child: Text(
+                                                  recommendedItems[index]["name"],
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    fontSize: 24 * globals.scaleParam,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: Colors.black,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
                                       ),
                                       Flexible(
@@ -625,7 +589,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                               Flexible(
                                                 fit: FlexFit.tight,
                                                 child: Text(
-                                                  "0 тг",
+                                                  "${recommendedItems[index]["price"]} тг",
                                                   textAlign: TextAlign.center,
                                                   style: TextStyle(
                                                     fontSize: 36 * globals.scaleParam,
