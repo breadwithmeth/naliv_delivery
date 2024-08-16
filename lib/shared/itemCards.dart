@@ -2640,6 +2640,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
         vertical: 10 * globals.scaleParam,
         horizontal: 15 * globals.scaleParam,
       ),
+      // padding: EdgeInsets.only(bottom: 10 * globals.scaleParam),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.all(
           Radius.circular(30 * globals.scaleParam),
@@ -3004,208 +3005,6 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                   },
                 ),
               ),
-              cart.isNotEmpty
-                  ? AnimatedSize(
-                      duration: Duration(milliseconds: 800),
-                      curve: Curves.easeInOut,
-                      key: UniqueKey(),
-                      child: Container(
-                        key: UniqueKey(),
-                        child: ListView.builder(
-                          primary: false,
-                          physics: NeverScrollableScrollPhysics(),
-                          shrinkWrap: true,
-                          itemCount: cart.length,
-                          itemBuilder: (context, index) {
-                            List selected_options = [];
-                            if (cart[index]["selected_options"] != null) {
-                              selected_options = cart[index]["selected_options"];
-                              // return SizedBox();
-                            } else if (options.isEmpty) {
-                              selected_options = [
-                                {"name": cart[index]["name"]}
-                              ];
-                            }
-
-                            return GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                showModalBottomSheet(
-                                  context: context,
-                                  clipBehavior: Clip.antiAlias,
-                                  useSafeArea: true,
-                                  isScrollControlled: true,
-                                  showDragHandle: false,
-                                  builder: (context) {
-                                    // widget.element["amount"] = amountInCart.toString();
-
-                                    // cartItemElement["options"] = element["cart"]["index"]
-                                    return ProductPage(
-                                      item: _getElementWithSelectedItemsByIndex(index),
-                                      index: widget.index,
-                                      returnDataAmount: updateCurrentItem,
-                                      business: widget.business,
-                                      dontClearOptions: true,
-                                      cartItemId: index,
-                                    );
-                                  },
-                                );
-                              },
-                              child: Container(
-                                padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
-                                decoration: BoxDecoration(
-                                    boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 3, offset: Offset(2, 2))],
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.all(Radius.circular(20 * globals.scaleParam))
-                                    // border: Border(
-                                    //     top: BorderSide(color: Colors.black12))
-                                    ),
-                                margin: EdgeInsets.symmetric(vertical: 5, horizontal: 20 * globals.scaleParam),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Flexible(
-                                      flex: 2,
-                                      fit: FlexFit.tight,
-                                      child: Text(
-                                        cart[index]["amount"].toString() + "x",
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(fontWeight: FontWeight.w900),
-                                      ),
-                                    ),
-                                    Spacer(),
-                                    Expanded(
-                                      flex: 10,
-                                      child: Wrap(
-                                        spacing: 10,
-                                        children: _getCartOptions(selected_options),
-                                      ),
-                                    ),
-                                    Flexible(
-                                      flex: 2,
-                                      fit: FlexFit.tight,
-                                      child: IconButton(
-                                        padding: EdgeInsets.zero,
-                                        icon: Icon(Icons.delete_forever_rounded),
-                                        onPressed: () {
-                                          showModalBottomSheet(
-                                            backgroundColor: Theme.of(context).colorScheme.surface,
-                                            context: context,
-                                            builder: (context) {
-                                              return SizedBox(
-                                                // decoration: BoxDecoration(
-                                                //   color: Theme.of(context).colorScheme.surface,
-                                                //   borderRadius: BorderRadius.all(Radius.circular(20)),
-                                                // ),
-                                                width: MediaQuery.sizeOf(context).width,
-                                                height: MediaQuery.sizeOf(context).height * 0.35,
-                                                child: Padding(
-                                                  padding: EdgeInsets.symmetric(vertical: 35 * globals.scaleParam),
-                                                  child: Column(
-                                                    mainAxisAlignment: MainAxisAlignment.center,
-                                                    children: [
-                                                      Flexible(
-                                                        fit: FlexFit.tight,
-                                                        child: Center(
-                                                          child: Text(
-                                                            "Убрать товар из корзины?",
-                                                            style: TextStyle(
-                                                              fontSize: 52 * globals.scaleParam,
-                                                              fontWeight: FontWeight.w900,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      Flexible(
-                                                        flex: 2,
-                                                        fit: FlexFit.tight,
-                                                        child: Row(
-                                                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                                          children: [
-                                                            Flexible(
-                                                              child: IconButton(
-                                                                style: IconButton.styleFrom(
-                                                                  backgroundColor: Colors.tealAccent.shade700,
-                                                                  padding: EdgeInsets.all(
-                                                                    20 * globals.scaleParam,
-                                                                  ),
-                                                                ),
-                                                                onPressed: () async {
-                                                                  await changeCartItem(element["item_id"], 0, widget.business["business_id"],
-                                                                          options: _getElementWithSelectedItemsByIndex(index)["options"] ?? [])
-                                                                      .then(
-                                                                    (value) {
-                                                                      List newCart = [];
-                                                                      if (value != null) {
-                                                                        if (options.isEmpty) {
-                                                                          setState(() {
-                                                                            newCart = [
-                                                                              value.firstWhere(
-                                                                                (el) => el["item_id"] == element["item_id"],
-                                                                                orElse: () => [],
-                                                                              )
-                                                                            ];
-                                                                          });
-                                                                        } else {
-                                                                          setState(() {
-                                                                            newCart =
-                                                                                value.where((el) => el["item_id"] == element["item_id"]).toList();
-                                                                          });
-                                                                          print("asdasd");
-                                                                        }
-                                                                        updateCurrentItem(newCart);
-                                                                      }
-                                                                      Navigator.pop(context);
-                                                                    },
-                                                                  );
-                                                                },
-                                                                icon: Icon(
-                                                                  Icons.done_sharp,
-                                                                  size: 110 * globals.scaleParam,
-                                                                  color: Colors.white,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            Flexible(
-                                                              child: IconButton(
-                                                                style: IconButton.styleFrom(
-                                                                  backgroundColor: Colors.redAccent.shade700,
-                                                                  padding: EdgeInsets.all(
-                                                                    20 * globals.scaleParam,
-                                                                  ),
-                                                                ),
-                                                                onPressed: () {
-                                                                  Navigator.pop(context);
-                                                                },
-                                                                icon: Icon(
-                                                                  Icons.close_sharp,
-                                                                  size: 110 * globals.scaleParam,
-                                                                  color: Colors.white,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    )
-                  : const SizedBox(),
             ],
           ),
           Column(
@@ -3233,6 +3032,216 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                 ),
               ),
             ],
+          ),
+          AnimatedSize(
+            duration: Duration(milliseconds: 350),
+            curve: Curves.easeOut,
+            child: cart.isNotEmpty
+                ? Column(
+                    children: [
+                      SizedBox(
+                        height: 350 * globals.scaleParam,
+                      ),
+                      ListView.builder(
+                        primary: false,
+                        physics: NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        itemCount: cart.length,
+                        itemBuilder: (context, index) {
+                          List selected_options = [];
+                          if (cart[index]["selected_options"] != null) {
+                            selected_options = cart[index]["selected_options"];
+                            // return SizedBox();
+                          } else if (options.isEmpty) {
+                            selected_options = [
+                              {"name": cart[index]["name"]}
+                            ];
+                          }
+
+                          return GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              showModalBottomSheet(
+                                context: context,
+                                clipBehavior: Clip.antiAlias,
+                                useSafeArea: true,
+                                isScrollControlled: true,
+                                showDragHandle: false,
+                                builder: (context) {
+                                  // widget.element["amount"] = amountInCart.toString();
+
+                                  // cartItemElement["options"] = element["cart"]["index"]
+                                  return ProductPage(
+                                    item: _getElementWithSelectedItemsByIndex(index),
+                                    index: widget.index,
+                                    returnDataAmount: updateCurrentItem,
+                                    business: widget.business,
+                                    dontClearOptions: true,
+                                    cartItemId: index,
+                                  );
+                                },
+                              );
+                            },
+                            child: Container(
+                              padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
+                              decoration: BoxDecoration(
+                                  boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 3, offset: Offset(2, 2))],
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.all(Radius.circular(20 * globals.scaleParam))
+                                  // border: Border(
+                                  //     top: BorderSide(color: Colors.black12))
+                                  ),
+                              margin: EdgeInsets.symmetric(vertical: 5, horizontal: 20 * globals.scaleParam),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Flexible(
+                                    flex: 2,
+                                    fit: FlexFit.tight,
+                                    child: Text(
+                                      cart[index]["amount"].toString() + "x",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(fontWeight: FontWeight.w900),
+                                    ),
+                                  ),
+                                  Spacer(),
+                                  Expanded(
+                                    flex: 10,
+                                    child: Wrap(
+                                      spacing: 10,
+                                      children: _getCartOptions(selected_options),
+                                    ),
+                                  ),
+                                  Flexible(
+                                    flex: 2,
+                                    fit: FlexFit.tight,
+                                    child: IconButton(
+                                      padding: EdgeInsets.zero,
+                                      icon: Icon(Icons.delete_forever_rounded),
+                                      onPressed: () {
+                                        showModalBottomSheet(
+                                          backgroundColor: Theme.of(context).colorScheme.surface,
+                                          context: context,
+                                          builder: (context) {
+                                            return SizedBox(
+                                              // decoration: BoxDecoration(
+                                              //   color: Theme.of(context).colorScheme.surface,
+                                              //   borderRadius: BorderRadius.all(Radius.circular(20)),
+                                              // ),
+                                              width: MediaQuery.sizeOf(context).width,
+                                              height: MediaQuery.sizeOf(context).height * 0.35,
+                                              child: Padding(
+                                                padding: EdgeInsets.symmetric(vertical: 35 * globals.scaleParam),
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    Flexible(
+                                                      fit: FlexFit.tight,
+                                                      child: Center(
+                                                        child: Text(
+                                                          "Убрать товар из корзины?",
+                                                          style: TextStyle(
+                                                            fontSize: 52 * globals.scaleParam,
+                                                            fontWeight: FontWeight.w900,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    Flexible(
+                                                      flex: 2,
+                                                      fit: FlexFit.tight,
+                                                      child: Row(
+                                                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                                        children: [
+                                                          Flexible(
+                                                            child: IconButton(
+                                                              style: IconButton.styleFrom(
+                                                                backgroundColor: Colors.tealAccent.shade700,
+                                                                padding: EdgeInsets.all(
+                                                                  20 * globals.scaleParam,
+                                                                ),
+                                                              ),
+                                                              onPressed: () async {
+                                                                await changeCartItem(element["item_id"], 0, widget.business["business_id"],
+                                                                        options: _getElementWithSelectedItemsByIndex(index)["options"] ?? [])
+                                                                    .then(
+                                                                  (value) {
+                                                                    List newCart = [];
+                                                                    if (value != null) {
+                                                                      if (options.isEmpty) {
+                                                                        setState(() {
+                                                                          newCart = [
+                                                                            value.firstWhere(
+                                                                              (el) => el["item_id"] == element["item_id"],
+                                                                              orElse: () => [],
+                                                                            )
+                                                                          ];
+                                                                        });
+                                                                      } else {
+                                                                        setState(() {
+                                                                          newCart = value.where((el) => el["item_id"] == element["item_id"]).toList();
+                                                                        });
+                                                                        print("asdasd");
+                                                                      }
+                                                                      updateCurrentItem(newCart);
+                                                                    }
+                                                                    Navigator.pop(context);
+                                                                  },
+                                                                );
+                                                              },
+                                                              icon: Icon(
+                                                                Icons.done_sharp,
+                                                                size: 110 * globals.scaleParam,
+                                                                color: Colors.white,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          Flexible(
+                                                            child: IconButton(
+                                                              style: IconButton.styleFrom(
+                                                                backgroundColor: Colors.redAccent.shade700,
+                                                                padding: EdgeInsets.all(
+                                                                  20 * globals.scaleParam,
+                                                                ),
+                                                              ),
+                                                              onPressed: () {
+                                                                Navigator.pop(context);
+                                                              },
+                                                              icon: Icon(
+                                                                Icons.close_sharp,
+                                                                size: 110 * globals.scaleParam,
+                                                                color: Colors.white,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  )
+                : Column(
+                    children: [
+                      SizedBox(
+                        height: 350 * globals.scaleParam,
+                      ),
+                    ],
+                  ),
           ),
         ],
       ),
