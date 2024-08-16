@@ -556,7 +556,7 @@ class _CategoryItemState extends State<CategoryItem> {
                   textStyle: TextStyle(
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
-                    fontSize: 52 * globals.scaleParam,
+                    fontSize: 46 * globals.scaleParam,
                     height: 2.5 * globals.scaleParam,
                     shadows: const [
                       Shadow(

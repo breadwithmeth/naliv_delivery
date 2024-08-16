@@ -2550,8 +2550,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
 
     void processCart() {
       if (cartItemElement["cart"] != null && cartItemElement["cart"].isNotEmpty) {
-        cartItemElement["cart"][0]["amount"] = amountInCart;
-        cartItemElement["amount"] = amountInCart;
+        cartItemElement["amount"] = cartItemElement["cart"][index]["amount"];
       } else {
         cartItemElement["cart"] = [
           {"amount": amountInCart, "name": cartItemElement["name"]}
