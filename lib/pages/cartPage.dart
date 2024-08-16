@@ -535,7 +535,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                       child: ListView.builder(
                         // itemExtent: MediaQuery.sizeOf(context).width * globals.scaleParam,
                         scrollDirection: Axis.horizontal,
-                        itemCount: recommendedItems.length,
+                        itemCount: recommendedItems.isNotEmpty ? recommendedItems.length : 10,
                         itemBuilder: (context, index) {
                           return AspectRatio(
                             aspectRatio: 1,
@@ -555,26 +555,29 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                         fit: FlexFit.tight,
                                         child: Padding(
                                           padding: EdgeInsets.symmetric(vertical: 5 * globals.scaleParam),
-                                          child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Flexible(flex: 5, fit: FlexFit.tight, child: ExtendedImage.network(recommendedItems[index]["img"])),
-                                              Flexible(
-                                                fit: FlexFit.tight,
-                                                child: Text(
-                                                  recommendedItems[index]["name"],
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                    fontSize: 24 * globals.scaleParam,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: Colors.black,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                          child: recommendedItems.isNotEmpty
+                                              ? Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    Flexible(
+                                                        flex: 5, fit: FlexFit.tight, child: ExtendedImage.network(recommendedItems[index]["img"])),
+                                                    Flexible(
+                                                      fit: FlexFit.tight,
+                                                      child: Text(
+                                                        recommendedItems[index]["name"],
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                        textAlign: TextAlign.center,
+                                                        style: TextStyle(
+                                                          fontSize: 24 * globals.scaleParam,
+                                                          fontWeight: FontWeight.w700,
+                                                          color: Colors.black,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                )
+                                              : SizedBox(),
                                         ),
                                       ),
                                       Flexible(
@@ -589,7 +592,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                               Flexible(
                                                 fit: FlexFit.tight,
                                                 child: Text(
-                                                  "${recommendedItems[index]["price"]} тг",
+                                                  recommendedItems.isNotEmpty ? "${recommendedItems[index]["price"]} ₸" : "0 ₸",
                                                   textAlign: TextAlign.center,
                                                   style: TextStyle(
                                                     fontSize: 36 * globals.scaleParam,
@@ -627,324 +630,6 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                   ],
                 )
           : LinearProgressIndicator(),
-      // body: FutureBuilder(
-      //   future: _getCart(),
-      //   builder: (context, snapshot) {
-      //     if (snapshot.hasData) {
-      //       if (snapshot.data!["cart"].isEmpty) {
-      //         return Center(
-      //           child: Text(
-      //             "Ваша корзина пуста",
-      //             style: TextStyle(
-      //                 fontSize: 40 * globals.scaleParam, color: Colors.grey),
-      //           ),
-      //         );
-      //       } else {
-      //         if (buyButtonState != null) {
-      //           WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      //             buyButtonState!(() {});
-      //           });
-      //         }
-      //         localSum = int.parse(snapshot.data!["sum"]);
-      //         items = snapshot.data!["cart"];
-      //         print(items);
-      //         localSum = snapshot.data!["sum"];
-      //         int distance = double.parse(snapshot.data!["distance"]).round();
-      // double dist = distance / 1000;
-      // dist = (dist * 2).round() / 2;
-      // if (dist <= 1.5) {
-      //   price = 700;
-      // } else {
-      //   if (dist < 5) {
-      //     price = ((dist - 1.5) * 300 + 700).toInt();
-      //   } else {
-      //     price = ((dist - 1.5) * 250 + 700).toInt();
-      //   }
-      // }
-      // price = (price / 100).round() * 100;
-      // return ListView(
-      //   children: [
-      //     ListView.builder(
-      //       primary: false,
-      //       shrinkWrap: true,
-      //       itemCount: items.length,
-      //       itemBuilder: (context, index) {
-      //         items[index];
-      //         return Column(
-      //           children: [
-      //             Dismissible(
-      //               // Each Dismissible must contain a Key. Keys allow Flutter to
-      //               // uniquely identify widgets.
-      //               key: Key(items[index]["item_id"]),
-      //               confirmDismiss: (direction) async {
-      //                 bool result = await _deleteFromCart(
-      //                     items[index]["item_id"]);
-
-      //                 if (result) {
-      //                   updatePrices(index);
-      //                 }
-
-      //                 return result;
-      //               },
-      //               onDismissed: ((direction) {
-      //                 print(MediaQuery.of(context).size.height *
-      //                     ((4 - items.length) / 10));
-      //               }),
-      //               // Provide a function that tells the app
-      //               // what to do after an item has been swiped away.
-
-      //               // Show a red background as the item is swiped away.
-      //               background: SizedBox(
-      //                 width: 200 * globals.scaleParam,
-      //                 child: Row(
-      //                   mainAxisAlignment: MainAxisAlignment.end,
-      //                   crossAxisAlignment: CrossAxisAlignment.center,
-      //                   mainAxisSize: MainAxisSize.min,
-      //                   children: [
-      //                     Container(
-      //                       width:
-      //                           MediaQuery.of(context).size.width * 0.7,
-      //                       alignment: Alignment.center,
-      //                       padding: EdgeInsets.only(right: 10),
-      //                       color: Colors.grey.shade100,
-      //                     ),
-      //                     Container(
-      //                       width:
-      //                           MediaQuery.of(context).size.width * 0.3,
-      //                       alignment: Alignment.center,
-      //                       padding: EdgeInsets.only(right: 10),
-      //                       color: Colors.grey.shade100,
-      //                       child: Column(
-      //                         mainAxisAlignment:
-      //                             MainAxisAlignment.center,
-      //                         children: [
-      //                           Icon(Icons.delete),
-      //                           Text("Удалить")
-      //                         ],
-      //                       ),
-      //                     )
-      //                   ],
-      //                 ),
-      //               ),
-      //               child: Column(
-      //                 children: [
-      //                   index == 0
-      //                       ? SizedBox(
-      //                           height: 20 * globals.scaleParam,
-      //                         )
-      //                       : SizedBox(),
-      //                   ItemCardMinimal(
-      //                     itemId: items[index]["item_id"],
-      //                     element: items[index],
-      //                     updateExternalInfo: updateDataAmount,
-      //                     business: widget.business,
-      //                     index: index,
-      //                     categoryId: "",
-      //                     categoryName: "",
-      //                     scroll: 0,
-      //                   ),
-      //                   items.length - 1 != index
-      //                       ? Padding(
-      //                           padding: EdgeInsets.symmetric(
-      //                               horizontal:
-      //                                   16 * globals.scaleParam),
-      //                           child: Divider(),
-      //                         )
-      //                       : Container(),
-      //                 ],
-      //               ),
-      //             ),
-      //           ],
-      //         );
-      //       },
-      //     ),
-      //     // Makes buy button stay in the same place imitating other cards in listView
-      //     Column(
-      //       children: [
-      //         SizedBox(
-      //           width: MediaQuery.of(context).size.width,
-      //           height: items.length < 4
-      //               ? (165 * globals.scaleParam) * (4 - items.length)
-      //               : 0,
-      //         ),
-      //         Divider(
-      //           color: Colors.transparent,
-      //         ),
-      //       ],
-      //     ),
-      //     SizedBox(
-      //       height: 40 * globals.scaleParam,
-      //     ),
-      //     Divider(),
-      //     Padding(
-      //       padding: EdgeInsets.symmetric(
-      //         horizontal: 45 * globals.scaleParam,
-      //         vertical: 20 * globals.scaleParam,
-      //       ),
-      //       child: Row(
-      //         children: [
-      //           Text(
-      //             "Часто заказывают",
-      //             style: TextStyle(
-      //               fontSize: 48 * globals.scaleParam,
-      //               fontWeight: FontWeight.w700,
-      //               color: Colors.black,
-      //             ),
-      //           ),
-      //         ],
-      //       ),
-      //     ),
-      //     SizedBox(
-      //       width: double.infinity,
-      //       height: 400 * globals.scaleParam,
-      //       child: ListView.builder(
-      //         // itemExtent: MediaQuery.sizeOf(context).width * globals.scaleParam,
-      //         scrollDirection: Axis.horizontal,
-      //         itemCount: 10,
-      //         itemBuilder: (context, index) {
-      //           return AspectRatio(
-      //             aspectRatio: 1,
-      //             child: Container(
-      //               margin: EdgeInsets.all(20 * globals.scaleParam),
-      //               decoration: BoxDecoration(
-      //                 borderRadius:
-      //                     BorderRadius.all(Radius.circular(10)),
-      //                 color: Colors.black12,
-      //               ),
-      //               clipBehavior: Clip.antiAlias,
-      //               child: LayoutBuilder(
-      //                 builder: (context, constraints) {
-      //                   return Column(
-      //                     children: [
-      //                       Flexible(
-      //                         flex: 20,
-      //                         fit: FlexFit.tight,
-      //                         child: Row(
-      //                           mainAxisAlignment:
-      //                               MainAxisAlignment.center,
-      //                           children: [
-      //                             Flexible(
-      //                               child: Text(
-      //                                 "Сигареты/Закуски",
-      //                                 style: TextStyle(
-      //                                   fontSize:
-      //                                       36 * globals.scaleParam,
-      //                                   fontWeight: FontWeight.w700,
-      //                                   color: Colors.black,
-      //                                 ),
-      //                               ),
-      //                             ),
-      //                           ],
-      //                         ),
-      //                       ),
-      //                       Flexible(
-      //                         flex: 7,
-      //                         fit: FlexFit.tight,
-      //                         child: Container(
-      //                           decoration: BoxDecoration(
-      //                             color: Colors.black87,
-      //                           ),
-      //                           child: Row(
-      //                             children: [
-      //                               Flexible(
-      //                                 fit: FlexFit.tight,
-      //                                 child: Text(
-      //                                   "0 тг",
-      //                                   textAlign: TextAlign.center,
-      //                                   style: TextStyle(
-      //                                     fontSize:
-      //                                         36 * globals.scaleParam,
-      //                                     fontWeight: FontWeight.w700,
-      //                                     color: Colors.white,
-      //                                   ),
-      //                                 ),
-      //                               ),
-      //                               Flexible(
-      //                                 fit: FlexFit.tight,
-      //                                 child: IconButton(
-      //                                   onPressed: () {},
-      //                                   icon: Icon(
-      //                                     Icons.add_rounded,
-      //                                     color: Colors.white,
-      //                                   ),
-      //                                 ),
-      //                               ),
-      //                             ],
-      //                           ),
-      //                         ),
-      //                       ),
-      //                     ],
-      //                   );
-      //                 },
-      //               ),
-      //             ),
-      //           );
-      //         },
-      //       ),
-      //     ),
-      //     SizedBox(
-      //       height: 250 * globals.scaleParam,
-      //     ),
-      //   ],
-      // );
-      //       }
-      //     } else if (snapshot.hasError) {
-      //       return Center(
-      //         child: SizedBox(
-      //           width: 350 * globals.scaleParam,
-      //           child: Column(
-      //             mainAxisAlignment: MainAxisAlignment.center,
-      //             children: [
-      //               Flexible(
-      //                 child: Text(
-      //                   "Произошла ошибка при загрузке корзины.",
-      //                   textAlign: TextAlign.center,
-      //                   style: TextStyle(
-      //                       fontSize: 40 * globals.scaleParam,
-      //                       color: Colors.grey),
-      //                 ),
-      //               ),
-      //               Flexible(
-      //                 child: ElevatedButton(
-      //                   onPressed: () {
-      //                     setState(() {});
-      //                   },
-      //                   child: Text(
-      //                     "Повторить",
-      //                     textAlign: TextAlign.center,
-      //                     style: TextStyle(fontSize: 40 * globals.scaleParam),
-      //                   ),
-      //                 ),
-      //               ),
-      //             ],
-      //           ),
-      //         ),
-      //       );
-      //     } else {
-      //       return LinearProgressIndicator();
-      //     }
-      //   },
-      // ),
-
-      // : Center(
-      //     child: Column(
-      //       mainAxisSize: MainAxisSize.min,
-      //       children: [
-      //         SizedBox(
-      //           width: MediaQuery.of(context).size.width * 0.8,
-      //           child: Text(
-      //             "Ваша корзина пуста",
-      //             textAlign: TextAlign.center,
-      //             style: TextStyle(
-      //               color: Theme.of(context).colorScheme.secondary,
-      //               fontSize: 16,
-      //               fontWeight: FontWeight.w500,
-      //             ),
-      //           ),
-      //         ),
-      //       ],
-      //     ),
-      //   ),
     );
   }
 }

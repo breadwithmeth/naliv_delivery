@@ -18,10 +18,18 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: Text(
-          "История заказов",
-        ),
+        title: Text("История заказов"),
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            icon: const Icon(Icons.close),
+          )
+        ],
       ),
       body: FutureBuilder(
         future: _getOrders(),
@@ -63,9 +71,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
               );
             } else {
               children = Padding(
-                padding: EdgeInsets.symmetric(
-                    horizontal: 20 * globals.scaleParam,
-                    vertical: 20 * globals.scaleParam),
+                padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam, vertical: 20 * globals.scaleParam),
                 child: ListView.builder(
                   itemCount: snapshot.data!.length,
                   itemBuilder: (context, index) {
@@ -74,11 +80,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                         Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.all(Radius.circular(10)),
-                            color: Colors.black12,
+                            color: Colors.white,
                           ),
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 20 * globals.scaleParam,
-                              vertical: 10 * globals.scaleParam),
+                          padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam, vertical: 10 * globals.scaleParam),
                           child: Row(
                             children: [
                               Flexible(
@@ -86,8 +90,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                 child: Text(
                                   "ID: ${snapshot.data![index]["order_id"].toString()}",
                                   style: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.onSurface,
+                                    color: Theme.of(context).colorScheme.onSurface,
                                     fontSize: 32 * globals.scaleParam,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -101,20 +104,15 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                     Text(
                                       "Откуда:${snapshot.data![index]["b_name"].toString()}",
                                       style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface,
+                                        color: Theme.of(context).colorScheme.onSurface,
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                     Text(
-                                      snapshot.data![index]["b_address"]
-                                          .toString(),
+                                      snapshot.data![index]["b_address"].toString(),
                                       style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface,
+                                        color: Theme.of(context).colorScheme.onSurface,
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -131,20 +129,15 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                     Text(
                                       "Куда: ${snapshot.data![index]["a_name"].toString()}",
                                       style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface,
+                                        color: Theme.of(context).colorScheme.onSurface,
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                     Text(
-                                      snapshot.data![index]["a_address"]
-                                          .toString(),
+                                      snapshot.data![index]["a_address"].toString(),
                                       style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface,
+                                        color: Theme.of(context).colorScheme.onSurface,
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w500,
                                       ),

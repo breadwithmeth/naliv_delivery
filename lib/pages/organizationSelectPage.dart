@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/agreements/offer.dart';
+import 'package:naliv_delivery/pages/bonusesPage.dart';
 import 'package:naliv_delivery/pages/createProfilePage.dart';
 import 'package:naliv_delivery/pages/pickOnMap.dart';
 import 'package:naliv_delivery/pages/preLoadDataPage.dart';
@@ -106,8 +107,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
     await getGeoData(lon.toString() + "," + lat.toString()).then((value) {
       print(value);
       if (value != null) {
-        List objects =
-            value;
+        List objects = value;
 
         double lat = double.parse(objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
         double lon = double.parse(objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
@@ -498,10 +498,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                   childAspectRatio: 2 / 1,
                   crossAxisCount: 2,
                   children: [
-                    DrawerMenuItem(
+                    const DrawerMenuItem(
                       name: "История заказов",
                       icon: Icons.book_outlined,
-                      route: const OrderHistoryPage(),
+                      route: OrderHistoryPage(),
                     ),
                     DrawerMenuItem(
                       name: "Адреса доставки",
@@ -511,23 +511,28 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                         addresses: widget.addresses,
                       ),
                     ),
-                    DrawerMenuItem(
+                    const DrawerMenuItem(
                       name: "Поддержка",
                       icon: Icons.support_agent_rounded,
-                      route: const SupportPage(),
+                      route: SupportPage(),
                     ),
-                    DrawerMenuItem(
+                    const DrawerMenuItem(
+                      name: "Бонусы",
+                      icon: Icons.card_membership_rounded,
+                      route: BonusesPage(),
+                    ),
+                    const DrawerMenuItem(
                       name: "Оферта",
                       icon: Icons.list_alt,
                       route: OfferPage(
                         path: "assets/agreements/offer.md",
                       ),
                     ),
-                    DrawerMenuItem(
+                    const DrawerMenuItem(
                       name: "Настройки",
                       icon: Icons.settings_outlined,
-                      route: const SettingsPage(),
-                    )
+                      route: SettingsPage(),
+                    ),
                   ],
                 ),
               ),
@@ -909,7 +914,7 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
                   margin: EdgeInsets.all(20 * globals.scaleParam),
                   child: Icon(
                     widget.icon,
-                    size: 48 * globals.scaleParam,
+                    size: 58 * globals.scaleParam,
                   ),
                 )),
             Flexible(

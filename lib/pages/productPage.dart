@@ -170,7 +170,9 @@ class _ProductPageState extends State<ProductPage> {
             });
             print("asdasd");
           }
-          widget.returnDataAmount!(newCart);
+          if (widget.returnDataAmount != null) {
+            widget.returnDataAmount!(newCart);
+          }
           getBuyButtonCurrentActionText();
           if (options.isNotEmpty) {
             Navigator.pop(context);

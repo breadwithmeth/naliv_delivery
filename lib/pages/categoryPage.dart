@@ -4,7 +4,6 @@ import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/searchPage.dart';
 import 'package:naliv_delivery/shared/cartButton.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 class CategoryPage extends StatefulWidget {
   const CategoryPage(

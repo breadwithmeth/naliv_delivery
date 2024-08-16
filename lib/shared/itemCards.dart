@@ -210,14 +210,20 @@ class _ItemCardState extends State<ItemCard> {
                         Row(
                           children: [
                             Text(
-                              globals.formatCost(element['price'] ?? ""),
+                              globals.formatCost((element['price'] ?? "0").toString()),
                               style: TextStyle(
-                                  color: Colors.black, fontWeight: FontWeight.w600, fontSize: 56 * (MediaQuery.sizeOf(context).width / 720)),
+                                color: Colors.black,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 56 * (MediaQuery.sizeOf(context).width / 720),
+                              ),
                             ),
                             Text(
                               "₸",
                               style: TextStyle(
-                                  color: Colors.grey.shade600, fontWeight: FontWeight.w900, fontSize: 56 * (MediaQuery.sizeOf(context).width / 720)),
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 56 * (MediaQuery.sizeOf(context).width / 720),
+                              ),
                             )
                           ],
                         ),

@@ -507,7 +507,7 @@ class _CategoryItemState extends State<CategoryItem> {
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.white.withOpacity(0.12), Colors.white.withOpacity(0.01), Colors.transparent],
+                colors: [Colors.white.withOpacity(0.08), Colors.white.withOpacity(0.01), Colors.transparent],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
@@ -561,7 +561,7 @@ class _CategoryItemState extends State<CategoryItem> {
                     shadows: const [
                       Shadow(
                         blurRadius: 5,
-                        color: Color.fromARGB(127, 90, 90, 90),
+                        color: Colors.black26,
                         offset: Offset(0, 2),
                       )
                     ],
