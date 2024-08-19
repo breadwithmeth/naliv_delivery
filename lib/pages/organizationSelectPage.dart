@@ -611,59 +611,63 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                     return Container(
                                       width: constraints.maxWidth,
                                       height: constraints.maxHeight * 0.8,
-                                      padding: EdgeInsets.all(10 * globals.scaleParam),
+                                      // padding: EdgeInsets.all(10 * globals.scaleParam),
                                       decoration: BoxDecoration(
-                                        borderRadius: const BorderRadius.all(Radius.circular(15)),
-                                        color: Colors.grey.shade100,
+                                        borderRadius: BorderRadius.all(Radius.circular(25 * globals.scaleParam)),
+                                        color: Colors.black,
                                       ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment: CrossAxisAlignment.center,
-                                        children: [
-                                          Flexible(
-                                            fit: FlexFit.tight,
-                                            child: Icon(
-                                              Icons.location_on_rounded,
-                                              size: 48 * globals.scaleParam,
-                                              color: Colors.black,
+                                      child: LayoutBuilder(builder: (context, constraints) {
+                                        return Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          children: [
+                                            SizedBox(
+                                              width: constraints.maxWidth * 0.15,
+                                              child: Icon(
+                                                Icons.location_on_rounded,
+                                                size: 48 * globals.scaleParam,
+                                                color: Colors.white,
+                                              ),
                                             ),
-                                          ),
-                                          Flexible(
-                                            flex: 5,
-                                            fit: FlexFit.tight,
-                                            child: Column(
-                                              mainAxisAlignment: MainAxisAlignment.end,
-                                              mainAxisSize: MainAxisSize.min,
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Flexible(
-                                                  child: Text(
-                                                    widget.currentAddress["city_name"] ?? "",
-                                                    style: TextStyle(
-                                                      fontWeight: FontWeight.w700,
-                                                      fontSize: 36 * globals.scaleParam,
-                                                      color: Colors.black,
+                                            SizedBox(
+                                              width: constraints.maxWidth * 0.7,
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment.end,
+                                                mainAxisSize: MainAxisSize.min,
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Flexible(
+                                                    child: Text(
+                                                      widget.currentAddress["city_name"] ?? "",
+                                                      style: TextStyle(
+                                                        fontWeight: FontWeight.w700,
+                                                        fontSize: 36 * globals.scaleParam,
+                                                        color: Colors.white,
+                                                      ),
                                                     ),
                                                   ),
-                                                ),
-                                                Flexible(
-                                                  child: Text(
-                                                    widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
-                                                    style: TextStyle(
-                                                        fontSize: 32 * globals.scaleParam,
-                                                        fontWeight: FontWeight.w500,
-                                                        color: !isCollapsed ? Colors.transparent : Colors.black),
+                                                  Flexible(
+                                                    child: Text(
+                                                      widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
+                                                      style: TextStyle(
+                                                          fontSize: 32 * globals.scaleParam,
+                                                          fontWeight: FontWeight.w500,
+                                                          color: !isCollapsed ? Colors.transparent : Colors.white),
+                                                    ),
                                                   ),
-                                                ),
-                                              ],
+                                                ],
+                                              ),
                                             ),
-                                          ),
-                                          const Icon(
-                                            Icons.arrow_drop_down,
-                                            color: Colors.black,
-                                          ),
-                                        ],
-                                      ),
+                                            SizedBox(
+                                              width: constraints.maxWidth * 0.15,
+                                              child: const Icon(
+                                                Icons.arrow_drop_down,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      }),
                                     );
                                   },
                                 ),
