@@ -72,7 +72,7 @@ class _CategoryPageState extends State<CategoryPage> {
           user: widget.user,
         ),
         appBar: AppBar(
-          toolbarHeight: 95 * globals.scaleParam,
+          toolbarHeight: 105 * globals.scaleParam,
           bottom: PreferredSize(
             preferredSize: Size(MediaQuery.sizeOf(context).width, 85 * globals.scaleParam),
             child: TabBar(

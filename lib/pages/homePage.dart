@@ -154,7 +154,7 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin<
               ),
             ),
             appBar: AppBar(
-              // toolbarHeight: 130 * globals.scaleParam,
+              toolbarHeight: 115 * globals.scaleParam,
               automaticallyImplyLeading: false,
               titleSpacing: 0,
               title: Padding(
@@ -246,6 +246,9 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin<
                           ),
                         ),
                       ],
+                    ),
+                    SizedBox(
+                      height: 10 * globals.scaleParam,
                     ),
                   ],
                 ),

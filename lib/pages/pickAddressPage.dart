@@ -83,12 +83,13 @@ class _PickAddressPageState extends State<PickAddressPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         title: Text("Адреса"),
       ),
       floatingActionButton: SizedBox(
-        width: MediaQuery.sizeOf(context).shortestSide * 0.2,
-        height: MediaQuery.sizeOf(context).shortestSide * 0.2,
+        width: 200 * globals.scaleParam,
+        height: 165 * globals.scaleParam,
         child: FloatingActionButton(
           onPressed: () {
             if (_location == null) {
@@ -163,12 +164,19 @@ class _PickAddressPageState extends State<PickAddressPage> {
                           ), (Route<dynamic> route) => false);
                   },
                   child: Container(
+                    margin: EdgeInsets.only(right: 20 * globals.scaleParam, top: 20 * globals.scaleParam, bottom: 20 * globals.scaleParam),
                     decoration: BoxDecoration(
-                        border: _addresses[index]["is_selected"] == "1"
-                            ? Border(
-                                left: BorderSide(color: globals.mainColor, width: 10),
-                              )
-                            : Border()),
+                      border: _addresses[index]["is_selected"] == "1"
+                          ? Border(
+                              left: BorderSide(color: globals.mainColor, width: 10),
+                            )
+                          : Border(),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        topRight: Radius.circular(15),
+                        bottomRight: Radius.circular(16),
+                      ), //? If set 15 and 15 strange graphic artifact appear on the smoothed corners
+                    ),
                     padding: EdgeInsets.symmetric(horizontal: 50 * globals.scaleParam, vertical: 30 * globals.scaleParam),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,17 +191,19 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
+                                    _addresses[index]["city_name"] ?? "",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 44 * globals.scaleParam,
+                                      height: 3.2 * globals.scaleParam,
+                                    ),
+                                  ),
+                                  Text(
                                     _addresses[index]["address"],
                                     style: TextStyle(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 42 * globals.scaleParam,
-                                    ),
-                                  ),
-                                  Text(
-                                    _addresses[index]["city_name"] ?? "",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 32 * globals.scaleParam,
+                                      height: 3.2 * globals.scaleParam,
                                     ),
                                   ),
                                 ],

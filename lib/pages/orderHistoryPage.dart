@@ -42,16 +42,16 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     SizedBox(
-                      width: 500 * globals.scaleParam,
+                      width: MediaQuery.sizeOf(context).width * 0.8,
                       child: Column(
                         children: [
                           Text(
-                            "История заказов пуста.",
+                            "История заказов пуста",
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.secondary,
-                              fontSize: 32 * globals.scaleParam,
-                              fontWeight: FontWeight.w500,
+                              fontSize: 42 * globals.scaleParam,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                           Text(
@@ -59,8 +59,8 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.secondary,
-                              fontSize: 32 * globals.scaleParam,
-                              fontWeight: FontWeight.w500,
+                              fontSize: 42 * globals.scaleParam,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],

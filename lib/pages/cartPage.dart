@@ -480,14 +480,6 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                     categoryName: "",
                                     scroll: 0,
                                   ),
-                                  items.length - 1 != index
-                                      ? Padding(
-                                          padding: EdgeInsets.symmetric(horizontal: 5 * globals.scaleParam),
-                                          child: Divider(
-                                            height: 15 * globals.scaleParam,
-                                          ),
-                                        )
-                                      : Container(),
                                 ],
                               ),
                             ),
