@@ -14,13 +14,15 @@ class _OfferPageState extends State<OfferPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        title: Text("Офёрта"),
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              icon: const Icon(Icons.close))
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            icon: const Icon(Icons.close),
+          )
         ],
       ),
       body: FutureBuilder(

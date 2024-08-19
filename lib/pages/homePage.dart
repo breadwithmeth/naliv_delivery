@@ -487,11 +487,12 @@ class _CategoryItemState extends State<CategoryItem> {
           context,
           MaterialPageRoute(
             builder: (context) => CategoryPage(
-                categoryId: widget.category_id,
-                categoryName: widget.name,
-                categories: widget.categories,
-                business: widget.business,
-                user: widget.user),
+              categoryId: widget.category_id,
+              categoryName: widget.name,
+              categories: widget.categories,
+              business: widget.business,
+              user: widget.user,
+            ),
           ),
         );
       },
@@ -500,26 +501,16 @@ class _CategoryItemState extends State<CategoryItem> {
           Container(
             decoration: BoxDecoration(
               color: firstColor,
-              // gradient: LinearGradient(
-              //   colors: [firstColor, secondColor],
-              //   transform:  GradientRotation(2),
-              // ),
-              // boxShadow:  [
-              //   BoxShadow(
-              //     color: Color.fromARGB(255, 200, 200, 200),
-              //     offset: Offset(0, 3),
-              //   ),
-              //   BoxShadow(
-              //     color: Color.fromARGB(255, 220, 220, 220),
-              //     offset: Offset(0, 0),
-              //     blurRadius: 4,
-              //   )
-              // ],
-              // border: Border.all(
-              //   color: firstColor,
-              //   width: 2,
-              //   strokeAlign: BorderSide.strokeAlignOutside,
-              // ),
+            ),
+          ),
+          //* LIGHT WHITE SHADE
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.white.withOpacity(0.08), Colors.white.withOpacity(0.01), Colors.transparent],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
             ),
           ),
           _alignment == null
@@ -543,84 +534,6 @@ class _CategoryItemState extends State<CategoryItem> {
                   alignment: _alignment,
                   child: imageBG,
                 ),
-          // Container(
-          //   clipBehavior: Clip.antiAliasWithSaveLayer,
-          //   decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-          //   width: double.infinity,
-          //   height: double.infinity,
-          //   alignment: Alignment.bottomLeft,
-          //   child: Transform.rotate(
-          //       // origin: Offset(-50, 0),
-          //       alignment: Alignment.bottomCenter,
-          //       angle: 0.5,
-          //       child: Stack(
-          //         children: <Widget>[
-          //           widget.image != null
-          //               ? Transform.translate(
-          //                   offset:  Offset(15.0, -6.0),
-          //                   child: ImageFiltered(
-          //                     imageFilter:
-          //                         ImageFilter.blur(sigmaY: 14, sigmaX: 14),
-          //                     child: Container(
-          //                       decoration: BoxDecoration(
-          //                         border: Border.all(
-          //                           color: Colors.transparent,
-          //                           width: 0,
-          //                         ),
-          //                       ),
-          //                       child: Opacity(
-          //                         opacity: 0.8,
-          //                         child: ColorFiltered(
-          //                           colorFilter:  ColorFilter.mode(
-          //                               Colors.black, BlendMode.srcATop),
-          //                           child: CachedNetworkImage(
-          //                             imageUrl: widget.image!,
-          //                             cacheManager: CacheManager(Config(
-          //                               "itemImage",
-          //                               stalePeriod:  Duration(days: 7),
-          //                               //one week cache period
-          //                             )),
-          //                             fit: BoxFit.fitHeight,
-          //                             width: 500,
-          //                             height: 500,
-          //                           ),
-          //                         ),
-          //                       ),
-          //                     ),
-          //                   ),
-          //                 )
-          //               :  SizedBox(),
-          //           // CachedNetworkImage(
-          //           //   imageUrl: widget.image!,
-          //           //   cacheManager: CacheManager(Config(
-          //           //     "itemImage",
-          //           //     stalePeriod:  Duration(days: 7),
-          //           //     //one week cache period
-          //           //   )),
-          //           //   fit: BoxFit.fitHeight,
-          //           //   width: 500,
-          //           //   height: 500,
-          //           //   errorWidget: (context, url, error) {
-          //           //     return Container(
-          //           //       alignment: Alignment.center,
-          //           //       width: 10,
-          //           //       height: 10,
-          //           //       child:  SizedBox(),
-          //           //     );
-          //           //   },
-          //           // ),
-          //         ],
-          //       )
-          //       // child: widget.image!.isNotEmpty
-          //       //     ? CachedNetworkImage(
-          //       //         imageUrl: widget.image!,
-          //       //         fit: BoxFit.fitHeight,
-          //       //         width: 500,
-          //       //         height: 500,
-          //       //       )
-          //       //     : Container(),
-          //       ),
-          // ),
           Container(
             padding: EdgeInsets.all(30 * globals.scaleParam),
             alignment: Alignment.topLeft,
@@ -641,19 +554,18 @@ class _CategoryItemState extends State<CategoryItem> {
                 widget.name,
                 style: GoogleFonts.montserratAlternates(
                   textStyle: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      fontSize: 38 * globals.scaleParam,
-                      height: 2.3 * globals.scaleParam,
-                      shadows: [
-                        Shadow(
-                          blurRadius: 8,
-                          color: Colors.black.withOpacity(0.4),
-                          offset: Offset(0, 2),
-                        )
-                      ]
-                      // background: Paint()..color = textBG)
-                      ),
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    fontSize: 46 * globals.scaleParam,
+                    height: 2.5 * globals.scaleParam,
+                    shadows: const [
+                      Shadow(
+                        blurRadius: 5,
+                        color: Colors.black26,
+                        offset: Offset(0, 2),
+                      )
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -104,7 +104,7 @@ class _SearchResultPageState extends State<SearchResultPage> {
         final Item item = _items[index];
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
-          key: Key(item.data["item_id"]),
+          key: Key(item.data["item_id"].toString()),
           onTap: () {
             showModalBottomSheet(
               context: context,
@@ -125,7 +125,7 @@ class _SearchResultPageState extends State<SearchResultPage> {
           child: Column(
             children: [
               ItemCard(
-                itemId: item.data["item_id"],
+                itemId: item.data["item_id"].toString(),
                 element: item.data,
                 categoryId: "",
                 categoryName: "",
