@@ -145,6 +145,7 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin<
       builder: (context, snapshot) {
         if (snapshot.hasData && isLogoPainted) {
           return Scaffold(
+            backgroundColor: Colors.grey.shade100,
             key: _scaffoldKey,
             floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
             floatingActionButton: SizedBox(
