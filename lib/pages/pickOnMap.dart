@@ -27,6 +27,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
   String styleUrl = "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png";
   String apiKey = "YOUR-API-KEY";
   String _currentCity = "";
+  FocusNode addressFocus = FocusNode();
 
   double _lat = 0;
   double _lon = 0;
@@ -181,8 +182,68 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
       appBar: AppBar(
         centerTitle: true,
         automaticallyImplyLeading: true,
+        actions: [
+          IconButton(
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) {
+                  return AlertDialog(
+                    title: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Помощь",
+                          style: TextStyle(fontSize: 62 * globals.scaleParam),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          icon: Icon(Icons.close_rounded),
+                        ),
+                      ],
+                    ),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Не выбирается адрес",
+                          style: TextStyle(fontSize: 38 * globals.scaleParam, fontWeight: FontWeight.w600),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.only(left: 20 * globals.scaleParam),
+                          child: Text(
+                            "Если у вас не получается выбрать адрес, пропробуйте навести кружок на основание дома, на тёмную часть дома.",
+                            style: TextStyle(fontSize: 38 * globals.scaleParam),
+                          ),
+                        ),
+                        SizedBox(
+                          height: 20 * globals.scaleParam,
+                        ),
+                        Text(
+                          "Не могу найти на карте",
+                          style: TextStyle(fontSize: 38 * globals.scaleParam, fontWeight: FontWeight.w600),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.only(left: 20 * globals.scaleParam),
+                          child: Text(
+                            "Вы можете вручную написать желаемый адрес в поисковую строку и нажать кнопку подтверждения на вашей клавиатуре.",
+                            style: TextStyle(fontSize: 38 * globals.scaleParam),
+                          ),
+                        )
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+            icon: Icon(Icons.help),
+          ),
+        ],
         title: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           mainAxisSize: MainAxisSize.min,
           children: [
             // TextButton(
@@ -370,125 +431,139 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
               size: 58 * globals.scaleParam,
             ),
           ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              height: MediaQuery.sizeOf(context).height * 0.265,
-              padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam, vertical: 20 * globals.scaleParam),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.only(topLeft: Radius.circular(15), topRight: Radius.circular(15)),
-                color: Colors.white,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Flexible(
-                    fit: FlexFit.tight,
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: Text(
-                        "Наведите кружок на ваш адрес",
-                        style: TextStyle(
-                          fontSize: 42 * globals.scaleParam,
-                          fontWeight: FontWeight.w600,
+          SafeArea(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                height: MediaQuery.sizeOf(context).height * 0.265,
+                padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam, vertical: 20 * globals.scaleParam),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.only(topLeft: Radius.circular(15), topRight: Radius.circular(15)),
+                  color: Colors.white,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      fit: FlexFit.tight,
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: Text(
+                          "Наведите кружок на ваш адрес",
+                          style: TextStyle(
+                            fontSize: 42 * globals.scaleParam,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  Flexible(
-                    flex: 2,
-                    fit: FlexFit.tight,
-                    child: TextField(
-                      controller: _searchAddress,
-                      onSubmitted: (value) {
-                        searchGeoDataByString(_searchAddress.text).then(
-                          (v) {
-                            showDialog(
-                              context: context,
-                              builder: (context) {
-                                print(foundAddresses.length);
-                                return AlertDialog(
-                                  backgroundColor: Colors.white,
-                                  title: const Text("Выберите адрес"),
-                                  content: Container(
-                                    width: MediaQuery.of(context).size.width * 0.8,
-                                    height: MediaQuery.of(context).size.height * 0.4,
-                                    child: SingleChildScrollView(
-                                      child: Column(
-                                        children: [
-                                          ListView.builder(
-                                            itemCount: foundAddresses.length,
-                                            primary: false,
-                                            shrinkWrap: true,
-                                            itemBuilder: (context, index) {
-                                              return Material(
-                                                color: Colors.white,
-                                                shadowColor: Colors.black12,
-                                                borderRadius: BorderRadius.all(Radius.circular(15)),
-                                                elevation: 10,
-                                                child: ListTile(
-                                                  tileColor: Colors.white,
-                                                  onTap: () {
-                                                    showModalBottomSheet(
-                                                      backgroundColor: Colors.white,
-                                                      barrierColor: Colors.black45,
-                                                      isScrollControlled: true,
-                                                      context: context,
-                                                      useSafeArea: true,
-                                                      builder: (context) {
-                                                        return CreateAddressPage(
-                                                          lat: foundAddresses[index]["point"]["lat"],
-                                                          lon: foundAddresses[index]["point"]["lon"],
-                                                          addressName: foundAddresses[index]["name"]!,
-                                                          isFromCreateOrder: true,
-                                                        );
-                                                      },
-                                                    );
-                                                  },
-                                                  title: Text(foundAddresses[index]["name"]),
-                                                  titleTextStyle: TextStyle(fontWeight: FontWeight.w700, color: Colors.black),
-                                                  subtitle: Wrap(
-                                                    spacing: 5,
-                                                    children: [for (var v in foundAddresses[index]["adm_div"]) Text(v["name"])],
+                    Flexible(
+                      flex: 2,
+                      fit: FlexFit.tight,
+                      child: TextField(
+                        focusNode: addressFocus,
+                        controller: _searchAddress,
+                        onSubmitted: (value) {
+                          searchGeoDataByString(_searchAddress.text).then(
+                            (v) {
+                              showDialog(
+                                context: context,
+                                builder: (context) {
+                                  print(foundAddresses.length);
+                                  return AlertDialog(
+                                    backgroundColor: Colors.white,
+                                    title: const Text("Выберите адрес"),
+                                    content: Container(
+                                      width: MediaQuery.of(context).size.width * 0.8,
+                                      height: MediaQuery.of(context).size.height * 0.4,
+                                      child: SingleChildScrollView(
+                                        child: Column(
+                                          children: [
+                                            ListView.builder(
+                                              itemCount: foundAddresses.length,
+                                              primary: false,
+                                              shrinkWrap: true,
+                                              itemBuilder: (context, index) {
+                                                return Material(
+                                                  color: Colors.white,
+                                                  shadowColor: Colors.black12,
+                                                  borderRadius: BorderRadius.all(Radius.circular(15)),
+                                                  elevation: 10,
+                                                  child: ListTile(
+                                                    tileColor: Colors.white,
+                                                    onTap: () {
+                                                      showModalBottomSheet(
+                                                        backgroundColor: Colors.white,
+                                                        barrierColor: Colors.black45,
+                                                        isScrollControlled: true,
+                                                        context: context,
+                                                        useSafeArea: true,
+                                                        builder: (context) {
+                                                          return CreateAddressPage(
+                                                            lat: foundAddresses[index]["point"]["lat"],
+                                                            lon: foundAddresses[index]["point"]["lon"],
+                                                            addressName: foundAddresses[index]["name"]!,
+                                                            isFromCreateOrder: true,
+                                                          );
+                                                        },
+                                                      );
+                                                    },
+                                                    title: Text(foundAddresses[index]["name"]),
+                                                    titleTextStyle: TextStyle(fontWeight: FontWeight.w700, color: Colors.black),
+                                                    subtitle: Wrap(
+                                                      spacing: 5,
+                                                      children: [for (var v in foundAddresses[index]["adm_div"]) Text(v["name"])],
+                                                    ),
                                                   ),
-                                                ),
-                                              );
-                                            },
-                                          )
-                                        ],
+                                                );
+                                              },
+                                            )
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        );
-                      },
-                      maxLines: 1,
-                      textAlign: TextAlign.start,
-                      textAlignVertical: TextAlignVertical.center,
-                      decoration: InputDecoration(
-                        hintText: "Поиск",
-                        suffixIcon: Icon(Icons.search),
-                        fillColor: Colors.blueGrey.shade50,
-                        filled: true,
-                        border: InputBorder.none,
-                        errorBorder: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        disabledBorder: InputBorder.none,
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        },
+                        maxLines: 1,
+                        textAlign: TextAlign.start,
+                        textAlignVertical: TextAlignVertical.center,
+                        decoration: InputDecoration(
+                          hintText: "Поиск",
+                          suffixIcon: Icon(Icons.search),
+                          fillColor: Colors.blueGrey.shade50,
+                          filled: true,
+                          border: InputBorder.none,
+                          errorBorder: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
+                        ),
                       ),
                     ),
-                  ),
-                  Flexible(
-                    fit: FlexFit.tight,
-                    child: SizedBox(),
-                  ),
-                ],
+                    Flexible(
+                      fit: FlexFit.tight,
+                      child: SizedBox(),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
+          Listener(
+            behavior: HitTestBehavior.translucent,
+            onPointerDown: (details) {
+              print("HELLO");
+              addressFocus.unfocus();
+            },
+            child: Container(
+              height: MediaQuery.sizeOf(context).height * 0.65,
+              // color: Colors.amber,
+            ),
+          )
         ],
       ),
     );

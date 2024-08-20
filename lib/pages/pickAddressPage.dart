@@ -170,7 +170,9 @@ class _PickAddressPageState extends State<PickAddressPage> {
                           ? Border(
                               left: BorderSide(color: globals.mainColor, width: 10),
                             )
-                          : Border(),
+                          : Border(
+                              left: BorderSide(color: Colors.grey.shade300, width: 10),
+                            ),
                       color: Colors.white,
                       borderRadius: BorderRadius.only(
                         topRight: Radius.circular(15),
@@ -292,18 +294,21 @@ class _PickAddressPageState extends State<PickAddressPage> {
                             )
                           ],
                         ),
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                _addresses[index]["other"] ?? "-",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 32 * globals.scaleParam,
+                        Padding(
+                          padding: EdgeInsets.only(left: 50 * globals.scaleParam),
+                          child: Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  _addresses[index]["other"] ?? "-",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 32 * globals.scaleParam,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         )
                       ],
                     ),
