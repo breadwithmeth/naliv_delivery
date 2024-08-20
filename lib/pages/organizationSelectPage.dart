@@ -573,7 +573,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
               title: AnimatedSwitcher(
                 transitionBuilder: (child, animation) {
                   return SlideTransition(
-                    position: Tween<Offset>(begin: const Offset(0, -1), end: const Offset(0, -0.16)).animate(animation),
+                    position: Tween<Offset>(begin: const Offset(0, -1), end: const Offset(0, -0.1)).animate(animation),
                     child: child,
                   );
                 },
@@ -609,7 +609,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                 child: Container(
                                   margin: EdgeInsets.only(top: 10 * globals.scaleParam),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: Colors.black,
                                     borderRadius: BorderRadius.all(Radius.circular(15)),
                                   ),
                                   child: LayoutBuilder(
@@ -623,7 +623,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                             child: Icon(
                                               Icons.location_on_rounded,
                                               size: 48 * globals.scaleParam,
-                                              color: Colors.black,
+                                              color: Colors.white,
                                             ),
                                           ),
                                           SizedBox(
@@ -633,38 +633,46 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                               crossAxisAlignment: CrossAxisAlignment.center,
                                               children: [
                                                 Flexible(
-                                                  flex: 6,
-                                                  child: Row(
-                                                    children: [
-                                                      Flexible(
-                                                        child: Text(
-                                                          widget.currentAddress["city_name"] ?? "",
-                                                          textAlign: TextAlign.start,
-                                                          style: TextStyle(
-                                                            fontWeight: FontWeight.w700,
-                                                            fontSize: 36 * globals.scaleParam,
-                                                            color: Colors.black,
+                                                  child: Container(
+                                                    alignment: Alignment.bottomLeft,
+                                                    child: Row(
+                                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                                      children: [
+                                                        Flexible(
+                                                          child: Text(
+                                                            widget.currentAddress["city_name"] ?? "",
+                                                            textAlign: TextAlign.start,
+                                                            style: TextStyle(
+                                                              fontWeight: FontWeight.w700,
+                                                              fontSize: 36 * globals.scaleParam,
+                                                              color: Colors.white,
+                                                              height: 1.1,
+                                                            ),
                                                           ),
                                                         ),
-                                                      ),
-                                                    ],
+                                                      ],
+                                                    ),
                                                   ),
                                                 ),
                                                 Flexible(
-                                                  flex: 10,
-                                                  child: Row(
-                                                    children: [
-                                                      Flexible(
-                                                        child: Text(
-                                                          widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
-                                                          style: TextStyle(
-                                                            fontSize: 32 * globals.scaleParam,
-                                                            fontWeight: FontWeight.w500,
-                                                            color: isCollapsed ? Colors.black : Colors.transparent,
+                                                  child: Container(
+                                                    alignment: Alignment.topLeft,
+                                                    child: Row(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Flexible(
+                                                          child: Text(
+                                                            widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
+                                                            style: TextStyle(
+                                                              fontSize: 32 * globals.scaleParam,
+                                                              fontWeight: FontWeight.w500,
+                                                              color: isCollapsed ? Colors.white : Colors.transparent,
+                                                              height: 1.1,
+                                                            ),
                                                           ),
                                                         ),
-                                                      ),
-                                                    ],
+                                                      ],
+                                                    ),
                                                   ),
                                                 ),
                                               ],
@@ -674,7 +682,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                             width: constraints.maxWidth * 0.15,
                                             child: const Icon(
                                               Icons.arrow_drop_down,
-                                              color: Colors.black,
+                                              color: Colors.white,
                                             ),
                                           ),
                                         ],
@@ -733,38 +741,46 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                             crossAxisAlignment: CrossAxisAlignment.center,
                                             children: [
                                               Flexible(
-                                                flex: 6,
-                                                child: Row(
-                                                  children: [
-                                                    Flexible(
-                                                      child: Text(
-                                                        widget.currentAddress["city_name"] ?? "",
-                                                        textAlign: TextAlign.start,
-                                                        style: TextStyle(
-                                                          fontWeight: FontWeight.w700,
-                                                          fontSize: 36 * globals.scaleParam,
-                                                          color: Colors.black,
+                                                child: Container(
+                                                  alignment: Alignment.bottomLeft,
+                                                  child: Row(
+                                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                                    children: [
+                                                      Flexible(
+                                                        child: Text(
+                                                          widget.currentAddress["city_name"] ?? "",
+                                                          textAlign: TextAlign.start,
+                                                          style: TextStyle(
+                                                            fontWeight: FontWeight.w700,
+                                                            fontSize: 36 * globals.scaleParam,
+                                                            color: Colors.black,
+                                                            height: 1.1,
+                                                          ),
                                                         ),
                                                       ),
-                                                    ),
-                                                  ],
+                                                    ],
+                                                  ),
                                                 ),
                                               ),
                                               Flexible(
-                                                flex: 10,
-                                                child: Row(
-                                                  children: [
-                                                    Flexible(
-                                                      child: Text(
-                                                        widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
-                                                        style: TextStyle(
-                                                          fontSize: 32 * globals.scaleParam,
-                                                          fontWeight: FontWeight.w500,
-                                                          color: !isCollapsed ? Colors.black : Colors.transparent,
+                                                child: Container(
+                                                  alignment: Alignment.topLeft,
+                                                  child: Row(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Flexible(
+                                                        child: Text(
+                                                          widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
+                                                          style: TextStyle(
+                                                            fontSize: 32 * globals.scaleParam,
+                                                            fontWeight: FontWeight.w500,
+                                                            color: !isCollapsed ? Colors.black : Colors.transparent,
+                                                            height: 1.1,
+                                                          ),
                                                         ),
                                                       ),
-                                                    ),
-                                                  ],
+                                                    ],
+                                                  ),
                                                 ),
                                               ),
                                             ],
