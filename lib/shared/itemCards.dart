@@ -2867,7 +2867,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                                                   },
                                                                 );
                                                                 Timer(
-                                                                  Duration(milliseconds: 300),
+                                                                  Duration(milliseconds: 250),
                                                                   () {
                                                                     setState(() {
                                                                       canButtonsBeUsed = true;
@@ -2933,7 +2933,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                                             canButtonsBeUsed = false;
                                                           });
                                                           Timer(
-                                                            Duration(milliseconds: 300),
+                                                            Duration(milliseconds: 250),
                                                             () {
                                                               setState(() {
                                                                 canButtonsBeUsed = true;

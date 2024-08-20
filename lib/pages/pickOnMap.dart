@@ -62,6 +62,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
       //     objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
       setState(() {
         _currentAddressName = objects.first["address_name"];
+        _searchAddress.text = objects.first["address_name"] ?? "Нет адреса";
         _lat = lat;
         _lon = lon;
       });
@@ -122,7 +123,63 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       // resizeToAvoidBottomPadding: true,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
+        child: Row(
+          children: [
+            MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height
+                ? Flexible(
+                    flex: 2,
+                    fit: FlexFit.tight,
+                    child: SizedBox(),
+                  )
+                : SizedBox(),
+            Flexible(
+              fit: FlexFit.tight,
+              child: ElevatedButton(
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    clipBehavior: Clip.antiAlias,
+                    useSafeArea: true,
+                    isScrollControlled: true,
+                    showDragHandle: false,
+                    builder: (context) {
+                      return CreateAddressPage(
+                        lat: _lat,
+                        lon: _lon,
+                        addressName: _currentAddressName!,
+                        isFromCreateOrder: true,
+                      );
+                    },
+                  );
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      fit: FlexFit.tight,
+                      child: Text(
+                        "Продолжить",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 42 * globals.scaleParam,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
       appBar: AppBar(
+        centerTitle: true,
         automaticallyImplyLeading: true,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.start,
@@ -208,16 +265,14 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                 );
               },
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisAlignment: MainAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
                     _currentCity.isEmpty ? "Выберите город" : _currentCity,
                     style: TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.w700,
-                      fontSize: 38 * globals.scaleParam,
+                      fontSize: 48 * globals.scaleParam,
                     ),
                   ),
                   Icon(
@@ -230,373 +285,218 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
           ],
         ),
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Flexible(
-              flex: 15,
-              fit: FlexFit.loose,
-              child: Stack(
-                children: [
-                  FlutterMap(
-                    mapController: _mapController,
-                    options: MapOptions(
-                      maxZoom: 17,
-                      onPointerUp: (event, point) {
-                        if (event.down == false) {
-                          searchGeoData(_mapController.camera.center.longitude, _mapController.camera.center.latitude).then(
-                            (value) {
-                              setState(() {
-                                isMapSetteled = true;
-                              });
-                            },
-                          );
-                        }
-                      },
-                      onPointerDown: (event, point) {
+      body: Stack(
+        children: [
+          SizedBox(
+            height: MediaQuery.sizeOf(context).height * 0.646,
+            child: FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                maxZoom: 17,
+                onPointerUp: (event, point) {
+                  if (event.down == false) {
+                    searchGeoData(_mapController.camera.center.longitude, _mapController.camera.center.latitude).then(
+                      (value) {
                         setState(() {
-                          isMapSetteled = false;
+                          isMapSetteled = true;
                         });
                       },
-                      interactionOptions: const InteractionOptions(
-                          enableMultiFingerGestureRace: true),
-                      initialCenter: const LatLng(0, 0),
-                      initialZoom: 9.2,
-                    ),
-                    children: [
-                      TileLayer(
-                        // tileBuilder: _darkModeTileBuilder,
-                        urlTemplate:
-                            'https://tile3.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
+                    );
+                  }
+                },
+                onPointerDown: (event, point) {
+                  setState(() {
+                    isMapSetteled = false;
+                  });
+                },
+                interactionOptions: const InteractionOptions(enableMultiFingerGestureRace: true),
+                initialCenter: const LatLng(0, 0),
+                initialZoom: 9.2,
+              ),
+              children: [
+                TileLayer(
+                  // tileBuilder: _darkModeTileBuilder,
+                  urlTemplate: 'https://tile3.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
 
-                        // urlTemplate:
-                        //     'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        // urlTemplate:
-                        //     'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-                        tileProvider: CancellableNetworkTileProvider(),
-                      ),
-                      // MarkerLayer(markers: [
-                      //   Marker(point: _selectedAddress, child: FlutterLogo())
-                      // ]),
-                      // MarkerLayer(markers: _markers),
-                      MarkerLayer(markers: [
-                        Marker(
-                          point: LatLng(widget.currentPosition.latitude, widget.currentPosition.longitude),
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              // AnimatedCurrentPosition(),
-                              Icon(
-                                Icons.circle,
-                                color: globals.mainColor,
-                                shadows: [BoxShadow(color: Colors.orange, blurRadius: 10, spreadRadius: 200 * globals.scaleParam)],
-                              ),
-                            ],
-                          ),
+                  // urlTemplate:
+                  //     'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  // urlTemplate:
+                  //     'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                  tileProvider: CancellableNetworkTileProvider(),
+                ),
+                // MarkerLayer(markers: [
+                //   Marker(point: _selectedAddress, child: FlutterLogo())
+                // ]),
+                // MarkerLayer(markers: _markers),
+                MarkerLayer(markers: [
+                  Marker(
+                    point: LatLng(widget.currentPosition.latitude, widget.currentPosition.longitude),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // AnimatedCurrentPosition(),
+                        Icon(
+                          Icons.circle,
+                          color: globals.mainColor,
+                          shadows: [BoxShadow(color: Colors.orange, blurRadius: 10, spreadRadius: 200 * globals.scaleParam)],
                         ),
-                        // Marker(
-                        //     width: 200,
-                        //     height: 200,
-                        //     alignment: Alignment.center,
-                        //     point: LatLng(widget.currentPosition.latitude,
-                        //         widget.currentPosition.longitude),
-                        //     child: )
-                      ]),
-                      const RichAttributionWidget(
-                        attributions: [
-                          TextSourceAttribution(
-                            'OpenStreetMap contributors',
-                            // onTap: () => launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
-                          ),
-                        ],
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                  Center(
-                    child: Container(
-                      child: Icon(
-                        Icons.circle_outlined,
-                        size: 58 * globals.scaleParam,
+                  // Marker(
+                  //     width: 200,
+                  //     height: 200,
+                  //     alignment: Alignment.center,
+                  //     point: LatLng(widget.currentPosition.latitude,
+                  //         widget.currentPosition.longitude),
+                  //     child: )
+                ]),
+                const RichAttributionWidget(
+                  attributions: [
+                    TextSourceAttribution(
+                      'OpenStreetMap contributors',
+                      // onTap: () => launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Container(
+            height: MediaQuery.sizeOf(context).height * 0.66,
+            alignment: Alignment.center,
+            child: Icon(
+              Icons.circle_outlined,
+              size: 58 * globals.scaleParam,
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              height: MediaQuery.sizeOf(context).height * 0.265,
+              padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam, vertical: 20 * globals.scaleParam),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.only(topLeft: Radius.circular(15), topRight: Radius.circular(15)),
+                color: Colors.white,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Flexible(
+                    fit: FlexFit.tight,
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: Text(
+                        "Наведите кружок на ваш адрес",
+                        style: TextStyle(
+                          fontSize: 42 * globals.scaleParam,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
+                  ),
+                  Flexible(
+                    flex: 2,
+                    fit: FlexFit.tight,
+                    child: TextField(
+                      controller: _searchAddress,
+                      onSubmitted: (value) {
+                        searchGeoDataByString(_searchAddress.text).then(
+                          (v) {
+                            showDialog(
+                              context: context,
+                              builder: (context) {
+                                print(foundAddresses.length);
+                                return AlertDialog(
+                                  backgroundColor: Colors.white,
+                                  title: const Text("Выберите адрес"),
+                                  content: Container(
+                                    width: MediaQuery.of(context).size.width * 0.8,
+                                    height: MediaQuery.of(context).size.height * 0.4,
+                                    child: SingleChildScrollView(
+                                      child: Column(
+                                        children: [
+                                          ListView.builder(
+                                            itemCount: foundAddresses.length,
+                                            primary: false,
+                                            shrinkWrap: true,
+                                            itemBuilder: (context, index) {
+                                              return Material(
+                                                color: Colors.white,
+                                                shadowColor: Colors.black12,
+                                                borderRadius: BorderRadius.all(Radius.circular(15)),
+                                                elevation: 10,
+                                                child: ListTile(
+                                                  tileColor: Colors.white,
+                                                  onTap: () {
+                                                    showModalBottomSheet(
+                                                      backgroundColor: Colors.white,
+                                                      barrierColor: Colors.black45,
+                                                      isScrollControlled: true,
+                                                      context: context,
+                                                      useSafeArea: true,
+                                                      builder: (context) {
+                                                        return CreateAddressPage(
+                                                          lat: foundAddresses[index]["point"]["lat"],
+                                                          lon: foundAddresses[index]["point"]["lon"],
+                                                          addressName: foundAddresses[index]["name"]!,
+                                                          isFromCreateOrder: true,
+                                                        );
+                                                      },
+                                                    );
+                                                  },
+                                                  title: Text(foundAddresses[index]["name"]),
+                                                  titleTextStyle: TextStyle(fontWeight: FontWeight.w700, color: Colors.black),
+                                                  subtitle: Wrap(
+                                                    spacing: 5,
+                                                    children: [for (var v in foundAddresses[index]["adm_div"]) Text(v["name"])],
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          )
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                      maxLines: 1,
+                      textAlign: TextAlign.start,
+                      textAlignVertical: TextAlignVertical.center,
+                      decoration: InputDecoration(
+                        hintText: "Поиск",
+                        suffixIcon: Icon(Icons.search),
+                        fillColor: Colors.blueGrey.shade50,
+                        filled: true,
+                        border: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                      ),
+                    ),
+                  ),
+                  Flexible(
+                    fit: FlexFit.tight,
+                    child: SizedBox(),
                   ),
                 ],
               ),
             ),
-            Flexible(
-              flex: MediaQuery.sizeOf(context).height > 400 ? 9 : 12,
-              fit: FlexFit.tight,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam, vertical: 20 * globals.scaleParam),
-                child: !isMapSetteled
-                    ? const Center(
-                        child: CircularProgressIndicator.adaptive(),
-                      )
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Flexible(
-                            flex: 10,
-                            fit: FlexFit.tight,
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 5 * globals.scaleParam),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  Flexible(
-                                    fit: FlexFit.tight,
-                                    child: Row(
-                                      children: [
-                                        Flexible(
-                                          fit: FlexFit.tight,
-                                          child: Text(
-                                            "Текущий адрес",
-                                            maxLines: 1,
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w900,
-                                                fontSize:
-                                                    42 * globals.scaleParam,
-                                                height: 2 * globals.scaleParam,
-                                                color: Colors.grey),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Flexible(
-                                      child: Row(
-                                    children: [
-                                      Text(
-                                        _currentAddressName ?? "Нет адреса",
-                                        textAlign: TextAlign.start,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 42 * globals.scaleParam,
-                                        ),
-                                      )
-                                    ],
-                                  )),
-                                  Flexible(
-                                    fit: FlexFit.tight,
-                                    child: Row(
-                                      children: [
-                                        Flexible(
-                                          fit: FlexFit.tight,
-                                          child: Text(
-                                            "Поиск",
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 24 * globals.scaleParam,
-                                              color: Colors.grey,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Flexible(
-                                    flex: 2,
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        Flexible(
-                                          flex: 3,
-                                          fit: FlexFit.tight,
-                                          child: TextField(
-                                            controller: _searchAddress,
-                                            onSubmitted: (value) {
-                                              searchGeoDataByString(
-                                                      _searchAddress.text)
-                                                  .then((v) {
-                                                showDialog(
-                                                  context: context,
-                                                  builder: (context) {
-                                                    print(
-                                                        foundAddresses.length);
-                                                    return AlertDialog(
-                                                        backgroundColor:
-                                                            Colors.white,
-                                                        title: const Text(
-                                                            "Выберите адрес"),
-                                                        content: Container(
-                                                            width: MediaQuery.of(
-                                                                        context)
-                                                                    .size
-                                                                    .width *
-                                                                0.8,
-                                                            height: MediaQuery.of(
-                                                                        context)
-                                                                    .size
-                                                                    .height *
-                                                                0.4,
-                                                            child:
-                                                                SingleChildScrollView(
-                                                              child: Column(
-                                                                children: [
-                                                                  ListView
-                                                                      .builder(
-                                                                    itemCount:
-                                                                        foundAddresses
-                                                                            .length,
-                                                                    primary:
-                                                                        false,
-                                                                    shrinkWrap:
-                                                                        true,
-                                                                    itemBuilder:
-                                                                        (context,
-                                                                            index) {
-                                                                      return Material(
-                                                                        color: Colors
-                                                                            .white,
-                                                                        shadowColor:
-                                                                            Colors.black12,
-                                                                        borderRadius:
-                                                                            BorderRadius.all(Radius.circular(15)),
-                                                                        elevation:
-                                                                            10,
-                                                                        child:
-                                                                            ListTile(
-                                                                          tileColor:
-                                                                              Colors.white,
-                                                                          onTap:
-                                                                              () {
-                                                                            showModalBottomSheet(
-                                                                              backgroundColor: Colors.white,
-                                                                              barrierColor: Colors.black45,
-                                                                              isScrollControlled: true,
-                                                                              context: context,
-                                                                              useSafeArea: true,
-                                                                              builder: (context) {
-                                                                                return CreateAddressPage(
-                                                                                  lat: foundAddresses[index]["point"]["lat"],
-                                                                                  lon: foundAddresses[index]["point"]["lon"],
-                                                                                  addressName: foundAddresses[index]["name"]!,
-                                                                                  isFromCreateOrder: true,
-                                                                                );
-                                                                              },
-                                                                            );
-                                                                          },
-                                                                          title:
-                                                                              Text(foundAddresses[index]["name"]),
-                                                                          titleTextStyle: TextStyle(
-                                                                              fontWeight: FontWeight.w700,
-                                                                              color: Colors.black),
-                                                                          subtitle:
-                                                                              Wrap(
-                                                                            spacing:
-                                                                                5,
-                                                                            children: [
-                                                                              for (var v in foundAddresses[index]["adm_div"])
-                                                                                Text(v["name"])
-                                                                            ],
-                                                                          ),
-                                                                        ),
-                                                                      );
-                                                                    },
-                                                                  )
-                                                                ],
-                                                              ),
-                                                            )));
-                                                  },
-                                                );
-                                              });
-                                            },
-                                            maxLines: 1,
-                                            textAlign: TextAlign.start,
-                                            textAlignVertical:
-                                                TextAlignVertical.center,
-                                            decoration: InputDecoration(
-                                              hintText: "Поиск",
-                                              suffixIcon: Icon(Icons.search),
-                                              fillColor:
-                                                  Colors.blueGrey.shade50,
-                                              filled: true,
-                                              border: InputBorder.none,
-                                              errorBorder: InputBorder.none,
-                                              enabledBorder: InputBorder.none,
-                                              focusedBorder: InputBorder.none,
-                                              disabledBorder: InputBorder.none,
-                                            ),
-                                          ),
-                                          // Text(
-                                          //   style: TextStyle(
-                                          //       fontWeight: FontWeight.w700,
-                                          //       fontSize:
-                                          //           32 * globals.scaleParam,
-                                          //       color: Colors.black),
-                                          // ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Flexible(
-                            flex: 3,
-                            fit: FlexFit.tight,
-                            child: GestureDetector(
-                              onTap: () {
-                                showModalBottomSheet(
-                                  backgroundColor: Colors.white,
-                                  barrierColor: Colors.black45,
-                                  isScrollControlled: true,
-                                  context: context,
-                                  useSafeArea: true,
-                                  builder: (context) {
-                                    return CreateAddressPage(
-                                      lat: _lat,
-                                      lon: _lon,
-                                      addressName: _currentAddressName!,
-                                      isFromCreateOrder: true,
-                                    );
-                                  },
-                                );
-                              },
-                              child: Container(
-                                padding: EdgeInsets.only(
-                                    left: 15 * globals.scaleParam,
-                                    right: 15 * globals.scaleParam,
-                                    bottom: 15 * globals.scaleParam),
-                                decoration: BoxDecoration(
-                                    color: globals.mainColor,
-                                    borderRadius: const BorderRadius.all(
-                                        Radius.circular(5))),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      "Продолжить",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 32 * globals.scaleParam,
-                                      ),
-                                    )
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
-            ),
-            SizedBox(
-              height: 50 * globals.scaleParam,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
 class AnimatedCurrentPosition extends StatefulWidget {
-  AnimatedCurrentPosition({super.key, required this.isFromCreateOrder});
+  const AnimatedCurrentPosition({super.key, required this.isFromCreateOrder});
 
   final bool isFromCreateOrder;
 
@@ -712,182 +612,228 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(top: 20, bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20),
-      child: Container(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Row(
+    return DraggableScrollableSheet(
+      snap: true,
+      expand: false,
+      initialChildSize: 0.9,
+      maxChildSize: 0.9,
+      minChildSize: 0.85,
+      shouldCloseOnMinExtent: true,
+      snapAnimationDuration: const Duration(milliseconds: 300),
+      builder: (context, scrollController) {
+        return Scaffold(
+          resizeToAvoidBottomInset: false,
+          floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+          floatingActionButton: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
+            child: Row(
               children: [
+                MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height
+                    ? Flexible(
+                        flex: 2,
+                        fit: FlexFit.tight,
+                        child: SizedBox(),
+                      )
+                    : SizedBox(),
                 Flexible(
-                    child: Text(
-                  widget.addressName,
-                  style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black),
-                )),
+                  fit: FlexFit.tight,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      _createAddress().whenComplete(() {
+                        // widget.isFromCreateOrder
+                      });
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          fit: FlexFit.tight,
+                          child: Text(
+                            "Продолжить",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 42 * globals.scaleParam,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
-            const Divider(
-              thickness: 1,
-            ),
-            Flexible(
-              child: TextField(
-                maxLength: 250,
-                buildCounter: (context, {required currentLength, required isFocused, required maxLength}) {
-                  return null;
-                },
-                decoration: InputDecoration(
-                  labelText: "Название",
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: const UnderlineInputBorder(),
-                  labelStyle: TextStyle(fontSize: 38 * globals.scaleParam),
-                ),
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 38 * globals.scaleParam,
-                ),
-                controller: name,
-              ),
-            ),
-            // TextField(
-            //   decoration: InputDecoration(
-            //     filled: true,
-            //     fillColor: Colors.grey.shade200,
-            //     border: OutlineInputBorder(
-            //       borderSide: BorderSide(color: Colors.black, width: 10),
-            //       borderRadius: BorderRadius.all(Radius.circular(10)),
-            //     ),
-            //     labelStyle: TextStyle(fontSize: 38 * globals.scaleParam),
-            //   ),
-            //   readOnly: true,
-            //   style: TextStyle(
-            //     fontWeight: FontWeight.w700,
-            //     fontSize: 38 * globals.scaleParam,
-            //   ),
-            //   controller: TextEditingController(text: widget.addressName),
-            // ),
-            Column(
+          ),
+          body: Container(
+            padding: EdgeInsets.all(35 * globals.scaleParam),
+            child: Column(
               mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Flexible(
-                  child: TextField(
-                    keyboardType: TextInputType.number,
-                    controller: house,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: InputDecoration(
-                      labelText: "Квартира/Офис",
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: const UnderlineInputBorder(),
-                      labelStyle: TextStyle(fontSize: 32 * globals.scaleParam),
-                    ),
-                    style: TextStyle(fontSize: 32 * globals.scaleParam),
-                  ),
-                ),
-                Flexible(
-                  child: TextField(
-                    keyboardType: TextInputType.number,
-                    controller: entrance,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: InputDecoration(
-                      labelText: "Подъезд/Вход",
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: const UnderlineInputBorder(),
-                      labelStyle: TextStyle(fontSize: 32 * globals.scaleParam),
-                    ),
-                    style: TextStyle(fontSize: 32 * globals.scaleParam),
-                  ),
-                ),
-                Flexible(
-                  child: TextField(
-                    keyboardType: TextInputType.number,
-                    controller: floor,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: InputDecoration(
-                      labelText: "Этаж",
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: const UnderlineInputBorder(),
-                      labelStyle: TextStyle(fontSize: 32 * globals.scaleParam),
-                    ),
-                    style: TextStyle(fontSize: 32 * globals.scaleParam),
-                  ),
-                )
-              ],
-            ),
-            TextField(
-              maxLength: 500,
-              buildCounter: (context, {required currentLength, required isFocused, required maxLength}) {
-                if (isFocused) {
-                  return Text(
-                    '$currentLength/$maxLength',
-                    semanticsLabel: 'character count',
-                    style: TextStyle(fontSize: 32 * globals.scaleParam),
-                  );
-                } else {
-                  return null;
-                }
-              },
-              decoration: InputDecoration(
-                labelText: "Комментарий",
-                filled: true,
-                fillColor: Colors.white,
-                border: const UnderlineInputBorder(),
-                labelStyle: TextStyle(fontSize: 38 * globals.scaleParam),
-              ),
-              style: TextStyle(fontSize: 38 * globals.scaleParam),
-              controller: other,
-            ),
-            Row(
-              children: [
-                Text(widget.lat.toString()),
-                SizedBox(
-                  width: 20 * globals.scaleParam,
-                ),
-                Text(widget.lon.toString())
-              ],
-            ),
-            GestureDetector(
-              onTap: () {
-                _createAddress().whenComplete(() {
-                  // widget.isFromCreateOrder
-                });
-              },
-              child: Container(
-                padding: EdgeInsets.all(30 * globals.scaleParam),
-                margin: const EdgeInsets.only(bottom: 30),
-                decoration: BoxDecoration(
-                  color: globals.mainColor,
-                  borderRadius: const BorderRadius.all(Radius.circular(10)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Row(
                   children: [
-                    Text(
-                      "Продолжить",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 48 * globals.scaleParam,
+                    Flexible(
+                      child: Text(
+                        widget.addressName,
+                        style: TextStyle(
+                          fontSize: 50 * globals.scaleParam,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(
+                  thickness: 1,
+                ),
+                Flexible(
+                  child: TextField(
+                    maxLength: 250,
+                    buildCounter: (context, {required currentLength, required isFocused, required maxLength}) {
+                      return null;
+                    },
+                    decoration: InputDecoration(
+                      labelText: "Название",
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: const UnderlineInputBorder(),
+                      labelStyle: TextStyle(fontSize: 42 * globals.scaleParam),
+                    ),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 42 * globals.scaleParam,
+                    ),
+                    controller: name,
+                  ),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: TextField(
+                        keyboardType: TextInputType.text,
+                        controller: house,
+                        inputFormatters: [FilteringTextInputFormatter.singleLineFormatter],
+                        decoration: InputDecoration(
+                          labelText: "Квартира/Офис",
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: const UnderlineInputBorder(),
+                          labelStyle: TextStyle(fontSize: 42 * globals.scaleParam),
+                        ),
+                        style: TextStyle(fontSize: 42 * globals.scaleParam),
+                      ),
+                    ),
+                    Flexible(
+                      child: TextField(
+                        keyboardType: TextInputType.text,
+                        controller: entrance,
+                        inputFormatters: [FilteringTextInputFormatter.singleLineFormatter],
+                        decoration: InputDecoration(
+                          labelText: "Подъезд/Вход",
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: const UnderlineInputBorder(),
+                          labelStyle: TextStyle(fontSize: 42 * globals.scaleParam),
+                        ),
+                        style: TextStyle(fontSize: 42 * globals.scaleParam),
+                      ),
+                    ),
+                    Flexible(
+                      child: TextField(
+                        keyboardType: TextInputType.text,
+                        controller: floor,
+                        inputFormatters: [FilteringTextInputFormatter.singleLineFormatter],
+                        decoration: InputDecoration(
+                          labelText: "Этаж",
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: const UnderlineInputBorder(),
+                          labelStyle: TextStyle(fontSize: 42 * globals.scaleParam),
+                        ),
+                        style: TextStyle(fontSize: 42 * globals.scaleParam),
                       ),
                     )
                   ],
                 ),
-              ),
-            ),
+                TextField(
+                  maxLength: 500,
+                  buildCounter: (context, {required currentLength, required isFocused, required maxLength}) {
+                    if (isFocused) {
+                      return Text(
+                        '$currentLength/$maxLength',
+                        semanticsLabel: 'character count',
+                        style: TextStyle(fontSize: 42 * globals.scaleParam),
+                      );
+                    } else {
+                      return null;
+                    }
+                  },
+                  decoration: InputDecoration(
+                    labelText: "Комментарий",
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: const UnderlineInputBorder(),
+                    labelStyle: TextStyle(fontSize: 42 * globals.scaleParam),
+                  ),
+                  style: TextStyle(fontSize: 42 * globals.scaleParam),
+                  controller: other,
+                ),
+                Row(
+                  children: [
+                    Text(
+                      widget.lat.toString(),
+                      style: TextStyle(fontSize: 28 * globals.scaleParam, color: Colors.grey),
+                    ),
+                    SizedBox(
+                      width: 20 * globals.scaleParam,
+                    ),
+                    Text(
+                      widget.lon.toString(),
+                      style: TextStyle(fontSize: 28 * globals.scaleParam, color: Colors.grey),
+                    )
+                  ],
+                ),
+                // GestureDetector(
+                //   onTap: () {
+                //     _createAddress().whenComplete(() {
+                //       // widget.isFromCreateOrder
+                //     });
+                //   },
+                //   child: Container(
+                //     padding: EdgeInsets.all(30 * globals.scaleParam),
+                //     margin: const EdgeInsets.only(bottom: 30),
+                //     decoration: BoxDecoration(
+                //       color: globals.mainColor,
+                //       borderRadius: const BorderRadius.all(Radius.circular(10)),
+                //     ),
+                //     child: Row(
+                //       mainAxisAlignment: MainAxisAlignment.center,
+                //       children: [
+                //         Text(
+                //           "Продолжить",
+                //           style: TextStyle(
+                //             color: Colors.white,
+                //             fontWeight: FontWeight.w900,
+                //             fontSize: 48 * globals.scaleParam,
+                //           ),
+                //         )
+                //       ],
+                //     ),
+                //   ),
+                // ),
 
-            SizedBox(
-              height: 50 * globals.scaleParam,
+                // SizedBox(
+                //   height: 50 * globals.scaleParam,
+                // ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
