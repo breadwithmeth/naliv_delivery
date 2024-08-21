@@ -839,109 +839,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                           ],
                         ),
                       ),
-                      // Padding(
-                      //   padding: EdgeInsets.symmetric(
-                      //     horizontal: 45 * globals.scaleParam,
-                      //   ),
-                      //   child: Divider(
-                      //     height: 5 * globals.scaleParam,
-                      //   ),
-                      // ),
-
-                      // Container(
-                      //   height: 520 * globals.scaleParam,
-                      //   decoration: BoxDecoration(
-                      //       color: Colors.white,
-                      //       borderRadius:
-                      //           BorderRadius.all(Radius.circular(10))),
-                      //   margin: EdgeInsets.symmetric(
-                      //     horizontal: 30 * globals.scaleParam,
-                      //   ),
-                      //   padding: EdgeInsets.all(10 * globals.scaleParam),
-                      //   child: ListView.builder(
-                      //     primary: false,
-                      //     shrinkWrap: true,
-                      //     itemCount: widget.items.length,
-                      //     itemBuilder: (context, index) {
-                      //       final item = widget.items[index];
-
-                      //       return Column(
-                      //         children: [
-                      //           ItemCardNoImage(
-                      //             element: item,
-                      //             itemId: item["item_id"],
-                      //             categoryId: "",
-                      //             categoryName: "",
-                      //             scroll: 0,
-                      //           ),
-                      //           widget.items.length - 1 != index
-                      //               ? Padding(
-                      //                   padding: EdgeInsets.symmetric(
-                      //                     horizontal:
-                      //                         32 * globals.scaleParam,
-                      //                     vertical:
-                      //                         10 * globals.scaleParam,
-                      //                   ),
-                      //                   child: Divider(
-                      //                     height: 0,
-                      //                   ),
-                      //                 )
-                      //               : Container(),
-                      //         ],
-                      //       );
-                      //     },
-                      //   ),
-                      // ),
-                      // Container(
-                      //   height: 100 * globals.scaleParam,
-                      //   margin: EdgeInsets.symmetric(
-                      //     horizontal: 30 * globals.scaleParam,
-                      //   ),
-                      //   padding: EdgeInsets.symmetric(
-                      //     horizontal: 15 * globals.scaleParam,
-                      //   ),
-                      //   child: Row(
-                      //     children: [
-                      //       Flexible(
-                      //         fit: FlexFit.tight,
-                      //         child: Text(
-                      //           "x ${widget.itemsAmount}",
-                      //           textAlign: TextAlign.center,
-                      //           style: TextStyle(
-                      //             fontSize: 38 * globals.scaleParam,
-                      //             fontWeight: FontWeight.w600,
-                      //             color: Colors.black,
-                      //           ),
-                      //         ),
-                      //       ),
-                      //       Flexible(
-                      //         flex: 5,
-                      //         fit: FlexFit.tight,
-                      //         child: Text(
-                      //           "В заказе",
-                      //           style: TextStyle(
-                      //             fontSize: 38 * globals.scaleParam,
-                      //             fontWeight: FontWeight.w600,
-                      //             color: Colors.black,
-                      //           ),
-                      //         ),
-                      //       ),
-                      //       Flexible(
-                      //         flex: 2,
-                      //         fit: FlexFit.tight,
-                      //         child: Text(
-                      //           "${globals.formatCost(widget.finalSum.toString()).toString()} ₸",
-                      //           textAlign: TextAlign.center,
-                      //           style: TextStyle(
-                      //             fontSize: 38 * globals.scaleParam,
-                      //             fontWeight: FontWeight.w600,
-                      //             color: Colors.black,
-                      //           ),
-                      //         ),
-                      //       )
-                      //     ],
-                      //   ),
-                      // ),
                     ],
                   ),
                 ),
@@ -989,199 +886,11 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                     horizontal: 12 * globals.scaleParam,
                                   ),
                                   backgroundColor: Colors.transparent,
+                                  disabledBackgroundColor: Colors.transparent,
                                   shadowColor: Colors.transparent,
                                   foregroundColor: Colors.grey,
                                 ),
-                                onPressed: () {
-                                  // showAdaptiveDialog(
-                                  //   context: context,
-                                  //   builder: (context) {
-                                  //     return StatefulBuilder(
-                                  //       builder: (BuildContext context,
-                                  //           setStatePayment) {
-                                  //         return AlertDialog(
-                                  //           title: Row(
-                                  //             mainAxisAlignment:
-                                  //                 MainAxisAlignment.center,
-                                  //             children: [
-                                  //               Flexible(
-                                  //                 child: Text(
-                                  //                   "Способ оплаты",
-                                  //                   style: TextStyle(
-                                  //                     fontSize: 48 *
-                                  //                         globals.scaleParam,
-                                  //                     fontWeight:
-                                  //                         FontWeight.w700,
-                                  //                     color: Colors.black,
-                                  //                   ),
-                                  //                 ),
-                                  //               ),
-                                  //             ],
-                                  //           ),
-                                  //           // content: Column(
-                                  //           //   mainAxisSize: MainAxisSize.min,
-                                  //           //   children: [
-                                  //           //     Row(
-                                  //           //       children: [],
-                                  //           //     ),
-                                  //           //   ],
-                                  //           // ),
-                                  //           actions: [
-                                  //             TextButton(
-                                  //               onPressed: () {
-                                  //                 setState(() {
-                                  //                   paymentType =
-                                  //                       PaymentType.card;
-                                  //                 });
-                                  //                 Navigator.pop(context);
-                                  //               },
-                                  //               child: Container(
-                                  //                 padding: EdgeInsets.all(
-                                  //                     20 * globals.scaleParam),
-                                  //                 decoration: BoxDecoration(
-                                  //                   borderRadius:
-                                  //                       BorderRadius.all(
-                                  //                     Radius.circular(10),
-                                  //                   ),
-                                  //                   color: Colors.black12,
-                                  //                 ),
-                                  //                 child: Row(
-                                  //                   children: [
-                                  //                     Flexible(
-                                  //                       flex: 4,
-                                  //                       fit: FlexFit.tight,
-                                  //                       child: Text(
-                                  //                         "Картой",
-                                  //                       ),
-                                  //                     ),
-                                  //                     Flexible(
-                                  //                       flex: 2,
-                                  //                       fit: FlexFit.tight,
-                                  //                       child: Icon(
-                                  //                         Icons
-                                  //                             .credit_card_rounded,
-                                  //                       ),
-                                  //                     ),
-                                  //                   ],
-                                  //                 ),
-                                  //               ),
-                                  //             ),
-                                  //             TextButton(
-                                  //               onPressed: () {
-                                  //                 setState(() {
-                                  //                   paymentType =
-                                  //                       PaymentType.kaspi;
-                                  //                 });
-                                  //                 Navigator.pop(context);
-                                  //               },
-                                  //               child: Container(
-                                  //                 padding: EdgeInsets.all(
-                                  //                   20 * globals.scaleParam,
-                                  //                 ),
-                                  //                 decoration: BoxDecoration(
-                                  //                   borderRadius:
-                                  //                       BorderRadius.all(
-                                  //                     Radius.circular(10),
-                                  //                   ),
-                                  //                   color: Colors.black12,
-                                  //                 ),
-                                  //                 child: Row(
-                                  //                   children: [
-                                  //                     Flexible(
-                                  //                       flex: 4,
-                                  //                       fit: FlexFit.tight,
-                                  //                       child: Text(
-                                  //                         "Счёт на каспи",
-                                  //                       ),
-                                  //                     ),
-                                  //                     Flexible(
-                                  //                       flex: 2,
-                                  //                       fit: FlexFit.tight,
-                                  //                       child: Icon(
-                                  //                         Icons
-                                  //                             .smartphone_rounded,
-                                  //                       ),
-                                  //                     ),
-                                  //                   ],
-                                  //                 ),
-                                  //               ),
-                                  //             ),
-                                  //             TextButton(
-                                  //               onPressed: () {
-                                  //                 setState(() {
-                                  //                   paymentType =
-                                  //                       PaymentType.cash;
-                                  //                 });
-                                  //                 Navigator.pop(context);
-                                  //               },
-                                  //               child: Container(
-                                  //                 padding: EdgeInsets.all(
-                                  //                     20 * globals.scaleParam),
-                                  //                 decoration: BoxDecoration(
-                                  //                   borderRadius:
-                                  //                       BorderRadius.all(
-                                  //                     Radius.circular(10),
-                                  //                   ),
-                                  //                   color: Colors.black12,
-                                  //                 ),
-                                  //                 child: Row(
-                                  //                   children: [
-                                  //                     Flexible(
-                                  //                       flex: 4,
-                                  //                       fit: FlexFit.tight,
-                                  //                       child: Text(
-                                  //                         "Наличными",
-                                  //                       ),
-                                  //                     ),
-                                  //                     Flexible(
-                                  //                       flex: 2,
-                                  //                       fit: FlexFit.tight,
-                                  //                       child: Icon(
-                                  //                         Icons.money_rounded,
-                                  //                       ),
-                                  //                     ),
-                                  //                   ],
-                                  //                 ),
-                                  //               ),
-                                  //             ),
-                                  //             TextButton(
-                                  //               onPressed: () {
-                                  //                 Navigator.pop(context);
-                                  //               },
-                                  //               child: Container(
-                                  //                 padding: EdgeInsets.all(
-                                  //                     20 * globals.scaleParam),
-                                  //                 decoration: BoxDecoration(
-                                  //                   borderRadius:
-                                  //                       BorderRadius.all(
-                                  //                     Radius.circular(10),
-                                  //                   ),
-                                  //                   color: Colors.black12,
-                                  //                 ),
-                                  //                 child: Row(
-                                  //                   mainAxisAlignment:
-                                  //                       MainAxisAlignment
-                                  //                           .center,
-                                  //                   children: [
-                                  //                     Flexible(
-                                  //                       fit: FlexFit.tight,
-                                  //                       child: Text(
-                                  //                         "Назад",
-                                  //                         textAlign:
-                                  //                             TextAlign.center,
-                                  //                       ),
-                                  //                     ),
-                                  //                   ],
-                                  //                 ),
-                                  //               ),
-                                  //             ),
-                                  //           ],
-                                  //         );
-                                  //       },
-                                  //     );
-                                  //   },
-                                  // );
-                                },
+                                onPressed: null,
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
@@ -1402,6 +1111,41 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                             ),
                           ],
                         ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.only(top: 15 * globals.scaleParam),
+                alignment: Alignment.topCenter,
+                child: Container(
+                  width: constraints.maxWidth * 0.955,
+                  // height: 130 * globals.scaleParam,
+                  margin: EdgeInsets.symmetric(vertical: 20 * globals.scaleParam),
+                  padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(15)),
+                    // color: Color.fromARGB(255, 245, 245, 245),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              " * курьер выдаст заказ 21+ только при подтверждении возраста.",
+                              textAlign: TextAlign.left,
+                              style: TextStyle(
+                                // fontFamily: "montserrat",
+                                fontSize: 26 * globals.scaleParam,
+                                fontWeight: FontWeight.w500,
+                                color: Color.fromARGB(255, 215, 215, 215),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

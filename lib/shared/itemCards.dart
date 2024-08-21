@@ -3192,7 +3192,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                                               },
                                                               icon: Icon(
                                                                 Icons.done_sharp,
-                                                                size: 110 * globals.scaleParam,
+                                                                size: 130 * globals.scaleParam,
                                                                 color: Colors.white,
                                                               ),
                                                             ),
@@ -3210,7 +3210,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                                               },
                                                               icon: Icon(
                                                                 Icons.close_sharp,
-                                                                size: 110 * globals.scaleParam,
+                                                                size: 130 * globals.scaleParam,
                                                                 color: Colors.white,
                                                               ),
                                                             ),

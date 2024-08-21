@@ -607,6 +607,41 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                   ],
                 ),
               ),
+              Container(
+                padding: EdgeInsets.only(top: 15 * globals.scaleParam),
+                alignment: Alignment.topCenter,
+                child: Container(
+                  width: constraints.maxWidth * 0.955,
+                  // height: 130 * globals.scaleParam,
+                  margin: EdgeInsets.symmetric(vertical: 20 * globals.scaleParam),
+                  padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(15)),
+                    // color: Color.fromARGB(255, 245, 245, 245),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              " * курьер выдаст заказ 21+ только при подтверждении возраста.",
+                              textAlign: TextAlign.left,
+                              style: TextStyle(
+                                // fontFamily: "montserrat",
+                                fontSize: 26 * globals.scaleParam,
+                                fontWeight: FontWeight.w500,
+                                color: Color.fromARGB(255, 215, 215, 215),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           );
         }),

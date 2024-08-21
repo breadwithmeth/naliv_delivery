@@ -332,64 +332,46 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                 ],
               ),
             )
-          // ? Padding(
-          //     padding:
-          //         EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
-          //     child: ElevatedButton(
-          // onPressed: items.isNotEmpty && !dismissingItem
-          //     ? () {
-          //         Navigator.push(
-          //           context,
-          //           MaterialPageRoute(
-          //             builder: (context) {
-          //               return CreateOrderPage(
-          //                 business: widget.business,
-          //                 finalSum: localSum,
-          //                 items: items,
-          //                 itemsAmount: itemsAmount,
-          //                 user: widget.user,
-          //                 deliveryInfo: Map.from(
-          //                   {"distance": distance, "price": price},
-          //                 ),
-          //               );
-          //             },
-          //           ),
-          //         );
-          //       }
-          //     : null,
-          // child: Row(
-          //   mainAxisAlignment: MainAxisAlignment.center,
-          //   crossAxisAlignment: CrossAxisAlignment.center,
-          //   children: [
-          //     Flexible(
-          //       flex: 2,
-          //       fit: FlexFit.tight,
-          //       child: Text(
-          //         "Оформить заказ",
-          //         style: TextStyle(
-          //           fontWeight: FontWeight.w900,
-          //           fontSize: 42 * globals.scaleParam,
-          //           color: Theme.of(context).colorScheme.onPrimary,
-          //         ),
-          //       ),
-          //     ),
-          //     Flexible(
-          //       fit: FlexFit.tight,
-          //       child: Text(
-          //         "${globals.formatCost(localSum.toString())} ₸",
-          //         textAlign: TextAlign.justify,
-          //         style: TextStyle(
-          //           fontWeight: FontWeight.w900,
-          //           fontSize: 44 * globals.scaleParam,
-          //           color: Theme.of(context).colorScheme.onPrimary,
-          //         ),
-          //       ),
-          //     ),
-          //   ],
-          // ),
-          //     ),
-          //   )
-          : SizedBox(),
+          : Padding(
+              padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
+              child: Row(
+                children: [
+                  MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height
+                      ? Flexible(
+                          flex: 2,
+                          fit: FlexFit.tight,
+                          child: SizedBox(),
+                        )
+                      : SizedBox(),
+                  Flexible(
+                    fit: FlexFit.tight,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.maybePop(context);
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            fit: FlexFit.tight,
+                            child: Text(
+                              "За покупками!",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 42 * globals.scaleParam,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
       body: isCartLoading == false
           ? items.isEmpty
               ? Center(
