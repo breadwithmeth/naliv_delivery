@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../globals.dart' as globals;
 
 class PaintLogoPage extends StatefulWidget {
   const PaintLogoPage({super.key, required this.city});
@@ -9,7 +11,8 @@ class PaintLogoPage extends StatefulWidget {
   State<PaintLogoPage> createState() => _PaintLogoPageState();
 }
 
-class _PaintLogoPageState extends State<PaintLogoPage> with SingleTickerProviderStateMixin {
+class _PaintLogoPageState extends State<PaintLogoPage>
+    with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
@@ -35,13 +38,22 @@ class _PaintLogoPageState extends State<PaintLogoPage> with SingleTickerProvider
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Flexible(
-                          child: SizedBox(
-                            width: constraints.maxWidth,
-                            height: constraints.maxHeight,
-                            child: widget.city == "Павлодар"
-                                ? Image.asset("./assets/naliv_logo_loading.png")
-                                : Image.asset("./assets/gradusy_logo_loading.png"),
+                          child: Text(
+                            // "НАЛИВ/ГРАДУСЫ24",
+                            "закажи",
+                            style: GoogleFonts.comfortaa(
+                              textStyle: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 140 * globals.scaleParam),
+                            ),
                           ),
+                          // SizedBox(
+                          //   width: constraints.maxWidth,
+                          //   height: constraints.maxHeight,
+                          //   child: widget.city == "Павлодар"
+                          //       ? Image.asset("./assets/naliv_logo_loading.png")
+                          //       : Image.asset("./assets/gradusy_logo_loading.png"),
+                          // ),
                         ),
                       ],
                     ),
