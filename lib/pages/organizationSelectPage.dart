@@ -716,19 +716,34 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                             width: constraints.maxWidth * 0.7,
                                             child: LayoutBuilder(
                                               builder: (context, constraints2) {
-                                                double cityNameHeight = constraints.maxHeight * 0.5;
-                                                double addressNameHeight = constraints.maxHeight * 0.5;
+                                                double cityNameHeight =
+                                                    constraints.maxHeight * 0.5;
+                                                double addressNameHeight =
+                                                    constraints.maxHeight * 0.5;
                                                 if (hasSecondLine(
-                                                    widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
+                                                    widget.currentAddress
+                                                            .isNotEmpty
+                                                        ? widget.currentAddress[
+                                                            "address"]
+                                                        : "Нет адреса",
                                                     TextStyle(
-                                                      fontSize: 32 * globals.scaleParam,
-                                                      fontWeight: FontWeight.w500,
-                                                      color: isCollapsed ? Colors.white : Colors.transparent,
+                                                      fontSize: 32 *
+                                                          globals.scaleParam,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: isCollapsed
+                                                          ? Colors.white
+                                                          : Colors.transparent,
                                                       height: 1.1,
                                                     ),
-                                                    constraints.maxWidth * 0.7)) {
-                                                  cityNameHeight = constraints.maxHeight * 0.42;
-                                                  addressNameHeight = constraints.maxHeight * 0.58;
+                                                    constraints.maxWidth *
+                                                        0.7)) {
+                                                  cityNameHeight =
+                                                      constraints.maxHeight *
+                                                          0.42;
+                                                  addressNameHeight =
+                                                      constraints.maxHeight *
+                                                          0.58;
                                                 }
 
                                                 // return Container(
@@ -737,23 +752,37 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                 // );
 
                                                 return Column(
-                                                  mainAxisAlignment: MainAxisAlignment.end,
-                                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.end,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.center,
                                                   children: [
                                                     Container(
                                                       height: cityNameHeight,
-                                                      alignment: Alignment.bottomLeft,
+                                                      alignment:
+                                                          Alignment.bottomLeft,
                                                       child: Row(
-                                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .end,
                                                         children: [
                                                           Flexible(
                                                             child: Text(
-                                                              widget.currentAddress["city_name"] ?? "",
-                                                              textAlign: TextAlign.start,
+                                                              widget.currentAddress[
+                                                                      "city_name"] ??
+                                                                  "",
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .start,
                                                               style: TextStyle(
-                                                                fontWeight: FontWeight.w700,
-                                                                fontSize: 36 * globals.scaleParam,
-                                                                color: Colors.white,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700,
+                                                                fontSize: 36 *
+                                                                    globals
+                                                                        .scaleParam,
+                                                                color: Colors
+                                                                    .white,
                                                                 height: 1.1,
                                                               ),
                                                             ),
@@ -763,17 +792,32 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                     ),
                                                     Container(
                                                       height: addressNameHeight,
-                                                      alignment: Alignment.topLeft,
+                                                      alignment:
+                                                          Alignment.topLeft,
                                                       child: Row(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
                                                         children: [
                                                           Flexible(
                                                             child: Text(
-                                                              widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
+                                                              widget.currentAddress
+                                                                      .isNotEmpty
+                                                                  ? widget.currentAddress[
+                                                                      "address"]
+                                                                  : "Нет адреса",
                                                               style: TextStyle(
-                                                                fontSize: 32 * globals.scaleParam,
-                                                                fontWeight: FontWeight.w500,
-                                                                color: isCollapsed ? Colors.white : Colors.transparent,
+                                                                fontSize: 32 *
+                                                                    globals
+                                                                        .scaleParam,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                                color: isCollapsed
+                                                                    ? Colors
+                                                                        .white
+                                                                    : Colors
+                                                                        .transparent,
                                                                 height: 1.1,
                                                               ),
                                                             ),
@@ -849,19 +893,32 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                           width: constraints.maxWidth * 0.7,
                                           child: LayoutBuilder(
                                             builder: (context, constraints2) {
-                                              double cityNameHeight = constraints.maxHeight * 0.5;
-                                              double addressNameHeight = constraints.maxHeight * 0.5;
+                                              double cityNameHeight =
+                                                  constraints.maxHeight * 0.5;
+                                              double addressNameHeight =
+                                                  constraints.maxHeight * 0.5;
                                               if (hasSecondLine(
-                                                  widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
+                                                  widget.currentAddress
+                                                          .isNotEmpty
+                                                      ? widget.currentAddress[
+                                                          "address"]
+                                                      : "Нет адреса",
                                                   TextStyle(
-                                                    fontSize: 32 * globals.scaleParam,
+                                                    fontSize:
+                                                        32 * globals.scaleParam,
                                                     fontWeight: FontWeight.w500,
-                                                    color: isCollapsed ? Colors.white : Colors.transparent,
+                                                    color: isCollapsed
+                                                        ? Colors.white
+                                                        : Colors.transparent,
                                                     height: 1.1,
                                                   ),
                                                   constraints.maxWidth * 0.7)) {
-                                                cityNameHeight = constraints.maxHeight * 0.42;
-                                                addressNameHeight = constraints.maxHeight * 0.58;
+                                                cityNameHeight =
+                                                    constraints.maxHeight *
+                                                        0.42;
+                                                addressNameHeight =
+                                                    constraints.maxHeight *
+                                                        0.58;
                                               }
 
                                               // return Container(
@@ -870,23 +927,36 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                               // );
 
                                               return Column(
-                                                mainAxisAlignment: MainAxisAlignment.end,
-                                                crossAxisAlignment: CrossAxisAlignment.center,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.end,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.center,
                                                 children: [
                                                   Container(
                                                     height: cityNameHeight,
-                                                    alignment: Alignment.bottomLeft,
+                                                    alignment:
+                                                        Alignment.bottomLeft,
                                                     child: Row(
-                                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .end,
                                                       children: [
                                                         Flexible(
                                                           child: Text(
-                                                            widget.currentAddress["city_name"] ?? "",
-                                                            textAlign: TextAlign.start,
+                                                            widget.currentAddress[
+                                                                    "city_name"] ??
+                                                                "",
+                                                            textAlign:
+                                                                TextAlign.start,
                                                             style: TextStyle(
-                                                              fontWeight: FontWeight.w700,
-                                                              fontSize: 36 * globals.scaleParam,
-                                                              color: Colors.black,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              fontSize: 36 *
+                                                                  globals
+                                                                      .scaleParam,
+                                                              color:
+                                                                  Colors.black,
                                                               height: 1.1,
                                                             ),
                                                           ),
@@ -896,17 +966,31 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                   ),
                                                   Container(
                                                     height: addressNameHeight,
-                                                    alignment: Alignment.topLeft,
+                                                    alignment:
+                                                        Alignment.topLeft,
                                                     child: Row(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
                                                       children: [
                                                         Flexible(
                                                           child: Text(
-                                                            widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
+                                                            widget.currentAddress
+                                                                    .isNotEmpty
+                                                                ? widget.currentAddress[
+                                                                    "address"]
+                                                                : "Нет адреса",
                                                             style: TextStyle(
-                                                              fontSize: 32 * globals.scaleParam,
-                                                              fontWeight: FontWeight.w500,
-                                                              color: !isCollapsed ? Colors.black : Colors.transparent,
+                                                              fontSize: 32 *
+                                                                  globals
+                                                                      .scaleParam,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                              color: !isCollapsed
+                                                                  ? Colors.black
+                                                                  : Colors
+                                                                      .transparent,
                                                               height: 1.1,
                                                             ),
                                                           ),
@@ -984,7 +1068,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                   children: [
                     Flexible(
                       child: Text(
-                        "Категории",
+                        "Бар-Маркеты",
                         style: TextStyle(
                             fontSize: 48 * globals.scaleParam,
                             fontWeight: FontWeight.w900,
@@ -995,95 +1079,95 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                 ),
               ),
             ),
-            SliverToBoxAdapter(
-              child: Container(
-                // color: Colors.white,
-                height: 200 * globals.scaleParam,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  // addRepaintBoundaries: false,
-                  shrinkWrap: true,
-                  primary: false,
-                  // controller: PageController(viewportFraction: 0.8),
-                  itemCount: _carouselItems.length,
-                  itemBuilder: (context, index) {
-                    return Row(
-                      children: [
-                        Container(
-                          width: 200 * globals.scaleParam,
-                          height: 200 * globals.scaleParam,
-                          clipBehavior: Clip.antiAlias,
-                          margin: EdgeInsets.only(
-                              top: 5 * globals.scaleParam,
-                              bottom: 5 * globals.scaleParam,
-                              left: 25 * globals.scaleParam),
-                          decoration: BoxDecoration(
-                              boxShadow: [
-                                BoxShadow(
-                                    color: Colors.grey.shade300,
-                                    blurRadius: 5 * globals.scaleParam)
-                              ],
-                              color: Colors.grey.shade100,
-                              borderRadius:
-                                  const BorderRadius.all(Radius.circular(10))),
-                          child: Stack(
-                            children: [
-                              Container(
-                                padding:
-                                    EdgeInsets.all(10 * globals.scaleParam),
-                                child: Image.network(
-                                  _carouselItems[index]["image"],
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                ),
-                              ),
-                              // Container(
-                              //   width: double.infinity,
-                              //   height: double.infinity,
-                              //   decoration: const BoxDecoration(
-                              //       gradient: LinearGradient(
-                              //           transform: GradientRotation(pi / -2),
-                              //           colors: [
-                              //         Colors.black,
-                              //         Colors.transparent
-                              //       ])),
-                              // ),
-                              Container(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    Container(
-                                        alignment: Alignment.topLeft,
-                                        color: Colors.white,
-                                        height: 80 * globals.scaleParam,
-                                        padding: EdgeInsets.all(
-                                            10 * globals.scaleParam),
-                                        child: Row(
-                                          children: [
-                                            Flexible(
-                                                child: Text(
-                                              _carouselItems[index]["name"],
-                                              style: TextStyle(
-                                                  color: Colors.black,
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize:
-                                                      24 * globals.scaleParam),
-                                            )),
-                                          ],
-                                        ))
-                                  ],
-                                ),
-                              )
-                            ],
-                          ),
-                        )
-                      ],
-                    );
-                  },
-                ),
-              ),
-            ),
+            // SliverToBoxAdapter(
+            //   child: Container(
+            //     // color: Colors.white,
+            //     height: 200 * globals.scaleParam,
+            //     child: ListView.builder(
+            //       scrollDirection: Axis.horizontal,
+            //       // addRepaintBoundaries: false,
+            //       shrinkWrap: true,
+            //       primary: false,
+            //       // controller: PageController(viewportFraction: 0.8),
+            //       itemCount: _carouselItems.length,
+            //       itemBuilder: (context, index) {
+            //         return Row(
+            //           children: [
+            //             Container(
+            //               width: 200 * globals.scaleParam,
+            //               height: 200 * globals.scaleParam,
+            //               clipBehavior: Clip.antiAlias,
+            //               margin: EdgeInsets.only(
+            //                   top: 5 * globals.scaleParam,
+            //                   bottom: 5 * globals.scaleParam,
+            //                   left: 25 * globals.scaleParam),
+            //               decoration: BoxDecoration(
+            //                   boxShadow: [
+            //                     BoxShadow(
+            //                         color: Colors.grey.shade300,
+            //                         blurRadius: 5 * globals.scaleParam)
+            //                   ],
+            //                   color: Colors.grey.shade100,
+            //                   borderRadius:
+            //                       const BorderRadius.all(Radius.circular(10))),
+            //               child: Stack(
+            //                 children: [
+            //                   Container(
+            //                     padding:
+            //                         EdgeInsets.all(10 * globals.scaleParam),
+            //                     child: Image.network(
+            //                       _carouselItems[index]["image"],
+            //                       fit: BoxFit.cover,
+            //                       width: double.infinity,
+            //                       height: double.infinity,
+            //                     ),
+            //                   ),
+            //                   // Container(
+            //                   //   width: double.infinity,
+            //                   //   height: double.infinity,
+            //                   //   decoration: const BoxDecoration(
+            //                   //       gradient: LinearGradient(
+            //                   //           transform: GradientRotation(pi / -2),
+            //                   //           colors: [
+            //                   //         Colors.black,
+            //                   //         Colors.transparent
+            //                   //       ])),
+            //                   // ),
+            //                   Container(
+            //                     child: Column(
+            //                       mainAxisAlignment: MainAxisAlignment.end,
+            //                       children: [
+            //                         Container(
+            //                             alignment: Alignment.topLeft,
+            //                             color: Colors.white,
+            //                             height: 80 * globals.scaleParam,
+            //                             padding: EdgeInsets.all(
+            //                                 10 * globals.scaleParam),
+            //                             child: Row(
+            //                               children: [
+            //                                 Flexible(
+            //                                     child: Text(
+            //                                   _carouselItems[index]["name"],
+            //                                   style: TextStyle(
+            //                                       color: Colors.black,
+            //                                       fontWeight: FontWeight.w700,
+            //                                       fontSize:
+            //                                           24 * globals.scaleParam),
+            //                                 )),
+            //                               ],
+            //                             ))
+            //                       ],
+            //                     ),
+            //                   )
+            //                 ],
+            //               ),
+            //             )
+            //           ],
+            //         );
+            //       },
+            //     ),
+            //   ),
+            // ),
             SliverToBoxAdapter(
               child: SizedBox(
                 height: 50 * globals.scaleParam,
