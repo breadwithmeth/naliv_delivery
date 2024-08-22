@@ -269,16 +269,16 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
   //   }
   // }
 
-  Future<void> _getCartDeliveryPrice() async {
-    getCart(widget.business["business_id"]).then(
-      (value) {
-        if (value.isNotEmpty) {
-          
-        }
-      },
-    );
-    setState(() {});
-  }
+  // Future<void> _getCartDeliveryPrice() async {
+  //   getCart(widget.business["business_id"]).then(
+  //     (value) {
+  //       if (value.isNotEmpty) {
+
+  //       }
+  //     },
+  //   );
+  //   setState(() {});
+  // }
 
   @override
   void initState() {
@@ -706,7 +706,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                             },
                                           ),
                                         ).then((value) {
-                                          _getCartDeliveryPrice();
+                                          // _getCartDeliveryPrice();
                                           _getClientAddresses();
                                           print(_getAddresses());
                                         });
