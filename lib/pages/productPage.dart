@@ -174,9 +174,9 @@ class _ProductPageState extends State<ProductPage> {
             widget.returnDataAmount!(newCart);
           }
           getBuyButtonCurrentActionText();
-          if (options.isNotEmpty) {
-            Navigator.pop(context);
-          }
+          Navigator.pop(context);
+          // if (options.isNotEmpty) {
+          // }
         }
       },
     );
@@ -726,9 +726,10 @@ class _ProductPageState extends State<ProductPage> {
                                       deleteIcon: Container(),
                                       deleteIconBoxConstraints: BoxConstraints(),
                                       label: Text(
-                                        options[indexOption]["options"][index]["price"] != null && options[indexOption]["options"][index]["price"] != 0
-                                        ? "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}"
-                                        : options[indexOption]["options"][index]["name"],
+                                        options[indexOption]["options"][index]["price"] != null &&
+                                                options[indexOption]["options"][index]["price"] != 0
+                                            ? "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}"
+                                            : options[indexOption]["options"][index]["name"],
                                         style: TextStyle(fontWeight: FontWeight.w700),
                                       ),
                                       selected: List.castFrom(options[indexOption]["selected_relation_id"])
