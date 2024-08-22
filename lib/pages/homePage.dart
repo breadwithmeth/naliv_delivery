@@ -561,7 +561,7 @@ class _CategoryItemState extends State<CategoryItem> {
                 ),
               ),
               Container(
-                alignment: Alignment.centerRight,
+                alignment: Alignment.center,
                 child: imageBG,
               ),
               // Container(

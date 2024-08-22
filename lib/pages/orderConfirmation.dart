@@ -439,57 +439,6 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                   ),
                 ),
                 Container(
-                  height: 800 * globals.scaleParam,
-                  decoration: BoxDecoration(
-                    // border: Border.all(
-                    //   width: 2,
-                    //   // color: Color.fromARGB(255, 245, 245, 245),
-                    //   color: Colors.black,
-                    // ),
-                    color: Color.fromARGB(255, 245, 245, 245),
-                    borderRadius: const BorderRadius.all(
-                      Radius.circular(15),
-                    ),
-                  ),
-                  margin: EdgeInsets.symmetric(
-                    horizontal: 20 * globals.scaleParam,
-                    vertical: 5 * globals.scaleParam,
-                  ),
-                  padding: EdgeInsets.all(15 * globals.scaleParam),
-                  child: ListView.builder(
-                    primary: false,
-                    shrinkWrap: true,
-                    itemCount: widget.items.length,
-                    itemBuilder: (context, index) {
-                      final item = widget.items[index];
-
-                      return Column(
-                        children: [
-                          ItemCardNoImage(
-                            element: item,
-                            itemId: item["name"],
-                            categoryId: "",
-                            categoryName: "",
-                            scroll: 0,
-                            business_id: widget.business["business_id"],
-                          ),
-                          widget.items.length - 1 != index
-                              ? Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 32 * globals.scaleParam,
-                                    vertical: 10 * globals.scaleParam,
-                                  ),
-                                  child: const Divider(
-                                    height: 0,
-                                  ),
-                                )
-                              : Container(),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-                Container(
                   height: 150 * globals.scaleParam,
                   // alignment: Alignment.centerLeft,
                   decoration: BoxDecoration(
@@ -611,6 +560,57 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                   ),
                 ),
                 Container(
+                  height: MediaQuery.sizeOf(context).height * 0.42,
+                  decoration: BoxDecoration(
+                    // border: Border.all(
+                    //   width: 2,
+                    //   // color: Color.fromARGB(255, 245, 245, 245),
+                    //   color: Colors.black,
+                    // ),
+                    color: Color.fromARGB(255, 245, 245, 245),
+                    borderRadius: const BorderRadius.all(
+                      Radius.circular(15),
+                    ),
+                  ),
+                  margin: EdgeInsets.symmetric(
+                    horizontal: 20 * globals.scaleParam,
+                    vertical: 5 * globals.scaleParam,
+                  ),
+                  padding: EdgeInsets.all(15 * globals.scaleParam),
+                  child: ListView.builder(
+                    primary: false,
+                    shrinkWrap: true,
+                    itemCount: widget.items.length,
+                    itemBuilder: (context, index) {
+                      final item = widget.items[index];
+
+                      return Column(
+                        children: [
+                          ItemCardNoImage(
+                            element: item,
+                            itemId: item["name"],
+                            categoryId: "",
+                            categoryName: "",
+                            scroll: 0,
+                            business_id: widget.business["business_id"],
+                          ),
+                          widget.items.length - 1 != index
+                              ? Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 32 * globals.scaleParam,
+                                    vertical: 10 * globals.scaleParam,
+                                  ),
+                                  child: const Divider(
+                                    height: 0,
+                                  ),
+                                )
+                              : Container(),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                Container(
                   padding: EdgeInsets.only(top: 15 * globals.scaleParam),
                   alignment: Alignment.topCenter,
                   child: Container(
@@ -641,9 +641,28 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                             ),
                           ],
                         ),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                " ** продолжая заказ вы подтверждаете, что ознакомлены с условиями возврата.",
+                                textAlign: TextAlign.left,
+                                style: TextStyle(
+                                  // fontFamily: "montserrat",
+                                  fontSize: 26 * globals.scaleParam,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color.fromARGB(255, 190, 190, 190),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
+                ),
+                SizedBox(
+                  height: constraints.maxHeight * 0.3,
                 ),
               ],
             );
