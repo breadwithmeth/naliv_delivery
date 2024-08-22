@@ -799,46 +799,44 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 ],
                               ),
                       ),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 35 * globals.scaleParam,
-                        ),
-                        // color: Colors.amber,
-                        height: 85 * globals.scaleParam,
-                        child: Column(
-                          children: [
-                            Flexible(
-                              child: Row(
-                                children: [
-                                  Flexible(
-                                    flex: 3,
-                                    fit: FlexFit.tight,
-                                    child: SizedBox(),
-                                  ),
-                                  Flexible(
-                                    flex: 7,
-                                    fit: FlexFit.tight,
-                                    child: Text(
-                                      delivery
-                                          ? "${globals.formatCost((widget.deliveryInfo["price"]).toString())} ₸ - ${globals.formatCost(widget.deliveryInfo["distance"].toString())} м"
-                                          : "Без доставки",
-                                      style: TextStyle(
-                                        fontSize: 32 * globals.scaleParam,
-                                        fontWeight: FontWeight.w500,
-                                        color: Theme.of(context).colorScheme.primary,
-                                      ),
-                                    ),
-                                  ),
-                                  Flexible(
-                                    fit: FlexFit.tight,
-                                    child: SizedBox(),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      // Container(
+                      //   padding: EdgeInsets.symmetric(
+                      //     horizontal: 35 * globals.scaleParam,
+                      //   ),
+                      //   // color: Colors.amber,
+                      //   height: 85 * globals.scaleParam,
+                      //   child: Column(
+                      //     children: [
+                      //       Flexible(
+                      //         child: Row(
+                      //           children: [
+                      //             Flexible(
+                      //               flex: 3,
+                      //               fit: FlexFit.tight,
+                      //               child: SizedBox(),
+                      //             ),
+                      //             Flexible(
+                      //               flex: 7,
+                      //               fit: FlexFit.tight,
+                      //               child: Text(
+                      //                 delivery ? "${globals.formatCost((widget.deliveryInfo["price"]).toString())} ₸" : "Без доставки",
+                      //                 style: TextStyle(
+                      //                   fontSize: 32 * globals.scaleParam,
+                      //                   fontWeight: FontWeight.w500,
+                      //                   color: Theme.of(context).colorScheme.primary,
+                      //                 ),
+                      //               ),
+                      //             ),
+                      //             Flexible(
+                      //               fit: FlexFit.tight,
+                      //               child: SizedBox(),
+                      //             ),
+                      //           ],
+                      //         ),
+                      //       ),
+                      //     ],
+                      //   ),
+                      // ),
                     ],
                   ),
                 ),

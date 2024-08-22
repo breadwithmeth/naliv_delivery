@@ -234,17 +234,17 @@ class _BonusQRModalPageState extends State<BonusQRModalPage> {
                 SizedBox(
                   height: 65 * globals.scaleParam,
                 ),
-                widget.qrstring != null
-                    ? Flexible(
-                        child: QrImageView(
-                          data: widget.qrstring!,
-                          version: QrVersions.auto,
-                          // Size of the QR code
-                          eyeStyle: QrEyeStyle(color: Colors.black, eyeShape: QrEyeShape.square),
-                          dataModuleStyle: QrDataModuleStyle(color: Colors.black, dataModuleShape: QrDataModuleShape.square),
-                        ),
-                      )
-                    : SizedBox(),
+                // widget.qrstring != null
+                //     ? Flexible(
+                //         child: QrImageView(
+                //           data: widget.qrstring!,
+                //           version: QrVersions.auto,
+                //           // Size of the QR code
+                //           eyeStyle: QrEyeStyle(color: Colors.black, eyeShape: QrEyeShape.square),
+                //           dataModuleStyle: QrDataModuleStyle(color: Colors.black, dataModuleShape: QrDataModuleShape.square),
+                //         ),
+                //       )
+                //     : SizedBox(),
                 widget.qrstring != null
                     ? Flexible(
                         child: BarcodeWidget(
@@ -265,6 +265,7 @@ class _BonusQRModalPageState extends State<BonusQRModalPage> {
                       ),
                 widget.qrstring != null
                     ? Flexible(
+                        flex: 2,
                         child: Text(
                           "Покажите штрих код продавцу для использования бонусов",
                           textAlign: TextAlign.center,
