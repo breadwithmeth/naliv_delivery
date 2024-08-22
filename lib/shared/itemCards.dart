@@ -3147,8 +3147,8 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                     flex: 2,
                                     fit: FlexFit.tight,
                                     child: Text(
-                                      cart[index]["amount"].toString() + "x",
-                                      textAlign: TextAlign.center,
+                                      "${cart[index]["amount"].toString()} x",
+                                      textAlign: TextAlign.right,
                                       style: TextStyle(fontWeight: FontWeight.w900),
                                     ),
                                   ),

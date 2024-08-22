@@ -59,6 +59,7 @@ class _ProductPageState extends State<ProductPage> {
 
   int amountInCart = 0;
   int actualCartAmount = 0;
+  double optionsAddedCost = 0;
   // int lastReturnedDataAmount = 0;
 
   bool isServerCallOnGoing = false;
@@ -220,12 +221,14 @@ class _ProductPageState extends State<ProductPage> {
   void getBuyButtonCurrentActionText() {
     if (actualCartAmount == 0) {
       setState(() {
-        buyButtonActionText = "${buyButtonActionTextMap["add"]!} ${globals.formatCost((amountInCart * item["price"]).toString())} ₸";
+        buyButtonActionText =
+            "${buyButtonActionTextMap["add"]!} ${globals.formatCost((amountInCart * item["price"] + optionsAddedCost).toString())} ₸";
         buyButtonActionColor = Colors.black;
       });
     } else if ((amountInCart > 0) && (actualCartAmount != amountInCart)) {
       setState(() {
-        buyButtonActionText = "${buyButtonActionTextMap["update"]!} ${globals.formatCost((amountInCart * item["price"]).toString())} ₸";
+        buyButtonActionText =
+            "${buyButtonActionTextMap["update"]!} ${globals.formatCost((amountInCart * item["price"] + optionsAddedCost).toString())} ₸";
         buyButtonActionColor = Colors.blueGrey;
       });
     } else if ((actualCartAmount == amountInCart || amountInCart == 0) && (options.isEmpty)) {
@@ -235,7 +238,8 @@ class _ProductPageState extends State<ProductPage> {
       });
     } else {
       setState(() {
-        buyButtonActionText = "${buyButtonActionTextMap["update"]!} ${globals.formatCost((amountInCart * item["price"]).toString())} ₸";
+        buyButtonActionText =
+            "${buyButtonActionTextMap["update"]!} ${globals.formatCost((amountInCart * item["price"] + optionsAddedCost).toString())} ₸";
         buyButtonActionColor = Colors.blueGrey;
       });
     }
@@ -340,7 +344,7 @@ class _ProductPageState extends State<ProductPage> {
         position: AlwaysStoppedAnimation(Offset(0, -0.25)),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            if (options.isNotEmpty && !isRequiredSelected && amountInCart == 0) {
+            if (options.isNotEmpty && !isRequiredSelected) {
               return Container(
                 decoration: BoxDecoration(
                     color: Colors.black,
@@ -681,10 +685,12 @@ class _ProductPageState extends State<ProductPage> {
                                         if (v) {
                                           setState(() {
                                             options[indexOption]["selected_relation_id"] = options[indexOption]["options"][index]["relation_id"];
+                                            optionsAddedCost = options[indexOption]["options"][index]["price"];
                                           });
                                         } else {
                                           setState(() {
                                             options[indexOption]["selected_relation_id"] = null;
+                                            optionsAddedCost = 0;
                                           });
 
                                           // setState(() {
@@ -693,6 +699,7 @@ class _ProductPageState extends State<ProductPage> {
                                           // _finalizeCartAmount();
                                         }
                                         _checkOptions();
+                                        getBuyButtonCurrentActionText();
                                       }
                                       // dense: true,
                                       //   onChanged: (v) {
@@ -746,6 +753,7 @@ class _ProductPageState extends State<ProductPage> {
                                           });
                                         }
                                         _checkOptions();
+                                        getBuyButtonCurrentActionText();
                                       },
                                       onDeleted: () {},
                                       // value: isCheckBoxSelected,
