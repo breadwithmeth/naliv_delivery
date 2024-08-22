@@ -2881,7 +2881,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                               fit: FlexFit.tight,
                                               child: SizedBox(),
                                             ),
-                                            options.isEmpty
+                                            options.isEmpty && element["quantity"] == 1
                                                 ? Flexible(
                                                     fit: FlexFit.tight,
                                                     child: IconButton(

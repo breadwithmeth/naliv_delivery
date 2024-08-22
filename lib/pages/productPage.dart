@@ -215,6 +215,9 @@ class _ProductPageState extends State<ProductPage> {
         amountInCart -= quantity;
         amountInCart = double.parse(amountInCart.toStringAsFixed(3));
         getBuyButtonCurrentActionText();
+      } else {
+        amountInCart = 0;
+        getBuyButtonCurrentActionText();
       }
     });
   }
