@@ -1280,69 +1280,100 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
           element["selected_options"] != null
               ? Padding(
                   padding: EdgeInsets.only(top: 10 * globals.scaleParam, bottom: 20 * globals.scaleParam),
-                  child: ListView.builder(
-                    primary: false,
-                    physics: NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    itemCount: element["selected_options"].length,
-                    itemBuilder: (context, index) {
-                      // List _selected_options = [];
-                      // if (cart[index]["selected_options"] != null) {
-                      //   _selected_options = cart[index]["selected_options"];
-                      //   // return SizedBox();
-                      // } else if (options.isEmpty) {
-                      //   _selected_options = [
-                      //     {"name": cart[index]["name"]}
-                      //   ];
-                      // }
+                  child: Row(
+                    children: [
+                      Flexible(
+                        fit: FlexFit.tight,
+                        child: Text(
+                          "${element["amount"]} x",
+                          textAlign: TextAlign.end,
+                          style: TextStyle(
+                            fontSize: 38 * globals.scaleParam,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 6,
+                        child: ListView.builder(
+                          primary: false,
+                          physics: NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          itemCount: element["selected_options"].length,
+                          itemBuilder: (context, index) {
+                            // List _selected_options = [];
+                            // if (cart[index]["selected_options"] != null) {
+                            //   _selected_options = cart[index]["selected_options"];
+                            //   // return SizedBox();
+                            // } else if (options.isEmpty) {
+                            //   _selected_options = [
+                            //     {"name": cart[index]["name"]}
+                            //   ];
+                            // }
 
-                      return Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 20 * globals.scaleParam,
-                          vertical: 5 * globals.scaleParam,
-                        ),
-                        decoration: BoxDecoration(
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Colors.black12,
-                                blurRadius: 3,
-                                offset: Offset(2, 2),
+                            return Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 20 * globals.scaleParam,
+                                vertical: 5 * globals.scaleParam,
                               ),
-                            ],
-                            color: Colors.white,
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(20 * globals.scaleParam),
-                            )
-                            // border: Border(
-                            //     top: BorderSide(color: Colors.black12))
-                            ),
-                        margin: EdgeInsets.only(
-                          top: 5 * globals.scaleParam,
-                          bottom: 5 * globals.scaleParam,
-                          left: 100 * globals.scaleParam,
-                          right: 20 * globals.scaleParam,
-                        ),
-                        child: Row(
-                          children: [
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: Text(
-                                "${element["selected_options"][index]["price"]} ₸",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                ),
+                              decoration: BoxDecoration(
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Colors.black12,
+                                      blurRadius: 3,
+                                      offset: Offset(2, 2),
+                                    ),
+                                  ],
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(20 * globals.scaleParam),
+                                  )
+                                  // border: Border(
+                                  //     top: BorderSide(color: Colors.black12))
+                                  ),
+                              margin: EdgeInsets.only(
+                                top: 5 * globals.scaleParam,
+                                bottom: 5 * globals.scaleParam,
+                                left: 50 * globals.scaleParam,
+                                right: 20 * globals.scaleParam,
                               ),
-                            ),
-                            Spacer(),
-                            Flexible(
-                              flex: 5,
-                              fit: FlexFit.tight,
-                              child: Text("${element["selected_options"][index]["name"]}"),
-                            ),
-                          ],
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                    flex: 2,
+                                    fit: FlexFit.tight,
+                                    child: Text(
+                                      element["selected_options"][index]["price"] != 0 && element["selected_options"][index]["price"] != null
+                                          ? "${element["selected_options"][index]["price"]} ₸"
+                                          : "",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ),
+                                  // element["selected_options"][index]["price"] != 0 && element["selected_options"][index]["price"] != null
+                                  //     ? Flexible(
+                                  //         fit: FlexFit.tight,
+                                  //         child: Text(
+                                  //           "${element["selected_options"][index]["price"]}₸",
+                                  //           style: TextStyle(
+                                  //             fontWeight: FontWeight.w900,
+                                  //           ),
+                                  //         ),
+                                  //       )
+                                  //     : SizedBox(),
+                                  Flexible(
+                                    flex: 6,
+                                    fit: FlexFit.tight,
+                                    child: Text("${element["selected_options"][index]["name"]}"),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
+                      ),
+                    ],
                   ),
                 )
               : SizedBox(),
@@ -2756,21 +2787,21 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                       ),
                                     ),
                                   ),
-                                  Flexible(
-                                    flex: 4,
-                                    fit: FlexFit.tight,
-                                    child: Text(
-                                      element["code"],
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: Colors.amber.shade800,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 32 * globals.scaleParam,
-                                        height: 1,
-                                      ),
-                                    ),
-                                  ),
+                                  // Flexible(
+                                  //   flex: 4,
+                                  //   fit: FlexFit.tight,
+                                  //   child: Text(
+                                  //     element["code"],
+                                  //     maxLines: 1,
+                                  //     overflow: TextOverflow.ellipsis,
+                                  //     style: TextStyle(
+                                  //       color: Colors.amber.shade800,
+                                  //       fontWeight: FontWeight.w600,
+                                  //       fontSize: 32 * globals.scaleParam,
+                                  //       height: 1,
+                                  //     ),
+                                  //   ),
+                                  // ),
                                   Flexible(
                                     flex: 4,
                                     fit: FlexFit.tight,

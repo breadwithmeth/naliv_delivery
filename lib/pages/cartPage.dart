@@ -49,31 +49,32 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
       items = cart["cart"] ?? [];
       itemsAmount = 0;
       localSum = double.parse((cart["sum"] ?? 0.0).toString()).round();
-      distance = double.parse((cart["distance"] ?? 0.0).toString()).round();
-      price = (price / 100).round() * 100;
+      // distance = double.parse((cart["distance"] ?? 0.0).toString()).round();
+      // price = (price / 100).round() * 100;
+      price = double.parse((cart["distance"] ?? 0.0).toString()).round();
       isCartLoading = false;
       itemsAmount;
     });
 
-    double dist = distance / 1000;
-    dist = (dist * 2).round() / 2;
-    if (dist <= 1.5) {
-      price = 700;
-    } else {
-      if (dist < 5) {
-        price = ((dist - 1.5) * 300 + 700).toInt();
-      } else {
-        price = ((dist - 1.5) * 250 + 700).toInt();
-      }
-    }
+    // double dist = distance / 1000;
+    // dist = (dist * 2).round() / 2;
+    // if (dist <= 1.5) {
+    //   price = 700;
+    // } else {
+    //   if (dist < 5) {
+    //     price = ((dist - 1.5) * 300 + 700).toInt();
+    //   } else {
+    //     price = ((dist - 1.5) * 250 + 700).toInt();
+    //   }
+    // }
 
-    for (dynamic item in items) {
-      itemsAmount += double.parse(item["amount"].toString()).round();
-    }
-    setState(() {
-      itemsAmount;
-      price = (price / 100).round() * 100;
-    });
+    // for (dynamic item in items) {
+    //   itemsAmount += double.parse(item["amount"].toString()).round();
+    // }
+    // setState(() {
+    //   itemsAmount;
+    //   price = (price / 100).round() * 100;
+    // });
   }
 
   Future<bool> _deleteFromCart(String itemId) async {
@@ -485,119 +486,120 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                       height: 40 * globals.scaleParam,
                     ),
                     Divider(),
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 45 * globals.scaleParam,
-                        vertical: 20 * globals.scaleParam,
-                      ),
-                      child: Row(
-                        children: [
-                          Text(
-                            "Не забудьте также",
-                            style: TextStyle(
-                              fontSize: 48 * globals.scaleParam,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 400 * globals.scaleParam,
-                      child: ListView.builder(
-                        // itemExtent: MediaQuery.sizeOf(context).width * globals.scaleParam,
-                        scrollDirection: Axis.horizontal,
-                        itemCount: recommendedItems.isNotEmpty ? recommendedItems.length : 10,
-                        itemBuilder: (context, index) {
-                          return AspectRatio(
-                            aspectRatio: 1,
-                            child: Container(
-                              margin: EdgeInsets.all(20 * globals.scaleParam),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.all(Radius.circular(10)),
-                                color: Colors.white,
-                              ),
-                              clipBehavior: Clip.antiAlias,
-                              child: LayoutBuilder(
-                                builder: (context, constraints) {
-                                  return Column(
-                                    children: [
-                                      Flexible(
-                                        flex: 20,
-                                        fit: FlexFit.tight,
-                                        child: Padding(
-                                          padding: EdgeInsets.symmetric(vertical: 5 * globals.scaleParam),
-                                          child: recommendedItems.isNotEmpty
-                                              ? Column(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  children: [
-                                                    Flexible(
-                                                        flex: 5, fit: FlexFit.tight, child: ExtendedImage.network(recommendedItems[index]["img"])),
-                                                    Flexible(
-                                                      fit: FlexFit.tight,
-                                                      child: Text(
-                                                        recommendedItems[index]["name"],
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow.ellipsis,
-                                                        textAlign: TextAlign.center,
-                                                        style: TextStyle(
-                                                          fontSize: 24 * globals.scaleParam,
-                                                          fontWeight: FontWeight.w700,
-                                                          color: Colors.black,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                )
-                                              : SizedBox(),
-                                        ),
-                                      ),
-                                      Flexible(
-                                        flex: 7,
-                                        fit: FlexFit.tight,
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            color: Colors.black87,
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              Flexible(
-                                                fit: FlexFit.tight,
-                                                child: Text(
-                                                  recommendedItems.isNotEmpty ? "${recommendedItems[index]["price"]} ₸" : "0 ₸",
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                    fontSize: 36 * globals.scaleParam,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                              ),
-                                              Flexible(
-                                                fit: FlexFit.tight,
-                                                child: IconButton(
-                                                  onPressed: () {},
-                                                  icon: Icon(
-                                                    Icons.add_rounded,
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+                    //!! ONLY FOR DEV RN
+                    // Padding(
+                    //   padding: EdgeInsets.symmetric(
+                    //     horizontal: 45 * globals.scaleParam,
+                    //     vertical: 20 * globals.scaleParam,
+                    //   ),
+                    //   child: Row(
+                    //     children: [
+                    //       Text(
+                    //         "Не забудьте также",
+                    //         style: TextStyle(
+                    //           fontSize: 48 * globals.scaleParam,
+                    //           fontWeight: FontWeight.w700,
+                    //           color: Colors.black,
+                    //         ),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
+                    // SizedBox(
+                    //   width: double.infinity,
+                    //   height: 400 * globals.scaleParam,
+                    //   child: ListView.builder(
+                    //     // itemExtent: MediaQuery.sizeOf(context).width * globals.scaleParam,
+                    //     scrollDirection: Axis.horizontal,
+                    //     itemCount: recommendedItems.isNotEmpty ? recommendedItems.length : 10,
+                    //     itemBuilder: (context, index) {
+                    //       return AspectRatio(
+                    //         aspectRatio: 1,
+                    //         child: Container(
+                    //           margin: EdgeInsets.all(20 * globals.scaleParam),
+                    //           decoration: BoxDecoration(
+                    //             borderRadius: BorderRadius.all(Radius.circular(10)),
+                    //             color: Colors.white,
+                    //           ),
+                    //           clipBehavior: Clip.antiAlias,
+                    //           child: LayoutBuilder(
+                    //             builder: (context, constraints) {
+                    //               return Column(
+                    //                 children: [
+                    //                   Flexible(
+                    //                     flex: 20,
+                    //                     fit: FlexFit.tight,
+                    //                     child: Padding(
+                    //                       padding: EdgeInsets.symmetric(vertical: 5 * globals.scaleParam),
+                    //                       child: recommendedItems.isNotEmpty
+                    //                           ? Column(
+                    //                               mainAxisAlignment: MainAxisAlignment.center,
+                    //                               children: [
+                    //                                 Flexible(
+                    //                                     flex: 5, fit: FlexFit.tight, child: ExtendedImage.network(recommendedItems[index]["img"])),
+                    //                                 Flexible(
+                    //                                   fit: FlexFit.tight,
+                    //                                   child: Text(
+                    //                                     recommendedItems[index]["name"],
+                    //                                     maxLines: 1,
+                    //                                     overflow: TextOverflow.ellipsis,
+                    //                                     textAlign: TextAlign.center,
+                    //                                     style: TextStyle(
+                    //                                       fontSize: 24 * globals.scaleParam,
+                    //                                       fontWeight: FontWeight.w700,
+                    //                                       color: Colors.black,
+                    //                                     ),
+                    //                                   ),
+                    //                                 ),
+                    //                               ],
+                    //                             )
+                    //                           : SizedBox(),
+                    //                     ),
+                    //                   ),
+                    //                   Flexible(
+                    //                     flex: 7,
+                    //                     fit: FlexFit.tight,
+                    //                     child: Container(
+                    //                       decoration: BoxDecoration(
+                    //                         color: Colors.black87,
+                    //                       ),
+                    //                       child: Row(
+                    //                         children: [
+                    //                           Flexible(
+                    //                             fit: FlexFit.tight,
+                    //                             child: Text(
+                    //                               recommendedItems.isNotEmpty ? "${recommendedItems[index]["price"]} ₸" : "0 ₸",
+                    //                               textAlign: TextAlign.center,
+                    //                               style: TextStyle(
+                    //                                 fontSize: 36 * globals.scaleParam,
+                    //                                 fontWeight: FontWeight.w700,
+                    //                                 color: Colors.white,
+                    //                               ),
+                    //                             ),
+                    //                           ),
+                    //                           Flexible(
+                    //                             fit: FlexFit.tight,
+                    //                             child: IconButton(
+                    //                               onPressed: () {},
+                    //                               icon: Icon(
+                    //                                 Icons.add_rounded,
+                    //                                 color: Colors.white,
+                    //                               ),
+                    //                             ),
+                    //                           ),
+                    //                         ],
+                    //                       ),
+                    //                     ),
+                    //                   ),
+                    //                 ],
+                    //               );
+                    //             },
+                    //           ),
+                    //         ),
+                    //       );
+                    //     },
+                    //   ),
+                    // ),
                     SizedBox(
                       height: 250 * globals.scaleParam,
                     ),
