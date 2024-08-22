@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
@@ -60,6 +61,9 @@ class _ProductPageState extends State<ProductPage> {
   int amountInCart = 0;
   int actualCartAmount = 0;
   double optionsAddedCost = 0;
+  double actualOptionsAddedCost = 0;
+  double parentItemMultiplier = 1;
+  double actualItemMultiplier = 1;
   // int lastReturnedDataAmount = 0;
 
   bool isServerCallOnGoing = false;
@@ -125,6 +129,8 @@ class _ProductPageState extends State<ProductPage> {
         if (!widget.dontClearOptions) {
           setState(() {
             options[i]["selected_relation_id"] = null;
+            optionsAddedCost = 0;
+            actualOptionsAddedCost = double.parse(optionsAddedCost.toString());
           });
         } else {
           if (options[i]["selected_relation_id"] != null) {
@@ -222,24 +228,25 @@ class _ProductPageState extends State<ProductPage> {
     if (actualCartAmount == 0) {
       setState(() {
         buyButtonActionText =
-            "${buyButtonActionTextMap["add"]!} ${globals.formatCost((amountInCart * item["price"] + optionsAddedCost).toString())} ₸";
+            "${buyButtonActionTextMap["add"]!} ${globals.formatCost(((amountInCart * item["price"] * parentItemMultiplier) + optionsAddedCost).toString())} ₸";
         buyButtonActionColor = Colors.black;
       });
     } else if ((amountInCart > 0) && (actualCartAmount != amountInCart)) {
       setState(() {
         buyButtonActionText =
-            "${buyButtonActionTextMap["update"]!} ${globals.formatCost((amountInCart * item["price"] + optionsAddedCost).toString())} ₸";
+            "${buyButtonActionTextMap["update"]!} ${globals.formatCost(((amountInCart * item["price"] * parentItemMultiplier) + optionsAddedCost).toString())} ₸";
         buyButtonActionColor = Colors.blueGrey;
       });
-    } else if ((actualCartAmount == amountInCart || amountInCart == 0) && (options.isEmpty)) {
+    } else if (actualCartAmount == amountInCart || amountInCart == 0) {
       setState(() {
-        buyButtonActionText = buyButtonActionTextMap["remove"]!;
+        buyButtonActionText =
+            "${buyButtonActionTextMap["remove"]!} ${globals.formatCost(((actualCartAmount * item["price"] * actualItemMultiplier) + actualOptionsAddedCost).toString())} ₸";
         buyButtonActionColor = Colors.red;
       });
     } else {
       setState(() {
         buyButtonActionText =
-            "${buyButtonActionTextMap["update"]!} ${globals.formatCost((amountInCart * item["price"] + optionsAddedCost).toString())} ₸";
+            "${buyButtonActionTextMap["update"]!} ${globals.formatCost(((amountInCart * item["price"] * parentItemMultiplier) + optionsAddedCost).toString())} ₸";
         buyButtonActionColor = Colors.blueGrey;
       });
     }
@@ -250,10 +257,24 @@ class _ProductPageState extends State<ProductPage> {
   void initState() {
     super.initState();
     if (widget.item["options"] != null) {
-      setState(() {
-        amountInCart = widget.item["amount"] ?? 1;
-        actualCartAmount = 0;
-      });
+      if (!widget.dontClearOptions) {
+        setState(() {
+          amountInCart = widget.item["amount"] ?? 1;
+          actualCartAmount = 0;
+        });
+      } else {
+        setState(() {
+          amountInCart = widget.item["amount"] ?? 1;
+          actualCartAmount = amountInCart;
+
+          //! TODO: VERY UNSTABLE IF FIRST OPTION IS NOT REQUIRED ONE, THEN PRICE WOULD BE CALCULATED WRONG!!!!!!!!!!
+          optionsAddedCost = widget.item["cart"][widget.cartItemId]["selected_options"][0]["price"];
+          actualOptionsAddedCost = double.parse(optionsAddedCost.toString());
+
+          parentItemMultiplier = widget.item["cart"][widget.cartItemId]["selected_options"][0]["parent_item_amount"] ?? 1;
+          actualItemMultiplier = parentItemMultiplier;
+        });
+      }
       initOptionSelector();
     } else {
       // amountInCart = widget.item["cart"].firstWhere((el) => el["item_id"] == widget.item["item_id"])["amount"];
@@ -473,18 +494,20 @@ class _ProductPageState extends State<ProductPage> {
                                 backgroundColor: buyButtonActionColor,
                                 padding: EdgeInsets.zero,
                               ),
-                              onPressed: () {
-                                if (actualCartAmount == 0) {
-                                  _finalizeCartAmount();
-                                } else if (actualCartAmount == amountInCart || amountInCart == 0) {
-                                  setState(() {
-                                    amountInCart = 0;
-                                  });
-                                  _finalizeCartAmount();
-                                } else {
-                                  _finalizeCartAmount();
-                                }
-                              },
+                              onPressed: (isRequiredSelected && amountInCart > 0) || actualCartAmount > 0 || options.isEmpty
+                                  ? () {
+                                      if (actualCartAmount == 0) {
+                                        _finalizeCartAmount();
+                                      } else if (actualCartAmount == amountInCart || amountInCart == 0) {
+                                        setState(() {
+                                          amountInCart = 0;
+                                        });
+                                        _finalizeCartAmount();
+                                      } else {
+                                        _finalizeCartAmount();
+                                      }
+                                    }
+                                  : null,
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -670,48 +693,53 @@ class _ProductPageState extends State<ProductPage> {
                         return options[indexOption]["selection"] == "SINGLE"
                             ? Row(
                                 children: [
-                                  ChoiceChip(
-                                      selectedColor: Colors.amberAccent.shade200,
-                                      disabledColor: Colors.white,
-                                      backgroundColor: Colors.white,
-                                      label: Text(
-                                        "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}",
-                                        style: TextStyle(fontWeight: FontWeight.w700),
-                                      ),
-                                      selected: options[indexOption]["selected_relation_id"] == options[indexOption]["options"][index]["relation_id"],
-                                      onSelected: (v) {
-                                        // print(v);
-                                        print(options);
-                                        if (v) {
-                                          setState(() {
-                                            options[indexOption]["selected_relation_id"] = options[indexOption]["options"][index]["relation_id"];
-                                            optionsAddedCost = options[indexOption]["options"][index]["price"];
-                                          });
-                                        } else {
-                                          setState(() {
-                                            options[indexOption]["selected_relation_id"] = null;
-                                            optionsAddedCost = 0;
-                                          });
+                                  Flexible(
+                                    child: ChoiceChip(
+                                        selectedColor: Colors.amberAccent.shade200,
+                                        disabledColor: Colors.white,
+                                        backgroundColor: Colors.white,
+                                        label: Text(
+                                          "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}",
+                                          style: TextStyle(fontWeight: FontWeight.w700),
+                                        ),
+                                        selected:
+                                            options[indexOption]["selected_relation_id"] == options[indexOption]["options"][index]["relation_id"],
+                                        onSelected: (v) {
+                                          // print(v);
+                                          print(options);
+                                          if (v) {
+                                            setState(() {
+                                              options[indexOption]["selected_relation_id"] = options[indexOption]["options"][index]["relation_id"];
+                                              optionsAddedCost = options[indexOption]["options"][index]["price"];
+                                              parentItemMultiplier = options[indexOption]["options"][index]["parent_item_amount"];
+                                            });
+                                          } else {
+                                            setState(() {
+                                              options[indexOption]["selected_relation_id"] = null;
+                                              optionsAddedCost = 0;
+                                              parentItemMultiplier = 1;
+                                            });
 
-                                          // setState(() {
-                                          //   amountInCart = 0;
-                                          // });
-                                          // _finalizeCartAmount();
+                                            // setState(() {
+                                            //   amountInCart = 0;
+                                            // });
+                                            // _finalizeCartAmount();
+                                          }
+                                          _checkOptions();
+                                          getBuyButtonCurrentActionText();
                                         }
-                                        _checkOptions();
-                                        getBuyButtonCurrentActionText();
-                                      }
-                                      // dense: true,
-                                      //   onChanged: (v) {
+                                        // dense: true,
+                                        //   onChanged: (v) {
 
-                                      //   },
-                                      //   groupValue: options[index_option]
-                                      //       ["selected_relation_id"],
-                                      //   value: options[index_option]
-                                      //           ["options"][index]
-                                      //       ["relation_id"],
-                                      //
-                                      )
+                                        //   },
+                                        //   groupValue: options[index_option]
+                                        //       ["selected_relation_id"],
+                                        //   value: options[index_option]
+                                        //           ["options"][index]
+                                        //       ["relation_id"],
+                                        //
+                                        ),
+                                  )
                                 ],
                               )
                             : Container(
@@ -728,36 +756,38 @@ class _ProductPageState extends State<ProductPage> {
                                 // margin: EdgeInsets.all(10 * globals.scaleParam),
                                 child: Row(
                                   children: [
-                                    FilterChip(
-                                      backgroundColor: Colors.white,
-                                      deleteIcon: Container(),
-                                      deleteIconBoxConstraints: BoxConstraints(),
-                                      label: Text(
-                                        options[indexOption]["options"][index]["price"] != null &&
-                                                options[indexOption]["options"][index]["price"] != 0
-                                            ? "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}"
-                                            : options[indexOption]["options"][index]["name"],
-                                        style: TextStyle(fontWeight: FontWeight.w700),
+                                    Flexible(
+                                      child: FilterChip(
+                                        backgroundColor: Colors.white,
+                                        deleteIcon: Container(),
+                                        deleteIconBoxConstraints: BoxConstraints(),
+                                        label: Text(
+                                          options[indexOption]["options"][index]["price"] != null &&
+                                                  options[indexOption]["options"][index]["price"] != 0
+                                              ? "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}"
+                                              : options[indexOption]["options"][index]["name"],
+                                          style: TextStyle(fontWeight: FontWeight.w700),
+                                        ),
+                                        selected: List.castFrom(options[indexOption]["selected_relation_id"])
+                                            .contains(options[indexOption]["options"][index]["relation_id"]),
+                                        onSelected: (v) {
+                                          if (v) {
+                                            setState(() {
+                                              options[indexOption]["selected_relation_id"].add(options[indexOption]["options"][index]["relation_id"]);
+                                            });
+                                          } else {
+                                            setState(() {
+                                              options[indexOption]["selected_relation_id"]
+                                                  .removeWhere((item) => item == options[indexOption]["options"][index]["relation_id"]);
+                                            });
+                                          }
+                                          _checkOptions();
+                                          getBuyButtonCurrentActionText();
+                                        },
+                                        onDeleted: () {},
+                                        // value: isCheckBoxSelected,
+                                        // onChanged: (v) {}
                                       ),
-                                      selected: List.castFrom(options[indexOption]["selected_relation_id"])
-                                          .contains(options[indexOption]["options"][index]["relation_id"]),
-                                      onSelected: (v) {
-                                        if (v) {
-                                          setState(() {
-                                            options[indexOption]["selected_relation_id"].add(options[indexOption]["options"][index]["relation_id"]);
-                                          });
-                                        } else {
-                                          setState(() {
-                                            options[indexOption]["selected_relation_id"]
-                                                .removeWhere((item) => item == options[indexOption]["options"][index]["relation_id"]);
-                                          });
-                                        }
-                                        _checkOptions();
-                                        getBuyButtonCurrentActionText();
-                                      },
-                                      onDeleted: () {},
-                                      // value: isCheckBoxSelected,
-                                      // onChanged: (v) {}
                                     ),
                                   ],
                                 ),

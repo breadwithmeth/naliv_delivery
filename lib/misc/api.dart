@@ -339,7 +339,9 @@ Future<List?> changeCartItem(dynamic itemId, int amount, String businessId, {Lis
   List options_selected_ids = [];
   for (Map option in options) {
     if (option["selection"] == "SINGLE") {
-      options_selected_ids.add(option["selected_relation_id"]);
+      if (option["selected_relation_id"] != null) {
+        options_selected_ids.add(option["selected_relation_id"]);
+      }
     } else {
       if (option["selected_relation_id"] != null) {
         for (int selected_id in option["selected_relation_id"]) {
