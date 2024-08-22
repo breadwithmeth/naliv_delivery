@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/pages/createProfilePage.dart';
 import 'package:naliv_delivery/pages/paintLogoPage.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/organizationSelectPage.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
+import 'package:naliv_delivery/pages/pickOnMap.dart';
 
 class PreLoadDataPage extends StatefulWidget {
   const PreLoadDataPage({super.key});
@@ -104,11 +106,16 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
                         );
                       },
                     ), (Route<dynamic> route) => false)
-                  : Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
-                      builder: (context) {
-                        return PickAddressPage(client: user, isFirstTime: true);
-                      },
-                    ), (Route<dynamic> route) => false);
+                  : () {
+                      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+                        builder: (context) {
+                          return PickAddressPage(client: user, isFirstTime: true);
+                        },
+                      ), (Route<dynamic> route) => false);
+                      // Navigator.push(context, MaterialPageRoute(builder: (context) {
+                      //   return PickOnMapPage(currentPosition: , cities: );
+                      // },))
+                    };
               _addresses.isNotEmpty
                   ? Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
                       builder: (context) {

@@ -1141,7 +1141,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 // fontFamily: "montserrat",
                                 fontSize: 26 * globals.scaleParam,
                                 fontWeight: FontWeight.w500,
-                                color: Color.fromARGB(255, 215, 215, 215),
+                                color: Color.fromARGB(255, 190, 190, 190),
                               ),
                             ),
                           ),

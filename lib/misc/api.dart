@@ -595,17 +595,27 @@ Future<Map<String, dynamic>?> getCity() async {
   return data;
 }
 
-Future<Map<String, dynamic>> createOrder(String businessId, [String user_id = ""]) async {
+Future<Map<String, dynamic>> createOrder(String businessId, String? addressId, [String user_id = ""]) async {
   // Returns null in two situations, token is null or wrong order (406)
   String? token = await getToken();
   if (token == null) {
     return {"status": null};
   }
+  Map body = {
+    'business_id': businessId,
+  };
+  if (user_id.isNotEmpty) {
+    body.addAll({"user_id": user_id});
+  }
+  if (addressId != null) {
+    body.addAll({"address_id": addressId});
+  }
+
   var url = Uri.https(URL_API, 'api/item/createOrder');
   var response = await client.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
-    body: user_id.isNotEmpty ? json.encode({"user_id": user_id, 'business_id': businessId}) : json.encode({'business_id': businessId}),
+    body: json.encode(body),
   );
 
   // List<dynamic> list = json.decode(response.body);

@@ -74,7 +74,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
       Future.delayed(const Duration(milliseconds: 0)).then((value) async {
         print("Creating order...!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         String user_id = widget.user.isNotEmpty ? widget.user["user_id"] : "";
-        await createOrder(widget.business["business_id"], user_id).then((value) {
+        await createOrder(widget.business["business_id"], widget.delivery ? widget.business["business_id"] : null, user_id).then((value) {
           if (value["status"] == true) {
             setState(() {
               isOrderCorrect = true;
@@ -367,272 +367,69 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
         ),
       ),
       body: SafeArea(
-        child: LayoutBuilder(builder: (context, constraints) {
-          return ListView(
-            physics: RangeMaintainingScrollPhysics(),
-            children: [
-              Container(
-                height: 250 * globals.scaleParam,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.all(
-                    Radius.circular(15),
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        "Убедитесь в правильности заказа",
-                        style: TextStyle(
-                          fontSize: 42 * globals.scaleParam,
-                          fontWeight: FontWeight.w700,
-                          height: 2,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                    ),
-                    Stack(
-                      children: [
-                        // This Container cuts off ugly part of loading bar when it only starts
-                        Container(
-                          width: MediaQuery.sizeOf(context).width * 0.88,
-                          height: 34 * globals.scaleParam,
-                          alignment: Alignment.centerLeft,
-                          // Disable clipBehavior to see ugly part at the start
-                          clipBehavior: Clip.antiAlias,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.all(Radius.circular(15)),
-                          ),
-                          child: AnimatedContainer(
-                            curve: Curves.linear,
-                            duration: const Duration(seconds: 5),
-                            width: _w,
-                            height: 34 * globals.scaleParam,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.all(
-                                Radius.circular(15),
-                              ),
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: MediaQuery.sizeOf(context).width * 0.88,
-                          height: 34 * globals.scaleParam,
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            border: Border.all(
-                              color: Colors.black,
-                              width: 2.5 * globals.scaleParam,
-                            ),
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(15),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                height: 800 * globals.scaleParam,
-                decoration: BoxDecoration(
-                  // border: Border.all(
-                  //   width: 2,
-                  //   // color: Color.fromARGB(255, 245, 245, 245),
-                  //   color: Colors.black,
-                  // ),
-                  color: Color.fromARGB(255, 245, 245, 245),
-                  borderRadius: const BorderRadius.all(
-                    Radius.circular(15),
-                  ),
-                ),
-                margin: EdgeInsets.symmetric(
-                  horizontal: 20 * globals.scaleParam,
-                  vertical: 10 * globals.scaleParam,
-                ),
-                padding: EdgeInsets.all(15 * globals.scaleParam),
-                child: ListView.builder(
-                  primary: false,
-                  shrinkWrap: true,
-                  itemCount: widget.items.length,
-                  itemBuilder: (context, index) {
-                    final item = widget.items[index];
-
-                    return Column(
-                      children: [
-                        ItemCardNoImage(
-                          element: item,
-                          itemId: item["name"],
-                          categoryId: "",
-                          categoryName: "",
-                          scroll: 0,
-                          business_id: widget.business["business_id"],
-                        ),
-                        widget.items.length - 1 != index
-                            ? Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 32 * globals.scaleParam,
-                                  vertical: 10 * globals.scaleParam,
-                                ),
-                                child: const Divider(
-                                  height: 0,
-                                ),
-                              )
-                            : Container(),
-                      ],
-                    );
-                  },
-                ),
-              ),
-              Container(
-                height: 150 * globals.scaleParam,
-                // alignment: Alignment.centerLeft,
-                decoration: BoxDecoration(
-                  // border: Border.all(
-                  //   width: 2,
-                  //   color: Color.fromARGB(255, 245, 245, 245),
-                  // ),
-                  color: Color.fromARGB(255, 245, 245, 245),
-                  borderRadius: const BorderRadius.all(
-                    Radius.circular(15),
-                  ),
-                ),
-                margin: EdgeInsets.symmetric(
-                  horizontal: 20 * globals.scaleParam,
-                  vertical: 5 * globals.scaleParam,
-                ),
-                padding: EdgeInsets.symmetric(
-                  vertical: 20 * globals.scaleParam,
-                  horizontal: 35 * globals.scaleParam,
-                ),
-                child: Column(
-                  children: [
-                    Flexible(
-                      child: Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              widget.delivery ? "Доставка по адресу: " : "Самовывоз из магазина: ",
-                              style: TextStyle(
-                                fontSize: 32 * globals.scaleParam,
-                                fontWeight: FontWeight.w700,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              left: 50 * globals.scaleParam,
-                            ),
-                            child: Text(
-                              widget.delivery ? widget.address!["address"] ?? "" : widget.business["address"],
-                              style: TextStyle(
-                                fontSize: 32 * globals.scaleParam,
-                                fontWeight: FontWeight.w700,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                height: 150 * globals.scaleParam,
-                decoration: BoxDecoration(
-                  // border: Border.all(
-                  //   width: 2,
-                  //   color: Color.fromARGB(255, 245, 245, 245),
-                  // ),
-                  color: Color.fromARGB(255, 245, 245, 245),
-                  borderRadius: const BorderRadius.all(
-                    Radius.circular(15),
-                  ),
-                ),
-                margin: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam, vertical: 5 * globals.scaleParam),
-                padding: EdgeInsets.symmetric(
-                  vertical: 20 * globals.scaleParam,
-                  horizontal: 30 * globals.scaleParam,
-                ),
-                child: Column(
-                  children: [
-                    Flexible(
-                      child: Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              widget.paymentType,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 32 * globals.scaleParam,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                          )
-                        ],
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              left: 50 * globals.scaleParam,
-                            ),
-                            child: Text(
-                              "Сумма к оплате: ${globals.formatCost(widget.finalSum.toString()).toString()} ₸",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 32 * globals.scaleParam,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: EdgeInsets.only(top: 15 * globals.scaleParam),
-                alignment: Alignment.topCenter,
-                child: Container(
-                  width: constraints.maxWidth * 0.955,
-                  // height: 130 * globals.scaleParam,
-                  margin: EdgeInsets.symmetric(vertical: 20 * globals.scaleParam),
-                  padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return ListView(
+              physics: RangeMaintainingScrollPhysics(),
+              children: [
+                Container(
+                  height: 250 * globals.scaleParam,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.all(Radius.circular(15)),
-                    // color: Color.fromARGB(255, 245, 245, 245),
+                    borderRadius: BorderRadius.all(
+                      Radius.circular(15),
+                    ),
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Row(
+                      Flexible(
+                        child: Text(
+                          "Убедитесь в правильности заказа",
+                          style: TextStyle(
+                            fontSize: 42 * globals.scaleParam,
+                            fontWeight: FontWeight.w700,
+                            height: 2,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                      ),
+                      Stack(
                         children: [
-                          Flexible(
-                            child: Text(
-                              " * курьер выдаст заказ 21+ только при подтверждении возраста.",
-                              textAlign: TextAlign.left,
-                              style: TextStyle(
-                                // fontFamily: "montserrat",
-                                fontSize: 26 * globals.scaleParam,
-                                fontWeight: FontWeight.w500,
-                                color: Color.fromARGB(255, 215, 215, 215),
+                          // This Container cuts off ugly part of loading bar when it only starts
+                          Container(
+                            width: MediaQuery.sizeOf(context).width * 0.88,
+                            height: 34 * globals.scaleParam,
+                            alignment: Alignment.centerLeft,
+                            // Disable clipBehavior to see ugly part at the start
+                            clipBehavior: Clip.antiAlias,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.all(Radius.circular(15)),
+                            ),
+                            child: AnimatedContainer(
+                              curve: Curves.linear,
+                              duration: const Duration(seconds: 5),
+                              width: _w,
+                              height: 34 * globals.scaleParam,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(15),
+                                ),
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            width: MediaQuery.sizeOf(context).width * 0.88,
+                            height: 34 * globals.scaleParam,
+                            decoration: BoxDecoration(
+                              color: Colors.transparent,
+                              border: Border.all(
+                                color: Colors.black,
+                                width: 2.5 * globals.scaleParam,
+                              ),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(15),
                               ),
                             ),
                           ),
@@ -641,10 +438,215 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     ],
                   ),
                 ),
-              ),
-            ],
-          );
-        }),
+                Container(
+                  height: 800 * globals.scaleParam,
+                  decoration: BoxDecoration(
+                    // border: Border.all(
+                    //   width: 2,
+                    //   // color: Color.fromARGB(255, 245, 245, 245),
+                    //   color: Colors.black,
+                    // ),
+                    color: Color.fromARGB(255, 245, 245, 245),
+                    borderRadius: const BorderRadius.all(
+                      Radius.circular(15),
+                    ),
+                  ),
+                  margin: EdgeInsets.symmetric(
+                    horizontal: 20 * globals.scaleParam,
+                    vertical: 5 * globals.scaleParam,
+                  ),
+                  padding: EdgeInsets.all(15 * globals.scaleParam),
+                  child: ListView.builder(
+                    primary: false,
+                    shrinkWrap: true,
+                    itemCount: widget.items.length,
+                    itemBuilder: (context, index) {
+                      final item = widget.items[index];
+
+                      return Column(
+                        children: [
+                          ItemCardNoImage(
+                            element: item,
+                            itemId: item["name"],
+                            categoryId: "",
+                            categoryName: "",
+                            scroll: 0,
+                            business_id: widget.business["business_id"],
+                          ),
+                          widget.items.length - 1 != index
+                              ? Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 32 * globals.scaleParam,
+                                    vertical: 10 * globals.scaleParam,
+                                  ),
+                                  child: const Divider(
+                                    height: 0,
+                                  ),
+                                )
+                              : Container(),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                Container(
+                  height: 150 * globals.scaleParam,
+                  // alignment: Alignment.centerLeft,
+                  decoration: BoxDecoration(
+                    // border: Border.all(
+                    //   width: 2,
+                    //   color: Color.fromARGB(255, 245, 245, 245),
+                    // ),
+                    color: Color.fromARGB(255, 245, 245, 245),
+                    borderRadius: const BorderRadius.all(
+                      Radius.circular(15),
+                    ),
+                  ),
+                  margin: EdgeInsets.symmetric(
+                    horizontal: 20 * globals.scaleParam,
+                    vertical: 5 * globals.scaleParam,
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    vertical: 20 * globals.scaleParam,
+                    horizontal: 35 * globals.scaleParam,
+                  ),
+                  child: Column(
+                    children: [
+                      Flexible(
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                widget.delivery ? "Доставка по адресу: " : "Самовывоз из магазина: ",
+                                style: TextStyle(
+                                  fontSize: 32 * globals.scaleParam,
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                left: 50 * globals.scaleParam,
+                              ),
+                              child: Text(
+                                widget.delivery ? widget.address!["address"] ?? "" : widget.business["address"],
+                                style: TextStyle(
+                                  fontSize: 32 * globals.scaleParam,
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  height: 150 * globals.scaleParam,
+                  decoration: BoxDecoration(
+                    // border: Border.all(
+                    //   width: 2,
+                    //   color: Color.fromARGB(255, 245, 245, 245),
+                    // ),
+                    color: Color.fromARGB(255, 245, 245, 245),
+                    borderRadius: const BorderRadius.all(
+                      Radius.circular(15),
+                    ),
+                  ),
+                  margin: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam, vertical: 5 * globals.scaleParam),
+                  padding: EdgeInsets.symmetric(
+                    vertical: 20 * globals.scaleParam,
+                    horizontal: 30 * globals.scaleParam,
+                  ),
+                  child: Column(
+                    children: [
+                      Flexible(
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                "Оплата ${widget.paymentType}:",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 32 * globals.scaleParam,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                left: 50 * globals.scaleParam,
+                              ),
+                              child: Text(
+                                "Сумма к оплате: ${globals.formatCost(widget.finalSum.toString()).toString()} ₸",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 32 * globals.scaleParam,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.only(top: 15 * globals.scaleParam),
+                  alignment: Alignment.topCenter,
+                  child: Container(
+                    width: constraints.maxWidth * 0.955,
+                    // height: 130 * globals.scaleParam,
+                    margin: EdgeInsets.symmetric(vertical: 20 * globals.scaleParam),
+                    padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.all(Radius.circular(15)),
+                      // color: Color.fromARGB(255, 245, 245, 245),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                " * курьер выдаст заказ 21+ только при подтверждении возраста.",
+                                textAlign: TextAlign.left,
+                                style: TextStyle(
+                                  // fontFamily: "montserrat",
+                                  fontSize: 26 * globals.scaleParam,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color.fromARGB(255, 190, 190, 190),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

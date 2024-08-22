@@ -2759,6 +2759,21 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                   Flexible(
                                     flex: 4,
                                     fit: FlexFit.tight,
+                                    child: Text(
+                                      element["code"],
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: Colors.amber.shade800,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 32 * globals.scaleParam,
+                                        height: 1,
+                                      ),
+                                    ),
+                                  ),
+                                  Flexible(
+                                    flex: 4,
+                                    fit: FlexFit.tight,
                                     child: Row(
                                       mainAxisAlignment: MainAxisAlignment.end,
                                       mainAxisSize: MainAxisSize.min,

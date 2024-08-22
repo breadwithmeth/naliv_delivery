@@ -25,6 +25,7 @@ class PickAddressPage extends StatefulWidget {
 }
 
 class _PickAddressPageState extends State<PickAddressPage> {
+  bool alreadyOpenedMap = false;
   List _cities = [];
   Position? _location;
   List _addresses = [];
@@ -82,6 +83,32 @@ class _PickAddressPageState extends State<PickAddressPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isFirstTime && _location != null && _cities.isNotEmpty && !alreadyOpenedMap) {
+      alreadyOpenedMap = true;
+      Future.delayed(
+        Duration.zero,
+        () {
+          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+            builder: (context) {
+              return PickOnMapPage(
+                currentPosition: _location!,
+                cities: _cities,
+                isFromCreateOrder: true,
+              );
+            },
+          ), (Route<dynamic> route) => false);
+          // Navigator.push(context, MaterialPageRoute(
+          //   builder: (context) {
+          //     return PickOnMapPage(
+          //       currentPosition: _location!,
+          //       cities: _cities,
+          //       isFromCreateOrder: true,
+          //     );
+          //   },
+          // ));
+        },
+      );
+    }
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
