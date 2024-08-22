@@ -333,7 +333,7 @@ class _ProductPageState extends State<ProductPage> {
 
     setState(() {
       quantity = item["quantity"];
-      if (quantity != 1) {
+      if (quantity != 1 && (widget.item["cart"] == [] || widget.item["cart"] == null || widget.item["cart"].isEmpty)) {
         amountInCart = quantity;
       }
     });
