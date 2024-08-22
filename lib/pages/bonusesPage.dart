@@ -1,5 +1,7 @@
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/bonusRules.dart';
+import 'package:barcode_widget/barcode_widget.dart';
+import 'dart:io';
 
 import 'package:qr_flutter/qr_flutter.dart';
 import '../globals.dart' as globals;
@@ -236,8 +238,7 @@ class _BonusQRModalPageState extends State<BonusQRModalPage> {
                   child: QrImageView(
                     data: widget.qrstring,
                     version: QrVersions.auto,
-                    size: MediaQuery.sizeOf(context).shortestSide *
-                        0.8, // Size of the QR code
+                    // Size of the QR code
                     eyeStyle: QrEyeStyle(
                         color: Colors.black, eyeShape: QrEyeShape.square),
                     dataModuleStyle: QrDataModuleStyle(
@@ -245,6 +246,12 @@ class _BonusQRModalPageState extends State<BonusQRModalPage> {
                         dataModuleShape: QrDataModuleShape.square),
                   ),
                 ),
+                Flexible(
+                    child: BarcodeWidget(
+                  barcode: Barcode.code128(),
+                  data: widget.qrstring,
+                  drawText: false,
+                )),
                 Flexible(
                   child: Text(
                     "Покажите QR код продавцу для оплаты бонусами",
