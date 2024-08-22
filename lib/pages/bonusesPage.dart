@@ -72,7 +72,7 @@ class _BonusesPageState extends State<BonusesPage> {
                     Flexible(
                       fit: FlexFit.tight,
                       child: Text(
-                        "Показать QR",
+                        "Использовать бонусы",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontWeight: FontWeight.w900,
@@ -132,26 +132,26 @@ class _BonusesPageState extends State<BonusesPage> {
                             ),
                           ),
                         ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) {
-                                  return const BonusRulesPage();
-                                },
-                              ),
-                            );
-                          },
-                          child: Text(
-                            "Правила бонусной системы",
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 42 * globals.scaleParam,
-                            ),
-                          ),
-                        ),
+                        // TextButton(
+                        //   onPressed: () {
+                        //     Navigator.push(
+                        //       context,
+                        //       MaterialPageRoute(
+                        //         builder: (context) {
+                        //           return const BonusRulesPage();
+                        //         },
+                        //       ),
+                        //     );
+                        //   },
+                        //   child: Text(
+                        //     "Правила бонусной системы",
+                        //     style: TextStyle(
+                        //       color: Colors.grey,
+                        //       fontWeight: FontWeight.w500,
+                        //       fontSize: 42 * globals.scaleParam,
+                        //     ),
+                        //   ),
+                        // ),
                       ],
                     ),
                   );
@@ -167,7 +167,7 @@ class _BonusesPageState extends State<BonusesPage> {
 
 class BonusQRModalPage extends StatefulWidget {
   const BonusQRModalPage({super.key, required this.qrstring});
-  final String qrstring;
+  final String? qrstring;
 
   @override
   State<BonusQRModalPage> createState() => _BonusQRModalPageState();
@@ -234,35 +234,48 @@ class _BonusQRModalPageState extends State<BonusQRModalPage> {
                 SizedBox(
                   height: 65 * globals.scaleParam,
                 ),
-                Flexible(
-                  child: QrImageView(
-                    data: widget.qrstring,
-                    version: QrVersions.auto,
-                    // Size of the QR code
-                    eyeStyle: QrEyeStyle(
-                        color: Colors.black, eyeShape: QrEyeShape.square),
-                    dataModuleStyle: QrDataModuleStyle(
-                        color: Colors.black,
-                        dataModuleShape: QrDataModuleShape.square),
-                  ),
-                ),
-                Flexible(
-                    child: BarcodeWidget(
-                  barcode: Barcode.code128(),
-                  data: widget.qrstring,
-                  drawText: false,
-                )),
-                Flexible(
-                  child: Text(
-                    "Покажите QR код продавцу для оплаты бонусами",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 46 * globals.scaleParam,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                    ),
-                  ),
-                ),
+                widget.qrstring != null
+                    ? Flexible(
+                        child: QrImageView(
+                          data: widget.qrstring!,
+                          version: QrVersions.auto,
+                          // Size of the QR code
+                          eyeStyle: QrEyeStyle(color: Colors.black, eyeShape: QrEyeShape.square),
+                          dataModuleStyle: QrDataModuleStyle(color: Colors.black, dataModuleShape: QrDataModuleShape.square),
+                        ),
+                      )
+                    : SizedBox(),
+                widget.qrstring != null
+                    ? Flexible(
+                        child: BarcodeWidget(
+                        barcode: Barcode.code128(),
+                        data: widget.qrstring!,
+                        drawText: false,
+                      ))
+                    : Flexible(
+                        child: Text(
+                          "Что-то пошло не так, попробуйте позже",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 46 * globals.scaleParam,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                widget.qrstring != null
+                    ? Flexible(
+                        child: Text(
+                          "Покажите штрих код продавцу для использования бонусов",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 46 * globals.scaleParam,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                          ),
+                        ),
+                      )
+                    : SizedBox(),
               ],
             ),
           );

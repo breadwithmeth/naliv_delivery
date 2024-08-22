@@ -906,11 +906,12 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                         ),
                                       ),
                                     ),
+                                    // TODO: CHANGE THIS "INVISIBLE" BUTTON
                                     Flexible(
                                       fit: FlexFit.tight,
                                       child: Icon(
                                         Icons.arrow_drop_down_rounded,
-                                        color: Colors.black,
+                                        color: Colors.transparent,
                                       ),
                                     ),
                                   ],

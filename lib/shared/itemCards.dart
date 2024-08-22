@@ -1250,7 +1250,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                     child: Padding(
                                       padding: EdgeInsets.symmetric(horizontal: 8 * globals.scaleParam),
                                       child: Text(
-                                        "${element["amount"]} шт",
+                                        "${element["amount"]} ${element["unit"]}",
                                         style: TextStyle(
                                           color: Colors.black,
                                           fontWeight: FontWeight.w700,
@@ -1285,7 +1285,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                       Flexible(
                         fit: FlexFit.tight,
                         child: Text(
-                          "${element["amount"]} x",
+                          "${element["amount_b"]} x",
                           textAlign: TextAlign.end,
                           style: TextStyle(
                             fontSize: 38 * globals.scaleParam,
@@ -1573,7 +1573,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                       Flexible(
                         fit: FlexFit.tight,
                         child: Text(
-                          "${globals.formatCost(element["price"].toString())} ₸ за шт",
+                          "${globals.formatCost(element["price"].toString())} ₸ за ${element["unit"]}",
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.secondary.withOpacity(0.2),
                             fontWeight: FontWeight.w600,
@@ -2314,7 +2314,7 @@ class ItemCardListTile extends StatefulWidget {
       required this.index,
       this.categoryPageUpdateData});
 
-  final Function(String, int)? categoryPageUpdateData;
+  final Function(List, int)? categoryPageUpdateData;
   final Map<dynamic, dynamic> business;
   final String categoryId;
   final String categoryName;
@@ -2491,6 +2491,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
             cart;
           });
         }
+        widget.categoryPageUpdateData!(cart, widget.index);
       }
       print(value);
       print(cart);

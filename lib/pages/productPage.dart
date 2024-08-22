@@ -247,8 +247,8 @@ class _ProductPageState extends State<ProductPage> {
     super.initState();
     if (widget.item["options"] != null) {
       setState(() {
-        amountInCart = widget.item["amount"] ?? 0;
-        actualCartAmount = amountInCart;
+        amountInCart = widget.item["amount"] ?? 1;
+        actualCartAmount = 0;
       });
       initOptionSelector();
     } else {
@@ -260,6 +260,9 @@ class _ProductPageState extends State<ProductPage> {
             actualCartAmount = amountInCart;
           });
         }
+      } else {
+        amountInCart = 1;
+        actualCartAmount = 0;
       }
     }
     TabText[0] = widget.item["description"];
@@ -668,7 +671,7 @@ class _ProductPageState extends State<ProductPage> {
                                       disabledColor: Colors.white,
                                       backgroundColor: Colors.white,
                                       label: Text(
-                                        options[indexOption]["options"][index]["name"],
+                                        "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}",
                                         style: TextStyle(fontWeight: FontWeight.w700),
                                       ),
                                       selected: options[indexOption]["selected_relation_id"] == options[indexOption]["options"][index]["relation_id"],
@@ -723,7 +726,9 @@ class _ProductPageState extends State<ProductPage> {
                                       deleteIcon: Container(),
                                       deleteIconBoxConstraints: BoxConstraints(),
                                       label: Text(
-                                        options[indexOption]["options"][index]["name"],
+                                        options[indexOption]["options"][index]["price"] != null && options[indexOption]["options"][index]["price"] != 0
+                                        ? "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}"
+                                        : options[indexOption]["options"][index]["name"],
                                         style: TextStyle(fontWeight: FontWeight.w700),
                                       ),
                                       selected: List.castFrom(options[indexOption]["selected_relation_id"])
