@@ -1,6 +1,8 @@
 // ignore_for_file: file_names
 
 import 'dart:async';
+import 'dart:ui';
+import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/paintLogoPage.dart';
 import '../globals.dart' as globals;
@@ -342,7 +344,7 @@ class CategoryItem extends StatefulWidget {
 class _CategoryItemState extends State<CategoryItem> {
   Color firstColor = Color.fromARGB(255, 201, 201, 201);
   Color secondColor = Colors.blueGrey;
-  late Image imageBG = Image.asset(
+  late ExtendedImage imageBG = ExtendedImage.asset(
     'assets/vectors/wine.png',
     width: 120,
     height: 120,
@@ -361,11 +363,18 @@ class _CategoryItemState extends State<CategoryItem> {
         setState(() {
           firstColor = Color.fromARGB(255, 255, 228, 128);
           secondColor = Color(0xFFF5A265);
-          imageBG = Image.asset(
-            'assets/vectors/beer.png',
-            width: 260 * globals.scaleParam,
-            height: 260 * globals.scaleParam,
-          );
+          if (widget.image == null) {
+            imageBG = ExtendedImage.network(
+              widget.image!,
+              fit: BoxFit.contain,
+            );
+          } else {
+            imageBG = ExtendedImage.asset(
+              'assets/vectors/beer.png',
+              width: 260 * globals.scaleParam,
+              height: 260 * globals.scaleParam,
+            );
+          }
         });
         break;
       // Whiskey
@@ -373,11 +382,18 @@ class _CategoryItemState extends State<CategoryItem> {
         setState(() {
           firstColor = Color(0xFF898989);
           secondColor = Color(0xFF464343);
-          imageBG = Image.asset(
-            'assets/vectors/whiskey.png',
-            width: 300 * globals.scaleParam,
-            height: 300 * globals.scaleParam,
-          );
+          if (widget.image == null) {
+            imageBG = ExtendedImage.network(
+              widget.image!,
+              fit: BoxFit.contain,
+            );
+          } else {
+            imageBG = ExtendedImage.asset(
+              'assets/vectors/whiskey.png',
+              width: 300 * globals.scaleParam,
+              height: 300 * globals.scaleParam,
+            );
+          }
           _offset = Offset(0, 0);
         });
         break;
@@ -386,11 +402,18 @@ class _CategoryItemState extends State<CategoryItem> {
         setState(() {
           firstColor = Color.fromARGB(255, 255, 134, 178);
           secondColor = Color(0xFFE3427C);
-          imageBG = Image.asset(
-            'assets/vectors/wine.png',
-            width: 240 * globals.scaleParam,
-            height: 240 * globals.scaleParam,
-          );
+          if (widget.image == null) {
+            imageBG = ExtendedImage.network(
+              widget.image!,
+              fit: BoxFit.contain,
+            );
+          } else {
+            imageBG = ExtendedImage.asset(
+              'assets/vectors/wine.png',
+              width: 240 * globals.scaleParam,
+              height: 240 * globals.scaleParam,
+            );
+          }
           _offset = Offset(0.15, -0.05);
         });
         break;
@@ -399,11 +422,18 @@ class _CategoryItemState extends State<CategoryItem> {
         setState(() {
           firstColor = Color.fromARGB(255, 205, 222, 224);
           secondColor = Color(0xFF8C9698);
-          imageBG = Image.asset(
-            'assets/vectors/vodka.png',
-            width: 340 * globals.scaleParam,
-            height: 340 * globals.scaleParam,
-          );
+          if (widget.image == null) {
+            imageBG = ExtendedImage.network(
+              widget.image!,
+              fit: BoxFit.contain,
+            );
+          } else {
+            imageBG = ExtendedImage.asset(
+              'assets/vectors/vodka.png',
+              width: 340 * globals.scaleParam,
+              height: 340 * globals.scaleParam,
+            );
+          }
           _offset = Offset(0, -0.18);
         });
         break;
@@ -411,25 +441,36 @@ class _CategoryItemState extends State<CategoryItem> {
         setState(() {
           firstColor = Color.fromARGB(255, 132, 233, 255);
           secondColor = Color(0xFF285B98);
-          imageBG = Image.asset(
-            'assets/vectors/drinks.png',
-            width: 170 * globals.scaleParam,
-            height: 170 * globals.scaleParam,
-          );
-          _offset = Offset(0, 0);
+          if (widget.image == null) {
+            imageBG = ExtendedImage.network(
+              widget.image!,
+              fit: BoxFit.contain,
+            );
+          } else {
+            imageBG = ExtendedImage.asset(
+              'assets/vectors/drinks.png',
+              width: 170 * globals.scaleParam,
+              height: 170 * globals.scaleParam,
+            );
+          }
         });
         break;
       case '23':
         setState(() {
           firstColor = Color.fromARGB(255, 255, 211, 129);
           secondColor = Color(0xFF8C9698);
-          imageBG = Image.asset(
-            'assets/vectors/snacks.png',
-            width: 260 * globals.scaleParam,
-            height: 260 * globals.scaleParam,
-          );
-          _offset = Offset(0.18, 0.05);
-          _rotation = -20 / 360;
+          if (widget.image == null) {
+            imageBG = ExtendedImage.network(
+              widget.image!,
+              fit: BoxFit.contain,
+            );
+          } else {
+            imageBG = ExtendedImage.asset(
+              'assets/vectors/snacks.png',
+              width: 260 * globals.scaleParam,
+              height: 260 * globals.scaleParam,
+            );
+          }
         });
         break;
       // Meat snacks
@@ -483,99 +524,117 @@ class _CategoryItemState extends State<CategoryItem> {
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
-      style: TextButton.styleFrom(padding: EdgeInsets.all(0)),
-      onPressed: () {
-        print("CATEGORY_ID IS ${widget.category_id}");
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CategoryPage(
-              categoryId: widget.category_id,
-              categoryName: widget.name,
-              categories: widget.categories,
-              business: widget.business,
-              user: widget.user,
-            ),
-          ),
-        );
-      },
-      child: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: firstColor,
-            ),
-          ),
-          //* LIGHT WHITE SHADE
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.white.withOpacity(0.08), Colors.white.withOpacity(0.01), Colors.transparent],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return TextButton(
+          style: TextButton.styleFrom(padding: EdgeInsets.all(0)),
+          onPressed: () {
+            print("CATEGORY_ID IS ${widget.category_id}");
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CategoryPage(
+                  categoryId: widget.category_id,
+                  categoryName: widget.name,
+                  categories: widget.categories,
+                  business: widget.business,
+                  user: widget.user,
+                ),
               ),
-            ),
-          ),
-          _alignment == null
-              ? Container(
-                  alignment: Alignment.topCenter,
-                  child: ClipRect(
-                    child: OverflowBox(
-                      maxWidth: double.infinity,
-                      maxHeight: double.infinity,
-                      child: RotationTransition(
-                        turns: AlwaysStoppedAnimation(_rotation ?? 0),
-                        child: SlideTransition(
-                          position: AlwaysStoppedAnimation(_offset),
-                          child: imageBG,
-                        ),
+            );
+          },
+          child: Stack(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: firstColor,
+                ),
+              ),
+              //* LIGHT WHITE SHADE
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.white.withOpacity(0.08), Colors.white.withOpacity(0.01), Colors.transparent],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+              ),
+              Container(
+                alignment: Alignment.centerRight,
+                child: imageBG,
+              ),
+              // Container(
+              //   clipBehavior: Clip.antiAliasWithSaveLayer,
+              //   decoration: BoxDecoration(borderRadius: BorderRadius.circular(3)),
+              //   alignment: Alignment.centerRight,
+              //   child: SlideTransition(
+              //     position: AlwaysStoppedAnimation(Offset(0.1, 0.15)),
+              //     child: Stack(
+              //       children: <Widget>[
+              //         Transform.translate(
+              //           offset: const Offset(15.0, -6.0),
+              //           child: ImageFiltered(
+              //             imageFilter: ImageFilter.blur(sigmaY: 12, sigmaX: 12),
+              //             child: Container(
+              //               decoration: BoxDecoration(
+              //                 border: Border.all(
+              //                   color: Colors.transparent,
+              //                   width: 0,
+              //                 ),
+              //               ),
+              //               child: Opacity(
+              //                 opacity: 0.85,
+              //                 child: ColorFiltered(colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcATop), child: imageBG),
+              //               ),
+              //             ),
+              //           ),
+              //         ),
+              //         imageBG,
+              //       ],
+              //     ),
+              //   ),
+              // ),
+              Container(
+                padding: EdgeInsets.all(30 * globals.scaleParam),
+                alignment: Alignment.topLeft,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(5),
+                  ),
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: textBG,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(5),
+                      bottomRight: Radius.circular(5),
+                    ),
+                  ),
+                  child: Text(
+                    widget.name,
+                    style: GoogleFonts.montserratAlternates(
+                      textStyle: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        fontSize: 46 * globals.scaleParam,
+                        height: 2.5 * globals.scaleParam,
+                        shadows: const [
+                          Shadow(
+                            blurRadius: 5,
+                            color: Colors.black26,
+                            offset: Offset(0, 2),
+                          )
+                        ],
                       ),
                     ),
                   ),
-                )
-              : Container(
-                  alignment: _alignment,
-                  child: imageBG,
-                ),
-          Container(
-            padding: EdgeInsets.all(30 * globals.scaleParam),
-            alignment: Alignment.topLeft,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.all(
-                Radius.circular(5),
-              ),
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                color: textBG,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(5),
-                  bottomRight: Radius.circular(5),
                 ),
               ),
-              child: Text(
-                widget.name,
-                style: GoogleFonts.montserratAlternates(
-                  textStyle: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    fontSize: 46 * globals.scaleParam,
-                    height: 2.5 * globals.scaleParam,
-                    shadows: const [
-                      Shadow(
-                        blurRadius: 5,
-                        color: Colors.black26,
-                        offset: Offset(0, 2),
-                      )
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

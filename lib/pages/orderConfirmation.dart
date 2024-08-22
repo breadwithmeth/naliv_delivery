@@ -74,7 +74,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
       Future.delayed(const Duration(milliseconds: 0)).then((value) async {
         print("Creating order...!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         String user_id = widget.user.isNotEmpty ? widget.user["user_id"] : "";
-        await createOrder(widget.business["business_id"], widget.delivery ? widget.business["business_id"] : null, user_id).then((value) {
+        await createOrder(widget.business["business_id"], null, widget.delivery ? 1 : 0, user_id).then((value) {
           if (value["status"] == true) {
             setState(() {
               isOrderCorrect = true;
@@ -528,24 +528,26 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                           ],
                         ),
                       ),
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                left: 50 * globals.scaleParam,
-                              ),
-                              child: Text(
-                                widget.delivery ? widget.address!["address"] ?? "" : widget.business["address"],
-                                style: TextStyle(
-                                  fontSize: 32 * globals.scaleParam,
-                                  fontWeight: FontWeight.w700,
-                                  color: Theme.of(context).colorScheme.onSurface,
+                      Flexible(
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Padding(
+                                padding: EdgeInsets.only(
+                                  left: 50 * globals.scaleParam,
+                                ),
+                                child: Text(
+                                  widget.delivery ? widget.address!["address"] ?? "" : widget.business["address"],
+                                  style: TextStyle(
+                                    fontSize: 32 * globals.scaleParam,
+                                    fontWeight: FontWeight.w700,
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),

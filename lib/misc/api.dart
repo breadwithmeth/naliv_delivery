@@ -595,7 +595,7 @@ Future<Map<String, dynamic>?> getCity() async {
   return data;
 }
 
-Future<Map<String, dynamic>> createOrder(String businessId, String? addressId, [String user_id = ""]) async {
+Future<Map<String, dynamic>> createOrder(String businessId, String? addressId, int? delivery, [String user_id = ""]) async {
   // Returns null in two situations, token is null or wrong order (406)
   String? token = await getToken();
   if (token == null) {
@@ -607,8 +607,11 @@ Future<Map<String, dynamic>> createOrder(String businessId, String? addressId, [
   if (user_id.isNotEmpty) {
     body.addAll({"user_id": user_id});
   }
-  if (addressId != null) {
-    body.addAll({"address_id": addressId});
+  // if (addressId != null) {
+  //   body.addAll({"address_id": addressId});
+  // }
+  if (delivery != null) {
+    body.addAll({"delivery": delivery});
   }
 
   var url = Uri.https(URL_API, 'api/item/createOrder');

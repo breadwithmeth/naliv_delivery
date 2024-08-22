@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:naliv_delivery/main.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import '../globals.dart' as globals;
@@ -37,12 +38,20 @@ class _WebViewCardPayPageState extends State<WebViewCardPayPage> {
 
   // What to do when payment succeeded
   void _handlePaymentSuccess() {
-    Navigator.pop(context);
+    Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+      builder: (context) {
+        return Main();
+      },
+    ), (route) => false);
   }
 
   // What to do when payment failed
   void _handlePaymentFailure() {
-    Navigator.pop(context);
+    Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+      builder: (context) {
+        return Main();
+      },
+    ), (route) => false);
   }
 
   @override
@@ -57,9 +66,7 @@ class _WebViewCardPayPageState extends State<WebViewCardPayPage> {
               if (defaultTargetPlatform == TargetPlatform.android) {
                 webViewController?.reload();
               } else if (defaultTargetPlatform == TargetPlatform.iOS) {
-                webViewController?.loadUrl(
-                    urlRequest:
-                        URLRequest(url: await webViewController?.getUrl()));
+                webViewController?.loadUrl(urlRequest: URLRequest(url: await webViewController?.getUrl()));
               }
             },
           );
@@ -95,22 +102,12 @@ class _WebViewCardPayPageState extends State<WebViewCardPayPage> {
                   print(errorResponse);
                 },
                 onPermissionRequest: (controller, request) async {
-                  return PermissionResponse(
-                      resources: request.resources,
-                      action: PermissionResponseAction.GRANT);
+                  return PermissionResponse(resources: request.resources, action: PermissionResponseAction.GRANT);
                 },
                 shouldOverrideUrlLoading: (controller, navigationAction) async {
                   var uri = navigationAction.request.url!;
 
-                  if (![
-                    "http",
-                    "https",
-                    "file",
-                    "chrome",
-                    "data",
-                    "javascript",
-                    "about"
-                  ].contains(uri.scheme)) {
+                  if (!["http", "https", "file", "chrome", "data", "javascript", "about"].contains(uri.scheme)) {
                     if (await canLaunchUrl(uri)) {
                       // Launch the App
                       await launchUrl(
@@ -164,9 +161,7 @@ class _WebViewCardPayPageState extends State<WebViewCardPayPage> {
                   }
                 },
               ),
-              progress < 1.0
-                  ? LinearProgressIndicator(value: progress)
-                  : Container(),
+              progress < 1.0 ? LinearProgressIndicator(value: progress) : Container(),
             ],
           );
         },
