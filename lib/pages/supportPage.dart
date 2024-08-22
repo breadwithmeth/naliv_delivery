@@ -13,9 +13,16 @@ class _SupportPageState extends State<SupportPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "Поддержка",
-        ),
+        title: Text("Поддержка"),
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            icon: const Icon(Icons.close),
+          )
+        ],
       ),
       body: Center(
         child: Column(
@@ -30,7 +37,7 @@ class _SupportPageState extends State<SupportPage> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.secondary,
-                      fontSize: 48 * globals.scaleParam,
+                      fontSize: 42 * globals.scaleParam,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

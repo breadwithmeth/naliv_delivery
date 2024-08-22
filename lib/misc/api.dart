@@ -341,8 +341,10 @@ Future<List?> changeCartItem(dynamic itemId, int amount, String businessId, {Lis
     if (option["selection"] == "SINGLE") {
       options_selected_ids.add(option["selected_relation_id"]);
     } else {
-      for (int selected_id in option["selected_relation_id"]) {
-        options_selected_ids.add(selected_id);
+      if (option["selected_relation_id"] != null) {
+        for (int selected_id in option["selected_relation_id"]) {
+          options_selected_ids.add(selected_id);
+        }
       }
     }
   }
@@ -366,11 +368,13 @@ Future<List?> changeCartItem(dynamic itemId, int amount, String businessId, {Lis
     );
   }
 
-  List? data;
+  List? data = [];
   if (jsonDecode(response.body) == null && response.body == "[]") {
     data = [];
   } else {
-    data = jsonDecode(response.body)["cart"];
+    if (jsonDecode(response.body)["cart"] != null) {
+      data = jsonDecode(response.body)["cart"];
+    }
     // if (jsonDecode(response.body) is Map) {
     //   data = [jsonDecode(response.body)];
     //   data[0]["amount"] = 0;
@@ -591,17 +595,27 @@ Future<Map<String, dynamic>?> getCity() async {
   return data;
 }
 
-Future<Map<String, dynamic>> createOrder(String businessId, [String user_id = ""]) async {
+Future<Map<String, dynamic>> createOrder(String businessId, String? addressId, [String user_id = ""]) async {
   // Returns null in two situations, token is null or wrong order (406)
   String? token = await getToken();
   if (token == null) {
     return {"status": null};
   }
+  Map body = {
+    'business_id': businessId,
+  };
+  if (user_id.isNotEmpty) {
+    body.addAll({"user_id": user_id});
+  }
+  if (addressId != null) {
+    body.addAll({"address_id": addressId});
+  }
+
   var url = Uri.https(URL_API, 'api/item/createOrder');
   var response = await client.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
-    body: user_id.isNotEmpty ? json.encode({"user_id": user_id, 'business_id': businessId}) : json.encode({'business_id': businessId}),
+    body: json.encode(body),
   );
 
   // List<dynamic> list = json.decode(response.body);
@@ -892,4 +906,25 @@ Future<String> getPaymentHTML() async {
   // var data = json.decode(utf8.decode(response.bodyBytes));
   print(response.statusCode);
   return utf8.decode(response.bodyBytes);
+}
+
+Future<Map> getBonuses() async {
+  String? token = await getToken();
+  if (token == null) {
+    return {};
+  }
+  var url = Uri.https(URL_API, 'api/user/getBonuses');
+  var response = await client.post(
+    url,
+    headers: {
+      "Content-Type": "application/json",
+      "AUTH": token,
+    },
+    body: json.encode({}),
+  );
+
+  Map<String, dynamic> result = json.decode(response.body) ?? {};
+  print(json.encode(response.statusCode));
+  print(response.body);
+  return result;
 }

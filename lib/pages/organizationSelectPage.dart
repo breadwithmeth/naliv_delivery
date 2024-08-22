@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/agreements/offer.dart';
+import 'package:naliv_delivery/pages/bonusesPage.dart';
 import 'package:naliv_delivery/pages/createProfilePage.dart';
 import 'package:naliv_delivery/pages/pickOnMap.dart';
 import 'package:naliv_delivery/pages/preLoadDataPage.dart';
@@ -106,8 +107,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
     await getGeoData(lon.toString() + "," + lat.toString()).then((value) {
       print(value);
       if (value != null) {
-        List objects =
-            value;
+        List objects = value;
 
         double lat = double.parse(objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
         double lon = double.parse(objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
@@ -385,6 +385,16 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
     });
   }
 
+  bool hasSecondLine(String text, TextStyle style, double maxWidth) {
+    final TextPainter textPainter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      maxLines: 1, // You can set this to any number of lines you want to check.
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: maxWidth);
+
+    return textPainter.didExceedMaxLines;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -473,17 +483,20 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                     mainAxisSize: MainAxisSize.max,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
-                        "НАЛИВ/ГРАДУСЫ24",
-                        style: GoogleFonts.montserratAlternates(
-                          textStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 48 * globals.scaleParam),
+                      Flexible(
+                        child: Text(
+                          "НАЛИВ/ГРАДУСЫ24",
+                          // "закажи",
+                          style: GoogleFonts.sofiaSans(
+                            textStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 72 * globals.scaleParam),
+                          ),
                         ),
                       ),
-                      Icon(
-                        Icons.local_dining_outlined,
-                        color: Colors.black,
-                        size: 48 * globals.scaleParam,
-                      )
+                      // Icon(
+                      //   Icons.local_dining_outlined,
+                      //   color: Colors.black,
+                      //   size: 48 * globals.scaleParam,
+                      // )
                     ],
                   ),
                 ),
@@ -498,10 +511,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                   childAspectRatio: 2 / 1,
                   crossAxisCount: 2,
                   children: [
-                    DrawerMenuItem(
+                    const DrawerMenuItem(
                       name: "История заказов",
                       icon: Icons.book_outlined,
-                      route: const OrderHistoryPage(),
+                      route: OrderHistoryPage(),
                     ),
                     DrawerMenuItem(
                       name: "Адреса доставки",
@@ -511,23 +524,28 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                         addresses: widget.addresses,
                       ),
                     ),
-                    DrawerMenuItem(
+                    const DrawerMenuItem(
                       name: "Поддержка",
                       icon: Icons.support_agent_rounded,
-                      route: const SupportPage(),
+                      route: SupportPage(),
                     ),
-                    DrawerMenuItem(
+                    const DrawerMenuItem(
+                      name: "Бонусы",
+                      icon: Icons.card_membership_rounded,
+                      route: BonusesPage(),
+                    ),
+                    const DrawerMenuItem(
                       name: "Оферта",
                       icon: Icons.list_alt,
                       route: OfferPage(
                         path: "assets/agreements/offer.md",
                       ),
                     ),
-                    DrawerMenuItem(
+                    const DrawerMenuItem(
                       name: "Настройки",
                       icon: Icons.settings_outlined,
-                      route: const SettingsPage(),
-                    )
+                      route: SettingsPage(),
+                    ),
                   ],
                 ),
               ),
@@ -535,7 +553,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
           ),
         ),
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade100,
       // !isCollapsed ?      globals.mainColor : Colors.white,
       body: SafeArea(
         child: CustomScrollView(
@@ -548,13 +566,14 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
               forceElevated: true,
               shape: const LinearBorder(bottom: LinearBorderEdge(size: 1)),
               shadowColor: Colors.transparent,
-              backgroundColor: !isCollapsed ? Colors.white : Colors.transparent,
+              backgroundColor: Colors.transparent,
               surfaceTintColor: Colors.transparent,
               foregroundColor: Colors.transparent,
               // scrolledUnderElevation: collapsedBarHeight,
               toolbarHeight: collapsedBarHeight,
               snap: true,
               centerTitle: false,
+              titleSpacing: 0,
               // stretch: true,
               // Provide a standard title.
               // title: ,
@@ -563,77 +582,33 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
               // back up the list of items.
               floating: true,
               expandedHeight: 0,
-              flexibleSpace: Container(),
+              // flexibleSpace: Container(),
               title: AnimatedSwitcher(
                 transitionBuilder: (child, animation) {
                   return SlideTransition(
-                    position: Tween<Offset>(begin: const Offset(0, -1), end: const Offset(0, -0.16)).animate(animation),
+                    position: Tween<Offset>(begin: const Offset(0, -1), end: const Offset(0, -0.1)).animate(animation),
                     child: child,
                   );
                 },
-                duration: Durations.medium2,
+                duration: Durations.medium1,
                 child: isCollapsed
                     ? Container(
-                        key: ValueKey<bool>(isCollapsed),
-                        decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(20))),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.max,
-                          children: [
-                            TextButton(
-                              onPressed: () {
-                                Navigator.push(context, MaterialPageRoute(
-                                  builder: (context) {
-                                    return PickAddressPage(
-                                      client: widget.user,
-                                      addresses: widget.addresses,
-                                    );
-                                  },
-                                ));
-                              },
-                              child: Container(
-                                padding: EdgeInsets.all(40 * globals.scaleParam),
-                                decoration: BoxDecoration(color: Colors.white, borderRadius: const BorderRadius.all(Radius.circular(20))),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
-                                        style: TextStyle(fontSize: 32 * globals.scaleParam, fontWeight: FontWeight.w700),
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      width: 10 * globals.scaleParam,
-                                    ),
-                                    Icon(
-                                      Icons.edit_outlined,
-                                      size: 48 * globals.scaleParam,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : Container(
-                        height: 80,
-                        alignment: Alignment.center,
+                        key: ValueKey(isCollapsed),
+                        height: 160 * globals.scaleParam,
+                        padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
+                        alignment: Alignment.centerLeft,
                         decoration: BoxDecoration(
-                          borderRadius: const BorderRadius.all(
-                            Radius.circular(20),
-                          ),
+                          borderRadius: const BorderRadius.all(Radius.circular(20)),
+                          // color: Colors.amber,
                         ),
                         child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          mainAxisSize: MainAxisSize.max,
                           children: [
-                            Flexible(
-                              fit: FlexFit.tight,
+                            Expanded(
+                              flex: 5,
                               child: TextButton(
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                ),
                                 onPressed: () {
                                   Navigator.push(context, MaterialPageRoute(
                                     builder: (context) {
@@ -644,28 +619,245 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                     },
                                   ));
                                 },
-                                child: Row(
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        widget.currentAddress["city_name"] ?? "",
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 36 * globals.scaleParam,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                    ),
-                                    const Icon(
-                                      Icons.arrow_drop_down,
-                                      color: Colors.black,
-                                    ),
-                                  ],
+                                child: Container(
+                                  margin: EdgeInsets.only(top: 10 * globals.scaleParam),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black,
+                                    borderRadius: BorderRadius.all(Radius.circular(15)),
+                                  ),
+                                  child: LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      return Row(
+                                        mainAxisAlignment: MainAxisAlignment.start,
+                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        children: [
+                                          SizedBox(
+                                            width: constraints.maxWidth * 0.15,
+                                            child: Icon(
+                                              Icons.location_on_rounded,
+                                              size: 48 * globals.scaleParam,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            width: constraints.maxWidth * 0.7,
+                                            child: LayoutBuilder(
+                                              builder: (context, constraints2) {
+                                                double cityNameHeight = constraints.maxHeight * 0.5;
+                                                double addressNameHeight = constraints.maxHeight * 0.5;
+                                                if (hasSecondLine(
+                                                    widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
+                                                    TextStyle(
+                                                      fontSize: 32 * globals.scaleParam,
+                                                      fontWeight: FontWeight.w500,
+                                                      color: isCollapsed ? Colors.white : Colors.transparent,
+                                                      height: 1.1,
+                                                    ),
+                                                    constraints.maxWidth * 0.7)) {
+                                                  cityNameHeight = constraints.maxHeight * 0.42;
+                                                  addressNameHeight = constraints.maxHeight * 0.58;
+                                                }
+
+                                                // return Container(
+                                                // width: constraints.maxWidth * 0.7,
+                                                //   color: Colors.red,
+                                                // );
+
+                                                return Column(
+                                                  mainAxisAlignment: MainAxisAlignment.end,
+                                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                                  children: [
+                                                    Container(
+                                                      height: cityNameHeight,
+                                                      alignment: Alignment.bottomLeft,
+                                                      child: Row(
+                                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                                        children: [
+                                                          Flexible(
+                                                            child: Text(
+                                                              widget.currentAddress["city_name"] ?? "",
+                                                              textAlign: TextAlign.start,
+                                                              style: TextStyle(
+                                                                fontWeight: FontWeight.w700,
+                                                                fontSize: 36 * globals.scaleParam,
+                                                                color: Colors.white,
+                                                                height: 1.1,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    Container(
+                                                      height: addressNameHeight,
+                                                      alignment: Alignment.topLeft,
+                                                      child: Row(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Flexible(
+                                                            child: Text(
+                                                              widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
+                                                              style: TextStyle(
+                                                                fontSize: 32 * globals.scaleParam,
+                                                                fontWeight: FontWeight.w500,
+                                                                color: isCollapsed ? Colors.white : Colors.transparent,
+                                                                height: 1.1,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            width: constraints.maxWidth * 0.15,
+                                            child: const Icon(
+                                              Icons.arrow_drop_down,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
                                 ),
                               ),
                             ),
-                            Flexible(
-                              fit: FlexFit.tight,
+                            Spacer(
+                              flex: 3,
+                            )
+                          ],
+                        ),
+                      )
+                    : Container(
+                        height: 160 * globals.scaleParam,
+                        padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 5,
+                              child: TextButton(
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                ),
+                                onPressed: () {
+                                  Navigator.push(context, MaterialPageRoute(
+                                    builder: (context) {
+                                      return PickAddressPage(
+                                        client: widget.user,
+                                        addresses: widget.addresses,
+                                      );
+                                    },
+                                  ));
+                                },
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    return Row(
+                                      mainAxisAlignment: MainAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        SizedBox(
+                                          width: constraints.maxWidth * 0.15,
+                                          child: Icon(
+                                            Icons.location_on_rounded,
+                                            size: 48 * globals.scaleParam,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          width: constraints.maxWidth * 0.7,
+                                          child: LayoutBuilder(
+                                            builder: (context, constraints2) {
+                                              double cityNameHeight = constraints.maxHeight * 0.5;
+                                              double addressNameHeight = constraints.maxHeight * 0.5;
+                                              if (hasSecondLine(
+                                                  widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
+                                                  TextStyle(
+                                                    fontSize: 32 * globals.scaleParam,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: isCollapsed ? Colors.white : Colors.transparent,
+                                                    height: 1.1,
+                                                  ),
+                                                  constraints.maxWidth * 0.7)) {
+                                                cityNameHeight = constraints.maxHeight * 0.42;
+                                                addressNameHeight = constraints.maxHeight * 0.58;
+                                              }
+
+                                              // return Container(
+                                              // width: constraints.maxWidth * 0.7,
+                                              //   color: Colors.red,
+                                              // );
+
+                                              return Column(
+                                                mainAxisAlignment: MainAxisAlignment.end,
+                                                crossAxisAlignment: CrossAxisAlignment.center,
+                                                children: [
+                                                  Container(
+                                                    height: cityNameHeight,
+                                                    alignment: Alignment.bottomLeft,
+                                                    child: Row(
+                                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                                      children: [
+                                                        Flexible(
+                                                          child: Text(
+                                                            widget.currentAddress["city_name"] ?? "",
+                                                            textAlign: TextAlign.start,
+                                                            style: TextStyle(
+                                                              fontWeight: FontWeight.w700,
+                                                              fontSize: 36 * globals.scaleParam,
+                                                              color: Colors.black,
+                                                              height: 1.1,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  Container(
+                                                    height: addressNameHeight,
+                                                    alignment: Alignment.topLeft,
+                                                    child: Row(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Flexible(
+                                                          child: Text(
+                                                            widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
+                                                            style: TextStyle(
+                                                              fontSize: 32 * globals.scaleParam,
+                                                              fontWeight: FontWeight.w500,
+                                                              color: !isCollapsed ? Colors.black : Colors.transparent,
+                                                              height: 1.1,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          width: constraints.maxWidth * 0.15,
+                                          child: const Icon(
+                                            Icons.arrow_drop_down,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 3,
                               child: TextButton(
                                 onPressed: () {
                                   _key.currentState!.openEndDrawer();
@@ -675,6 +867,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                   children: [
                                     Flexible(
                                       flex: 3,
+                                      fit: FlexFit.tight,
                                       child: Padding(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 5,
@@ -690,7 +883,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                         ),
                                       ),
                                     ),
-                                    Flexible(child: CircleAvatar()),
+                                    Flexible(fit: FlexFit.tight, child: CircleAvatar()),
                                   ],
                                 ),
                               ),
@@ -704,154 +897,110 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                       ),
               ),
             ),
-            SliverLayoutBuilder(
-              builder: (context, raints) {
-                if (scrollExtent == 0) {
-                  WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-                    setState(() {
-                      scrollExtent = raints.precedingScrollExtent;
-                    });
-                  });
-                }
-                return SliverToBoxAdapter(
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 60 * globals.scaleParam),
-                    color: Colors.white,
-                    child: TextButton(
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.all(0),
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) {
-                              return PickAddressPage(
-                                client: widget.user,
-                                addresses: widget.addresses,
-                              );
-                            },
-                          ),
-                        );
-                      },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.max,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
-                              style: TextStyle(
-                                  fontSize: 32 * globals.scaleParam,
-                                  fontWeight: FontWeight.w500,
-                                  color: !isCollapsed ? Colors.black : Colors.transparent),
-                            ),
-                          ),
-                          SizedBox(
-                            width: 20 * globals.scaleParam,
-                          ),
-                          Icon(
-                            Icons.edit_outlined,
-                            color: Colors.white,
-                            size: 48 * globals.scaleParam,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-            SliverToBoxAdapter(
-                child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 50 * globals.scaleParam, vertical: 20 * globals.scaleParam),
-              child: Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      "Категории",
-                      style: TextStyle(fontSize: 48 * globals.scaleParam, fontWeight: FontWeight.w900, color: Colors.black),
-                    ),
-                  ),
-                ],
-              ),
-            )),
             SliverToBoxAdapter(
               child: Container(
-                color: Colors.white,
-                height: 200 * globals.scaleParam,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  // addRepaintBoundaries: false,
-                  shrinkWrap: true,
-                  primary: false,
-                  // controller: PageController(viewportFraction: 0.8),
-                  itemCount: _carouselItems.length,
-                  itemBuilder: (context, index) {
-                    return Row(
-                      children: [
-                        Container(
-                          width: 200 * globals.scaleParam,
-                          height: 200 * globals.scaleParam,
-                          clipBehavior: Clip.antiAlias,
-                          margin: EdgeInsets.only(top: 5 * globals.scaleParam, bottom: 5 * globals.scaleParam, left: 25 * globals.scaleParam),
-                          decoration: BoxDecoration(
-                              boxShadow: [BoxShadow(color: Colors.grey.shade300, blurRadius: 5 * globals.scaleParam)],
-                              color: Colors.grey.shade100,
-                              borderRadius: const BorderRadius.all(Radius.circular(10))),
-                          child: Stack(
-                            children: [
-                              Container(
-                                padding: EdgeInsets.all(10 * globals.scaleParam),
-                                child: Image.network(
-                                  _carouselItems[index]["image"],
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                ),
-                              ),
-                              // Container(
-                              //   width: double.infinity,
-                              //   height: double.infinity,
-                              //   decoration: const BoxDecoration(
-                              //       gradient: LinearGradient(
-                              //           transform: GradientRotation(pi / -2),
-                              //           colors: [
-                              //         Colors.black,
-                              //         Colors.transparent
-                              //       ])),
-                              // ),
-                              Container(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    Container(
-                                        alignment: Alignment.topLeft,
-                                        color: Colors.white,
-                                        height: 80 * globals.scaleParam,
-                                        padding: EdgeInsets.all(10 * globals.scaleParam),
-                                        child: Row(
-                                          children: [
-                                            Flexible(
-                                                child: Text(
-                                              _carouselItems[index]["name"],
-                                              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 24 * globals.scaleParam),
-                                            )),
-                                          ],
-                                        ))
-                                  ],
-                                ),
-                              )
-                            ],
-                          ),
-                        )
-                      ],
-                    );
-                  },
+                padding: EdgeInsets.symmetric(horizontal: 50 * globals.scaleParam, vertical: 20 * globals.scaleParam),
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        "Бар-Маркеты",
+                        style: TextStyle(fontSize: 48 * globals.scaleParam, fontWeight: FontWeight.w900, color: Colors.black),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
+            // SliverToBoxAdapter(
+            //   child: Container(
+            //     // color: Colors.white,
+            //     height: 200 * globals.scaleParam,
+            //     child: ListView.builder(
+            //       scrollDirection: Axis.horizontal,
+            //       // addRepaintBoundaries: false,
+            //       shrinkWrap: true,
+            //       primary: false,
+            //       // controller: PageController(viewportFraction: 0.8),
+            //       itemCount: _carouselItems.length,
+            //       itemBuilder: (context, index) {
+            //         return Row(
+            //           children: [
+            //             Container(
+            //               width: 200 * globals.scaleParam,
+            //               height: 200 * globals.scaleParam,
+            //               clipBehavior: Clip.antiAlias,
+            //               margin: EdgeInsets.only(
+            //                   top: 5 * globals.scaleParam,
+            //                   bottom: 5 * globals.scaleParam,
+            //                   left: 25 * globals.scaleParam),
+            //               decoration: BoxDecoration(
+            //                   boxShadow: [
+            //                     BoxShadow(
+            //                         color: Colors.grey.shade300,
+            //                         blurRadius: 5 * globals.scaleParam)
+            //                   ],
+            //                   color: Colors.grey.shade100,
+            //                   borderRadius:
+            //                       const BorderRadius.all(Radius.circular(10))),
+            //               child: Stack(
+            //                 children: [
+            //                   Container(
+            //                     padding:
+            //                         EdgeInsets.all(10 * globals.scaleParam),
+            //                     child: Image.network(
+            //                       _carouselItems[index]["image"],
+            //                       fit: BoxFit.cover,
+            //                       width: double.infinity,
+            //                       height: double.infinity,
+            //                     ),
+            //                   ),
+            //                   // Container(
+            //                   //   width: double.infinity,
+            //                   //   height: double.infinity,
+            //                   //   decoration: const BoxDecoration(
+            //                   //       gradient: LinearGradient(
+            //                   //           transform: GradientRotation(pi / -2),
+            //                   //           colors: [
+            //                   //         Colors.black,
+            //                   //         Colors.transparent
+            //                   //       ])),
+            //                   // ),
+            //                   Container(
+            //                     child: Column(
+            //                       mainAxisAlignment: MainAxisAlignment.end,
+            //                       children: [
+            //                         Container(
+            //                             alignment: Alignment.topLeft,
+            //                             color: Colors.white,
+            //                             height: 80 * globals.scaleParam,
+            //                             padding: EdgeInsets.all(
+            //                                 10 * globals.scaleParam),
+            //                             child: Row(
+            //                               children: [
+            //                                 Flexible(
+            //                                     child: Text(
+            //                                   _carouselItems[index]["name"],
+            //                                   style: TextStyle(
+            //                                       color: Colors.black,
+            //                                       fontWeight: FontWeight.w700,
+            //                                       fontSize:
+            //                                           24 * globals.scaleParam),
+            //                                 )),
+            //                               ],
+            //                             ))
+            //                       ],
+            //                     ),
+            //                   )
+            //                 ],
+            //               ),
+            //             )
+            //           ],
+            //         );
+            //       },
+            //     ),
+            //   ),
+            // ),
             SliverToBoxAdapter(
               child: SizedBox(
                 height: 50 * globals.scaleParam,
@@ -909,7 +1058,7 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
                   margin: EdgeInsets.all(20 * globals.scaleParam),
                   child: Icon(
                     widget.icon,
-                    size: 48 * globals.scaleParam,
+                    size: 58 * globals.scaleParam,
                   ),
                 )),
             Flexible(

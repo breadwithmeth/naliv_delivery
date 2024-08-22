@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../globals.dart' as globals;
 
 class PaintLogoPage extends StatefulWidget {
   const PaintLogoPage({super.key, required this.city});
@@ -21,7 +23,7 @@ class _PaintLogoPageState extends State<PaintLogoPage> with SingleTickerProvider
       backgroundColor: Colors.white,
       body: Center(
         child: Container(
-          width: MediaQuery.sizeOf(context).shortestSide * 0.5,
+          width: MediaQuery.sizeOf(context).shortestSide * 0.7,
           height: MediaQuery.sizeOf(context).shortestSide * 0.5,
           // color: Colors.green.shade100,
           child: Stack(
@@ -35,13 +37,22 @@ class _PaintLogoPageState extends State<PaintLogoPage> with SingleTickerProvider
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Flexible(
-                          child: SizedBox(
-                            width: constraints.maxWidth,
-                            height: constraints.maxHeight,
-                            child: widget.city == "Павлодар"
-                                ? Image.asset("./assets/naliv_logo_loading.png")
-                                : Image.asset("./assets/gradusy_logo_loading.png"),
+                          child: FittedBox(
+                            child: Text(
+                              "НАЛИВ/ГРАДУСЫ24",
+                              // "закажи",
+                              style: GoogleFonts.comfortaa(
+                                textStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 140 * globals.scaleParam),
+                              ),
+                            ),
                           ),
+                          // SizedBox(
+                          //   width: constraints.maxWidth,
+                          //   height: constraints.maxHeight,
+                          //   child: widget.city == "Павлодар"
+                          //       ? Image.asset("./assets/naliv_logo_loading.png")
+                          //       : Image.asset("./assets/gradusy_logo_loading.png"),
+                          // ),
                         ),
                       ],
                     ),

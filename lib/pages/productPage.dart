@@ -35,7 +35,6 @@ class _ProductPageState extends State<ProductPage> {
   late Map<String, dynamic> item = widget.item;
   List<Widget> groupItems = [];
   List<TableRow> properties = [];
-  bool isRequired = false;
   List<Widget> propertiesWidget = [];
 
   int currentTab = 0;
@@ -60,13 +59,14 @@ class _ProductPageState extends State<ProductPage> {
 
   int amountInCart = 0;
   int actualCartAmount = 0;
+  double optionsAddedCost = 0;
   // int lastReturnedDataAmount = 0;
 
   bool isServerCallOnGoing = false;
   bool isLastServerCallWasSucceed = false;
   bool isRequiredSelected = false;
 
-  Map<String, String> buyButtonActionTextMap = {"add": "Добавить", "remove": "Убрать всё", "update": "Обновить заказ", "loading": "Загружаю.."};
+  Map<String, String> buyButtonActionTextMap = {"add": "Добавить", "remove": "Убрать всё", "update": "Обновить", "loading": "Загружаю.."};
   late String buyButtonActionText;
   late Color buyButtonActionColor;
   double inStock = 0.0;
@@ -114,15 +114,6 @@ class _ProductPageState extends State<ProductPage> {
     setState(() {
       options = widget.item["options"];
     });
-    if (options.isEmpty) {
-      setState(() {
-        isRequired = false;
-      });
-    } else {
-      setState(() {
-        isRequired = true;
-      });
-    }
     print("HELLO");
 
     if (widget.dontClearOptions) {
@@ -168,6 +159,11 @@ class _ProductPageState extends State<ProductPage> {
                   orElse: () => [],
                 )
               ];
+              if (newCart[0].isEmpty) {
+                actualCartAmount = 0;
+              } else {
+                actualCartAmount = newCart[0]["amount"];
+              }
             });
           } else {
             setState(() {
@@ -175,61 +171,14 @@ class _ProductPageState extends State<ProductPage> {
             });
             print("asdasd");
           }
-          // setState(() {
-          //   newCart = value;
-          //   // List newOptions = [];
-          //   // for (Map selection in options) {
-          //   //   if (selection["selection"] == "SINGLE") {
-          //   //     newOptions.add(
-          //   //       selection["options"].firstWhere(
-          //   //         (element) => element["relation_id"] == selection["selected_relation_id"],
-          //   //         orElse: () => null,
-          //   //       ),
-          //   //     );
-          //   //   } else {
-          //   //     for (int selected_relation_id in selection["selected_relation_id"]) {
-          //   //       newOptions.add(
-          //   //         selection["options"].firstWhere(
-          //   //           (element) => element["relation_id"] == selected_relation_id,
-          //   //           orElse: () => null,
-          //   //         ),
-          //   //       );
-          //   //     }
-          //   //   }
-          //   // }
-          //   // newCartItem["selected_options"] = newOptions;
-          // });
-          widget.returnDataAmount!(newCart);
+          if (widget.returnDataAmount != null) {
+            widget.returnDataAmount!(newCart);
+          }
+          getBuyButtonCurrentActionText();
+          Navigator.pop(context);
+          // if (options.isNotEmpty) {
+          // }
         }
-        // // print(value);
-        // if (value != null) {
-        //   if (mounted) {
-        //     setState(() {
-        //       actualCartAmount = int.parse(value);
-        //     });
-        //   } else {
-        //     actualCartAmount = int.parse(value);
-        //   }
-        // } else {
-        //   if (mounted) {
-        //     setState(() {
-        //       actualCartAmount = 0;
-        //     });
-        //   } else {
-        //     actualCartAmount = 0;
-        //   }
-        // }
-        // if (mounted) {
-        //   setState(() {
-        //     isLastServerCallWasSucceed = true;
-        //   });
-        //   getBuyButtonCurrentActionText();
-        // }
-        // // print("TRIGGERED WIDGET.RETURNDATAAMOUNT!");
-        // widget.returnDataAmount!(actualCartAmount, widget.index);
-        // if (widget.cartPageExclusiveCallbackFunc != null) {
-        //   widget.cartPageExclusiveCallbackFunc!(widget.index, actualCartAmount);
-        // }
       },
     );
     // ).onError(
@@ -272,57 +221,39 @@ class _ProductPageState extends State<ProductPage> {
   void getBuyButtonCurrentActionText() {
     if (actualCartAmount == 0) {
       setState(() {
-        buyButtonActionText = buyButtonActionTextMap["add"]!;
+        buyButtonActionText =
+            "${buyButtonActionTextMap["add"]!} ${globals.formatCost((amountInCart * item["price"] + optionsAddedCost).toString())} ₸";
         buyButtonActionColor = Colors.black;
       });
-    } else if (isRequired && isRequiredSelected && amountInCart > 0) {
+    } else if ((amountInCart > 0) && (actualCartAmount != amountInCart)) {
       setState(() {
-        buyButtonActionText = buyButtonActionTextMap["update"]!;
+        buyButtonActionText =
+            "${buyButtonActionTextMap["update"]!} ${globals.formatCost((amountInCart * item["price"] + optionsAddedCost).toString())} ₸";
         buyButtonActionColor = Colors.blueGrey;
       });
-    } else if (actualCartAmount == amountInCart || amountInCart == 0) {
+    } else if ((actualCartAmount == amountInCart || amountInCart == 0) && (options.isEmpty)) {
       setState(() {
         buyButtonActionText = buyButtonActionTextMap["remove"]!;
         buyButtonActionColor = Colors.red;
       });
     } else {
       setState(() {
-        buyButtonActionText = buyButtonActionTextMap["update"]!;
+        buyButtonActionText =
+            "${buyButtonActionTextMap["update"]!} ${globals.formatCost((amountInCart * item["price"] + optionsAddedCost).toString())} ₸";
         buyButtonActionColor = Colors.blueGrey;
       });
     }
   }
-// if (isRequired && isRequiredSelected && amountInCart > 0)
   // BUTTON VARIABLES/FUNCS END
 
   @override
   void initState() {
     super.initState();
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   setState(() {
-    //     isOptionsLoaded = false;
-    //   });
-    //   _getItem().then((value) {
-    //     initOptionSelector();
-    //     setState(
-    //       () {
-    //         if (options.isNotEmpty || widget.item["cart"] == null) {
-    //           amountInCart = 0;
-    //         } else {
-    //           amountInCart = widget.item["cart"][0]["amount"] ?? 0;
-    //           actualCartAmount = amountInCart;
-    //         }
-    //         if (widget.item["in_stock"] != null) {
-    //           inStock = widget.item["in_stock"];
-    //         } else {
-    //           inStock = 0.0;
-    //         }
-    //         isOptionsLoaded = true;
-    //       },
-    //     );
-    //   });
-    // });
     if (widget.item["options"] != null) {
+      setState(() {
+        amountInCart = widget.item["amount"] ?? 1;
+        actualCartAmount = 0;
+      });
       initOptionSelector();
     } else {
       // amountInCart = widget.item["cart"].firstWhere((el) => el["item_id"] == widget.item["item_id"])["amount"];
@@ -330,8 +261,12 @@ class _ProductPageState extends State<ProductPage> {
         if (widget.item["cart"].isNotEmpty) {
           setState(() {
             amountInCart = widget.item["cart"][0]["amount"];
+            actualCartAmount = amountInCart;
           });
         }
+      } else {
+        amountInCart = 1;
+        actualCartAmount = 0;
       }
     }
     TabText[0] = widget.item["description"];
@@ -409,7 +344,7 @@ class _ProductPageState extends State<ProductPage> {
         position: AlwaysStoppedAnimation(Offset(0, -0.25)),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            if (isRequired && !isRequiredSelected && amountInCart == 0) {
+            if (options.isNotEmpty && !isRequiredSelected) {
               return Container(
                 decoration: BoxDecoration(
                     color: Colors.black,
@@ -660,7 +595,7 @@ class _ProductPageState extends State<ProductPage> {
                               children: [
                                 Flexible(
                                   child: Text(
-                                    "${item["in_stock"]} ${item["unit"]} в наличии",
+                                    "${item["unit"] != "шт" ? (item['in_stock'] ?? "") : (item["in_stock"]).round()} ${item["unit"]} в наличии",
                                     style: TextStyle(
                                       fontSize: 28 * globals.scaleParam,
                                       fontWeight: FontWeight.w700,
@@ -740,7 +675,7 @@ class _ProductPageState extends State<ProductPage> {
                                       disabledColor: Colors.white,
                                       backgroundColor: Colors.white,
                                       label: Text(
-                                        options[indexOption]["options"][index]["name"],
+                                        "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}",
                                         style: TextStyle(fontWeight: FontWeight.w700),
                                       ),
                                       selected: options[indexOption]["selected_relation_id"] == options[indexOption]["options"][index]["relation_id"],
@@ -750,10 +685,12 @@ class _ProductPageState extends State<ProductPage> {
                                         if (v) {
                                           setState(() {
                                             options[indexOption]["selected_relation_id"] = options[indexOption]["options"][index]["relation_id"];
+                                            optionsAddedCost = options[indexOption]["options"][index]["price"];
                                           });
                                         } else {
                                           setState(() {
                                             options[indexOption]["selected_relation_id"] = null;
+                                            optionsAddedCost = 0;
                                           });
 
                                           // setState(() {
@@ -762,6 +699,7 @@ class _ProductPageState extends State<ProductPage> {
                                           // _finalizeCartAmount();
                                         }
                                         _checkOptions();
+                                        getBuyButtonCurrentActionText();
                                       }
                                       // dense: true,
                                       //   onChanged: (v) {
@@ -795,7 +733,10 @@ class _ProductPageState extends State<ProductPage> {
                                       deleteIcon: Container(),
                                       deleteIconBoxConstraints: BoxConstraints(),
                                       label: Text(
-                                        options[indexOption]["options"][index]["name"],
+                                        options[indexOption]["options"][index]["price"] != null &&
+                                                options[indexOption]["options"][index]["price"] != 0
+                                            ? "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}"
+                                            : options[indexOption]["options"][index]["name"],
                                         style: TextStyle(fontWeight: FontWeight.w700),
                                       ),
                                       selected: List.castFrom(options[indexOption]["selected_relation_id"])
@@ -812,6 +753,7 @@ class _ProductPageState extends State<ProductPage> {
                                           });
                                         }
                                         _checkOptions();
+                                        getBuyButtonCurrentActionText();
                                       },
                                       onDeleted: () {},
                                       // value: isCheckBoxSelected,

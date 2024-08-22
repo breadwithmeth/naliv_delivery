@@ -16,13 +16,13 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
   TextEditingController _name = TextEditingController();
   TextEditingController _lastName = TextEditingController();
 
-  DateTime selectedDate = DateTime(DateTime.now().year - 21);
-  DateTime initialDate = DateTime(DateTime.now().year - 21);
+  DateTime selectedDate = DateTime(DateTime.now().year - 18, DateTime.now().month, DateTime.now().day);
+  DateTime initialDate = DateTime(DateTime.now().year - 18, DateTime.now().month, DateTime.now().day);
 
   Future<void> _selectDate(BuildContext context, Function setStateObj) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDatePickerMode: DatePickerMode.year,
+      initialDatePickerMode: DatePickerMode.day,
       initialDate: selectedDate,
       firstDate: DateTime(initialDate.year - 100),
       lastDate: initialDate,
@@ -156,9 +156,11 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                     actionsPadding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam, vertical: 15 * globals.scaleParam),
                                     title: Text(
                                       "Дата рождения",
+                                      textAlign: TextAlign.center,
                                       style: TextStyle(fontSize: 48 * globals.scaleParam, fontWeight: FontWeight.w700),
                                     ),
                                     content: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         TextButton(
                                           onPressed: () {
@@ -176,7 +178,7 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                       Padding(
                                         padding: EdgeInsets.only(top: 5 * globals.scaleParam),
                                         child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.start,
+                                          mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
                                             TextButton(
                                               onPressed: () async {
