@@ -327,7 +327,7 @@ Future<Map<String, dynamic>> getItem(dynamic itemId, String business_id, {List? 
   }
 }
 
-Future<List?> changeCartItem(dynamic itemId, int amount, String businessId, {List options = const []}) async {
+Future<List?> changeCartItem(dynamic itemId, double amount, String businessId, {List options = const []}) async {
   String? token = await getToken();
   print("ADD TO CARD");
   if (token == null) {

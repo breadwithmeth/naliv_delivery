@@ -3,9 +3,11 @@ import 'dart:convert';
 
 import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:vibration/vibration.dart';
 
 class ProductPage extends StatefulWidget {
   const ProductPage(
@@ -23,7 +25,7 @@ class ProductPage extends StatefulWidget {
   final int index;
   final Function(List)? returnDataAmount; // NEW_AMOUNT, INDEX, MAP of cart item
   final Function(int, int)? returnDataAmountSearchPage; // NEW_AMOUNT, INDEX
-  final Function(int, int)? cartPageExclusiveCallbackFunc;
+  final Function(int, double)? cartPageExclusiveCallbackFunc;
   final Map<dynamic, dynamic> business;
   final int? cartItemId;
   final bool openedFromCart;
@@ -58,12 +60,13 @@ class _ProductPageState extends State<ProductPage> {
 
   // BUTTON VARIABLES/FUNCS START
 
-  int amountInCart = 0;
-  int actualCartAmount = 0;
+  double amountInCart = 0;
+  double actualCartAmount = 0;
   double optionsAddedCost = 0;
   double actualOptionsAddedCost = 0;
   double parentItemMultiplier = 1;
   double actualItemMultiplier = 1;
+  double quantity = 1;
   // int lastReturnedDataAmount = 0;
 
   bool isServerCallOnGoing = false;
@@ -168,7 +171,7 @@ class _ProductPageState extends State<ProductPage> {
               if (newCart[0].isEmpty) {
                 actualCartAmount = 0;
               } else {
-                actualCartAmount = newCart[0]["amount"];
+                actualCartAmount = double.parse(newCart[0]["amount"].toString());
               }
             });
           } else {
@@ -208,8 +211,9 @@ class _ProductPageState extends State<ProductPage> {
 
   void _removeFromCart() {
     setState(() {
-      if (amountInCart > 0) {
-        amountInCart--;
+      if (((amountInCart * parentItemMultiplier) - (quantity * parentItemMultiplier)) > 0) {
+        amountInCart -= quantity;
+        amountInCart = double.parse(amountInCart.toStringAsFixed(3));
         getBuyButtonCurrentActionText();
       }
     });
@@ -217,8 +221,9 @@ class _ProductPageState extends State<ProductPage> {
 
   void _addToCart() {
     setState(() {
-      if (amountInCart < widget.item["in_stock"]) {
-        amountInCart++;
+      if (((amountInCart * parentItemMultiplier) + (quantity * parentItemMultiplier)) < widget.item["in_stock"]) {
+        amountInCart += quantity;
+        amountInCart = double.parse(amountInCart.toStringAsFixed(3));
         getBuyButtonCurrentActionText();
       }
     });
@@ -251,6 +256,40 @@ class _ProductPageState extends State<ProductPage> {
       });
     }
   }
+
+  double _startPositionY = 0;
+
+  void _onLongPressStart(LongPressStartDetails details) {
+    _startPositionY = details.globalPosition.dy;
+    Vibration.vibrate(duration: 100);
+  }
+
+  void _onLongPressMoveUpdate(LongPressMoveUpdateDetails details) async {
+    double dy = details.globalPosition.dy - _startPositionY;
+
+    if (dy.abs() >= 50 * globals.scaleParam) {
+      setState(() {
+        if (dy > 0 && ((amountInCart * parentItemMultiplier) - (quantity * parentItemMultiplier)) >= 0) {
+          HapticFeedback.heavyImpact();
+          amountInCart -= quantity; // Swiping down decrements
+          amountInCart = double.parse(amountInCart.toStringAsFixed(3));
+        } else if (dy < 0 && ((amountInCart * parentItemMultiplier) + (quantity * parentItemMultiplier)) < item["in_stock"]) {
+          HapticFeedback.heavyImpact();
+          amountInCart += quantity; // Swiping up increments
+          amountInCart = double.parse(amountInCart.toStringAsFixed(3));
+        }
+        _startPositionY = details.globalPosition.dy;
+        getBuyButtonCurrentActionText();
+      });
+
+      // HapticFeedback.heavyImpact();
+      // HapticFeedback.lightImpact();
+      // HapticFeedback.mediumImpact();
+      // HapticFeedback.selectionClick();
+      // HapticFeedback.vibrate();
+    }
+  }
+
   // BUTTON VARIABLES/FUNCS END
 
   @override
@@ -291,6 +330,13 @@ class _ProductPageState extends State<ProductPage> {
       }
     }
     TabText[0] = widget.item["description"];
+
+    setState(() {
+      quantity = item["quantity"];
+      if (quantity != 1) {
+        amountInCart = quantity;
+      }
+    });
 
     getBuyButtonCurrentActionText();
   }
@@ -409,75 +455,81 @@ class _ProductPageState extends State<ProductPage> {
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.all(Radius.circular(8)),
                                   clipBehavior: Clip.antiAliasWithSaveLayer,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      Flexible(
-                                        fit: FlexFit.tight,
-                                        child: IconButton(
-                                          padding: const EdgeInsets.all(0),
-                                          onPressed: () {
-                                            _removeFromCart();
-                                          },
-                                          icon: Container(
-                                            padding: EdgeInsets.all(5 * globals.scaleParam),
-                                            decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.all(
-                                                Radius.circular(100),
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onLongPressStart: _onLongPressStart,
+                                    onLongPressMoveUpdate: _onLongPressMoveUpdate,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        Flexible(
+                                          fit: FlexFit.tight,
+                                          child: IconButton(
+                                            padding: const EdgeInsets.all(0),
+                                            onPressed: () {
+                                              _removeFromCart();
+                                            },
+                                            icon: Container(
+                                              padding: EdgeInsets.all(5 * globals.scaleParam),
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.all(
+                                                  Radius.circular(100),
+                                                ),
+                                                color: Colors.grey.shade400,
                                               ),
-                                              color: Colors.grey.shade400,
-                                            ),
-                                            child: Icon(
-                                              Icons.remove_rounded,
-                                              color: Theme.of(context).colorScheme.onSurface,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      Flexible(
-                                        fit: FlexFit.tight,
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              amountInCart.toString(),
-                                              textHeightBehavior: const TextHeightBehavior(
-                                                applyHeightToFirstAscent: false,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 34 * globals.scaleParam,
+                                              child: Icon(
+                                                Icons.remove_rounded,
                                                 color: Theme.of(context).colorScheme.onSurface,
                                               ),
                                             ),
-                                          ],
+                                          ),
                                         ),
-                                      ),
-                                      Flexible(
-                                        fit: FlexFit.tight,
-                                        child: IconButton(
-                                          padding: const EdgeInsets.all(0),
-                                          onPressed: () {
-                                            _addToCart();
-                                          },
-                                          icon: Container(
-                                            padding: EdgeInsets.all(5 * globals.scaleParam),
-                                            decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.all(
-                                                Radius.circular(100),
+                                        Flexible(
+                                          fit: FlexFit.tight,
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                amountInCart.toString(),
+                                                textHeightBehavior: const TextHeightBehavior(
+                                                  applyHeightToFirstAscent: false,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 34 * globals.scaleParam,
+                                                  color: Theme.of(context).colorScheme.onSurface,
+                                                ),
                                               ),
-                                              color: Colors.grey.shade400,
-                                            ),
-                                            child: Icon(
-                                              Icons.add_rounded,
-                                              color: Theme.of(context).colorScheme.onSurface,
+                                            ],
+                                          ),
+                                        ),
+                                        Flexible(
+                                          fit: FlexFit.tight,
+                                          child: IconButton(
+                                            padding: const EdgeInsets.all(0),
+                                            // onPressed: null,
+                                            onPressed: () {
+                                              _addToCart();
+                                            },
+                                            icon: Container(
+                                              padding: EdgeInsets.all(5 * globals.scaleParam),
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.all(
+                                                  Radius.circular(100),
+                                                ),
+                                                color: Colors.grey.shade400,
+                                              ),
+                                              child: Icon(
+                                                Icons.add_rounded,
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -618,7 +670,12 @@ class _ProductPageState extends State<ProductPage> {
                               children: [
                                 Flexible(
                                   child: Text(
-                                    "${item["unit"] != "шт" ? (item['in_stock'] ?? "") : (item["in_stock"]).round()} ${item["unit"]} в наличии",
+                                    // Automatically sets units of choice
+                                    item["unit"] != "шт"
+                                        ? "В наличии: ${(item['in_stock'] ?? "")} ${item["unit"]}"
+                                        : item["quantity"] != 1
+                                            ? "В наличии: ${item["in_stock"]} кг"
+                                            : "В наличии: ${(item["in_stock"]).round()} ${item["unit"]}",
                                     style: TextStyle(
                                       fontSize: 28 * globals.scaleParam,
                                       fontWeight: FontWeight.w700,
@@ -712,6 +769,9 @@ class _ProductPageState extends State<ProductPage> {
                                               options[indexOption]["selected_relation_id"] = options[indexOption]["options"][index]["relation_id"];
                                               optionsAddedCost = options[indexOption]["options"][index]["price"];
                                               parentItemMultiplier = options[indexOption]["options"][index]["parent_item_amount"];
+                                              if (amountInCart * parentItemMultiplier > widget.item["in_stock"]) {
+                                                amountInCart = (widget.item["in_stock"] / parentItemMultiplier).round();
+                                              }
                                             });
                                           } else {
                                             setState(() {

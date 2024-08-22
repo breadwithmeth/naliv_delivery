@@ -1218,7 +1218,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                 children: [
                                   Flexible(
                                     child: Text(
-                                      "${globals.formatCost(element["price"].toString())} ₸ за шт",
+                                      "${globals.formatCost(element["price"].toString())} ₸ за ${element["unit"]}",
                                       style: TextStyle(
                                         color: Theme.of(context).colorScheme.secondary.withOpacity(0.2),
                                         fontWeight: FontWeight.w600,
@@ -2329,14 +2329,14 @@ class ItemCardListTile extends StatefulWidget {
 }
 
 class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerProviderStateMixin<ItemCardListTile> {
-  int amountInCart = 0;
+  double amountInCart = 0;
   bool canButtonsBeUsed = true;
   List cart = [];
   late int chack;
   Map<String, dynamic> element = {};
   bool hideButtons = true;
   List options = [];
-  int previousAmount = 0;
+  double previousAmount = 0;
   List<InlineSpan> propertiesWidget = [];
 
   Timer? _debounce;
@@ -2351,7 +2351,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
       } else {
         cart = cartNewItem;
         cart[0]["name"] = element["name"];
-        amountInCart = cart[0]["amount"];
+        amountInCart = double.parse(cart[0]["amount"].toString()).roundToDouble();
       }
       setState(() {
         cart;
@@ -2813,7 +2813,11 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                         Flexible(
                                           child: Text(
                                             // Automatically sets units of choice
-                                            "В наличии: ${widget.element["unit"] != "шт" ? (element['in_stock'] ?? "") : (element["in_stock"]).round()} ${widget.element["unit"]}",
+                                            widget.element["unit"] != "шт"
+                                                ? "В наличии: ${(element['in_stock'] ?? "")} ${widget.element["unit"]}"
+                                                : element["quantity"] != 1
+                                                    ? "В наличии: ${element["in_stock"]} кг"
+                                                    : "В наличии: ${(element["in_stock"]).round()} ${widget.element["unit"]}",
                                             style: TextStyle(
                                               color: Colors.grey,
                                               fontWeight: FontWeight.w500,
