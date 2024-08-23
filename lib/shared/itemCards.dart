@@ -3008,7 +3008,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                             Flexible(
                                               fit: FlexFit.tight,
                                               child: Text(
-                                                "${amountInCart.toString()} ${widget.element["unit"]}", //"${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
+                                                "${amountInCart.ceil() > amountInCart ? amountInCart.toString() : amountInCart.round()} ${widget.element["unit"]}", //"${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
                                                 textHeightBehavior: TextHeightBehavior(
                                                   applyHeightToFirstAscent: false,
                                                 ),
@@ -3151,7 +3151,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                     flex: 2,
                                     fit: FlexFit.tight,
                                     child: Text(
-                                      "${cart[index]["amount"].toString()} x",
+                                      "${cart[index]["amount"].ceil() > cart[index]["amount"] ? cart[index]["amount"] : cart[index]["amount"].round()} x",
                                       textAlign: TextAlign.right,
                                       style: TextStyle(fontWeight: FontWeight.w900),
                                     ),

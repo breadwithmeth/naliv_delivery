@@ -273,11 +273,11 @@ class _ProductPageState extends State<ProductPage> {
     if (dy.abs() >= 50 * globals.scaleParam) {
       setState(() {
         if (dy > 0 && ((amountInCart * parentItemMultiplier) - (quantity * parentItemMultiplier)) >= 0) {
-          HapticFeedback.heavyImpact();
+          HapticFeedback.lightImpact();
           amountInCart -= quantity; // Swiping down decrements
           amountInCart = double.parse(amountInCart.toStringAsFixed(3));
         } else if (dy < 0 && ((amountInCart * parentItemMultiplier) + (quantity * parentItemMultiplier)) < item["in_stock"]) {
-          HapticFeedback.heavyImpact();
+          HapticFeedback.lightImpact();
           amountInCart += quantity; // Swiping up increments
           amountInCart = double.parse(amountInCart.toStringAsFixed(3));
         }
@@ -444,7 +444,7 @@ class _ProductPageState extends State<ProductPage> {
                     Row(
                       children: [
                         Flexible(
-                          flex: 5,
+                          flex: 8,
                           fit: FlexFit.tight,
                           child: Padding(
                             padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
@@ -494,17 +494,33 @@ class _ProductPageState extends State<ProductPage> {
                                             mainAxisAlignment: MainAxisAlignment.center,
                                             children: [
                                               Text(
-                                                amountInCart.toString(),
+                                                "${amountInCart.ceil() > amountInCart ? amountInCart : amountInCart.round()}",
                                                 textHeightBehavior: const TextHeightBehavior(
                                                   applyHeightToFirstAscent: false,
                                                 ),
                                                 textAlign: TextAlign.center,
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.w700,
-                                                  fontSize: 34 * globals.scaleParam,
+                                                  fontSize: 38 * globals.scaleParam,
                                                   color: Theme.of(context).colorScheme.onSurface,
+                                                  height: parentItemMultiplier != 1 || quantity != 1 ? 2 * globals.scaleParam : null,
                                                 ),
                                               ),
+                                              parentItemMultiplier != 1 || quantity != 1
+                                                  ? Text(
+                                                      "${amountInCart.ceil() > amountInCart ? amountInCart * parentItemMultiplier : amountInCart.round() * parentItemMultiplier} ${quantity != 1 ? "кг" : item["unit"]}",
+                                                      textHeightBehavior: const TextHeightBehavior(
+                                                        applyHeightToFirstAscent: false,
+                                                      ),
+                                                      textAlign: TextAlign.center,
+                                                      style: TextStyle(
+                                                        fontWeight: FontWeight.w700,
+                                                        fontSize: 26 * globals.scaleParam,
+                                                        color: Colors.grey.shade600,
+                                                        height: 1 * globals.scaleParam,
+                                                      ),
+                                                    )
+                                                  : SizedBox(),
                                             ],
                                           ),
                                         ),
@@ -540,7 +556,7 @@ class _ProductPageState extends State<ProductPage> {
                           ),
                         ),
                         Flexible(
-                          flex: 7,
+                          flex: 10,
                           fit: FlexFit.tight,
                           child: Padding(
                             padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
@@ -773,7 +789,7 @@ class _ProductPageState extends State<ProductPage> {
                                               optionsAddedCost = options[indexOption]["options"][index]["price"];
                                               parentItemMultiplier = options[indexOption]["options"][index]["parent_item_amount"];
                                               if (amountInCart * parentItemMultiplier > widget.item["in_stock"]) {
-                                                amountInCart = (widget.item["in_stock"] / parentItemMultiplier).round();
+                                                amountInCart = (widget.item["in_stock"] / parentItemMultiplier).truncateToDouble();
                                               }
                                             });
                                           } else {
