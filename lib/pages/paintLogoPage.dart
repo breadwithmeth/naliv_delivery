@@ -11,8 +11,7 @@ class PaintLogoPage extends StatefulWidget {
   State<PaintLogoPage> createState() => _PaintLogoPageState();
 }
 
-class _PaintLogoPageState extends State<PaintLogoPage>
-    with SingleTickerProviderStateMixin {
+class _PaintLogoPageState extends State<PaintLogoPage> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
@@ -38,13 +37,13 @@ class _PaintLogoPageState extends State<PaintLogoPage>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Flexible(
-                          child: Text(
-                            // "НАЛИВ/ГРАДУСЫ24",
-                            "закажи",
-                            style: GoogleFonts.comfortaa(
-                              textStyle: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 140 * globals.scaleParam),
+                          child: FittedBox(
+                            child: Text(
+                              // "НАЛИВ/ГРАДУСЫ24",
+                              "закажи",
+                              style: GoogleFonts.comfortaa(
+                                textStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 140 * globals.scaleParam),
+                              ),
                             ),
                           ),
                           // SizedBox(

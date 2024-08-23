@@ -246,8 +246,8 @@ class _CategoryPageListState extends State<CategoryPageList> with SingleTickerPr
   late List<Map<String, dynamic>> _items;
   final int _nextPageTrigger = 3;
 
-  void updateDataAmount(String newDataAmount, int index) {
-    _items[index]["amount"] = newDataAmount;
+  void updateDataAmount(List newCart, int index) {
+    _items[index]["cart"] = newCart;
   }
 
   Future<void> _getItems() async {

@@ -906,11 +906,12 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                         ),
                                       ),
                                     ),
+                                    // TODO: CHANGE THIS "INVISIBLE" BUTTON
                                     Flexible(
                                       fit: FlexFit.tight,
                                       child: Icon(
                                         Icons.arrow_drop_down_rounded,
-                                        color: Colors.black,
+                                        color: Colors.transparent,
                                       ),
                                     ),
                                   ],
@@ -1141,7 +1142,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 // fontFamily: "montserrat",
                                 fontSize: 26 * globals.scaleParam,
                                 fontWeight: FontWeight.w500,
-                                color: Color.fromARGB(255, 215, 215, 215),
+                                color: Color.fromARGB(255, 190, 190, 190),
                               ),
                             ),
                           ),
