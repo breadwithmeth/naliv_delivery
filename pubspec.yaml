@@ -70,6 +70,7 @@ dependencies:
   qr_flutter: ^4.1.0
   barcode: ^2.2.8
   barcode_widget: ^2.0.4
+  workmanager: ^0.5.2
   # drawing_animation: ^1.0.0
 
 
