@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:vibration/vibration.dart';
 
 class ProductPage extends StatefulWidget {
   const ProductPage(
@@ -22,7 +25,7 @@ class ProductPage extends StatefulWidget {
   final int index;
   final Function(List)? returnDataAmount; // NEW_AMOUNT, INDEX, MAP of cart item
   final Function(int, int)? returnDataAmountSearchPage; // NEW_AMOUNT, INDEX
-  final Function(int, int)? cartPageExclusiveCallbackFunc;
+  final Function(int, double)? cartPageExclusiveCallbackFunc;
   final Map<dynamic, dynamic> business;
   final int? cartItemId;
   final bool openedFromCart;
@@ -57,8 +60,15 @@ class _ProductPageState extends State<ProductPage> {
 
   // BUTTON VARIABLES/FUNCS START
 
-  int amountInCart = 0;
-  int actualCartAmount = 0;
+  double amountInCart = 0;
+  double actualCartAmount = 0;
+  double optionsAddedCost = 0;
+  double actualOptionsAddedCost = 0;
+  double parentItemMultiplier = 1;
+  double actualItemMultiplier = 1;
+  double quantity = 1;
+  int? actualRequiredSelected;
+  int? requiredSelected;
   // int lastReturnedDataAmount = 0;
 
   bool isServerCallOnGoing = false;
@@ -124,10 +134,14 @@ class _ProductPageState extends State<ProductPage> {
         if (!widget.dontClearOptions) {
           setState(() {
             options[i]["selected_relation_id"] = null;
+            optionsAddedCost = 0;
+            actualOptionsAddedCost = double.parse(optionsAddedCost.toString());
           });
         } else {
           if (options[i]["selected_relation_id"] != null) {
             setState(() {
+              requiredSelected = options[i]["selected_relation_id"];
+              actualRequiredSelected = requiredSelected;
               isRequiredSelected = true;
             });
           }
@@ -161,7 +175,7 @@ class _ProductPageState extends State<ProductPage> {
               if (newCart[0].isEmpty) {
                 actualCartAmount = 0;
               } else {
-                actualCartAmount = newCart[0]["amount"];
+                actualCartAmount = double.parse(newCart[0]["amount"].toString());
               }
             });
           } else {
@@ -201,8 +215,12 @@ class _ProductPageState extends State<ProductPage> {
 
   void _removeFromCart() {
     setState(() {
-      if (amountInCart > 0) {
-        amountInCart--;
+      if (((amountInCart * parentItemMultiplier) - (quantity * parentItemMultiplier)) > 0) {
+        amountInCart -= quantity;
+        amountInCart = double.parse(amountInCart.toStringAsFixed(3));
+        getBuyButtonCurrentActionText();
+      } else {
+        amountInCart = 0;
         getBuyButtonCurrentActionText();
       }
     });
@@ -210,8 +228,9 @@ class _ProductPageState extends State<ProductPage> {
 
   void _addToCart() {
     setState(() {
-      if (amountInCart < widget.item["in_stock"]) {
-        amountInCart++;
+      if (((amountInCart * parentItemMultiplier) + (quantity * parentItemMultiplier)) <= widget.item["in_stock"]) {
+        amountInCart += quantity;
+        amountInCart = double.parse(amountInCart.toStringAsFixed(3));
         getBuyButtonCurrentActionText();
       }
     });
@@ -220,36 +239,88 @@ class _ProductPageState extends State<ProductPage> {
   void getBuyButtonCurrentActionText() {
     if (actualCartAmount == 0) {
       setState(() {
-        buyButtonActionText = "${buyButtonActionTextMap["add"]!} ${globals.formatCost((amountInCart * item["price"]).toString())} ₸";
+        buyButtonActionText =
+            "${buyButtonActionTextMap["add"]!} ${globals.formatCost(((amountInCart * item["price"] * parentItemMultiplier) + (optionsAddedCost * amountInCart)).toString())} ₸";
         buyButtonActionColor = Colors.black;
       });
     } else if ((amountInCart > 0) && (actualCartAmount != amountInCart)) {
       setState(() {
-        buyButtonActionText = "${buyButtonActionTextMap["update"]!} ${globals.formatCost((amountInCart * item["price"]).toString())} ₸";
+        buyButtonActionText =
+            "${buyButtonActionTextMap["update"]!} ${globals.formatCost(((amountInCart * item["price"] * parentItemMultiplier) + (optionsAddedCost * amountInCart)).toString())} ₸";
         buyButtonActionColor = Colors.blueGrey;
       });
-    } else if ((actualCartAmount == amountInCart || amountInCart == 0) && (options.isEmpty)) {
+    } else if ((actualCartAmount == amountInCart && requiredSelected == actualRequiredSelected) || amountInCart == 0) {
       setState(() {
-        buyButtonActionText = buyButtonActionTextMap["remove"]!;
+        buyButtonActionText =
+            "${buyButtonActionTextMap["remove"]!} ${globals.formatCost(((actualCartAmount * item["price"] * actualItemMultiplier) + (actualOptionsAddedCost * amountInCart)).toString())} ₸";
         buyButtonActionColor = Colors.red;
       });
     } else {
       setState(() {
-        buyButtonActionText = "${buyButtonActionTextMap["update"]!} ${globals.formatCost((amountInCart * item["price"]).toString())} ₸";
+        buyButtonActionText =
+            "${buyButtonActionTextMap["update"]!} ${globals.formatCost(((amountInCart * item["price"] * parentItemMultiplier) + (optionsAddedCost * amountInCart)).toString())} ₸";
         buyButtonActionColor = Colors.blueGrey;
       });
     }
   }
+
+  double _startPositionY = 0;
+
+  void _onLongPressStart(LongPressStartDetails details) {
+    _startPositionY = details.globalPosition.dy;
+    Vibration.vibrate(duration: 100);
+  }
+
+  void _onLongPressMoveUpdate(LongPressMoveUpdateDetails details) async {
+    double dy = details.globalPosition.dy - _startPositionY;
+
+    if (dy.abs() >= 50 * globals.scaleParam) {
+      setState(() {
+        if (dy > 0 && ((amountInCart * parentItemMultiplier) - (quantity * parentItemMultiplier)) >= 0) {
+          HapticFeedback.lightImpact();
+          amountInCart -= quantity; // Swiping down decrements
+          amountInCart = double.parse(amountInCart.toStringAsFixed(3));
+        } else if (dy < 0 && ((amountInCart * parentItemMultiplier) + (quantity * parentItemMultiplier)) <= item["in_stock"]) {
+          HapticFeedback.lightImpact();
+          amountInCart += quantity; // Swiping up increments
+          amountInCart = double.parse(amountInCart.toStringAsFixed(3));
+        }
+        _startPositionY = details.globalPosition.dy;
+        getBuyButtonCurrentActionText();
+      });
+
+      // HapticFeedback.heavyImpact();
+      // HapticFeedback.lightImpact();
+      // HapticFeedback.mediumImpact();
+      // HapticFeedback.selectionClick();
+      // HapticFeedback.vibrate();
+    }
+  }
+
   // BUTTON VARIABLES/FUNCS END
 
   @override
   void initState() {
     super.initState();
     if (widget.item["options"] != null) {
-      setState(() {
-        amountInCart = widget.item["amount"] ?? 1;
-        actualCartAmount = 0;
-      });
+      if (!widget.dontClearOptions) {
+        setState(() {
+          amountInCart = widget.item["amount"] ?? 1;
+          actualCartAmount = 0;
+        });
+      } else {
+        setState(() {
+          amountInCart = widget.item["amount"] ?? 1;
+          actualCartAmount = amountInCart;
+
+          //! TODO: VERY UNSTABLE IF FIRST OPTION IS NOT REQUIRED ONE, THEN PRICE WOULD BE CALCULATED WRONG!!!!!!!!!!
+          optionsAddedCost = widget.item["cart"][widget.cartItemId]["selected_options"][0]["price"];
+          actualOptionsAddedCost = double.parse(optionsAddedCost.toString());
+
+          parentItemMultiplier = widget.item["cart"][widget.cartItemId]["selected_options"][0]["parent_item_amount"] ?? 1;
+          actualItemMultiplier = parentItemMultiplier;
+        });
+      }
       initOptionSelector();
     } else {
       // amountInCart = widget.item["cart"].firstWhere((el) => el["item_id"] == widget.item["item_id"])["amount"];
@@ -266,6 +337,13 @@ class _ProductPageState extends State<ProductPage> {
       }
     }
     TabText[0] = widget.item["description"];
+
+    setState(() {
+      quantity = item["quantity"];
+      if (quantity != 1 && (widget.item["cart"] == [] || widget.item["cart"] == null || widget.item["cart"].isEmpty)) {
+        amountInCart = quantity;
+      }
+    });
 
     getBuyButtonCurrentActionText();
   }
@@ -340,7 +418,7 @@ class _ProductPageState extends State<ProductPage> {
         position: AlwaysStoppedAnimation(Offset(0, -0.25)),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            if (options.isNotEmpty && !isRequiredSelected && amountInCart == 0) {
+            if (options.isNotEmpty && !isRequiredSelected) {
               return Container(
                 decoration: BoxDecoration(
                     color: Colors.black,
@@ -370,7 +448,7 @@ class _ProductPageState extends State<ProductPage> {
                     Row(
                       children: [
                         Flexible(
-                          flex: 5,
+                          flex: 8,
                           fit: FlexFit.tight,
                           child: Padding(
                             padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
@@ -384,75 +462,99 @@ class _ProductPageState extends State<ProductPage> {
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.all(Radius.circular(8)),
                                   clipBehavior: Clip.antiAliasWithSaveLayer,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      Flexible(
-                                        fit: FlexFit.tight,
-                                        child: IconButton(
-                                          padding: const EdgeInsets.all(0),
-                                          onPressed: () {
-                                            _removeFromCart();
-                                          },
-                                          icon: Container(
-                                            padding: EdgeInsets.all(5 * globals.scaleParam),
-                                            decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.all(
-                                                Radius.circular(100),
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onLongPressStart: _onLongPressStart,
+                                    onLongPressMoveUpdate: _onLongPressMoveUpdate,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        Flexible(
+                                          fit: FlexFit.tight,
+                                          child: IconButton(
+                                            padding: const EdgeInsets.all(0),
+                                            onPressed: () {
+                                              _removeFromCart();
+                                            },
+                                            icon: Container(
+                                              padding: EdgeInsets.all(5 * globals.scaleParam),
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.all(
+                                                  Radius.circular(100),
+                                                ),
+                                                color: Colors.grey.shade400,
                                               ),
-                                              color: Colors.grey.shade400,
-                                            ),
-                                            child: Icon(
-                                              Icons.remove_rounded,
-                                              color: Theme.of(context).colorScheme.onSurface,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      Flexible(
-                                        fit: FlexFit.tight,
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              amountInCart.toString(),
-                                              textHeightBehavior: const TextHeightBehavior(
-                                                applyHeightToFirstAscent: false,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 34 * globals.scaleParam,
+                                              child: Icon(
+                                                Icons.remove_rounded,
                                                 color: Theme.of(context).colorScheme.onSurface,
                                               ),
                                             ),
-                                          ],
+                                          ),
                                         ),
-                                      ),
-                                      Flexible(
-                                        fit: FlexFit.tight,
-                                        child: IconButton(
-                                          padding: const EdgeInsets.all(0),
-                                          onPressed: () {
-                                            _addToCart();
-                                          },
-                                          icon: Container(
-                                            padding: EdgeInsets.all(5 * globals.scaleParam),
-                                            decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.all(
-                                                Radius.circular(100),
+                                        Flexible(
+                                          fit: FlexFit.tight,
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                "${amountInCart.ceil() > amountInCart ? amountInCart : amountInCart.round()}",
+                                                textHeightBehavior: const TextHeightBehavior(
+                                                  applyHeightToFirstAscent: false,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 38 * globals.scaleParam,
+                                                  color: Theme.of(context).colorScheme.onSurface,
+                                                  height: parentItemMultiplier != 1 || quantity != 1 || options.isNotEmpty
+                                                      ? 2 * globals.scaleParam
+                                                      : null,
+                                                ),
                                               ),
-                                              color: Colors.grey.shade400,
-                                            ),
-                                            child: Icon(
-                                              Icons.add_rounded,
-                                              color: Theme.of(context).colorScheme.onSurface,
+                                              parentItemMultiplier != 1 || quantity != 1 || options.isNotEmpty
+                                                  ? Text(
+                                                      "${amountInCart.ceil() > amountInCart ? amountInCart * parentItemMultiplier : amountInCart.round() * parentItemMultiplier} ${quantity != 1 ? "кг" : item["unit"]}",
+                                                      textHeightBehavior: const TextHeightBehavior(
+                                                        applyHeightToFirstAscent: false,
+                                                      ),
+                                                      textAlign: TextAlign.center,
+                                                      style: TextStyle(
+                                                        fontWeight: FontWeight.w700,
+                                                        fontSize: 26 * globals.scaleParam,
+                                                        color: Colors.grey.shade600,
+                                                        height: 1 * globals.scaleParam,
+                                                      ),
+                                                    )
+                                                  : SizedBox(),
+                                            ],
+                                          ),
+                                        ),
+                                        Flexible(
+                                          fit: FlexFit.tight,
+                                          child: IconButton(
+                                            padding: const EdgeInsets.all(0),
+                                            // onPressed: null,
+                                            onPressed: () {
+                                              _addToCart();
+                                            },
+                                            icon: Container(
+                                              padding: EdgeInsets.all(5 * globals.scaleParam),
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.all(
+                                                  Radius.circular(100),
+                                                ),
+                                                color: Colors.grey.shade400,
+                                              ),
+                                              child: Icon(
+                                                Icons.add_rounded,
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -460,7 +562,7 @@ class _ProductPageState extends State<ProductPage> {
                           ),
                         ),
                         Flexible(
-                          flex: 7,
+                          flex: 10,
                           fit: FlexFit.tight,
                           child: Padding(
                             padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
@@ -469,18 +571,20 @@ class _ProductPageState extends State<ProductPage> {
                                 backgroundColor: buyButtonActionColor,
                                 padding: EdgeInsets.zero,
                               ),
-                              onPressed: () {
-                                if (actualCartAmount == 0) {
-                                  _finalizeCartAmount();
-                                } else if (actualCartAmount == amountInCart || amountInCart == 0) {
-                                  setState(() {
-                                    amountInCart = 0;
-                                  });
-                                  _finalizeCartAmount();
-                                } else {
-                                  _finalizeCartAmount();
-                                }
-                              },
+                              onPressed: (isRequiredSelected && amountInCart > 0) || actualCartAmount > 0 || options.isEmpty
+                                  ? () {
+                                      if (actualCartAmount == 0) {
+                                        _finalizeCartAmount();
+                                      } else if (actualCartAmount == amountInCart || amountInCart == 0) {
+                                        setState(() {
+                                          amountInCart = 0;
+                                        });
+                                        _finalizeCartAmount();
+                                      } else {
+                                        _finalizeCartAmount();
+                                      }
+                                    }
+                                  : null,
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -566,7 +670,7 @@ class _ProductPageState extends State<ProductPage> {
                               children: [
                                 Flexible(
                                   child: Text(
-                                    "${globals.formatCost((item['price'] ?? '').toString())}",
+                                    globals.formatCost((item['price'] ?? '').toString()),
                                     style: TextStyle(
                                       fontSize: 44 * globals.scaleParam,
                                       fontWeight: FontWeight.w700,
@@ -587,20 +691,26 @@ class _ProductPageState extends State<ProductPage> {
                                 ),
                               ],
                             ),
-                            Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    "${item["unit"] != "шт" ? (item['in_stock'] ?? "") : (item["in_stock"]).round()} ${item["unit"]} в наличии",
-                                    style: TextStyle(
-                                      fontSize: 28 * globals.scaleParam,
-                                      fontWeight: FontWeight.w700,
-                                      color: Theme.of(context).colorScheme.secondary,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                            //* NO MORE IN_STOCK CHANGE
+                            // Row(
+                            //   children: [
+                            //     Flexible(
+                            //       child: Text(
+                            //         // Automatically sets units of choice
+                            //         item["unit"] != "шт"
+                            //             ? "В наличии: ${(item['in_stock'] ?? "")} ${item["unit"]}"
+                            //             : item["quantity"] != 1
+                            //                 ? "В наличии: ${item["in_stock"]} кг"
+                            //                 : "В наличии: ${(item["in_stock"]).round()} ${item["unit"]}",
+                            //         style: TextStyle(
+                            //           fontSize: 28 * globals.scaleParam,
+                            //           fontWeight: FontWeight.w700,
+                            //           color: Theme.of(context).colorScheme.secondary,
+                            //         ),
+                            //       ),
+                            //     ),
+                            //   ],
+                            // ),
                           ],
                         ),
                       ),
@@ -666,45 +776,58 @@ class _ProductPageState extends State<ProductPage> {
                         return options[indexOption]["selection"] == "SINGLE"
                             ? Row(
                                 children: [
-                                  ChoiceChip(
-                                      selectedColor: Colors.amberAccent.shade200,
-                                      disabledColor: Colors.white,
-                                      backgroundColor: Colors.white,
-                                      label: Text(
-                                        "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}",
-                                        style: TextStyle(fontWeight: FontWeight.w700),
-                                      ),
-                                      selected: options[indexOption]["selected_relation_id"] == options[indexOption]["options"][index]["relation_id"],
-                                      onSelected: (v) {
-                                        // print(v);
-                                        print(options);
-                                        if (v) {
-                                          setState(() {
-                                            options[indexOption]["selected_relation_id"] = options[indexOption]["options"][index]["relation_id"];
-                                          });
-                                        } else {
-                                          setState(() {
-                                            options[indexOption]["selected_relation_id"] = null;
-                                          });
+                                  Flexible(
+                                    child: ChoiceChip(
+                                        selectedColor: Colors.amberAccent.shade200,
+                                        disabledColor: Colors.white,
+                                        backgroundColor: Colors.white,
+                                        label: Text(
+                                          "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}",
+                                          style: TextStyle(fontWeight: FontWeight.w700),
+                                        ),
+                                        selected:
+                                            options[indexOption]["selected_relation_id"] == options[indexOption]["options"][index]["relation_id"],
+                                        onSelected: (v) {
+                                          // print(v);
+                                          print(options);
+                                          if (v) {
+                                            setState(() {
+                                              options[indexOption]["selected_relation_id"] = options[indexOption]["options"][index]["relation_id"];
+                                              requiredSelected = options[indexOption]["options"][index]["relation_id"];
+                                              optionsAddedCost = options[indexOption]["options"][index]["price"];
+                                              parentItemMultiplier = options[indexOption]["options"][index]["parent_item_amount"];
+                                              if (amountInCart * parentItemMultiplier > widget.item["in_stock"]) {
+                                                amountInCart = (widget.item["in_stock"] / parentItemMultiplier).truncateToDouble();
+                                              }
+                                            });
+                                          } else {
+                                            setState(() {
+                                              options[indexOption]["selected_relation_id"] = null;
+                                              requiredSelected = null;
+                                              optionsAddedCost = 0;
+                                              parentItemMultiplier = 1;
+                                            });
 
-                                          // setState(() {
-                                          //   amountInCart = 0;
-                                          // });
-                                          // _finalizeCartAmount();
+                                            // setState(() {
+                                            //   amountInCart = 0;
+                                            // });
+                                            // _finalizeCartAmount();
+                                          }
+                                          _checkOptions();
+                                          getBuyButtonCurrentActionText();
                                         }
-                                        _checkOptions();
-                                      }
-                                      // dense: true,
-                                      //   onChanged: (v) {
+                                        // dense: true,
+                                        //   onChanged: (v) {
 
-                                      //   },
-                                      //   groupValue: options[index_option]
-                                      //       ["selected_relation_id"],
-                                      //   value: options[index_option]
-                                      //           ["options"][index]
-                                      //       ["relation_id"],
-                                      //
-                                      )
+                                        //   },
+                                        //   groupValue: options[index_option]
+                                        //       ["selected_relation_id"],
+                                        //   value: options[index_option]
+                                        //           ["options"][index]
+                                        //       ["relation_id"],
+                                        //
+                                        ),
+                                  )
                                 ],
                               )
                             : Container(
@@ -721,35 +844,38 @@ class _ProductPageState extends State<ProductPage> {
                                 // margin: EdgeInsets.all(10 * globals.scaleParam),
                                 child: Row(
                                   children: [
-                                    FilterChip(
-                                      backgroundColor: Colors.white,
-                                      deleteIcon: Container(),
-                                      deleteIconBoxConstraints: BoxConstraints(),
-                                      label: Text(
-                                        options[indexOption]["options"][index]["price"] != null &&
-                                                options[indexOption]["options"][index]["price"] != 0
-                                            ? "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}"
-                                            : options[indexOption]["options"][index]["name"],
-                                        style: TextStyle(fontWeight: FontWeight.w700),
+                                    Flexible(
+                                      child: FilterChip(
+                                        backgroundColor: Colors.white,
+                                        deleteIcon: Container(),
+                                        deleteIconBoxConstraints: BoxConstraints(),
+                                        label: Text(
+                                          options[indexOption]["options"][index]["price"] != null &&
+                                                  options[indexOption]["options"][index]["price"] != 0
+                                              ? "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}"
+                                              : options[indexOption]["options"][index]["name"],
+                                          style: TextStyle(fontWeight: FontWeight.w700),
+                                        ),
+                                        selected: List.castFrom(options[indexOption]["selected_relation_id"])
+                                            .contains(options[indexOption]["options"][index]["relation_id"]),
+                                        onSelected: (v) {
+                                          if (v) {
+                                            setState(() {
+                                              options[indexOption]["selected_relation_id"].add(options[indexOption]["options"][index]["relation_id"]);
+                                            });
+                                          } else {
+                                            setState(() {
+                                              options[indexOption]["selected_relation_id"]
+                                                  .removeWhere((item) => item == options[indexOption]["options"][index]["relation_id"]);
+                                            });
+                                          }
+                                          _checkOptions();
+                                          getBuyButtonCurrentActionText();
+                                        },
+                                        onDeleted: () {},
+                                        // value: isCheckBoxSelected,
+                                        // onChanged: (v) {}
                                       ),
-                                      selected: List.castFrom(options[indexOption]["selected_relation_id"])
-                                          .contains(options[indexOption]["options"][index]["relation_id"]),
-                                      onSelected: (v) {
-                                        if (v) {
-                                          setState(() {
-                                            options[indexOption]["selected_relation_id"].add(options[indexOption]["options"][index]["relation_id"]);
-                                          });
-                                        } else {
-                                          setState(() {
-                                            options[indexOption]["selected_relation_id"]
-                                                .removeWhere((item) => item == options[indexOption]["options"][index]["relation_id"]);
-                                          });
-                                        }
-                                        _checkOptions();
-                                      },
-                                      onDeleted: () {},
-                                      // value: isCheckBoxSelected,
-                                      // onChanged: (v) {}
                                     ),
                                   ],
                                 ),

@@ -251,23 +251,34 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
 
   // ! TODO: SHOULD BE USED TO RECALCULATE PRICE OF DELIVERY ON FLY, WHEN CHANGING DELIVERY ADDRESS.
   // ! Or get price from backend
-  void calculatePriceOfDistance() {
-    double dist = widget.deliveryInfo["distance"] / 1000;
-    dist = (dist * 2).round() / 2;
-    if (dist <= 1.5) {
-      widget.deliveryInfo['price'] = 700;
-    } else {
-      if (dist < 5) {
-        setState(() {
-          widget.deliveryInfo['price'] = ((dist - 1.5) * 300 + 700).toInt();
-        });
-      } else {
-        setState(() {
-          widget.deliveryInfo['price'] = ((dist - 1.5) * 250 + 700).toInt();
-        });
-      }
-    }
-  }
+  // void calculatePriceOfDistance() {
+  //   double dist = widget.deliveryInfo["distance"] / 1000;
+  //   dist = (dist * 2).round() / 2;
+  //   if (dist <= 1.5) {
+  //     widget.deliveryInfo['price'] = 700;
+  //   } else {
+  //     if (dist < 5) {
+  //       setState(() {
+  //         widget.deliveryInfo['price'] = ((dist - 1.5) * 300 + 700).toInt();
+  //       });
+  //     } else {
+  //       setState(() {
+  //         widget.deliveryInfo['price'] = ((dist - 1.5) * 250 + 700).toInt();
+  //       });
+  //     }
+  //   }
+  // }
+
+  // Future<void> _getCartDeliveryPrice() async {
+  //   getCart(widget.business["business_id"]).then(
+  //     (value) {
+  //       if (value.isNotEmpty) {
+
+  //       }
+  //     },
+  //   );
+  //   setState(() {});
+  // }
 
   @override
   void initState() {
@@ -460,7 +471,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                 alignment: Alignment.topCenter,
                 child: Container(
                   width: constraints.maxWidth * 0.955,
-                  height: 360 * globals.scaleParam,
+                  height: 330 * globals.scaleParam,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.all(Radius.circular(15)),
                     color: Color.fromARGB(255, 245, 245, 245),
@@ -695,6 +706,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                             },
                                           ),
                                         ).then((value) {
+                                          // _getCartDeliveryPrice();
                                           _getClientAddresses();
                                           print(_getAddresses());
                                         });
@@ -799,46 +811,44 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 ],
                               ),
                       ),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 35 * globals.scaleParam,
-                        ),
-                        // color: Colors.amber,
-                        height: 85 * globals.scaleParam,
-                        child: Column(
-                          children: [
-                            Flexible(
-                              child: Row(
-                                children: [
-                                  Flexible(
-                                    flex: 3,
-                                    fit: FlexFit.tight,
-                                    child: SizedBox(),
-                                  ),
-                                  Flexible(
-                                    flex: 7,
-                                    fit: FlexFit.tight,
-                                    child: Text(
-                                      delivery
-                                          ? "${globals.formatCost((widget.deliveryInfo["price"]).toString())} ₸ - ${globals.formatCost(widget.deliveryInfo["distance"].toString())} м"
-                                          : "Без доставки",
-                                      style: TextStyle(
-                                        fontSize: 32 * globals.scaleParam,
-                                        fontWeight: FontWeight.w500,
-                                        color: Theme.of(context).colorScheme.primary,
-                                      ),
-                                    ),
-                                  ),
-                                  Flexible(
-                                    fit: FlexFit.tight,
-                                    child: SizedBox(),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      // Container(
+                      //   padding: EdgeInsets.symmetric(
+                      //     horizontal: 35 * globals.scaleParam,
+                      //   ),
+                      //   // color: Colors.amber,
+                      //   height: 85 * globals.scaleParam,
+                      //   child: Column(
+                      //     children: [
+                      //       Flexible(
+                      //         child: Row(
+                      //           children: [
+                      //             Flexible(
+                      //               flex: 3,
+                      //               fit: FlexFit.tight,
+                      //               child: SizedBox(),
+                      //             ),
+                      //             Flexible(
+                      //               flex: 7,
+                      //               fit: FlexFit.tight,
+                      //               child: Text(
+                      //                 delivery ? "${globals.formatCost((widget.deliveryInfo["price"]).toString())} ₸" : "Без доставки",
+                      //                 style: TextStyle(
+                      //                   fontSize: 32 * globals.scaleParam,
+                      //                   fontWeight: FontWeight.w500,
+                      //                   color: Theme.of(context).colorScheme.primary,
+                      //                 ),
+                      //               ),
+                      //             ),
+                      //             Flexible(
+                      //               fit: FlexFit.tight,
+                      //               child: SizedBox(),
+                      //             ),
+                      //           ],
+                      //         ),
+                      //       ),
+                      //     ],
+                      //   ),
+                      // ),
                     ],
                   ),
                 ),
@@ -1137,6 +1147,22 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                           Flexible(
                             child: Text(
                               " * курьер выдаст заказ 21+ только при подтверждении возраста.",
+                              textAlign: TextAlign.left,
+                              style: TextStyle(
+                                // fontFamily: "montserrat",
+                                fontSize: 26 * globals.scaleParam,
+                                fontWeight: FontWeight.w500,
+                                color: Color.fromARGB(255, 190, 190, 190),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              " ** продолжая заказ вы подтверждаете, что ознакомлены с условиями возврата.",
                               textAlign: TextAlign.left,
                               style: TextStyle(
                                 // fontFamily: "montserrat",

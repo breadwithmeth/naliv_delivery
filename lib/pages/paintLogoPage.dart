@@ -23,7 +23,7 @@ class _PaintLogoPageState extends State<PaintLogoPage> with SingleTickerProvider
       backgroundColor: Colors.white,
       body: Center(
         child: Container(
-          width: MediaQuery.sizeOf(context).shortestSide * 0.5,
+          width: MediaQuery.sizeOf(context).shortestSide * 0.7,
           height: MediaQuery.sizeOf(context).shortestSide * 0.5,
           // color: Colors.green.shade100,
           child: Stack(
@@ -39,8 +39,8 @@ class _PaintLogoPageState extends State<PaintLogoPage> with SingleTickerProvider
                         Flexible(
                           child: FittedBox(
                             child: Text(
-                              // "НАЛИВ/ГРАДУСЫ24",
-                              "закажи",
+                              "НАЛИВ/ГРАДУСЫ24",
+                              // "закажи",
                               style: GoogleFonts.comfortaa(
                                 textStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 140 * globals.scaleParam),
                               ),

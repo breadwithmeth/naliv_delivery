@@ -74,7 +74,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
       Future.delayed(const Duration(milliseconds: 0)).then((value) async {
         print("Creating order...!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         String user_id = widget.user.isNotEmpty ? widget.user["user_id"] : "";
-        await createOrder(widget.business["business_id"], widget.delivery ? widget.business["business_id"] : null, user_id).then((value) {
+        await createOrder(widget.business["business_id"], null, widget.delivery ? 1 : 0, user_id).then((value) {
           if (value["status"] == true) {
             setState(() {
               isOrderCorrect = true;
@@ -439,57 +439,6 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                   ),
                 ),
                 Container(
-                  height: 800 * globals.scaleParam,
-                  decoration: BoxDecoration(
-                    // border: Border.all(
-                    //   width: 2,
-                    //   // color: Color.fromARGB(255, 245, 245, 245),
-                    //   color: Colors.black,
-                    // ),
-                    color: Color.fromARGB(255, 245, 245, 245),
-                    borderRadius: const BorderRadius.all(
-                      Radius.circular(15),
-                    ),
-                  ),
-                  margin: EdgeInsets.symmetric(
-                    horizontal: 20 * globals.scaleParam,
-                    vertical: 5 * globals.scaleParam,
-                  ),
-                  padding: EdgeInsets.all(15 * globals.scaleParam),
-                  child: ListView.builder(
-                    primary: false,
-                    shrinkWrap: true,
-                    itemCount: widget.items.length,
-                    itemBuilder: (context, index) {
-                      final item = widget.items[index];
-
-                      return Column(
-                        children: [
-                          ItemCardNoImage(
-                            element: item,
-                            itemId: item["name"],
-                            categoryId: "",
-                            categoryName: "",
-                            scroll: 0,
-                            business_id: widget.business["business_id"],
-                          ),
-                          widget.items.length - 1 != index
-                              ? Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 32 * globals.scaleParam,
-                                    vertical: 10 * globals.scaleParam,
-                                  ),
-                                  child: const Divider(
-                                    height: 0,
-                                  ),
-                                )
-                              : Container(),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-                Container(
                   height: 150 * globals.scaleParam,
                   // alignment: Alignment.centerLeft,
                   decoration: BoxDecoration(
@@ -528,24 +477,26 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                           ],
                         ),
                       ),
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                left: 50 * globals.scaleParam,
-                              ),
-                              child: Text(
-                                widget.delivery ? widget.address!["address"] ?? "" : widget.business["address"],
-                                style: TextStyle(
-                                  fontSize: 32 * globals.scaleParam,
-                                  fontWeight: FontWeight.w700,
-                                  color: Theme.of(context).colorScheme.onSurface,
+                      Flexible(
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Padding(
+                                padding: EdgeInsets.only(
+                                  left: 50 * globals.scaleParam,
+                                ),
+                                child: Text(
+                                  widget.delivery ? widget.address!["address"] ?? "" : widget.business["address"],
+                                  style: TextStyle(
+                                    fontSize: 32 * globals.scaleParam,
+                                    fontWeight: FontWeight.w700,
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -609,6 +560,57 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                   ),
                 ),
                 Container(
+                  height: MediaQuery.sizeOf(context).height * 0.42,
+                  decoration: BoxDecoration(
+                    // border: Border.all(
+                    //   width: 2,
+                    //   // color: Color.fromARGB(255, 245, 245, 245),
+                    //   color: Colors.black,
+                    // ),
+                    color: Color.fromARGB(255, 245, 245, 245),
+                    borderRadius: const BorderRadius.all(
+                      Radius.circular(15),
+                    ),
+                  ),
+                  margin: EdgeInsets.symmetric(
+                    horizontal: 20 * globals.scaleParam,
+                    vertical: 5 * globals.scaleParam,
+                  ),
+                  padding: EdgeInsets.all(15 * globals.scaleParam),
+                  child: ListView.builder(
+                    primary: false,
+                    shrinkWrap: true,
+                    itemCount: widget.items.length,
+                    itemBuilder: (context, index) {
+                      final item = widget.items[index];
+
+                      return Column(
+                        children: [
+                          ItemCardNoImage(
+                            element: item,
+                            itemId: item["name"],
+                            categoryId: "",
+                            categoryName: "",
+                            scroll: 0,
+                            business_id: widget.business["business_id"],
+                          ),
+                          widget.items.length - 1 != index
+                              ? Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 32 * globals.scaleParam,
+                                    vertical: 10 * globals.scaleParam,
+                                  ),
+                                  child: const Divider(
+                                    height: 0,
+                                  ),
+                                )
+                              : Container(),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                Container(
                   padding: EdgeInsets.only(top: 15 * globals.scaleParam),
                   alignment: Alignment.topCenter,
                   child: Container(
@@ -639,9 +641,28 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                             ),
                           ],
                         ),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                " ** продолжая заказ вы подтверждаете, что ознакомлены с условиями возврата.",
+                                textAlign: TextAlign.left,
+                                style: TextStyle(
+                                  // fontFamily: "montserrat",
+                                  fontSize: 26 * globals.scaleParam,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color.fromARGB(255, 190, 190, 190),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
+                ),
+                SizedBox(
+                  height: constraints.maxHeight * 0.3,
                 ),
               ],
             );

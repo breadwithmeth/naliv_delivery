@@ -16,7 +16,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.5+6
+version: 1.0.5+7
 
 environment:
   sdk: ">=2.19.5 <3.0.0"
@@ -71,6 +71,7 @@ dependencies:
   barcode: ^2.2.8
   barcode_widget: ^2.0.4
   workmanager: ^0.5.2
+  vibration: ^2.0.0
   # drawing_animation: ^1.0.0
 
 
@@ -133,15 +134,6 @@ flutter:
     - assets/vectors/drinks.png
     - assets/vectors/snacks.png
     - assets/naliv_logo.png
-    - assets/category_icons/beer_ico.png
-    - assets/category_icons/brandy_ico.png
-    - assets/category_icons/drinks_ico.png
-    - assets/category_icons/snacks_ico.png
-    - assets/category_icons/vodka_ico.png
-    - assets/category_icons/whiskey_ico.png
-    - assets/category_icons/wine_ico.png
-    - assets/category_icons/alcohol_hard_ico.png
-    - assets/category_icons/no_image_ico.png
     - assets/s/mc.png
     - assets/s/visa.png
     - assets/naliv_logo_loading.png

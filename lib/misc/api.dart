@@ -327,7 +327,7 @@ Future<Map<String, dynamic>> getItem(dynamic itemId, String business_id, {List? 
   }
 }
 
-Future<List?> changeCartItem(dynamic itemId, int amount, String businessId, {List options = const []}) async {
+Future<List?> changeCartItem(dynamic itemId, double amount, String businessId, {List options = const []}) async {
   String? token = await getToken();
   print("ADD TO CARD");
   if (token == null) {
@@ -339,7 +339,9 @@ Future<List?> changeCartItem(dynamic itemId, int amount, String businessId, {Lis
   List options_selected_ids = [];
   for (Map option in options) {
     if (option["selection"] == "SINGLE") {
-      options_selected_ids.add(option["selected_relation_id"]);
+      if (option["selected_relation_id"] != null) {
+        options_selected_ids.add(option["selected_relation_id"]);
+      }
     } else {
       if (option["selected_relation_id"] != null) {
         for (int selected_id in option["selected_relation_id"]) {
@@ -595,7 +597,7 @@ Future<Map<String, dynamic>?> getCity() async {
   return data;
 }
 
-Future<Map<String, dynamic>> createOrder(String businessId, String? addressId, [String user_id = ""]) async {
+Future<Map<String, dynamic>> createOrder(String businessId, String? addressId, int? delivery, [String user_id = ""]) async {
   // Returns null in two situations, token is null or wrong order (406)
   String? token = await getToken();
   if (token == null) {
@@ -607,8 +609,11 @@ Future<Map<String, dynamic>> createOrder(String businessId, String? addressId, [
   if (user_id.isNotEmpty) {
     body.addAll({"user_id": user_id});
   }
-  if (addressId != null) {
-    body.addAll({"address_id": addressId});
+  // if (addressId != null) {
+  //   body.addAll({"address_id": addressId});
+  // }
+  if (delivery != null) {
+    body.addAll({"delivery": delivery});
   }
 
   var url = Uri.https(URL_API, 'api/item/createOrder');
@@ -784,6 +789,26 @@ Future<List> getGeoDataByCoord(double lat, double lon) async {
   // List<dynamic> list = json.decode(response.body);
   List<dynamic> list = json.decode(response.body);
   return list;
+}
+
+Future<List> getActiveOrders() async {
+  String? token = await getToken();
+  if (token == null) {
+    return [];
+  }
+  var url = Uri.https(URL_API, 'api/user/getClient');
+  var response = await client.post(
+    url,
+    headers: {
+      "Content-Type": "application/json",
+      "AUTH": token,
+    },
+  );
+
+  List result = json.decode(response.body);
+  print(json.encode(response.statusCode));
+  print(response.body);
+  return result;
 }
 
 Future<Map<String, dynamic>> getCreateUser(String phoneNumber) async {

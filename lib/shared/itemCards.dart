@@ -1085,6 +1085,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
         vertical: 10 * globals.scaleParam,
         horizontal: 15 * globals.scaleParam,
       ),
+      padding: EdgeInsets.all(2 * globals.scaleParam),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.all(
           Radius.circular(30 * globals.scaleParam),
@@ -1093,279 +1094,122 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
       ),
       child: Column(
         children: [
-          SizedBox(
-            height: 150 * globals.scaleParam,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Padding(
-                  padding: EdgeInsets.all(5 * globals.scaleParam),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    mainAxisSize: MainAxisSize.max,
+          Row(
+            children: [
+              // Flexible(
+              //   flex: 3,
+              //   fit: FlexFit.tight,
+              //   child: Padding(
+              //     padding: EdgeInsets.only(right: 5 * globals.scaleParam),
+              //     child: Text(
+              //       "${element["amount_b"]} x",
+              //       textAlign: TextAlign.end,
+              //       style: TextStyle(
+              //         fontSize: 34 * globals.scaleParam,
+              //         fontWeight: FontWeight.w900,
+              //       ),
+              //     ),
+              //   ),
+              // ),
+              Spacer(),
+              Flexible(
+                flex: 4,
+                fit: FlexFit.tight,
+                child: ExtendedImage.network(
+                  element["thumb"],
+                  fit: BoxFit.contain,
+                ),
+              ),
+              Expanded(
+                flex: 17,
+                child: Padding(
+                  padding: EdgeInsets.only(left: 20 * globals.scaleParam),
+                  child: Column(
                     children: [
-                      Flexible(
-                        flex: 3,
-                        fit: FlexFit.tight,
-                        child: ExtendedImage.network(
-                          element["thumb"],
-                          fit: BoxFit.contain,
-                        ),
-                        // child: CachedNetworkImage(
-                        //   imageUrl: element["thumb"],
-                        //   // width: MediaQuery.of(context).size.width * 0.2,
-                        //   // height: MediaQuery.of(context).size.width * 0.7,
-                        //   fit: BoxFit.fitHeight,
-                        //   // cacheManager: CacheManager(
-                        //   //   Config(
-                        //   //     "itemImage ${element["item_id"].toString()}",
-                        //   //     stalePeriod: Duration(days: 7),
-                        //   //     //one week cache period
-                        //   //   ),
-                        //   // ),
-                        //   imageBuilder: (context, imageProvider) {
-                        //     return Column(
-                        //       mainAxisAlignment: MainAxisAlignment.center,
-                        //       children: [
-                        //         Flexible(
-                        //           fit: FlexFit.tight,
-                        //           child: Container(
-                        //             clipBehavior: Clip.antiAlias,
-                        //             decoration: BoxDecoration(
-                        //               borderRadius: BorderRadius.all(Radius.circular(5)),
-                        //               color: Colors.white,
-                        //             ),
-                        //             child: Image(
-                        //               image: imageProvider,
-                        //               fit: BoxFit.fitHeight,
-                        //             ),
-                        //           ),
-                        //         ),
-                        //       ],
-                        //     );
-                        //   },
-                        //   errorWidget: (context, url, error) {
-                        //     return LayoutBuilder(
-                        //       builder: (context, constraints) {
-                        //         return FractionallySizedBox(
-                        //           heightFactor: 1,
-                        //           widthFactor: 2 / 4,
-                        //           child: Image.asset(
-                        //             'assets/category_icons/no_image_ico.png',
-                        //             opacity: AlwaysStoppedAnimation(0.5),
-                        //           ),
-                        //         );
-                        //       },
-                        //     );
-                        //   },
-                        // ),
-                      ),
-                      Expanded(
-                        flex: 12,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          mainAxisSize: MainAxisSize.max,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: Padding(
-                                padding: EdgeInsets.all(1 * globals.scaleParam),
-                                child: RichText(
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  text: TextSpan(
-                                    style: TextStyle(
-                                      textBaseline: TextBaseline.alphabetic,
-                                      color: Colors.black,
-                                    ),
-                                    children: [
-                                      TextSpan(
-                                        text: element["name"],
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 30 * globals.scaleParam,
-                                        ),
-                                      ),
-                                      element["country"] != null
-                                          ? WidgetSpan(
-                                              child: Container(
-                                                padding: EdgeInsets.symmetric(horizontal: 4 * globals.scaleParam, vertical: 2 * globals.scaleParam),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.grey.shade200,
-                                                  borderRadius: BorderRadius.all(
-                                                    Radius.circular(10),
-                                                  ),
+                      SizedBox(
+                        height: 150 * globals.scaleParam,
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return Padding(
+                              padding: EdgeInsets.all(5 * globals.scaleParam),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                mainAxisSize: MainAxisSize.max,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Expanded(
+                                    flex: 12,
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisSize: MainAxisSize.max,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Flexible(
+                                          fit: FlexFit.tight,
+                                          child: Padding(
+                                            padding: EdgeInsets.all(1 * globals.scaleParam),
+                                            child: RichText(
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              text: TextSpan(
+                                                style: TextStyle(
+                                                  textBaseline: TextBaseline.alphabetic,
+                                                  color: Colors.black,
                                                 ),
+                                                children: [
+                                                  TextSpan(
+                                                    text: element["name"],
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.w500,
+                                                      fontSize: 30 * globals.scaleParam,
+                                                    ),
+                                                  ),
+                                                  element["country"] != null
+                                                      ? WidgetSpan(
+                                                          child: Container(
+                                                            padding: EdgeInsets.symmetric(
+                                                                horizontal: 4 * globals.scaleParam, vertical: 2 * globals.scaleParam),
+                                                            decoration: BoxDecoration(
+                                                              color: Colors.grey.shade200,
+                                                              borderRadius: BorderRadius.all(
+                                                                Radius.circular(10),
+                                                              ),
+                                                            ),
+                                                            child: Text(
+                                                              element["country"] ?? "",
+                                                              style: TextStyle(
+                                                                color: Colors.black,
+                                                                fontWeight: FontWeight.w600,
+                                                                fontSize: 28 * globals.scaleParam,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        )
+                                                      : TextSpan()
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Flexible(
+                                          fit: FlexFit.tight,
+                                          child: Row(
+                                            children: [
+                                              Flexible(
                                                 child: Text(
-                                                  element["country"] ?? "",
+                                                  "${globals.formatCost(element["price"].toString())} ₸ за 1 ${element["unit"]}",
                                                   style: TextStyle(
-                                                    color: Colors.black,
+                                                    color: Colors.grey,
                                                     fontWeight: FontWeight.w600,
-                                                    fontSize: 28 * globals.scaleParam,
+                                                    fontSize: 24 * globals.scaleParam,
                                                   ),
                                                 ),
                                               ),
-                                            )
-                                          : TextSpan()
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      "${globals.formatCost(element["price"].toString())} ₸ за шт",
-                                      style: TextStyle(
-                                        color: Theme.of(context).colorScheme.secondary.withOpacity(0.2),
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 24 * globals.scaleParam,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Flexible(
-                                    fit: FlexFit.tight,
-                                    child: Text(
-                                      "${globals.formatCost((element['price'] * element["amount"]).toString())} ₸",
-                                      style: TextStyle(
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 32 * globals.scaleParam,
-                                      ),
-                                    ),
-                                  ),
-                                  Flexible(
-                                    fit: FlexFit.tight,
-                                    child: Padding(
-                                      padding: EdgeInsets.symmetric(horizontal: 8 * globals.scaleParam),
-                                      child: Text(
-                                        "${element["amount"]} ${element["unit"]}",
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 28 * globals.scaleParam,
+                                            ],
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                  ),
-                                  // Flexible(
-                                  //   child: LikeButton(
-                                  //     is_liked: element["is_liked"],
-                                  //     item_id: element["item_id"],
-                                  //   ),
-                                  // ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-          element["selected_options"] != null
-              ? Padding(
-                  padding: EdgeInsets.only(top: 10 * globals.scaleParam, bottom: 20 * globals.scaleParam),
-                  child: Row(
-                    children: [
-                      Flexible(
-                        fit: FlexFit.tight,
-                        child: Text(
-                          "${element["amount_b"]} x",
-                          textAlign: TextAlign.end,
-                          style: TextStyle(
-                            fontSize: 38 * globals.scaleParam,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 6,
-                        child: ListView.builder(
-                          primary: false,
-                          physics: NeverScrollableScrollPhysics(),
-                          shrinkWrap: true,
-                          itemCount: element["selected_options"].length,
-                          itemBuilder: (context, index) {
-                            // List _selected_options = [];
-                            // if (cart[index]["selected_options"] != null) {
-                            //   _selected_options = cart[index]["selected_options"];
-                            //   // return SizedBox();
-                            // } else if (options.isEmpty) {
-                            //   _selected_options = [
-                            //     {"name": cart[index]["name"]}
-                            //   ];
-                            // }
-
-                            return Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 20 * globals.scaleParam,
-                                vertical: 5 * globals.scaleParam,
-                              ),
-                              decoration: BoxDecoration(
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Colors.black12,
-                                      blurRadius: 3,
-                                      offset: Offset(2, 2),
-                                    ),
-                                  ],
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.all(
-                                    Radius.circular(20 * globals.scaleParam),
-                                  )
-                                  // border: Border(
-                                  //     top: BorderSide(color: Colors.black12))
-                                  ),
-                              margin: EdgeInsets.only(
-                                top: 5 * globals.scaleParam,
-                                bottom: 5 * globals.scaleParam,
-                                left: 50 * globals.scaleParam,
-                                right: 20 * globals.scaleParam,
-                              ),
-                              child: Row(
-                                children: [
-                                  Flexible(
-                                    flex: 2,
-                                    fit: FlexFit.tight,
-                                    child: Text(
-                                      element["selected_options"][index]["price"] != 0 && element["selected_options"][index]["price"] != null
-                                          ? "${element["selected_options"][index]["price"]} ₸"
-                                          : "",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                  ),
-                                  // element["selected_options"][index]["price"] != 0 && element["selected_options"][index]["price"] != null
-                                  //     ? Flexible(
-                                  //         fit: FlexFit.tight,
-                                  //         child: Text(
-                                  //           "${element["selected_options"][index]["price"]}₸",
-                                  //           style: TextStyle(
-                                  //             fontWeight: FontWeight.w900,
-                                  //           ),
-                                  //         ),
-                                  //       )
-                                  //     : SizedBox(),
-                                  Flexible(
-                                    flex: 6,
-                                    fit: FlexFit.tight,
-                                    child: Text("${element["selected_options"][index]["name"]}"),
                                   ),
                                 ],
                               ),
@@ -1373,21 +1217,170 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                           },
                         ),
                       ),
+                      element["selected_options"] != null
+                          ? Padding(
+                              padding: EdgeInsets.only(top: 10 * globals.scaleParam, bottom: 20 * globals.scaleParam),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: ListView.builder(
+                                      primary: false,
+                                      physics: NeverScrollableScrollPhysics(),
+                                      shrinkWrap: true,
+                                      itemCount: element["selected_options"].length,
+                                      itemBuilder: (context, index) {
+                                        // List _selected_options = [];
+                                        // if (cart[index]["selected_options"] != null) {
+                                        //   _selected_options = cart[index]["selected_options"];
+                                        //   // return SizedBox();
+                                        // } else if (options.isEmpty) {
+                                        //   _selected_options = [
+                                        //     {"name": cart[index]["name"]}
+                                        //   ];
+                                        // }
+
+                                        return Container(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 20 * globals.scaleParam,
+                                            vertical: 5 * globals.scaleParam,
+                                          ),
+                                          decoration: BoxDecoration(
+                                              boxShadow: const [
+                                                BoxShadow(
+                                                  color: Colors.black12,
+                                                  blurRadius: 3,
+                                                  offset: Offset(2, 2),
+                                                ),
+                                              ],
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.all(
+                                                Radius.circular(20 * globals.scaleParam),
+                                              )
+                                              // border: Border(
+                                              //     top: BorderSide(color: Colors.black12))
+                                              ),
+                                          margin: EdgeInsets.only(
+                                            top: 5 * globals.scaleParam,
+                                            bottom: 5 * globals.scaleParam,
+                                            right: 20 * globals.scaleParam,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Flexible(
+                                                flex: 2,
+                                                fit: FlexFit.tight,
+                                                child: Text(
+                                                  element["selected_options"][index]["price"] != 0 &&
+                                                          element["selected_options"][index]["price"] != null
+                                                      ? "${element["selected_options"][index]["price"]} ₸"
+                                                      : "",
+                                                  textAlign: TextAlign.start,
+                                                  style: TextStyle(
+                                                    fontSize: 32 * globals.scaleParam,
+                                                    fontWeight: FontWeight.w900,
+                                                    height: 2.5 * globals.scaleParam,
+                                                  ),
+                                                ),
+                                              ),
+                                              // element["selected_options"][index]["price"] != 0 && element["selected_options"][index]["price"] != null
+                                              //     ? Flexible(
+                                              //         fit: FlexFit.tight,
+                                              //         child: Text(
+                                              //           "${element["selected_options"][index]["price"]}₸",
+                                              //           style: TextStyle(
+                                              //             fontWeight: FontWeight.w900,
+                                              //           ),
+                                              //         ),
+                                              //       )
+                                              //     : SizedBox(),
+                                              Flexible(
+                                                flex: 8,
+                                                fit: FlexFit.tight,
+                                                child: Text(
+                                                  "${element["selected_options"][index]["name"]}",
+                                                  style: TextStyle(
+                                                    fontSize: 32 * globals.scaleParam,
+                                                    fontWeight: FontWeight.w500,
+                                                    height: 3 * globals.scaleParam,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : SizedBox(),
+
+                      // Expanded(
+                      //   child: element["selected_options"].isEmpty
+                      //       ? Container(
+                      //           height: 50,
+                      //           color: Colors.green,
+                      //         )
+                      //       : Container(
+                      //           height: 50,
+                      //           color: Colors.red,
+                      //         ),
+                      // ),
                     ],
                   ),
-                )
-              : SizedBox(),
-          // Expanded(
-          //   child: element["selected_options"].isEmpty
-          //       ? Container(
-          //           height: 50,
-          //           color: Colors.green,
-          //         )
-          //       : Container(
-          //           height: 50,
-          //           color: Colors.red,
-          //         ),
-          // ),
+                ),
+              ),
+            ],
+          ),
+          Container(
+            height: 80 * globals.scaleParam,
+            margin: EdgeInsets.only(top: 10 * globals.scaleParam),
+            padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(
+                  color: Colors.grey.shade300,
+                  width: 1,
+                ),
+              ),
+              // borderRadius: BorderRadius.only(bottomLeft: Radius.circular(12), bottomRight: Radius.circular(12)),
+            ),
+            child: Row(
+              children: [
+                Spacer(
+                  flex: 2,
+                ),
+                Flexible(
+                  flex: 10,
+                  fit: FlexFit.tight,
+                  child: Text(
+                    "Сумма: ${globals.formatCost(((element['price'] * element["amount"]) + (element["selected_options"] != null ? ((element["selected_options"][0]["price"] * element["amount"]) / element["selected_options"][0]["parent_item_amount"]) : 0)).toString())} ₸",
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 32 * globals.scaleParam,
+                    ),
+                  ),
+                ),
+                Flexible(
+                  flex: 7,
+                  fit: FlexFit.tight,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8 * globals.scaleParam),
+                    child: Text(
+                      "${element["amount"]} ${element["unit"]}",
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 32 * globals.scaleParam,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -2329,14 +2322,14 @@ class ItemCardListTile extends StatefulWidget {
 }
 
 class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerProviderStateMixin<ItemCardListTile> {
-  int amountInCart = 0;
+  double amountInCart = 0;
   bool canButtonsBeUsed = true;
   List cart = [];
   late int chack;
   Map<String, dynamic> element = {};
   bool hideButtons = true;
   List options = [];
-  int previousAmount = 0;
+  double previousAmount = 0;
   List<InlineSpan> propertiesWidget = [];
 
   Timer? _debounce;
@@ -2351,7 +2344,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
       } else {
         cart = cartNewItem;
         cart[0]["name"] = element["name"];
-        amountInCart = cart[0]["amount"];
+        amountInCart = double.parse(cart[0]["amount"].toString()).roundToDouble();
       }
       setState(() {
         cart;
@@ -2803,27 +2796,31 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                   //     ),
                                   //   ),
                                   // ),
-                                  Flexible(
-                                    flex: 4,
-                                    fit: FlexFit.tight,
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Flexible(
-                                          child: Text(
-                                            // Automatically sets units of choice
-                                            "В наличии: ${widget.element["unit"] != "шт" ? (element['in_stock'] ?? "") : (element["in_stock"]).round()} ${widget.element["unit"]}",
-                                            style: TextStyle(
-                                              color: Colors.grey,
-                                              fontWeight: FontWeight.w500,
-                                              fontSize: 28 * globals.scaleParam,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                                  // Flexible(
+                                  //   flex: 4,
+                                  //   fit: FlexFit.tight,
+                                  //   child: Row(
+                                  //     mainAxisAlignment: MainAxisAlignment.end,
+                                  //     mainAxisSize: MainAxisSize.min,
+                                  //     children: [
+                                  //       Flexible(
+                                  //         child: Text(
+                                  //           // Automatically sets units of choice
+                                  //           widget.element["unit"] != "шт"
+                                  //               ? "В наличии: ${(element['in_stock'] ?? "")} ${widget.element["unit"]}"
+                                  //               : element["quantity"] != 1
+                                  //                   ? "В наличии: ${element["in_stock"]} кг"
+                                  //                   : "В наличии: ${(element["in_stock"]).round()} ${widget.element["unit"]}",
+                                  //           style: TextStyle(
+                                  //             color: Colors.grey,
+                                  //             fontWeight: FontWeight.w500,
+                                  //             fontSize: 28 * globals.scaleParam,
+                                  //           ),
+                                  //         ),
+                                  //       ),
+                                  //     ],
+                                  //   ),
+                                  // ),
                                   Flexible(
                                     flex: 4,
                                     fit: FlexFit.tight,
@@ -2877,7 +2874,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                               fit: FlexFit.tight,
                                               child: SizedBox(),
                                             ),
-                                            options.isEmpty
+                                            options.isEmpty && element["quantity"] == 1
                                                 ? Flexible(
                                                     fit: FlexFit.tight,
                                                     child: IconButton(
@@ -3004,7 +3001,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                             Flexible(
                                               fit: FlexFit.tight,
                                               child: Text(
-                                                "${amountInCart.toString()} ${widget.element["unit"]}", //"${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
+                                                "${amountInCart.ceil() > amountInCart ? amountInCart.toString() : amountInCart.round()} ${widget.element["unit"]}", //"${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
                                                 textHeightBehavior: TextHeightBehavior(
                                                   applyHeightToFirstAscent: false,
                                                 ),
@@ -3147,8 +3144,8 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                     flex: 2,
                                     fit: FlexFit.tight,
                                     child: Text(
-                                      cart[index]["amount"].toString() + "x",
-                                      textAlign: TextAlign.center,
+                                      "${cart[index]["amount"].ceil() > cart[index]["amount"] ? cart[index]["amount"] : cart[index]["amount"].round()} x",
+                                      textAlign: TextAlign.right,
                                       style: TextStyle(fontWeight: FontWeight.w900),
                                     ),
                                   ),
