@@ -791,6 +791,26 @@ Future<List> getGeoDataByCoord(double lat, double lon) async {
   return list;
 }
 
+Future<List> getActiveOrders() async {
+  String? token = await getToken();
+  if (token == null) {
+    return [];
+  }
+  var url = Uri.https(URL_API, 'api/user/getClient');
+  var response = await client.post(
+    url,
+    headers: {
+      "Content-Type": "application/json",
+      "AUTH": token,
+    },
+  );
+
+  List result = json.decode(response.body);
+  print(json.encode(response.statusCode));
+  print(response.body);
+  return result;
+}
+
 Future<Map<String, dynamic>> getCreateUser(String phoneNumber) async {
   String? token = await getToken();
   if (token == null) {

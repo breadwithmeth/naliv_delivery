@@ -362,8 +362,7 @@ class _AddressesPageState extends State<AddressesPage> with TickerProviderStateM
                                   style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.black, foregroundColor: Colors.white, surfaceTintColor: Colors.white),
                                   onPressed: () async {
-                                    await getGeoData(_search.text)
-                                        .then((value) {
+                                    await getGeoData(_search.text).then((value) {
                                       List objects = value;
 
                                       double lat = double.parse(objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
