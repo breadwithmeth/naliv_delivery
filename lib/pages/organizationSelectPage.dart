@@ -109,8 +109,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
       if (value != null) {
         List objects = value;
 
-        double lat = double.parse(objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[1]);
-        double lon = double.parse(objects.first["GeoObject"]["Point"]["pos"].toString().split(' ')[0]);
+        double lat = objects[0]["lat"];
+        double lon = objects[0]["lon"];
         if (mounted) {
           setState(() {
             _currentAddressName = objects.first["GeoObject"]["name"] ?? "";
@@ -912,95 +912,6 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                 ),
               ),
             ),
-            // SliverToBoxAdapter(
-            //   child: Container(
-            //     // color: Colors.white,
-            //     height: 200 * globals.scaleParam,
-            //     child: ListView.builder(
-            //       scrollDirection: Axis.horizontal,
-            //       // addRepaintBoundaries: false,
-            //       shrinkWrap: true,
-            //       primary: false,
-            //       // controller: PageController(viewportFraction: 0.8),
-            //       itemCount: _carouselItems.length,
-            //       itemBuilder: (context, index) {
-            //         return Row(
-            //           children: [
-            //             Container(
-            //               width: 200 * globals.scaleParam,
-            //               height: 200 * globals.scaleParam,
-            //               clipBehavior: Clip.antiAlias,
-            //               margin: EdgeInsets.only(
-            //                   top: 5 * globals.scaleParam,
-            //                   bottom: 5 * globals.scaleParam,
-            //                   left: 25 * globals.scaleParam),
-            //               decoration: BoxDecoration(
-            //                   boxShadow: [
-            //                     BoxShadow(
-            //                         color: Colors.grey.shade300,
-            //                         blurRadius: 5 * globals.scaleParam)
-            //                   ],
-            //                   color: Colors.grey.shade100,
-            //                   borderRadius:
-            //                       const BorderRadius.all(Radius.circular(10))),
-            //               child: Stack(
-            //                 children: [
-            //                   Container(
-            //                     padding:
-            //                         EdgeInsets.all(10 * globals.scaleParam),
-            //                     child: Image.network(
-            //                       _carouselItems[index]["image"],
-            //                       fit: BoxFit.cover,
-            //                       width: double.infinity,
-            //                       height: double.infinity,
-            //                     ),
-            //                   ),
-            //                   // Container(
-            //                   //   width: double.infinity,
-            //                   //   height: double.infinity,
-            //                   //   decoration: const BoxDecoration(
-            //                   //       gradient: LinearGradient(
-            //                   //           transform: GradientRotation(pi / -2),
-            //                   //           colors: [
-            //                   //         Colors.black,
-            //                   //         Colors.transparent
-            //                   //       ])),
-            //                   // ),
-            //                   Container(
-            //                     child: Column(
-            //                       mainAxisAlignment: MainAxisAlignment.end,
-            //                       children: [
-            //                         Container(
-            //                             alignment: Alignment.topLeft,
-            //                             color: Colors.white,
-            //                             height: 80 * globals.scaleParam,
-            //                             padding: EdgeInsets.all(
-            //                                 10 * globals.scaleParam),
-            //                             child: Row(
-            //                               children: [
-            //                                 Flexible(
-            //                                     child: Text(
-            //                                   _carouselItems[index]["name"],
-            //                                   style: TextStyle(
-            //                                       color: Colors.black,
-            //                                       fontWeight: FontWeight.w700,
-            //                                       fontSize:
-            //                                           24 * globals.scaleParam),
-            //                                 )),
-            //                               ],
-            //                             ))
-            //                       ],
-            //                     ),
-            //                   )
-            //                 ],
-            //               ),
-            //             )
-            //           ],
-            //         );
-            //       },
-            //     ),
-            //   ),
-            // ),
             SliverToBoxAdapter(
               child: SizedBox(
                 height: 50 * globals.scaleParam,

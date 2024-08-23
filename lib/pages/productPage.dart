@@ -67,6 +67,8 @@ class _ProductPageState extends State<ProductPage> {
   double parentItemMultiplier = 1;
   double actualItemMultiplier = 1;
   double quantity = 1;
+  int? actualRequiredSelected;
+  int? requiredSelected;
   // int lastReturnedDataAmount = 0;
 
   bool isServerCallOnGoing = false;
@@ -138,6 +140,8 @@ class _ProductPageState extends State<ProductPage> {
         } else {
           if (options[i]["selected_relation_id"] != null) {
             setState(() {
+              requiredSelected = options[i]["selected_relation_id"];
+              actualRequiredSelected = requiredSelected;
               isRequiredSelected = true;
             });
           }
@@ -224,7 +228,7 @@ class _ProductPageState extends State<ProductPage> {
 
   void _addToCart() {
     setState(() {
-      if (((amountInCart * parentItemMultiplier) + (quantity * parentItemMultiplier)) < widget.item["in_stock"]) {
+      if (((amountInCart * parentItemMultiplier) + (quantity * parentItemMultiplier)) <= widget.item["in_stock"]) {
         amountInCart += quantity;
         amountInCart = double.parse(amountInCart.toStringAsFixed(3));
         getBuyButtonCurrentActionText();
@@ -236,25 +240,25 @@ class _ProductPageState extends State<ProductPage> {
     if (actualCartAmount == 0) {
       setState(() {
         buyButtonActionText =
-            "${buyButtonActionTextMap["add"]!} ${globals.formatCost(((amountInCart * item["price"] * parentItemMultiplier) + optionsAddedCost).toString())} ₸";
+            "${buyButtonActionTextMap["add"]!} ${globals.formatCost(((amountInCart * item["price"] * parentItemMultiplier) + (optionsAddedCost * amountInCart)).toString())} ₸";
         buyButtonActionColor = Colors.black;
       });
     } else if ((amountInCart > 0) && (actualCartAmount != amountInCart)) {
       setState(() {
         buyButtonActionText =
-            "${buyButtonActionTextMap["update"]!} ${globals.formatCost(((amountInCart * item["price"] * parentItemMultiplier) + optionsAddedCost).toString())} ₸";
+            "${buyButtonActionTextMap["update"]!} ${globals.formatCost(((amountInCart * item["price"] * parentItemMultiplier) + (optionsAddedCost * amountInCart)).toString())} ₸";
         buyButtonActionColor = Colors.blueGrey;
       });
-    } else if (actualCartAmount == amountInCart || amountInCart == 0) {
+    } else if ((actualCartAmount == amountInCart && requiredSelected == actualRequiredSelected) || amountInCart == 0) {
       setState(() {
         buyButtonActionText =
-            "${buyButtonActionTextMap["remove"]!} ${globals.formatCost(((actualCartAmount * item["price"] * actualItemMultiplier) + actualOptionsAddedCost).toString())} ₸";
+            "${buyButtonActionTextMap["remove"]!} ${globals.formatCost(((actualCartAmount * item["price"] * actualItemMultiplier) + (actualOptionsAddedCost * amountInCart)).toString())} ₸";
         buyButtonActionColor = Colors.red;
       });
     } else {
       setState(() {
         buyButtonActionText =
-            "${buyButtonActionTextMap["update"]!} ${globals.formatCost(((amountInCart * item["price"] * parentItemMultiplier) + optionsAddedCost).toString())} ₸";
+            "${buyButtonActionTextMap["update"]!} ${globals.formatCost(((amountInCart * item["price"] * parentItemMultiplier) + (optionsAddedCost * amountInCart)).toString())} ₸";
         buyButtonActionColor = Colors.blueGrey;
       });
     }
@@ -276,7 +280,7 @@ class _ProductPageState extends State<ProductPage> {
           HapticFeedback.lightImpact();
           amountInCart -= quantity; // Swiping down decrements
           amountInCart = double.parse(amountInCart.toStringAsFixed(3));
-        } else if (dy < 0 && ((amountInCart * parentItemMultiplier) + (quantity * parentItemMultiplier)) < item["in_stock"]) {
+        } else if (dy < 0 && ((amountInCart * parentItemMultiplier) + (quantity * parentItemMultiplier)) <= item["in_stock"]) {
           HapticFeedback.lightImpact();
           amountInCart += quantity; // Swiping up increments
           amountInCart = double.parse(amountInCart.toStringAsFixed(3));
@@ -503,10 +507,12 @@ class _ProductPageState extends State<ProductPage> {
                                                   fontWeight: FontWeight.w700,
                                                   fontSize: 38 * globals.scaleParam,
                                                   color: Theme.of(context).colorScheme.onSurface,
-                                                  height: parentItemMultiplier != 1 || quantity != 1 ? 2 * globals.scaleParam : null,
+                                                  height: parentItemMultiplier != 1 || quantity != 1 || options.isNotEmpty
+                                                      ? 2 * globals.scaleParam
+                                                      : null,
                                                 ),
                                               ),
-                                              parentItemMultiplier != 1 || quantity != 1
+                                              parentItemMultiplier != 1 || quantity != 1 || options.isNotEmpty
                                                   ? Text(
                                                       "${amountInCart.ceil() > amountInCart ? amountInCart * parentItemMultiplier : amountInCart.round() * parentItemMultiplier} ${quantity != 1 ? "кг" : item["unit"]}",
                                                       textHeightBehavior: const TextHeightBehavior(
@@ -664,7 +670,7 @@ class _ProductPageState extends State<ProductPage> {
                               children: [
                                 Flexible(
                                   child: Text(
-                                    "${globals.formatCost((item['price'] ?? '').toString())}",
+                                    globals.formatCost((item['price'] ?? '').toString()),
                                     style: TextStyle(
                                       fontSize: 44 * globals.scaleParam,
                                       fontWeight: FontWeight.w700,
@@ -685,25 +691,26 @@ class _ProductPageState extends State<ProductPage> {
                                 ),
                               ],
                             ),
-                            Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    // Automatically sets units of choice
-                                    item["unit"] != "шт"
-                                        ? "В наличии: ${(item['in_stock'] ?? "")} ${item["unit"]}"
-                                        : item["quantity"] != 1
-                                            ? "В наличии: ${item["in_stock"]} кг"
-                                            : "В наличии: ${(item["in_stock"]).round()} ${item["unit"]}",
-                                    style: TextStyle(
-                                      fontSize: 28 * globals.scaleParam,
-                                      fontWeight: FontWeight.w700,
-                                      color: Theme.of(context).colorScheme.secondary,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                            //* NO MORE IN_STOCK CHANGE
+                            // Row(
+                            //   children: [
+                            //     Flexible(
+                            //       child: Text(
+                            //         // Automatically sets units of choice
+                            //         item["unit"] != "шт"
+                            //             ? "В наличии: ${(item['in_stock'] ?? "")} ${item["unit"]}"
+                            //             : item["quantity"] != 1
+                            //                 ? "В наличии: ${item["in_stock"]} кг"
+                            //                 : "В наличии: ${(item["in_stock"]).round()} ${item["unit"]}",
+                            //         style: TextStyle(
+                            //           fontSize: 28 * globals.scaleParam,
+                            //           fontWeight: FontWeight.w700,
+                            //           color: Theme.of(context).colorScheme.secondary,
+                            //         ),
+                            //       ),
+                            //     ),
+                            //   ],
+                            // ),
                           ],
                         ),
                       ),
@@ -786,6 +793,7 @@ class _ProductPageState extends State<ProductPage> {
                                           if (v) {
                                             setState(() {
                                               options[indexOption]["selected_relation_id"] = options[indexOption]["options"][index]["relation_id"];
+                                              requiredSelected = options[indexOption]["options"][index]["relation_id"];
                                               optionsAddedCost = options[indexOption]["options"][index]["price"];
                                               parentItemMultiplier = options[indexOption]["options"][index]["parent_item_amount"];
                                               if (amountInCart * parentItemMultiplier > widget.item["in_stock"]) {
@@ -795,6 +803,7 @@ class _ProductPageState extends State<ProductPage> {
                                           } else {
                                             setState(() {
                                               options[indexOption]["selected_relation_id"] = null;
+                                              requiredSelected = null;
                                               optionsAddedCost = 0;
                                               parentItemMultiplier = 1;
                                             });
