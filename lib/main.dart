@@ -13,35 +13,124 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:workmanager/workmanager.dart';
+import 'package:socket_io_client/socket_io_client.dart' as io;
+import 'package:flutter_background_service/flutter_background_service.dart';
+import 'dart:async';
+import 'dart:ui';
 
-const String uniqueTaskName = "geofencingTask";
-
-void main() {
-  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-  Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
-  Workmanager().registerPeriodicTask("1", uniqueTaskName,
-      frequency: Duration(seconds: 15));
-  runApp(const Main());
+void startBackgroundService() {
+  final service = FlutterBackgroundService();
+  service.startService();
 }
+
+void stopBackgroundService() {
+  final service = FlutterBackgroundService();
+  service.invoke("stop");
+}
+
+Future<void> initializeService() async {
+  final service = FlutterBackgroundService();
+
+  await service.configure(
+    iosConfiguration: IosConfiguration(
+      autoStart: true,
+      onForeground: onStart,
+      onBackground: onIosBackground,
+    ),
+    androidConfiguration: AndroidConfiguration(
+      autoStart: true,
+      onStart: onStart,
+      isForegroundMode: false,
+      autoStartOnBoot: true,
+    ),
+  );
+}
+
 @pragma('vm:entry-point')
-void callbackDispatcher() {
-  Workmanager().executeTask((task, inputData) async {
-    switch (task) {
-      case uniqueTaskName:
-        await checkGeofenceStatus();
-        break;
-    }
-    return Future.value(true);
+Future<bool> onIosBackground(ServiceInstance service) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  DartPluginRegistrant.ensureInitialized();
+
+  return true;
+}
+
+@pragma('vm:entry-point')
+void onStart(ServiceInstance service) async {
+  final socket = io.io("your-server-url", <String, dynamic>{
+    'transports': ['websocket'],
+    'autoConnect': true,
+  });
+  socket.onConnect((_) {
+    print('Connected. Socket ID: ${socket.id}');
+    // Implement your socket logic here
+    // For example, you can listen for events or send data
+  });
+
+  socket.onDisconnect((_) {
+    print('Disconnected');
+  });
+  socket.on("event-name", (data) {
+    //do something here like pushing a notification
+  });
+  service.on("stop").listen((event) {
+    service.stopSelf();
+    print("background process is now stopped");
+  });
+
+  service.on("start").listen((event) {});
+
+  Timer.periodic(const Duration(seconds: 30), (timer) async {
+    socket.emit("event-name", "your-message");
+    Position _p = await _determinePosition();
+    print(_p.latitude);
+    print(_p.longitude);
+    print("service is successfully running ${DateTime.now().second}");
   });
 }
 
-Future<void> checkGeofenceStatus() async {
-  Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high);
-  print(position);
-  print("============================");
+Future<Position> _determinePosition() async {
+  bool serviceEnabled;
+  LocationPermission permission;
+
+  // Test if location services are enabled.
+  serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  if (!serviceEnabled) {
+    // Location services are not enabled don't continue
+    // accessing the position and request users of the
+    // App to enable the location services.
+    return Future.error('Location services are disabled.');
+  }
+
+  permission = await Geolocator.checkPermission();
+  if (permission == LocationPermission.denied) {
+    permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.denied) {
+      // Permissions are denied, next time you could try
+      // requesting permissions again (this is also where
+      // Android's shouldShowRequestPermissionRationale
+      // returned true. According to Android guidelines
+      // your App should show an explanatory UI now.
+      return Future.error('Location permissions are denied');
+    }
+  }
+
+  if (permission == LocationPermission.deniedForever) {
+    // Permissions are denied forever, handle appropriately.
+    return Future.error(
+        'Location permissions are permanently denied, we cannot request permissions.');
+  }
+
+  // When we reach here, permissions are granted and we can
+  // continue accessing the position of the device.
+  return await Geolocator.getCurrentPosition();
+}
+
+Future<void> main() async {
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  await initializeService();
+
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  runApp(const Main());
 }
 
 class Main extends StatefulWidget {
