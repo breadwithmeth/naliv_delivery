@@ -84,6 +84,7 @@ void onStart(ServiceInstance service) async {
     Position _p = await _determinePosition();
     print(_p.latitude);
     print(_p.longitude);
+    setCityAuto(_p.latitude, _p.longitude);
     print("service is successfully running ${DateTime.now().second}");
   });
 }
