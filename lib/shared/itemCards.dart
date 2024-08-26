@@ -1113,7 +1113,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
               // ),
               Spacer(),
               Flexible(
-                flex: 4,
+                flex: MediaQuery.of(context).size.aspectRatio > 1 ? 2 : 3,
                 fit: FlexFit.tight,
                 child: ExtendedImage.network(
                   element["thumb"],
