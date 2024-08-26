@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/pages/paintLogoPage.dart';
+import 'package:workmanager/workmanager.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/permissionPage.dart';
@@ -17,75 +19,13 @@ import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'dart:async';
 import 'dart:ui';
+import 'package:background_location/background_location.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
-void startBackgroundService() {
-  final service = FlutterBackgroundService();
-  service.startService();
-}
-
-void stopBackgroundService() {
-  final service = FlutterBackgroundService();
-  service.invoke("stop");
-}
-
-Future<void> initializeService() async {
-  final service = FlutterBackgroundService();
-
-  await service.configure(
-    iosConfiguration: IosConfiguration(
-      autoStart: true,
-      onForeground: onStart,
-      onBackground: onIosBackground,
-    ),
-    androidConfiguration: AndroidConfiguration(
-      autoStart: true,
-      onStart: onStart,
-      isForegroundMode: false,
-      autoStartOnBoot: true,
-    ),
-  );
-}
-
-@pragma('vm:entry-point')
-Future<bool> onIosBackground(ServiceInstance service) async {
-  WidgetsFlutterBinding.ensureInitialized();
-  DartPluginRegistrant.ensureInitialized();
-
-  return true;
-}
-
-@pragma('vm:entry-point')
-void onStart(ServiceInstance service) async {
-  final socket = io.io("your-server-url", <String, dynamic>{
-    'transports': ['websocket'],
-    'autoConnect': true,
-  });
-  socket.onConnect((_) {
-    print('Connected. Socket ID: ${socket.id}');
-    // Implement your socket logic here
-    // For example, you can listen for events or send data
-  });
-
-  socket.onDisconnect((_) {
-    print('Disconnected');
-  });
-  socket.on("event-name", (data) {
-    //do something here like pushing a notification
-  });
-  service.on("stop").listen((event) {
-    service.stopSelf();
-    print("background process is now stopped");
-  });
-
-  service.on("start").listen((event) {});
-
-  Timer.periodic(const Duration(seconds: 30), (timer) async {
-    socket.emit("event-name", "your-message");
-    Position _p = await _determinePosition();
-    print(_p.latitude);
-    print(_p.longitude);
+sendData() {
+  _determinePosition().then((_p) {
     setCityAuto(_p.latitude, _p.longitude);
-    print("service is successfully running ${DateTime.now().second}");
+    print(_p.longitude);
   });
 }
 
@@ -103,6 +43,7 @@ Future<Position> _determinePosition() async {
   }
 
   permission = await Geolocator.checkPermission();
+
   if (permission == LocationPermission.denied) {
     permission = await Geolocator.requestPermission();
     if (permission == LocationPermission.denied) {
@@ -128,9 +69,10 @@ Future<Position> _determinePosition() async {
 
 Future<void> main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  await initializeService();
 
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  FlutterForegroundTask.initCommunicationPort();
+
   runApp(const Main());
 }
 
@@ -276,6 +218,8 @@ class _MainState extends State<Main> {
         const Locale('en'),
       ],
       theme: ThemeData(
+        bottomSheetTheme:
+            BottomSheetThemeData(backgroundColor: Colors.transparent),
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.amber,
           surface: Colors.white,
@@ -354,3 +298,9 @@ class _MainState extends State<Main> {
 //                 fontWeight: FontWeight.w700,
 //                 color: Colors.black,
 //               ),
+
+
+
+
+
+

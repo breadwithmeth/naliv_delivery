@@ -49,7 +49,8 @@ Future<Position> determinePosition(BuildContext ctx) async {
 
   if (permission == LocationPermission.deniedForever) {
     // Permissions are denied forever, handle appropriately.
-    return Future.error('Location permissions are permanently denied, we cannot request permissions.');
+    return Future.error(
+        'Location permissions are permanently denied, we cannot request permissions.');
   }
 
   // When we reach here, permissions are granted and we can
@@ -204,7 +205,8 @@ Future<bool> setCurrentStore(String businessId) async {
   }
 }
 
-Future<List> getCategories(String business_id, [bool parent_category = false]) async {
+Future<List> getCategories(String business_id,
+    [bool parent_category = false]) async {
   String? token = await getToken();
   if (token == null) {
     return [];
@@ -212,7 +214,9 @@ Future<List> getCategories(String business_id, [bool parent_category = false]) a
   var url = Uri.https(URL_API, 'api/category/get');
   var response = await client.post(url,
       headers: {"Content-Type": "application/json", "AUTH": token},
-      body: parent_category ? json.encode({'parent_category_only': "1"}) : json.encode({"business_id": business_id}));
+      body: parent_category
+          ? json.encode({'parent_category_only': "1"})
+          : json.encode({"business_id": business_id}));
 
   // List<dynamic> list = json.decode(response.body);
   List data = json.decode(utf8.decode(response.bodyBytes));
@@ -220,7 +224,8 @@ Future<List> getCategories(String business_id, [bool parent_category = false]) a
   return data;
 }
 
-Future<List?> getItemsMain(int page, String business_id, [String? search, String? categoryId]) async {
+Future<List?> getItemsMain(int page, String business_id,
+    [String? search, String? categoryId]) async {
   String? token = await getToken();
   if (token == null) {
     return [];
@@ -280,9 +285,11 @@ Future<List> getItems(String categoryId, int page, {Map? filters}) async {
     headers: {"Content-Type": "application/json", "AUTH": token},
     body: filters == null
         ? json.encode({'category_id': categoryId, "page": page})
-        : json.encode({'category_id': categoryId, 'filters': filters, "page": page}),
+        : json.encode(
+            {'category_id': categoryId, 'filters': filters, "page": page}),
   );
-  print(json.encode({'category_id': categoryId, 'filters': filters, "page": page}));
+  print(json
+      .encode({'category_id': categoryId, 'filters': filters, "page": page}));
   // List<dynamic> list = json.decode(response.body);
   print(utf8.decode(response.bodyBytes));
   List data = json.decode(utf8.decode(response.bodyBytes));
@@ -306,7 +313,8 @@ Future<Map> getFilters(String categoryId) async {
   return data;
 }
 
-Future<Map<String, dynamic>> getItem(dynamic itemId, String business_id, {List? filter}) async {
+Future<Map<String, dynamic>> getItem(dynamic itemId, String business_id,
+    {List? filter}) async {
   String? token = await getToken();
   if (token == null) {
     return {};
@@ -315,7 +323,8 @@ Future<Map<String, dynamic>> getItem(dynamic itemId, String business_id, {List? 
   var response = await client.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
-    body: json.encode({'item_id': itemId, 'business_id': business_id, 'filter': filter}),
+    body: json.encode(
+        {'item_id': itemId, 'business_id': business_id, 'filter': filter}),
   );
   // List<dynamic> list = json.decode(response.body);
   Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
@@ -327,7 +336,8 @@ Future<Map<String, dynamic>> getItem(dynamic itemId, String business_id, {List? 
   }
 }
 
-Future<List?> changeCartItem(dynamic itemId, double amount, String businessId, {List options = const []}) async {
+Future<List?> changeCartItem(dynamic itemId, double amount, String businessId,
+    {List options = const []}) async {
   String? token = await getToken();
   print("ADD TO CARD");
   if (token == null) {
@@ -365,7 +375,12 @@ Future<List?> changeCartItem(dynamic itemId, double amount, String businessId, {
     print(options);
     response = await client.post(
       url,
-      body: json.encode({'item_id': itemId, 'amount': amount.toString(), 'business_id': businessId, 'options': options_selected_ids}),
+      body: json.encode({
+        'item_id': itemId,
+        'amount': amount.toString(),
+        'business_id': businessId,
+        'options': options_selected_ids
+      }),
       headers: {"Content-Type": "application/json", "AUTH": token},
     );
   }
@@ -423,7 +438,8 @@ Future<Map<String, dynamic>> getCart(String businessId) async {
   // List<dynamic> list = json.decode(response.body);
   print(response.bodyBytes);
   Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
-  print("DATA FROM GETCART IN API.DART__ DATA FROM GETCART IN API.DART__ DATA FROM GETCART IN API.DART");
+  print(
+      "DATA FROM GETCART IN API.DART__ DATA FROM GETCART IN API.DART__ DATA FROM GETCART IN API.DART");
   return data;
 }
 
@@ -597,7 +613,9 @@ Future<Map<String, dynamic>?> getCity() async {
   return data;
 }
 
-Future<Map<String, dynamic>> createOrder(String businessId, String? addressId, int? delivery, [String user_id = ""]) async {
+Future<Map<String, dynamic>> createOrder(
+    String businessId, String? addressId, int? delivery,
+    [String user_id = ""]) async {
   // Returns null in two situations, token is null or wrong order (406)
   String? token = await getToken();
   if (token == null) {
@@ -630,7 +648,10 @@ Future<Map<String, dynamic>> createOrder(String businessId, String? addressId, i
   if (data == 200) {
     return {"status": true, "data": utf8.decode(response.bodyBytes)};
   } else if (data == 400) {
-    return {"status": false, "data": json.decode(utf8.decode(response.bodyBytes))};
+    return {
+      "status": false,
+      "data": json.decode(utf8.decode(response.bodyBytes))
+    };
   } else {
     return {"status": null};
   }
@@ -796,7 +817,7 @@ Future<List> getActiveOrders() async {
   if (token == null) {
     return [];
   }
-  var url = Uri.https(URL_API, 'api/user/getClient');
+  var url = Uri.https(URL_API, 'api/item/getActiveOrder');
   var response = await client.post(
     url,
     headers: {

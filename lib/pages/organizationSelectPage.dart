@@ -1,12 +1,16 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:naliv_delivery/agreements/offer.dart';
+import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/pages/bonusesPage.dart';
 import 'package:naliv_delivery/pages/createProfilePage.dart';
 import 'package:naliv_delivery/pages/pickOnMap.dart';
 import 'package:naliv_delivery/pages/preLoadDataPage.dart';
+import 'package:naliv_delivery/shared/bottomBar.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/homePage.dart';
@@ -16,8 +20,16 @@ import 'package:naliv_delivery/pages/settingsPage.dart';
 import 'package:naliv_delivery/pages/supportPage.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+//сервис геолокации
+import 'package:fl_location/fl_location.dart';
+
 class OrganizationSelectPage extends StatefulWidget {
-  const OrganizationSelectPage({super.key, required this.addresses, required this.currentAddress, required this.user, required this.businesses});
+  const OrganizationSelectPage(
+      {super.key,
+      required this.addresses,
+      required this.currentAddress,
+      required this.user,
+      required this.businesses});
   final List addresses;
   final Map currentAddress;
   final Map<String, dynamic> user;
@@ -26,7 +38,8 @@ class OrganizationSelectPage extends StatefulWidget {
   State<OrganizationSelectPage> createState() => _OrganizationSelectPageState();
 }
 
-class _OrganizationSelectPageState extends State<OrganizationSelectPage> with AutomaticKeepAliveClientMixin {
+class _OrganizationSelectPageState extends State<OrganizationSelectPage>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -46,12 +59,36 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
 
   // ! TODO: TAKE THIS DATA FROM BACKEND
   List<Map> _carouselItems = [
-    {"name": "Алкоголь", "image": "https://status-k.ru/wp-content/uploads/2021/06/alkogol-440x440.png"},
-    {"name": "Восточная кухня", "image": "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"},
-    {"name": "Какая-то еще кухня", "image": "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"},
-    {"name": "Надо будет написать бэк для этого", "image": "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"},
-    {"name": "Потому что здесь", "image": "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"},
-    {"name": "просто массив", "image": "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"},
+    {
+      "name": "Алкоголь",
+      "image":
+          "https://status-k.ru/wp-content/uploads/2021/06/alkogol-440x440.png"
+    },
+    {
+      "name": "Восточная кухня",
+      "image":
+          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
+    },
+    {
+      "name": "Какая-то еще кухня",
+      "image":
+          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
+    },
+    {
+      "name": "Надо будет написать бэк для этого",
+      "image":
+          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
+    },
+    {
+      "name": "Потому что здесь",
+      "image":
+          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
+    },
+    {
+      "name": "просто массив",
+      "image":
+          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
+    },
   ];
 
   void _initData() {
@@ -151,7 +188,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                 Flexible(
                                     child: Text(
                                   "Изменить адрес доставки?",
-                                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 76 * globals.scaleParam, color: Colors.black),
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 76 * globals.scaleParam,
+                                      color: Colors.black),
                                 )),
                                 SizedBox(
                                   height: 10 * globals.scaleParam,
@@ -159,7 +199,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                 Flexible(
                                     child: Text(
                                   _currentAddressName!,
-                                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 48 * globals.scaleParam, color: Colors.black),
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 48 * globals.scaleParam,
+                                      color: Colors.black),
                                 )),
                                 SizedBox(
                                   height: 10 * globals.scaleParam,
@@ -171,13 +214,17 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                     Flexible(
                                       child: Text(
                                         "Подъезд/Вход: ",
-                                        style: TextStyle(fontWeight: FontWeight.w500, fontSize: 32 * globals.scaleParam),
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 32 * globals.scaleParam),
                                       ),
                                     ),
                                     Flexible(
                                       child: Text(
                                         address["entrance"] ?? "-",
-                                        style: TextStyle(fontWeight: FontWeight.w500, fontSize: 32 * globals.scaleParam),
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 32 * globals.scaleParam),
                                       ),
                                     )
                                   ],
@@ -251,10 +298,16 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                             children: [
                               IconButton(
                                   style: IconButton.styleFrom(
-                                      backgroundColor: Colors.tealAccent.shade700, padding: EdgeInsets.all(20 * globals.scaleParam)),
+                                      backgroundColor:
+                                          Colors.tealAccent.shade700,
+                                      padding: EdgeInsets.all(
+                                          20 * globals.scaleParam)),
                                   onPressed: () {
-                                    selectAddressClient(address["address_id"], widget.user["user_id"]).then((q) {
-                                      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+                                    selectAddressClient(address["address_id"],
+                                            widget.user["user_id"])
+                                        .then((q) {
+                                      Navigator.pushAndRemoveUntil(context,
+                                          MaterialPageRoute(
                                         builder: (context) {
                                           return PreLoadDataPage(
                                               // business: widget.business,
@@ -275,7 +328,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                               ),
                               IconButton(
                                   style: IconButton.styleFrom(
-                                      backgroundColor: Colors.redAccent.shade700, padding: EdgeInsets.all(20 * globals.scaleParam)),
+                                      backgroundColor:
+                                          Colors.redAccent.shade700,
+                                      padding: EdgeInsets.all(
+                                          20 * globals.scaleParam)),
                                   onPressed: () {
                                     Navigator.pop(context);
                                   },
@@ -313,7 +369,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                               Flexible(
                                   child: Text(
                                 "Изменить адрес доставки?",
-                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 76 * globals.scaleParam, color: Colors.black),
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 76 * globals.scaleParam,
+                                    color: Colors.black),
                               )),
                               SizedBox(
                                 height: 10 * globals.scaleParam,
@@ -321,7 +380,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                               Flexible(
                                   child: Text(
                                 _currentAddressName!,
-                                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 48 * globals.scaleParam, color: Colors.black),
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 48 * globals.scaleParam,
+                                    color: Colors.black),
                               )),
                             ],
                           ),
@@ -331,7 +393,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                           children: [
                             IconButton(
                                 style: IconButton.styleFrom(
-                                    backgroundColor: Colors.tealAccent.shade700, padding: EdgeInsets.all(20 * globals.scaleParam)),
+                                    backgroundColor: Colors.tealAccent.shade700,
+                                    padding: EdgeInsets.all(
+                                        20 * globals.scaleParam)),
                                 onPressed: () {
                                   globals.addressSelectPopUpDone = true;
 
@@ -361,7 +425,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                             ),
                             IconButton(
                                 style: IconButton.styleFrom(
-                                    backgroundColor: Colors.redAccent.shade700, padding: EdgeInsets.all(20 * globals.scaleParam)),
+                                    backgroundColor: Colors.redAccent.shade700,
+                                    padding: EdgeInsets.all(
+                                        20 * globals.scaleParam)),
                                 onPressed: () {
                                   globals.addressSelectPopUpDone = true;
                                   Navigator.pop(context);
@@ -416,13 +482,20 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
     // _initData();
   }
 
+  @override
+  void dispose() {
+    // Remove a callback to receive data sent from the TaskHandler.
+    super.dispose();
+  }
+
   ScrollController _sc = ScrollController();
   bool isCollapsed = false;
   bool isStartingToCollapse = false;
   double scrollExtent = 0;
   bool isMenuOpen = false;
-  final GlobalKey<ScaffoldState> _key =
-      GlobalKey(debugLabel: "вот это ключ, всем ключам ключ, надеюсь он тут не потеряется"); // lol, за что он отвечает?
+  final GlobalKey<ScaffoldState> _key = GlobalKey(
+      debugLabel:
+          "вот это ключ, всем ключам ключ, надеюсь он тут не потеряется"); // lol, за что он отвечает?
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -446,6 +519,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
       key: _key,
       drawerEnableOpenDragGesture: false,
       drawerScrimColor: Colors.white,
+      bottomNavigationBar: context.mounted ? BottomBar() : Container(),
       endDrawer: SafeArea(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
@@ -488,7 +562,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                           "НАЛИВ/ГРАДУСЫ24",
                           // "закажи",
                           style: GoogleFonts.sofiaSans(
-                            textStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 72 * globals.scaleParam),
+                            textStyle: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 72 * globals.scaleParam),
                           ),
                         ),
                       ),
@@ -586,7 +662,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
               title: AnimatedSwitcher(
                 transitionBuilder: (child, animation) {
                   return SlideTransition(
-                    position: Tween<Offset>(begin: const Offset(0, -1), end: const Offset(0, -0.1)).animate(animation),
+                    position: Tween<Offset>(
+                            begin: const Offset(0, -1),
+                            end: const Offset(0, -0.1))
+                        .animate(animation),
                     child: child,
                   );
                 },
@@ -595,10 +674,12 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                     ? Container(
                         key: ValueKey(isCollapsed),
                         height: 160 * globals.scaleParam,
-                        padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 20 * globals.scaleParam),
                         alignment: Alignment.centerLeft,
                         decoration: BoxDecoration(
-                          borderRadius: const BorderRadius.all(Radius.circular(20)),
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(20)),
                           // color: Colors.amber,
                         ),
                         child: Row(
@@ -620,16 +701,20 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                   ));
                                 },
                                 child: Container(
-                                  margin: EdgeInsets.only(top: 10 * globals.scaleParam),
+                                  margin: EdgeInsets.only(
+                                      top: 10 * globals.scaleParam),
                                   decoration: BoxDecoration(
                                     color: Colors.black,
-                                    borderRadius: BorderRadius.all(Radius.circular(15)),
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(15)),
                                   ),
                                   child: LayoutBuilder(
                                     builder: (context, constraints) {
                                       return Row(
-                                        mainAxisAlignment: MainAxisAlignment.start,
-                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
                                         children: [
                                           SizedBox(
                                             width: constraints.maxWidth * 0.15,
@@ -643,19 +728,34 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                             width: constraints.maxWidth * 0.7,
                                             child: LayoutBuilder(
                                               builder: (context, constraints2) {
-                                                double cityNameHeight = constraints.maxHeight * 0.5;
-                                                double addressNameHeight = constraints.maxHeight * 0.5;
+                                                double cityNameHeight =
+                                                    constraints.maxHeight * 0.5;
+                                                double addressNameHeight =
+                                                    constraints.maxHeight * 0.5;
                                                 if (hasSecondLine(
-                                                    widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
+                                                    widget.currentAddress
+                                                            .isNotEmpty
+                                                        ? widget.currentAddress[
+                                                            "address"]
+                                                        : "Нет адреса",
                                                     TextStyle(
-                                                      fontSize: 32 * globals.scaleParam,
-                                                      fontWeight: FontWeight.w500,
-                                                      color: isCollapsed ? Colors.white : Colors.transparent,
+                                                      fontSize: 32 *
+                                                          globals.scaleParam,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: isCollapsed
+                                                          ? Colors.white
+                                                          : Colors.transparent,
                                                       height: 1.1,
                                                     ),
-                                                    constraints.maxWidth * 0.7)) {
-                                                  cityNameHeight = constraints.maxHeight * 0.42;
-                                                  addressNameHeight = constraints.maxHeight * 0.58;
+                                                    constraints.maxWidth *
+                                                        0.7)) {
+                                                  cityNameHeight =
+                                                      constraints.maxHeight *
+                                                          0.42;
+                                                  addressNameHeight =
+                                                      constraints.maxHeight *
+                                                          0.58;
                                                 }
 
                                                 // return Container(
@@ -664,23 +764,37 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                                 // );
 
                                                 return Column(
-                                                  mainAxisAlignment: MainAxisAlignment.end,
-                                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.end,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.center,
                                                   children: [
                                                     Container(
                                                       height: cityNameHeight,
-                                                      alignment: Alignment.bottomLeft,
+                                                      alignment:
+                                                          Alignment.bottomLeft,
                                                       child: Row(
-                                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .end,
                                                         children: [
                                                           Flexible(
                                                             child: Text(
-                                                              widget.currentAddress["city_name"] ?? "",
-                                                              textAlign: TextAlign.start,
+                                                              widget.currentAddress[
+                                                                      "city_name"] ??
+                                                                  "",
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .start,
                                                               style: TextStyle(
-                                                                fontWeight: FontWeight.w700,
-                                                                fontSize: 36 * globals.scaleParam,
-                                                                color: Colors.white,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700,
+                                                                fontSize: 36 *
+                                                                    globals
+                                                                        .scaleParam,
+                                                                color: Colors
+                                                                    .white,
                                                                 height: 1.1,
                                                               ),
                                                             ),
@@ -690,17 +804,32 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                                     ),
                                                     Container(
                                                       height: addressNameHeight,
-                                                      alignment: Alignment.topLeft,
+                                                      alignment:
+                                                          Alignment.topLeft,
                                                       child: Row(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
                                                         children: [
                                                           Flexible(
                                                             child: Text(
-                                                              widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
+                                                              widget.currentAddress
+                                                                      .isNotEmpty
+                                                                  ? widget.currentAddress[
+                                                                      "address"]
+                                                                  : "Нет адреса",
                                                               style: TextStyle(
-                                                                fontSize: 32 * globals.scaleParam,
-                                                                fontWeight: FontWeight.w500,
-                                                                color: isCollapsed ? Colors.white : Colors.transparent,
+                                                                fontSize: 32 *
+                                                                    globals
+                                                                        .scaleParam,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                                color: isCollapsed
+                                                                    ? Colors
+                                                                        .white
+                                                                    : Colors
+                                                                        .transparent,
                                                                 height: 1.1,
                                                               ),
                                                             ),
@@ -735,7 +864,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                       )
                     : Container(
                         height: 160 * globals.scaleParam,
-                        padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 20 * globals.scaleParam),
                         alignment: Alignment.centerLeft,
                         child: Row(
                           children: [
@@ -758,8 +888,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                 child: LayoutBuilder(
                                   builder: (context, constraints) {
                                     return Row(
-                                      mainAxisAlignment: MainAxisAlignment.start,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
                                       children: [
                                         SizedBox(
                                           width: constraints.maxWidth * 0.15,
@@ -773,19 +905,32 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                           width: constraints.maxWidth * 0.7,
                                           child: LayoutBuilder(
                                             builder: (context, constraints2) {
-                                              double cityNameHeight = constraints.maxHeight * 0.5;
-                                              double addressNameHeight = constraints.maxHeight * 0.5;
+                                              double cityNameHeight =
+                                                  constraints.maxHeight * 0.5;
+                                              double addressNameHeight =
+                                                  constraints.maxHeight * 0.5;
                                               if (hasSecondLine(
-                                                  widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
+                                                  widget.currentAddress
+                                                          .isNotEmpty
+                                                      ? widget.currentAddress[
+                                                          "address"]
+                                                      : "Нет адреса",
                                                   TextStyle(
-                                                    fontSize: 32 * globals.scaleParam,
+                                                    fontSize:
+                                                        32 * globals.scaleParam,
                                                     fontWeight: FontWeight.w500,
-                                                    color: isCollapsed ? Colors.white : Colors.transparent,
+                                                    color: isCollapsed
+                                                        ? Colors.white
+                                                        : Colors.transparent,
                                                     height: 1.1,
                                                   ),
                                                   constraints.maxWidth * 0.7)) {
-                                                cityNameHeight = constraints.maxHeight * 0.42;
-                                                addressNameHeight = constraints.maxHeight * 0.58;
+                                                cityNameHeight =
+                                                    constraints.maxHeight *
+                                                        0.42;
+                                                addressNameHeight =
+                                                    constraints.maxHeight *
+                                                        0.58;
                                               }
 
                                               // return Container(
@@ -794,23 +939,36 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                               // );
 
                                               return Column(
-                                                mainAxisAlignment: MainAxisAlignment.end,
-                                                crossAxisAlignment: CrossAxisAlignment.center,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.end,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.center,
                                                 children: [
                                                   Container(
                                                     height: cityNameHeight,
-                                                    alignment: Alignment.bottomLeft,
+                                                    alignment:
+                                                        Alignment.bottomLeft,
                                                     child: Row(
-                                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .end,
                                                       children: [
                                                         Flexible(
                                                           child: Text(
-                                                            widget.currentAddress["city_name"] ?? "",
-                                                            textAlign: TextAlign.start,
+                                                            widget.currentAddress[
+                                                                    "city_name"] ??
+                                                                "",
+                                                            textAlign:
+                                                                TextAlign.start,
                                                             style: TextStyle(
-                                                              fontWeight: FontWeight.w700,
-                                                              fontSize: 36 * globals.scaleParam,
-                                                              color: Colors.black,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              fontSize: 36 *
+                                                                  globals
+                                                                      .scaleParam,
+                                                              color:
+                                                                  Colors.black,
                                                               height: 1.1,
                                                             ),
                                                           ),
@@ -820,17 +978,31 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                                   ),
                                                   Container(
                                                     height: addressNameHeight,
-                                                    alignment: Alignment.topLeft,
+                                                    alignment:
+                                                        Alignment.topLeft,
                                                     child: Row(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
                                                       children: [
                                                         Flexible(
                                                           child: Text(
-                                                            widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
+                                                            widget.currentAddress
+                                                                    .isNotEmpty
+                                                                ? widget.currentAddress[
+                                                                    "address"]
+                                                                : "Нет адреса",
                                                             style: TextStyle(
-                                                              fontSize: 32 * globals.scaleParam,
-                                                              fontWeight: FontWeight.w500,
-                                                              color: !isCollapsed ? Colors.black : Colors.transparent,
+                                                              fontSize: 32 *
+                                                                  globals
+                                                                      .scaleParam,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                              color: !isCollapsed
+                                                                  ? Colors.black
+                                                                  : Colors
+                                                                      .transparent,
                                                               height: 1.1,
                                                             ),
                                                           ),
@@ -883,7 +1055,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                         ),
                                       ),
                                     ),
-                                    Flexible(fit: FlexFit.tight, child: CircleAvatar()),
+                                    Flexible(
+                                        fit: FlexFit.tight,
+                                        child: CircleAvatar()),
                                   ],
                                 ),
                               ),
@@ -899,13 +1073,18 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
             ),
             SliverToBoxAdapter(
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 50 * globals.scaleParam, vertical: 20 * globals.scaleParam),
+                padding: EdgeInsets.symmetric(
+                    horizontal: 50 * globals.scaleParam,
+                    vertical: 20 * globals.scaleParam),
                 child: Row(
                   children: [
                     Flexible(
                       child: Text(
                         "Бар-Маркеты",
-                        style: TextStyle(fontSize: 48 * globals.scaleParam, fontWeight: FontWeight.w900, color: Colors.black),
+                        style: TextStyle(
+                            fontSize: 48 * globals.scaleParam,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.black),
                       ),
                     ),
                   ],
@@ -935,7 +1114,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
 }
 
 class DrawerMenuItem extends StatefulWidget {
-  const DrawerMenuItem({super.key, required this.name, required this.icon, required this.route});
+  const DrawerMenuItem(
+      {super.key, required this.name, required this.icon, required this.route});
   final String name;
   final IconData icon;
   final Widget route;
@@ -958,7 +1138,10 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
         decoration: const BoxDecoration(
           borderRadius: BorderRadius.only(bottomRight: Radius.circular(15)),
           color: Colors.white,
-          boxShadow: [BoxShadow(offset: Offset(5, 3), blurRadius: 5, color: Colors.black12)],
+          boxShadow: [
+            BoxShadow(
+                offset: Offset(5, 3), blurRadius: 5, color: Colors.black12)
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.start,
@@ -1027,7 +1210,8 @@ class BusinessItemState extends State<BusinessItem> {
         decoration: const BoxDecoration(
           color: Colors.white,
           boxShadow: [
-            BoxShadow(offset: Offset(2, 2), blurRadius: 2, color: Colors.black12),
+            BoxShadow(
+                offset: Offset(2, 2), blurRadius: 2, color: Colors.black12),
           ],
           borderRadius: BorderRadius.all(
             Radius.circular(10),
@@ -1052,7 +1236,8 @@ class BusinessItemState extends State<BusinessItem> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 10 * globals.scaleParam),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade50,
                       ),
@@ -1107,7 +1292,9 @@ class BusinessItemState extends State<BusinessItem> {
                                     fit: FlexFit.tight,
                                     child: Text(
                                       widget.business["address"],
-                                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 30 * globals.scaleParam),
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 30 * globals.scaleParam),
                                     ),
                                   )
                                 ],
@@ -1122,7 +1309,9 @@ class BusinessItemState extends State<BusinessItem> {
                                   Flexible(
                                     child: Text(
                                       "Короткое описание",
-                                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 30 * globals.scaleParam),
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 30 * globals.scaleParam),
                                     ),
                                   ),
                                 ],
@@ -1144,7 +1333,11 @@ class BusinessItemState extends State<BusinessItem> {
 }
 
 class BusinessSelectCarousel extends StatefulWidget {
-  const BusinessSelectCarousel({super.key, required this.businesses, required this.user, required this.currentAddress});
+  const BusinessSelectCarousel(
+      {super.key,
+      required this.businesses,
+      required this.user,
+      required this.currentAddress});
   final List<Map> businesses;
   final Map user;
   final Map currentAddress;

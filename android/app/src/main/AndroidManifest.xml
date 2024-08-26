@@ -40,6 +40,26 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" /> 
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" /> 
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- required -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- foregroundServiceType: dataSync -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <!-- foregroundServiceType: remoteMessaging -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
+
+    <!-- important: Do not change service name. -->
+    <!-- Add android:stopWithTask option only when necessary. -->
+    <application>
+        <!-- Add service -->
+        <service 
+            android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
+            android:foregroundServiceType="location" 
+            android:exported="false" />
+    </application>
 
 </manifest>

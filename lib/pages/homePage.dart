@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/paintLogoPage.dart';
+import 'package:naliv_delivery/shared/bottomBar.dart';
 import '../globals.dart' as globals;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:naliv_delivery/pages/categoryPage.dart';
@@ -20,7 +21,8 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin<HomePage> {
+class _HomePageState extends State<HomePage>
+    with AutomaticKeepAliveClientMixin<HomePage> {
   @override
   bool get wantKeepAlive => true;
 
@@ -73,9 +75,11 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin<
       builder: (context, snapshot) {
         if (snapshot.hasData && isLogoPainted) {
           return Scaffold(
+            bottomSheet: BottomBar(),
             backgroundColor: Colors.grey.shade100,
             key: _scaffoldKey,
-            floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+            floatingActionButtonLocation:
+                FloatingActionButtonLocation.endContained,
             floatingActionButton: SizedBox(
               child: CartButton(
                 business: widget.business,
@@ -87,7 +91,8 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin<
               automaticallyImplyLeading: false,
               titleSpacing: 0,
               title: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
+                padding:
+                    EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -114,12 +119,14 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin<
                               Text(
                                 widget.business["name"],
                                 maxLines: 1,
-                                style: TextStyle(fontSize: 40 * globals.scaleParam),
+                                style: TextStyle(
+                                    fontSize: 40 * globals.scaleParam),
                               ),
                               Text(
                                 widget.business["address"],
                                 maxLines: 1,
-                                style: TextStyle(fontSize: 32 * globals.scaleParam),
+                                style: TextStyle(
+                                    fontSize: 32 * globals.scaleParam),
                               ),
                             ],
                           ),
@@ -145,9 +152,13 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin<
                                 ),
                               );
                             },
-                            style: TextButton.styleFrom(foregroundColor: Colors.white.withOpacity(0)),
+                            style: TextButton.styleFrom(
+                                foregroundColor: Colors.white.withOpacity(0)),
                             child: Container(
-                              decoration: BoxDecoration(color: Colors.black.withOpacity(0.1), borderRadius: BorderRadius.all(Radius.circular(10))),
+                              decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.1),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(10))),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
@@ -163,7 +174,8 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin<
                                     ),
                                   ),
                                   Container(
-                                    padding: EdgeInsets.all(20 * globals.scaleParam),
+                                    padding:
+                                        EdgeInsets.all(20 * globals.scaleParam),
                                     child: Icon(
                                       Icons.search,
                                       color: Colors.black,
@@ -207,26 +219,37 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin<
                               padding: EdgeInsets.all(0),
                               physics: NeverScrollableScrollPhysics(),
                               shrinkWrap: true,
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
                                 // maxCrossAxisExtent: 650 * globals.scaleParam,
-                                crossAxisCount: MediaQuery.of(context).size.aspectRatio > 1 ? 3 : 2,
+                                crossAxisCount:
+                                    MediaQuery.of(context).size.aspectRatio > 1
+                                        ? 3
+                                        : 2,
                                 childAspectRatio: 1,
                                 crossAxisSpacing: 0,
                                 mainAxisSpacing: 0,
                               ),
-                              itemCount: snapshot.data!.length % 2 != 0 ? snapshot.data!.length + 1 + 2 : snapshot.data!.length + 2,
+                              itemCount: snapshot.data!.length % 2 != 0
+                                  ? snapshot.data!.length + 1 + 2
+                                  : snapshot.data!.length + 2,
                               itemBuilder: (BuildContext ctx, index) {
-                                return (snapshot.data!.length % 2 != 0 && index >= snapshot.data!.length) ||
-                                        (index >= snapshot.data!.length && snapshot.data!.length % 2 == 0)
+                                return (snapshot.data!.length % 2 != 0 &&
+                                            index >= snapshot.data!.length) ||
+                                        (index >= snapshot.data!.length &&
+                                            snapshot.data!.length % 2 == 0)
                                     ? Container(
-                                        margin: EdgeInsets.all(8 * globals.scaleParam),
+                                        margin: EdgeInsets.all(
+                                            8 * globals.scaleParam),
                                         decoration: BoxDecoration(
                                           color: Colors.white,
-                                          borderRadius: BorderRadius.all(Radius.circular(15)),
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(15)),
                                         ),
                                       )
                                     : CategoryItem(
-                                        category_id: snapshot.data![index]["category_id"],
+                                        category_id: snapshot.data![index]
+                                            ["category_id"],
                                         name: snapshot.data![index]["name"],
                                         image: snapshot.data![index]["photo"],
                                         categories: snapshot.data!,
