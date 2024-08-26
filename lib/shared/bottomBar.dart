@@ -46,9 +46,9 @@ class _BottomBarState extends State<BottomBar>
   }
 
   Future<void> _getActiveOrders() async {
-    List _orders = await getActiveOrders();
+    List? _orders = await getActiveOrders();
     setState(() {
-      orders = _orders;
+      orders = _orders!;
     });
   }
 
