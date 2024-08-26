@@ -70,7 +70,11 @@ dependencies:
   qr_flutter: ^4.1.0
   barcode: ^2.2.8
   barcode_widget: ^2.0.4
+  workmanager: ^0.5.2
   vibration: ^2.0.0
+  background_location: ^0.13.0
+  flutter_background_service: ^5.0.7
+  socket_io_client: ^2.0.3+1
   # drawing_animation: ^1.0.0
 
 

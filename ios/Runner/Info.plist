@@ -58,6 +58,14 @@
 			</dict>
 		</dict>
 		<key>UIStatusBarHidden</key>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>The app needs it</string>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>The app needs it</string>
+		<key>UIBackgroundModes</key>
+		<array>
+		<string>location</string>
+		</array>
 		<false/>
 	</dict>
 </plist>

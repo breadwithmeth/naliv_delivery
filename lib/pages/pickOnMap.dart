@@ -988,7 +988,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                 ),
                 Flexible(
                   child: TextField(
-                    maxLength: 250,
+                    maxLength: 100,
                     buildCounter: (context,
                         {required currentLength,
                         required isFocused,
@@ -1014,6 +1014,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                   children: [
                     Flexible(
                       child: TextField(
+                        maxLength: 20,
                         keyboardType: TextInputType.text,
                         controller: house,
                         inputFormatters: [
@@ -1032,6 +1033,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                     ),
                     Flexible(
                       child: TextField(
+                        maxLength: 20,
                         keyboardType: TextInputType.text,
                         controller: entrance,
                         inputFormatters: [
@@ -1050,6 +1052,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                     ),
                     Flexible(
                       child: TextField(
+                        maxLength: 20,
                         keyboardType: TextInputType.text,
                         controller: floor,
                         inputFormatters: [
@@ -1069,7 +1072,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                   ],
                 ),
                 TextField(
-                  maxLength: 500,
+                  maxLength: 200,
                   buildCounter: (context,
                       {required currentLength,
                       required isFocused,
