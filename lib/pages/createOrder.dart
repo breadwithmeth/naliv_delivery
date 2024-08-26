@@ -686,7 +686,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                     child: ElevatedButton(
                                       style: ElevatedButton.styleFrom(
                                         padding: EdgeInsets.symmetric(
-                                          vertical: 8 * globals.scaleParam,
                                           horizontal: 12 * globals.scaleParam,
                                         ),
                                         backgroundColor: Colors.transparent,

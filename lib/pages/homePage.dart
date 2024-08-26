@@ -218,13 +218,7 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin<
                               itemBuilder: (BuildContext ctx, index) {
                                 return (snapshot.data!.length % 2 != 0 && index >= snapshot.data!.length) ||
                                         (index >= snapshot.data!.length && snapshot.data!.length % 2 == 0)
-                                    ? Container(
-                                        margin: EdgeInsets.all(8 * globals.scaleParam),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.all(Radius.circular(15)),
-                                        ),
-                                      )
+                                    ? SizedBox()
                                     : CategoryItem(
                                         category_id: snapshot.data![index]["category_id"],
                                         name: snapshot.data![index]["name"],
@@ -279,6 +273,10 @@ class _CategoryItemState extends State<CategoryItem> {
   void initState() {
     super.initState();
   }
+
+  // LinearGradient getGradientForCategory(int categoryId) {
+  //   LinearGradient? newGradiet;
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -360,6 +358,7 @@ class _CategoryItemState extends State<CategoryItem> {
                               child: Text(
                                 widget.name,
                                 overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
                                 maxLines: 3,
                                 style: GoogleFonts.montserratAlternates(
                                   textStyle: TextStyle(

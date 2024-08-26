@@ -662,15 +662,78 @@ class _ProductPageState extends State<ProductPage> {
             width: MediaQuery.sizeOf(context).width * 0.5,
             height: MediaQuery.sizeOf(context).height * 0.5,
             alignment: Alignment.center,
-            child: Container(
-              decoration: const BoxDecoration(
-                borderRadius: BorderRadius.all(
-                  Radius.circular(10),
+            child: GestureDetector(
+              onTap: () {
+                showAdaptiveDialog(
+                  context: context,
+                  builder: (context) {
+                    return Dialog.fullscreen(
+                      child: LayoutBuilder(builder: (context, constraints) {
+                        return Stack(
+                          children: [
+                            SizedBox(
+                              width: constraints.maxWidth,
+                              height: constraints.maxHeight,
+                              child: InteractiveViewer(
+                                panEnabled: true,
+                                boundaryMargin: EdgeInsets.all(100),
+                                minScale: 0.5,
+                                maxScale: 5,
+                                child: ExtendedImage.network(
+                                  item["img"],
+                                  width: double.infinity,
+                                  // mode: ExtendedImageMode.gesture,
+                                  // initGestureConfigHandler: (state) {
+                                  //   return GestureConfig(
+                                  //     minScale: 0.8,
+                                  //     maxScale: 3.0,
+                                  //     speed: 1.0,
+                                  //     inertialSpeed: 100.0,
+                                  //   );
+                                  // },
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.all(20 * globals.scaleParam),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  IconButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                    },
+                                    icon: Icon(Icons.close_fullscreen_rounded),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      }),
+                    );
+                  },
+                );
+              },
+              child: Container(
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(10),
+                  ),
                 ),
-              ),
-              clipBehavior: Clip.none,
-              child: ExtendedImage.network(
-                item["img"],
+                clipBehavior: Clip.none,
+                child: ExtendedImage.network(
+                  item["img"],
+                  // mode: ExtendedImageMode.gesture,
+                  // initGestureConfigHandler: (state) {
+                  //   return GestureConfig(
+                  //     minScale: 0.8,
+                  //     maxScale: 3.0,
+                  //     speed: 1.0,
+                  //     inertialSpeed: 100.0,
+                  //   );
+                  // },
+                ),
               ),
             ),
           ),

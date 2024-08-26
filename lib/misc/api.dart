@@ -791,10 +791,10 @@ Future<List> getGeoDataByCoord(double lat, double lon) async {
   return list;
 }
 
-Future<List> getActiveOrders() async {
+Future<List?> getActiveOrders() async {
   String? token = await getToken();
   if (token == null) {
-    return [];
+    return null;
   }
   var url = Uri.https(URL_API, '/api/item/getActiveOrder.php');
   var response = await client.post(

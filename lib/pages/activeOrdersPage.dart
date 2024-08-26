@@ -11,18 +11,24 @@ class ActiveOrdersPage extends StatefulWidget {
 
 class _ActiveOrdersPageState extends State<ActiveOrdersPage> {
   List? activeOrders;
+  bool loaded = false;
+  bool error = false;
 
   Future<void> getOrders() async {
     getActiveOrders().then(
       (value) {
         print(value);
-        if (value.isNotEmpty) {
+        if (value != null) {
           setState(() {
             activeOrders = value;
+            loaded = true;
+            error = false;
           });
         } else {
           setState(() {
             activeOrders = [];
+            loaded = true;
+            error = true;
           });
         }
       },
@@ -52,8 +58,60 @@ class _ActiveOrdersPageState extends State<ActiveOrdersPage> {
           )
         ],
       ),
-      body: activeOrders != null
-          ? ListView.builder(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          if (!loaded) {
+            return LinearProgressIndicator();
+          } else if (error) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.8,
+                    child: Column(
+                      children: [
+                        Text(
+                          "Произошла ошибка. Повторите попытку позже",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.secondary,
+                            fontSize: 42 * globals.scaleParam,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          } else if (activeOrders!.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.8,
+                    child: Column(
+                      children: [
+                        Text(
+                          "У вас нет активных заказов",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.secondary,
+                            fontSize: 42 * globals.scaleParam,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          } else {
+            return ListView.builder(
               itemCount: activeOrders!.length,
               itemBuilder: (context, index) {
                 return Container(
@@ -115,27 +173,10 @@ class _ActiveOrdersPageState extends State<ActiveOrdersPage> {
                   ),
                 );
               },
-            )
-          : Center(
-              child: SizedBox(
-                width: MediaQuery.sizeOf(context).width * 0.8,
-                height: MediaQuery.sizeOf(context).height,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "У вас нет активных заказов",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.secondary,
-                        fontSize: 42 * globals.scaleParam,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            );
+          }
+        },
+      ),
     );
   }
 }

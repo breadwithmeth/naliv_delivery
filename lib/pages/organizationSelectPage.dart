@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:naliv_delivery/agreements/offer.dart';
 import 'package:naliv_delivery/pages/activeOrdersPage.dart';
 import 'package:naliv_delivery/pages/bonusesPage.dart';
@@ -506,11 +507,11 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                 flex: 8,
                 fit: FlexFit.tight,
                 child: GridView.count(
-                  padding: EdgeInsets.all(10 * globals.scaleParam),
+                  padding: EdgeInsets.all(MediaQuery.of(context).size.aspectRatio > 1 ? 50 : 20 * globals.scaleParam),
                   mainAxisSpacing: 10,
                   crossAxisSpacing: 10,
                   childAspectRatio: 2 / 1,
-                  crossAxisCount: 2,
+                  crossAxisCount: MediaQuery.of(context).size.aspectRatio > 1 ? 4 : 2,
                   children: [
                     const DrawerMenuItem(
                       name: "История заказов",
@@ -523,6 +524,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                       route: PickAddressPage(
                         client: widget.user,
                         addresses: widget.addresses,
+                        fromDrawer: true,
                       ),
                     ),
                     const DrawerMenuItem(
@@ -605,6 +607,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                         alignment: Alignment.centerLeft,
                         decoration: BoxDecoration(
                           borderRadius: const BorderRadius.all(Radius.circular(20)),
+
                           // color: Colors.amber,
                         ),
                         child: Row(
@@ -630,6 +633,13 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                   decoration: BoxDecoration(
                                     color: Colors.black,
                                     borderRadius: BorderRadius.all(Radius.circular(15)),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black38,
+                                        blurRadius: 3,
+                                        offset: Offset(-0.5, 1.5),
+                                      ),
+                                    ],
                                   ),
                                   child: LayoutBuilder(
                                     builder: (context, constraints) {
@@ -750,6 +760,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                               child: TextButton(
                                 style: TextButton.styleFrom(
                                   padding: EdgeInsets.zero,
+                                  // backgroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.all(Radius.circular(15)),
+                                  ),
                                 ),
                                 onPressed: () {
                                   Navigator.push(context, MaterialPageRoute(
@@ -763,151 +777,151 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                 },
                                 child: LayoutBuilder(
                                   builder: (context, constraints) {
-                                    return Row(
-                                      mainAxisAlignment: MainAxisAlignment.start,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        SizedBox(
-                                          width: constraints.maxWidth * 0.15,
-                                          child: Icon(
-                                            Icons.location_on_rounded,
-                                            size: 48 * globals.scaleParam,
-                                            color: Colors.black,
+                                    return SizedBox(
+                                      height: 160 * globals.scaleParam,
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.start,
+                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        children: [
+                                          SizedBox(
+                                            width: constraints.maxWidth * 0.15,
+                                            child: Icon(
+                                              Icons.location_on_rounded,
+                                              size: 48 * globals.scaleParam,
+                                              color: Colors.black,
+                                            ),
                                           ),
-                                        ),
-                                        SizedBox(
-                                          width: constraints.maxWidth * 0.7,
-                                          child: LayoutBuilder(
-                                            builder: (context, constraints2) {
-                                              double cityNameHeight = constraints.maxHeight * 0.5;
-                                              double addressNameHeight = constraints.maxHeight * 0.5;
-                                              if (hasSecondLine(
-                                                  widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
-                                                  TextStyle(
-                                                    fontSize: 32 * globals.scaleParam,
-                                                    fontWeight: FontWeight.w500,
-                                                    color: isCollapsed ? Colors.white : Colors.transparent,
-                                                    height: 1.1,
-                                                  ),
-                                                  constraints.maxWidth * 0.7)) {
-                                                cityNameHeight = constraints.maxHeight * 0.42;
-                                                addressNameHeight = constraints.maxHeight * 0.58;
-                                              }
+                                          SizedBox(
+                                            width: constraints.maxWidth * 0.7,
+                                            child: LayoutBuilder(
+                                              builder: (context, constraints2) {
+                                                double cityNameHeight = constraints.maxHeight * 0.5;
+                                                double addressNameHeight = constraints.maxHeight * 0.5;
+                                                if (hasSecondLine(
+                                                    widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
+                                                    TextStyle(
+                                                      fontSize: 32 * globals.scaleParam,
+                                                      fontWeight: FontWeight.w500,
+                                                      color: isCollapsed ? Colors.white : Colors.transparent,
+                                                      height: 1.1,
+                                                    ),
+                                                    constraints.maxWidth * 0.7)) {
+                                                  cityNameHeight = constraints.maxHeight * 0.42;
+                                                  addressNameHeight = constraints.maxHeight * 0.58;
+                                                }
 
-                                              // return Container(
-                                              // width: constraints.maxWidth * 0.7,
-                                              //   color: Colors.red,
-                                              // );
+                                                // return Container(
+                                                // width: constraints.maxWidth * 0.7,
+                                                //   color: Colors.red,
+                                                // );
 
-                                              return Column(
-                                                mainAxisAlignment: MainAxisAlignment.end,
-                                                crossAxisAlignment: CrossAxisAlignment.center,
-                                                children: [
-                                                  Container(
-                                                    height: cityNameHeight,
-                                                    alignment: Alignment.bottomLeft,
-                                                    child: Row(
-                                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                                      children: [
-                                                        Flexible(
-                                                          child: Text(
-                                                            widget.currentAddress["city_name"] ?? "",
-                                                            textAlign: TextAlign.start,
-                                                            style: TextStyle(
-                                                              fontWeight: FontWeight.w700,
-                                                              fontSize: 36 * globals.scaleParam,
-                                                              color: Colors.black,
-                                                              height: 1.1,
+                                                return Column(
+                                                  mainAxisAlignment: MainAxisAlignment.end,
+                                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                                  children: [
+                                                    Container(
+                                                      height: cityNameHeight,
+                                                      alignment: Alignment.bottomLeft,
+                                                      child: Row(
+                                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                                        children: [
+                                                          Flexible(
+                                                            child: Text(
+                                                              widget.currentAddress["city_name"] ?? "",
+                                                              textAlign: TextAlign.start,
+                                                              style: TextStyle(
+                                                                fontWeight: FontWeight.w700,
+                                                                fontSize: 36 * globals.scaleParam,
+                                                                color: Colors.black,
+                                                                height: 1.1,
+                                                              ),
                                                             ),
                                                           ),
-                                                        ),
-                                                      ],
+                                                        ],
+                                                      ),
                                                     ),
-                                                  ),
-                                                  Container(
-                                                    height: addressNameHeight,
-                                                    alignment: Alignment.topLeft,
-                                                    child: Row(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                      children: [
-                                                        Flexible(
-                                                          child: Text(
-                                                            widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
-                                                            style: TextStyle(
-                                                              fontSize: 32 * globals.scaleParam,
-                                                              fontWeight: FontWeight.w500,
-                                                              color: !isCollapsed ? Colors.black : Colors.transparent,
-                                                              height: 1.1,
+                                                    Container(
+                                                      height: addressNameHeight,
+                                                      alignment: Alignment.topLeft,
+                                                      child: Row(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Flexible(
+                                                            child: Text(
+                                                              widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
+                                                              style: TextStyle(
+                                                                fontSize: 32 * globals.scaleParam,
+                                                                fontWeight: FontWeight.w500,
+                                                                color: !isCollapsed ? Colors.black : Colors.transparent,
+                                                                height: 1.1,
+                                                              ),
                                                             ),
                                                           ),
-                                                        ),
-                                                      ],
+                                                        ],
+                                                      ),
                                                     ),
-                                                  ),
-                                                ],
-                                              );
-                                            },
+                                                  ],
+                                                );
+                                              },
+                                            ),
                                           ),
-                                        ),
-                                        SizedBox(
-                                          width: constraints.maxWidth * 0.15,
-                                          child: const Icon(
-                                            Icons.arrow_drop_down,
-                                            color: Colors.black,
+                                          SizedBox(
+                                            width: constraints.maxWidth * 0.15,
+                                            child: const Icon(
+                                              Icons.arrow_drop_down,
+                                              color: Colors.black,
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     );
                                   },
                                 ),
                               ),
                             ),
-                            Expanded(
+                            // Expanded(
+                            //   flex: 3,
+                            //   child: SizedBox(),
+                            // ),
+                            Flexible(
                               flex: 3,
-                              child: Row(
-                                children: [
-                                  Flexible(fit: FlexFit.tight, child: SizedBox()),
-                                  Flexible(
-                                    flex: 5,
-                                    fit: FlexFit.tight,
-                                    child: ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        padding: EdgeInsets.all(5 * globals.scaleParam),
-                                        backgroundColor: Colors.white,
-                                      ),
-                                      onPressed: () {
-                                        _key.currentState!.openEndDrawer();
-                                      },
-                                      child: Padding(
-                                        padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.end,
-                                          children: [
-                                            Flexible(
-                                              flex: 3,
-                                              fit: FlexFit.tight,
-                                              child: Padding(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 5,
-                                                ),
-                                                child: Text(
-                                                  widget.user["name"] ?? "",
-                                                  textAlign: TextAlign.right,
-                                                  style: TextStyle(
-                                                    fontSize: 30 * globals.scaleParam,
-                                                    color: Colors.black,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ),
+                              fit: FlexFit.tight,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  padding: EdgeInsets.all(5 * globals.scaleParam),
+                                  elevation: 0,
+                                  backgroundColor: Colors.transparent,
+                                ),
+                                onPressed: () {
+                                  _key.currentState!.openEndDrawer();
+                                },
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      Flexible(
+                                        flex: 3,
+                                        fit: FlexFit.tight,
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 5,
+                                          ),
+                                          child: Text(
+                                            widget.user["name"] ?? "",
+                                            textAlign: TextAlign.right,
+                                            style: TextStyle(
+                                              fontSize: 30 * globals.scaleParam,
+                                              color: Colors.black,
+                                              fontWeight: FontWeight.w600,
                                             ),
-                                            Flexible(fit: FlexFit.tight, child: CircleAvatar()),
-                                          ],
+                                          ),
                                         ),
                                       ),
-                                    ),
+                                      Flexible(fit: FlexFit.tight, child: CircleAvatar()),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
                             ),
 
