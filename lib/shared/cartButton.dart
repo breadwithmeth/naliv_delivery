@@ -25,7 +25,7 @@ class _CartButtonState extends State<CartButton> {
       child: FloatingActionButton(
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(
-            Radius.circular(10),
+            Radius.circular(15),
           ),
         ),
         child: Icon(
@@ -45,14 +45,6 @@ class _CartButtonState extends State<CartButton> {
               },
             ),
           );
-          // Navigator.push(
-          //   context,
-          //   MaterialPageRoute(
-          //     builder: (context) {
-          //       return const WebViewCardPayPage();
-          //     },
-          //   ),
-          // );
         },
       ),
     );

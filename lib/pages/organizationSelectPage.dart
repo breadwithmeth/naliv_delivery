@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/agreements/offer.dart';
+import 'package:naliv_delivery/pages/activeOrdersPage.dart';
 import 'package:naliv_delivery/pages/bonusesPage.dart';
 import 'package:naliv_delivery/pages/createProfilePage.dart';
 import 'package:naliv_delivery/pages/pickOnMap.dart';
@@ -535,6 +536,11 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                       route: BonusesPage(),
                     ),
                     const DrawerMenuItem(
+                      name: "Активные заказы",
+                      icon: Icons.conveyor_belt,
+                      route: ActiveOrdersPage(),
+                    ),
+                    const DrawerMenuItem(
                       name: "Оферта",
                       icon: Icons.list_alt,
                       route: OfferPage(
@@ -858,34 +864,50 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                             ),
                             Expanded(
                               flex: 3,
-                              child: TextButton(
-                                onPressed: () {
-                                  _key.currentState!.openEndDrawer();
-                                },
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    Flexible(
-                                      flex: 3,
-                                      fit: FlexFit.tight,
+                              child: Row(
+                                children: [
+                                  Flexible(fit: FlexFit.tight, child: SizedBox()),
+                                  Flexible(
+                                    flex: 5,
+                                    fit: FlexFit.tight,
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        padding: EdgeInsets.all(5 * globals.scaleParam),
+                                        backgroundColor: Colors.white,
+                                      ),
+                                      onPressed: () {
+                                        _key.currentState!.openEndDrawer();
+                                      },
                                       child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 5,
-                                        ),
-                                        child: Text(
-                                          widget.user["name"] ?? "",
-                                          textAlign: TextAlign.right,
-                                          style: TextStyle(
-                                            fontSize: 30 * globals.scaleParam,
-                                            color: Colors.black,
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                        padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.end,
+                                          children: [
+                                            Flexible(
+                                              flex: 3,
+                                              fit: FlexFit.tight,
+                                              child: Padding(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 5,
+                                                ),
+                                                child: Text(
+                                                  widget.user["name"] ?? "",
+                                                  textAlign: TextAlign.right,
+                                                  style: TextStyle(
+                                                    fontSize: 30 * globals.scaleParam,
+                                                    color: Colors.black,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            Flexible(fit: FlexFit.tight, child: CircleAvatar()),
+                                          ],
                                         ),
                                       ),
                                     ),
-                                    Flexible(fit: FlexFit.tight, child: CircleAvatar()),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
 
