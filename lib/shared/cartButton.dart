@@ -19,44 +19,33 @@ class CartButton extends StatefulWidget {
 class _CartButtonState extends State<CartButton> {
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.all(20 * globals.scaleParam),
-      child: SizedBox(
-        width: 200 * globals.scaleParam,
-        height: 165 * globals.scaleParam,
-        child: FloatingActionButton(
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(
-              Radius.circular(10),
-            ),
+    return SizedBox(
+      width: 200 * globals.scaleParam,
+      height: 165 * globals.scaleParam,
+      child: FloatingActionButton(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(
+            Radius.circular(15),
           ),
-          child: Icon(
-            size: 70 * globals.scaleParam,
-            Icons.shopping_basket_rounded,
-            color: Theme.of(context).colorScheme.onPrimary,
-          ),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) {
-                  return CartPage(
-                    business: widget.business,
-                    user: widget.user,
-                  );
-                },
-              ),
-            );
-            // Navigator.push(
-            //   context,
-            //   MaterialPageRoute(
-            //     builder: (context) {
-            //       return const WebViewCardPayPage();
-            //     },
-            //   ),
-            // );
-          },
         ),
+        child: Icon(
+          size: 70 * globals.scaleParam,
+          Icons.shopping_basket_rounded,
+          color: Theme.of(context).colorScheme.onPrimary,
+        ),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) {
+                return CartPage(
+                  business: widget.business,
+                  user: widget.user,
+                );
+              },
+            ),
+          );
+        },
       ),
     );
   }

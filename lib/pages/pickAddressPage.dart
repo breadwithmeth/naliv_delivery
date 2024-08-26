@@ -7,18 +7,21 @@ import 'package:naliv_delivery/pages/pickOnMap.dart';
 import 'package:geolocator/geolocator.dart';
 
 class PickAddressPage extends StatefulWidget {
-  const PickAddressPage(
-      {super.key,
-      required this.client,
-      this.isFirstTime = false,
-      this.business = const {},
-      this.isFromCreateOrder = false,
-      this.addresses = const []});
+  const PickAddressPage({
+    super.key,
+    required this.client,
+    this.isFirstTime = false,
+    this.business = const {},
+    this.isFromCreateOrder = false,
+    this.addresses = const [],
+    this.fromDrawer = false,
+  });
   final Map client;
   final bool isFirstTime;
   final Map<dynamic, dynamic> business;
   final bool isFromCreateOrder;
   final List addresses;
+  final bool fromDrawer;
   //  String businessId;
   @override
   State<PickAddressPage> createState() => _PickAddressPageState();
@@ -111,9 +114,22 @@ class _PickAddressPageState extends State<PickAddressPage> {
     }
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
-      appBar: AppBar(
-        title: Text("Адреса"),
-      ),
+      appBar: widget.fromDrawer
+          ? AppBar(
+              title: Text("Адреса"),
+              automaticallyImplyLeading: false,
+              actions: [
+                IconButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  icon: const Icon(Icons.close),
+                )
+              ],
+            )
+          : AppBar(
+              title: Text("Адреса"),
+            ),
       floatingActionButton: SizedBox(
         width: 200 * globals.scaleParam,
         height: 165 * globals.scaleParam,
@@ -179,7 +195,9 @@ class _PickAddressPageState extends State<PickAddressPage> {
                   onTap: () {
                     selectAddressClient(_addresses[index]["address_id"], widget.client["user_id"]);
                     widget.isFromCreateOrder
-                        ? Navigator.pop(context, )
+                        ? Navigator.pop(
+                            context,
+                          )
                         : Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
                             builder: (context) {
                               return Main(

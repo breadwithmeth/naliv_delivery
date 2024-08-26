@@ -419,23 +419,43 @@ class _ProductPageState extends State<ProductPage> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             if (options.isNotEmpty && !isRequiredSelected) {
-              return Container(
-                decoration: BoxDecoration(
-                    color: Colors.black,
-                    boxShadow: const [
-                      BoxShadow(
-                        offset: Offset(3, 5),
-                        color: Colors.black38,
-                        blurRadius: 5,
-                      )
+              return Padding(
+                padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
+                child: SizedBox(
+                  width: constraints.maxWidth * 0.95,
+                  height: 125 * globals.scaleParam,
+                  child: Row(
+                    children: [
+                      MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height
+                          ? Flexible(
+                              flex: 8,
+                              fit: FlexFit.tight,
+                              child: SizedBox(),
+                            )
+                          : SizedBox(),
+                      Flexible(
+                        flex: 5,
+                        fit: FlexFit.tight,
+                        child: Container(
+                          decoration: BoxDecoration(
+                              color: Colors.black,
+                              boxShadow: const [
+                                BoxShadow(
+                                  offset: Offset(3, 5),
+                                  color: Colors.black38,
+                                  blurRadius: 5,
+                                )
+                              ],
+                              borderRadius: BorderRadius.all(Radius.circular(30 * globals.scaleParam))),
+                          alignment: Alignment.center,
+                          child: Text(
+                            "Выберите опцию",
+                            style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 48 * globals.scaleParam),
+                          ),
+                        ),
+                      ),
                     ],
-                    borderRadius: BorderRadius.all(Radius.circular(30 * globals.scaleParam))),
-                alignment: Alignment.center,
-                width: constraints.maxWidth * 0.95,
-                height: 125 * globals.scaleParam,
-                child: Text(
-                  "Выберите опцию",
-                  style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 48 * globals.scaleParam),
+                  ),
                 ),
               );
             } else {
@@ -452,109 +472,112 @@ class _ProductPageState extends State<ProductPage> {
                           fit: FlexFit.tight,
                           child: Padding(
                             padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                disabledBackgroundColor: Colors.grey.shade200,
-                                padding: EdgeInsets.zero,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                boxShadow: const [
+                                  BoxShadow(
+                                    offset: Offset(3, 5),
+                                    color: Colors.black26,
+                                    blurRadius: 5,
+                                  )
+                                ],
+                                borderRadius: BorderRadius.all(Radius.circular(30 * globals.scaleParam)),
                               ),
-                              onPressed: null,
-                              child: Container(
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.all(Radius.circular(8)),
-                                  clipBehavior: Clip.antiAliasWithSaveLayer,
-                                  child: GestureDetector(
-                                    behavior: HitTestBehavior.opaque,
-                                    onLongPressStart: _onLongPressStart,
-                                    onLongPressMoveUpdate: _onLongPressMoveUpdate,
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        Flexible(
-                                          fit: FlexFit.tight,
-                                          child: IconButton(
-                                            padding: const EdgeInsets.all(0),
-                                            onPressed: () {
-                                              _removeFromCart();
-                                            },
-                                            icon: Container(
-                                              padding: EdgeInsets.all(5 * globals.scaleParam),
-                                              decoration: BoxDecoration(
-                                                borderRadius: BorderRadius.all(
-                                                  Radius.circular(100),
-                                                ),
-                                                color: Colors.grey.shade400,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.all(Radius.circular(8)),
+                                clipBehavior: Clip.antiAliasWithSaveLayer,
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onLongPressStart: _onLongPressStart,
+                                  onLongPressMoveUpdate: _onLongPressMoveUpdate,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Flexible(
+                                        fit: FlexFit.tight,
+                                        child: IconButton(
+                                          padding: const EdgeInsets.all(0),
+                                          onPressed: () {
+                                            _removeFromCart();
+                                          },
+                                          icon: Container(
+                                            padding: EdgeInsets.all(5 * globals.scaleParam),
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.all(
+                                                Radius.circular(100),
                                               ),
-                                              child: Icon(
-                                                Icons.remove_rounded,
-                                                color: Theme.of(context).colorScheme.onSurface,
-                                              ),
+                                              color: Colors.grey.shade400,
+                                            ),
+                                            child: Icon(
+                                              Icons.remove_rounded,
+                                              color: Theme.of(context).colorScheme.onSurface,
                                             ),
                                           ),
                                         ),
-                                        Flexible(
-                                          fit: FlexFit.tight,
-                                          child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Text(
-                                                "${amountInCart.ceil() > amountInCart ? amountInCart : amountInCart.round()}",
-                                                textHeightBehavior: const TextHeightBehavior(
-                                                  applyHeightToFirstAscent: false,
-                                                ),
-                                                textAlign: TextAlign.center,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize: 38 * globals.scaleParam,
-                                                  color: Theme.of(context).colorScheme.onSurface,
-                                                  height: parentItemMultiplier != 1 || quantity != 1 || options.isNotEmpty
-                                                      ? 2 * globals.scaleParam
-                                                      : null,
-                                                ),
+                                      ),
+                                      Flexible(
+                                        fit: FlexFit.tight,
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              "${amountInCart.ceil() > amountInCart ? amountInCart : amountInCart.round()}",
+                                              textHeightBehavior: const TextHeightBehavior(
+                                                applyHeightToFirstAscent: false,
                                               ),
-                                              parentItemMultiplier != 1 || quantity != 1 || options.isNotEmpty
-                                                  ? Text(
-                                                      "${amountInCart.ceil() > amountInCart ? amountInCart * parentItemMultiplier : amountInCart.round() * parentItemMultiplier} ${quantity != 1 ? "кг" : item["unit"]}",
-                                                      textHeightBehavior: const TextHeightBehavior(
-                                                        applyHeightToFirstAscent: false,
-                                                      ),
-                                                      textAlign: TextAlign.center,
-                                                      style: TextStyle(
-                                                        fontWeight: FontWeight.w700,
-                                                        fontSize: 26 * globals.scaleParam,
-                                                        color: Colors.grey.shade600,
-                                                        height: 1 * globals.scaleParam,
-                                                      ),
-                                                    )
-                                                  : SizedBox(),
-                                            ],
-                                          ),
-                                        ),
-                                        Flexible(
-                                          fit: FlexFit.tight,
-                                          child: IconButton(
-                                            padding: const EdgeInsets.all(0),
-                                            // onPressed: null,
-                                            onPressed: () {
-                                              _addToCart();
-                                            },
-                                            icon: Container(
-                                              padding: EdgeInsets.all(5 * globals.scaleParam),
-                                              decoration: BoxDecoration(
-                                                borderRadius: BorderRadius.all(
-                                                  Radius.circular(100),
-                                                ),
-                                                color: Colors.grey.shade400,
-                                              ),
-                                              child: Icon(
-                                                Icons.add_rounded,
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 38 * globals.scaleParam,
                                                 color: Theme.of(context).colorScheme.onSurface,
+                                                height:
+                                                    parentItemMultiplier != 1 || quantity != 1 || options.isNotEmpty ? 2 * globals.scaleParam : null,
                                               ),
+                                            ),
+                                            parentItemMultiplier != 1 || quantity != 1 || options.isNotEmpty
+                                                ? Text(
+                                                    "${amountInCart.ceil() > amountInCart ? amountInCart * parentItemMultiplier : amountInCart.round() * parentItemMultiplier} ${quantity != 1 ? "кг" : item["unit"]}",
+                                                    textHeightBehavior: const TextHeightBehavior(
+                                                      applyHeightToFirstAscent: false,
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.w700,
+                                                      fontSize: 26 * globals.scaleParam,
+                                                      color: Colors.grey.shade600,
+                                                      height: 1 * globals.scaleParam,
+                                                    ),
+                                                  )
+                                                : SizedBox(),
+                                          ],
+                                        ),
+                                      ),
+                                      Flexible(
+                                        fit: FlexFit.tight,
+                                        child: IconButton(
+                                          padding: const EdgeInsets.all(0),
+                                          // onPressed: null,
+                                          onPressed: () {
+                                            _addToCart();
+                                          },
+                                          icon: Container(
+                                            padding: EdgeInsets.all(5 * globals.scaleParam),
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.all(
+                                                Radius.circular(100),
+                                              ),
+                                              color: Colors.grey.shade400,
+                                            ),
+                                            child: Icon(
+                                              Icons.add_rounded,
+                                              color: Theme.of(context).colorScheme.onSurface,
                                             ),
                                           ),
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
@@ -585,26 +608,37 @@ class _ProductPageState extends State<ProductPage> {
                                       }
                                     }
                                   : null,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Flexible(
-                                        fit: FlexFit.tight,
-                                        child: Text(
-                                          buyButtonActionText,
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 38 * globals.scaleParam,
-                                            color: Theme.of(context).colorScheme.onPrimary,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      offset: Offset(3, 5),
+                                      color: Colors.black38,
+                                      blurRadius: 5,
+                                    )
+                                  ],
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          fit: FlexFit.tight,
+                                          child: Text(
+                                            buyButtonActionText,
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 38 * globals.scaleParam,
+                                              color: Theme.of(context).colorScheme.onPrimary,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -628,15 +662,78 @@ class _ProductPageState extends State<ProductPage> {
             width: MediaQuery.sizeOf(context).width * 0.5,
             height: MediaQuery.sizeOf(context).height * 0.5,
             alignment: Alignment.center,
-            child: Container(
-              decoration: const BoxDecoration(
-                borderRadius: BorderRadius.all(
-                  Radius.circular(10),
+            child: GestureDetector(
+              onTap: () {
+                showAdaptiveDialog(
+                  context: context,
+                  builder: (context) {
+                    return Dialog.fullscreen(
+                      child: LayoutBuilder(builder: (context, constraints) {
+                        return Stack(
+                          children: [
+                            SizedBox(
+                              width: constraints.maxWidth,
+                              height: constraints.maxHeight,
+                              child: InteractiveViewer(
+                                panEnabled: true,
+                                boundaryMargin: EdgeInsets.all(100),
+                                minScale: 0.5,
+                                maxScale: 5,
+                                child: ExtendedImage.network(
+                                  item["img"],
+                                  width: double.infinity,
+                                  // mode: ExtendedImageMode.gesture,
+                                  // initGestureConfigHandler: (state) {
+                                  //   return GestureConfig(
+                                  //     minScale: 0.8,
+                                  //     maxScale: 3.0,
+                                  //     speed: 1.0,
+                                  //     inertialSpeed: 100.0,
+                                  //   );
+                                  // },
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.all(20 * globals.scaleParam),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  IconButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                    },
+                                    icon: Icon(Icons.close_fullscreen_rounded),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      }),
+                    );
+                  },
+                );
+              },
+              child: Container(
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(10),
+                  ),
                 ),
-              ),
-              clipBehavior: Clip.none,
-              child: ExtendedImage.network(
-                item["img"],
+                clipBehavior: Clip.none,
+                child: ExtendedImage.network(
+                  item["img"],
+                  // mode: ExtendedImageMode.gesture,
+                  // initGestureConfigHandler: (state) {
+                  //   return GestureConfig(
+                  //     minScale: 0.8,
+                  //     maxScale: 3.0,
+                  //     speed: 1.0,
+                  //     inertialSpeed: 100.0,
+                  //   );
+                  // },
+                ),
               ),
             ),
           ),

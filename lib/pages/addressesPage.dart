@@ -163,51 +163,54 @@ class _AddressesPageState extends State<AddressesPage> with TickerProviderStateM
               ],
             ),
             Center(
-                child: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Flexible(child: Container()),
-                Flexible(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(child: Container()),
+                  Flexible(
                     child: Row(
-                  children: [
-                    Container(
-                        margin: EdgeInsets.only(bottom: 40),
-                        padding: EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius:
-                                BorderRadius.only(topLeft: Radius.circular(50), topRight: Radius.circular(50), bottomRight: Radius.circular(50))),
-                        child: _isAddressPicked == null
-                            ? Container(child: CircularProgressIndicator())
-                            : (_isAddressPicked!
-                                ? GestureDetector(
-                                    child: Container(
+                      children: [
+                        Container(
+                          margin: EdgeInsets.only(bottom: 40),
+                          padding: EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius:
+                                  BorderRadius.only(topLeft: Radius.circular(50), topRight: Radius.circular(50), bottomRight: Radius.circular(50))),
+                          child: _isAddressPicked == null
+                              ? Container(child: CircularProgressIndicator())
+                              : (_isAddressPicked!
+                                  ? GestureDetector(
+                                      child: Container(
+                                        width: MediaQuery.of(context).size.width * 0.3,
+                                        child: Text("Использовать этот адрес"),
+                                      ),
+                                      onTap: () {
+                                        // Navigator.push(context, MaterialPageRoute(
+                                        //   builder: (context) {
+                                        //     return CreateAddressName(
+                                        //         street: _adressName,
+                                        //         lat: _selectedAddress.latitude,
+                                        //         lon: _selectedAddress.latitude);
+                                        //   },
+                                        // ));
+                                      },
+                                    )
+                                  : Container(
                                       width: MediaQuery.of(context).size.width * 0.3,
-                                      child: Text("Использовать этот адрес"),
-                                    ),
-                                    onTap: () {
-                                      // Navigator.push(context, MaterialPageRoute(
-                                      //   builder: (context) {
-                                      //     return CreateAddressName(
-                                      //         street: _adressName,
-                                      //         lat: _selectedAddress.latitude,
-                                      //         lon: _selectedAddress.latitude);
-                                      //   },
-                                      // ));
-                                    },
-                                  )
-                                : Container(
-                                    width: MediaQuery.of(context).size.width * 0.3,
-                                    child: TextButton(
-                                      child: Text("Выбрать"),
-                                      onPressed: () {},
-                                    ))))
-                  ],
-                ))
-              ],
-            )),
+                                      child: TextButton(
+                                        child: Text("Выбрать"),
+                                        onPressed: () {},
+                                      ))),
+                        )
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
             _isExtended
                 ? Stack(
                     alignment: Alignment.bottomRight,

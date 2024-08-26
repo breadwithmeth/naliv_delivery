@@ -222,10 +222,7 @@ class _HomePageState extends State<HomePage>
                               gridDelegate:
                                   SliverGridDelegateWithFixedCrossAxisCount(
                                 // maxCrossAxisExtent: 650 * globals.scaleParam,
-                                crossAxisCount:
-                                    MediaQuery.of(context).size.aspectRatio > 1
-                                        ? 3
-                                        : 2,
+                                crossAxisCount: MediaQuery.of(context).size.aspectRatio > 1 ? 4 : 2,
                                 childAspectRatio: 1,
                                 crossAxisSpacing: 0,
                                 mainAxisSpacing: 0,
@@ -234,19 +231,9 @@ class _HomePageState extends State<HomePage>
                                   ? snapshot.data!.length + 1 + 2
                                   : snapshot.data!.length + 2,
                               itemBuilder: (BuildContext ctx, index) {
-                                return (snapshot.data!.length % 2 != 0 &&
-                                            index >= snapshot.data!.length) ||
-                                        (index >= snapshot.data!.length &&
-                                            snapshot.data!.length % 2 == 0)
-                                    ? Container(
-                                        margin: EdgeInsets.all(
-                                            8 * globals.scaleParam),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.all(
-                                              Radius.circular(15)),
-                                        ),
-                                      )
+                                return (snapshot.data!.length % 2 != 0 && index >= snapshot.data!.length) ||
+                                        (index >= snapshot.data!.length && snapshot.data!.length % 2 == 0)
+                                    ? SizedBox()
                                     : CategoryItem(
                                         category_id: snapshot.data![index]
                                             ["category_id"],
@@ -303,6 +290,10 @@ class _CategoryItemState extends State<CategoryItem> {
     super.initState();
   }
 
+  // LinearGradient getGradientForCategory(int categoryId) {
+  //   LinearGradient? newGradiet;
+  // }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -336,34 +327,66 @@ class _CategoryItemState extends State<CategoryItem> {
                         borderRadius: BorderRadius.all(Radius.circular(15)),
                       ),
                     ),
+                    //* VERY SCARY AND PRECISE SHT, PLS DON'T CHANGE
                     Container(
                       alignment: Alignment.bottomCenter,
-                      padding: EdgeInsets.all(10 * globals.scaleParam),
-                      child: SizedBox(
+                      // padding: EdgeInsets.all(10 * globals.scaleParam),
+                      child: Container(
+                        height: constraints.maxHeight * 0.665,
                         width: constraints.maxWidth * 0.65,
-                        child: ExtendedImage.network(
-                          widget.image!,
-                          color: Colors.grey.shade400,
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          child: ShaderMask(
+                            blendMode: BlendMode.overlay,
+                            shaderCallback: (bounds) {
+                              Rect newBounds = Rect.fromLTWH(bounds.left, bounds.top, bounds.width, bounds.height);
+                              return LinearGradient(
+                                colors: [Colors.orange, Colors.yellow],
+                              ).createShader(newBounds);
+                            },
+                            child: OverflowBox(
+                              maxWidth: constraints.maxWidth * 0.8,
+                              maxHeight: constraints.maxHeight * 0.667,
+                              child: Container(
+                                color: Colors.white,
+                                padding: EdgeInsets.all(10 * globals.scaleParam),
+                                child: ExtendedImage.network(
+                                  widget.image!,
+                                  color: Colors.grey.shade400,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
                     Container(
-                      padding: EdgeInsets.all(30 * globals.scaleParam),
                       alignment: Alignment.topLeft,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.all(
-                          Radius.circular(5),
-                        ),
-                      ),
-                      child: Text(
-                        widget.name,
-                        style: GoogleFonts.montserratAlternates(
-                          textStyle: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black,
-                            fontSize: 46 * globals.scaleParam,
-                            height: 2.5 * globals.scaleParam,
-                          ),
+                      child: Container(
+                        margin: EdgeInsets.all(10 * globals.scaleParam),
+                        // color: Colors.red,
+                        height: constraints.maxHeight * 0.28,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                widget.name,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                maxLines: 3,
+                                style: GoogleFonts.montserratAlternates(
+                                  textStyle: TextStyle(
+                                    fontSize: 46 * globals.scaleParam,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.black,
+                                    height: 2 * globals.scaleParam,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
