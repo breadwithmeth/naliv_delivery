@@ -689,55 +689,61 @@ class _ProductPageState extends State<ProductPage> {
                 showAdaptiveDialog(
                   context: context,
                   builder: (context) {
-                    return Dialog.fullscreen(
-                      backgroundColor: Colors.black12,
-                      child: LayoutBuilder(builder: (context, constraints) {
-                        return Stack(
-                          children: [
-                            SizedBox(
-                              width: constraints.maxWidth,
-                              height: constraints.maxHeight,
-                              child: InteractiveViewer(
-                                panEnabled: true,
-                                boundaryMargin: EdgeInsets.all(100 * globals.scaleParam),
-                                minScale: 1,
-                                maxScale: 5,
-                                child: ExtendedImage.network(
-                                  item["img"],
-                                  width: double.infinity,
-                                  // mode: ExtendedImageMode.gesture,
-                                  // initGestureConfigHandler: (state) {
-                                  //   return GestureConfig(
-                                  //     minScale: 0.8,
-                                  //     maxScale: 3.0,
-                                  //     speed: 1.0,
-                                  //     inertialSpeed: 100.0,
-                                  //   );
-                                  // },
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                      },
+                      onDoubleTap: () {},
+                      child: Dialog.fullscreen(
+                        backgroundColor: Colors.black12,
+                        child: LayoutBuilder(builder: (context, constraints) {
+                          return Stack(
+                            children: [
+                              SizedBox(
+                                width: constraints.maxWidth,
+                                height: constraints.maxHeight,
+                                child: InteractiveViewer(
+                                  panEnabled: true,
+                                  boundaryMargin: EdgeInsets.all(100 * globals.scaleParam),
+                                  minScale: 1,
+                                  maxScale: 5,
+                                  child: ExtendedImage.network(
+                                    item["img"],
+                                    width: double.infinity,
+                                    // mode: ExtendedImageMode.gesture,
+                                    // initGestureConfigHandler: (state) {
+                                    //   return GestureConfig(
+                                    //     minScale: 0.8,
+                                    //     maxScale: 3.0,
+                                    //     speed: 1.0,
+                                    //     inertialSpeed: 100.0,
+                                    //   );
+                                    // },
+                                  ),
                                 ),
                               ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.all(20 * globals.scaleParam),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  IconButton(
-                                    style: IconButton.styleFrom(backgroundColor: Colors.white54),
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                    },
-                                    icon: Icon(
-                                      Icons.close_fullscreen_rounded,
-                                      color: Colors.black,
+                              Padding(
+                                padding: EdgeInsets.all(20 * globals.scaleParam),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    IconButton(
+                                      style: IconButton.styleFrom(backgroundColor: Colors.white54),
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                      },
+                                      icon: Icon(
+                                        Icons.close_fullscreen_rounded,
+                                        color: Colors.black,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
-                        );
-                      }),
+                            ],
+                          );
+                        }),
+                      ),
                     );
                   },
                 );
@@ -972,7 +978,7 @@ class _ProductPageState extends State<ProductPage> {
                                       child: FilterChip(
                                         backgroundColor: Colors.white,
                                         deleteIcon: Container(),
-                                        deleteIconBoxConstraints: BoxConstraints(),
+                                        // deleteIconBoxConstraints: BoxConstraints(),
                                         label: Text(
                                           options[indexOption]["options"][index]["price"] != null &&
                                                   options[indexOption]["options"][index]["price"] != 0
