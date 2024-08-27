@@ -46,7 +46,7 @@ class _SettingsPageState extends State<SettingsPage> {
         child: ListView(
           children: [
             SizedBox(
-              height: 100 * globals.scaleParam,
+              height: 50 * globals.scaleParam,
             ),
             Container(
               decoration: BoxDecoration(
