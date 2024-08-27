@@ -243,7 +243,7 @@ class Grabber extends StatelessWidget {
             width: 32.0,
             height: 4.0,
             decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(8.0),
             ),
           ),
