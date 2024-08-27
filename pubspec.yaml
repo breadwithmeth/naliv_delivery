@@ -76,7 +76,6 @@ dependencies:
   flutter_background_service: ^5.0.7
   socket_io_client: ^2.0.3+1
   flutter_foreground_task: ^8.5.0
-  fl_location: ^4.0.0
   # drawing_animation: ^1.0.0
 
 

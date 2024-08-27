@@ -23,7 +23,6 @@ import 'package:naliv_delivery/pages/supportPage.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 //сервис геолокации
-import 'package:fl_location/fl_location.dart';
 
 class OrganizationSelectPage extends StatefulWidget {
   const OrganizationSelectPage({super.key, required this.addresses, required this.currentAddress, required this.user, required this.businesses});
