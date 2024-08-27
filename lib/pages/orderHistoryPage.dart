@@ -78,75 +78,135 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                     return Column(
                       children: [
                         Container(
+                          height: 100 * globals.scaleParam,
+                          padding: EdgeInsets.symmetric(horizontal: 25 * globals.scaleParam),
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.all(Radius.circular(10)),
-                            color: Colors.white,
+                            color: Colors.black,
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(15),
+                              topRight: Radius.circular(15),
+                            ),
                           ),
-                          padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam, vertical: 10 * globals.scaleParam),
                           child: Row(
                             children: [
                               Flexible(
+                                flex: 5,
                                 fit: FlexFit.tight,
                                 child: Text(
-                                  "ID: ${snapshot.data![index]["order_id"].toString()}",
+                                  "${snapshot.data![index]["b_name"].toString()}  -  ${snapshot.data![index]["b_address"].toString()}",
+                                  textAlign: TextAlign.start,
                                   style: TextStyle(
-                                    color: Theme.of(context).colorScheme.onSurface,
-                                    fontSize: 32 * globals.scaleParam,
-                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white,
+                                    fontSize: 42 * globals.scaleParam,
+                                    fontWeight: FontWeight.w900,
                                   ),
                                 ),
                               ),
                               Flexible(
-                                flex: 3,
                                 fit: FlexFit.tight,
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      "Откуда:${snapshot.data![index]["b_name"].toString()}",
-                                      style: TextStyle(
-                                        color: Theme.of(context).colorScheme.onSurface,
-                                        fontSize: 32 * globals.scaleParam,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    Text(
-                                      snapshot.data![index]["b_address"].toString(),
-                                      style: TextStyle(
-                                        color: Theme.of(context).colorScheme.onSurface,
-                                        fontSize: 32 * globals.scaleParam,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Flexible(
-                                flex: 3,
-                                fit: FlexFit.tight,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      "Куда: ${snapshot.data![index]["a_name"].toString()}",
-                                      style: TextStyle(
-                                        color: Theme.of(context).colorScheme.onSurface,
-                                        fontSize: 32 * globals.scaleParam,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    Text(
-                                      snapshot.data![index]["a_address"].toString(),
-                                      style: TextStyle(
-                                        color: Theme.of(context).colorScheme.onSurface,
-                                        fontSize: 32 * globals.scaleParam,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
+                                child: Text(
+                                  "№ ${index + 1}",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 42 * globals.scaleParam,
+                                    fontWeight: FontWeight.w900,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
+                        ),
+                        Container(
+                          height: 200 * globals.scaleParam,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.all(Radius.circular(15)),
+                            color: Colors.white,
+                          ),
+                          child: LayoutBuilder(builder: (context, constraints) {
+                            return Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam, vertical: 10 * globals.scaleParam),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  // Flexible(
+                                  //   fit: FlexFit.tight,
+                                  //   child: Text(
+                                  //     "ID: ${snapshot.data![index]["order_id"].toString()}",
+                                  //     textAlign: TextAlign.center,
+                                  //     style: TextStyle(
+                                  //       color: Theme.of(context).colorScheme.onSurface,
+                                  //       fontSize: 32 * globals.scaleParam,
+                                  //       fontWeight: FontWeight.w500,
+                                  //     ),
+                                  //   ),
+                                  // ),
+                                  Flexible(
+                                    flex: 3,
+                                    fit: FlexFit.tight,
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            snapshot.data![index]["b_name"].toString(),
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.onSurface,
+                                              fontSize: 32 * globals.scaleParam,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                        Flexible(
+                                          child: Text(
+                                            snapshot.data![index]["b_address"].toString(),
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.onSurface,
+                                              fontSize: 32 * globals.scaleParam,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Flexible(
+                                    flex: 2,
+                                    fit: FlexFit.tight,
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            snapshot.data![index]["a_name"].toString(),
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.onSurface,
+                                              fontSize: 32 * globals.scaleParam,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                        Flexible(
+                                          child: Text(
+                                            snapshot.data![index]["a_address"].toString(),
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.onSurface,
+                                              fontSize: 32 * globals.scaleParam,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
                         ),
                         if (index != snapshot.data!.length - 1) Divider(),
                       ],

@@ -347,35 +347,45 @@ class _CategoryItemState extends State<CategoryItem> {
                         ),
                       ),
                     ),
-                    Container(
-                      alignment: Alignment.topLeft,
-                      child: Container(
-                        margin: EdgeInsets.all(10 * globals.scaleParam),
-                        // color: Colors.red,
-                        height: constraints.maxHeight * 0.28,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                widget.name,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                                maxLines: 3,
-                                style: GoogleFonts.montserratAlternates(
-                                  textStyle: TextStyle(
-                                    fontSize: 46 * globals.scaleParam,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black,
-                                    height: 2 * globals.scaleParam,
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Calculate font size dynamically
+                        double fontSize = 48 * globals.scaleParam;
+                        double maxHeight = constraints.maxHeight * 0.28;
+
+                        // Adjust the font size to fit within the height
+                        double calculatedFontSize = maxHeight / (3 * 2 * globals.scaleParam); // 3 lines with height multiplier
+
+                        return Container(
+                          alignment: Alignment.topLeft,
+                          child: Container(
+                            margin: EdgeInsets.all(10 * globals.scaleParam),
+                            height: maxHeight,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    widget.name,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                    maxLines: 3,
+                                    style: GoogleFonts.montserratAlternates(
+                                      textStyle: TextStyle(
+                                        fontSize: fontSize > calculatedFontSize ? calculatedFontSize : fontSize,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black,
+                                        height: 2 * globals.scaleParam,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
+                          ),
+                        );
+                      },
+                    )
                   ],
                 ),
               );
