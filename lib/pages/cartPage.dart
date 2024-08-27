@@ -132,8 +132,23 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
     itemsAmount = 0;
     if (items.isNotEmpty) {
       for (dynamic item in items) {
-        localSum += double.parse((item["price"] * item["amount"]).toString()).round();
-        itemsAmount += double.parse(item["amount"].toString());
+        if (item["selected_options"] != null) {
+          //! LOCATE AND CALCULATE PARENT_ITEM_AMOUNT FIRST!!!!!!
+          for (Map selectedOption in item["selected_options"]) {
+            if (selectedOption["parent_item_amount"] != 1 || item["selected_options"].last == selectedOption) {
+              localSum += double.parse((item["price"] * selectedOption["parent_item_amount"] * item["amount_b"]).toString()).round();
+              break;
+            }
+          }
+          //! ONLY THEN CALCULATE ADDITIONAL COST OF THE BOTTLES AND ETC. WITHOUT PARENT_ITEM_AMOUNT
+          for (Map selectedOption in item["selected_options"]) {
+            localSum += double.parse(((selectedOption["price"] * item["amount_b"])).toString()).round();
+          }
+          itemsAmount += double.parse(item["amount_b"].toString());
+        } else {
+          localSum += double.parse((item["price"] * item["amount"]).toString()).round();
+          itemsAmount += double.parse(item["amount"].toString());
+        }
       }
     } else {
       setState(() {
