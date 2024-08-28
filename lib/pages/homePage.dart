@@ -385,7 +385,7 @@ class _CategoryItemState extends State<CategoryItem> {
                           ),
                         );
                       },
-                    )
+                    ),
                   ],
                 ),
               );
