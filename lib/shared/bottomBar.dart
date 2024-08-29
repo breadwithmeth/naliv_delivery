@@ -160,10 +160,10 @@ class _BottomBarState extends State<BottomBar>
                                           },
                                           child: Container(
                                               alignment: isExpanded
-                                                  ? Alignment.topLeft
+                                                  ? Alignment.bottomLeft
                                                   : Alignment.centerLeft,
                                               height: isExpanded
-                                                  ? constraints.smallest.height
+                                                  ? 0
                                                   : constraints.minHeight,
                                               child: orders.length > 1
                                                   ? Text(
@@ -202,6 +202,8 @@ class _BottomBarState extends State<BottomBar>
                         // ),
                         SliverToBoxAdapter(
                           child: Container(
+                            margin:
+                                EdgeInsets.only(top: 60 * globals.scaleParam),
                             padding: EdgeInsets.all(40 * globals.scaleParam),
                             width: double.infinity,
                             height: 1000,
@@ -228,6 +230,26 @@ class _BottomBarState extends State<BottomBar>
                                         },
                                         icon: Icon(Icons.close))
                                   ],
+                                ),
+                                ListView.builder(
+                                  primary: false,
+                                  shrinkWrap: true,
+                                  itemCount: orders.length,
+                                  itemBuilder: (context, index) {
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                          border: Border(
+                                              bottom: BorderSide(
+                                                  color: Colors.grey))),
+                                      child: ListTile(
+                                          title: Text(
+                                        '#${orders[index]["order_uuid"]}',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.black),
+                                      ), ),
+                                    );
+                                  },
                                 )
                               ],
                             ),

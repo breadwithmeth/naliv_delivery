@@ -144,7 +144,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                     Navigator.push(context, MaterialPageRoute(
                       builder: (context) {
                         return PickOnMapPage(
-                          currentPosition: _location!,
+                          currentPosition: _location,
                           cities: _cities,
                           isFromCreateOrder: true,
                         );
