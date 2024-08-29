@@ -13,8 +13,7 @@ class BottomBar extends StatefulWidget {
   State<BottomBar> createState() => _BottomBarState();
 }
 
-class _BottomBarState extends State<BottomBar>
-    with SingleTickerProviderStateMixin {
+class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMixin {
   bool get _isOnDesktopAndWeb {
     if (kIsWeb) {
       return true;
@@ -52,8 +51,7 @@ class _BottomBarState extends State<BottomBar>
     });
   }
 
-  final DraggableScrollableController _dsController =
-      DraggableScrollableController();
+  final DraggableScrollableController _dsController = DraggableScrollableController();
 
   double _sheetPosition = 0.1;
   final double _dragSensitivity = 600;
@@ -123,64 +121,45 @@ class _BottomBarState extends State<BottomBar>
                       controller: scrollController,
                       slivers: [
                         SliverToBoxAdapter(
-                            child: AnimatedContainer(
-                                duration: Durations.short1,
-                                color: Colors.transparent,
-                                width: double.infinity,
-                                height: isExpanded ? 0 : constraints.minHeight,
-                                child: Row(
-                                  children: [
-                                    AnimatedContainer(
-                                        duration: Durations.short1,
-                                        padding: EdgeInsets.all(10),
-                                        decoration: BoxDecoration(
-                                            color: isExpanded
-                                                ? Colors.white
-                                                : Colors.black,
-                                            borderRadius: BorderRadius.only(
-                                              topRight: Radius.elliptical(
-                                                _tlr,
-                                                _tlr,
-                                              ),
-                                            )),
-                                        width: isExpanded
-                                            ? MediaQuery.of(context)
-                                                    .size
-                                                    .width *
-                                                1
-                                            : MediaQuery.of(context)
-                                                    .size
-                                                    .width *
-                                                0.7,
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            _dsController.animateTo(1,
-                                                duration: Durations.medium4,
-                                                curve: Curves.decelerate);
-                                          },
-                                          child: Container(
-                                              alignment: isExpanded
-                                                  ? Alignment.bottomLeft
-                                                  : Alignment.centerLeft,
-                                              height: isExpanded
-                                                  ? 0
-                                                  : constraints.minHeight,
-                                              child: orders.length > 1
-                                                  ? Text(
-                                                      formatActiveOrderString(
-                                                          orders.length),
-                                                      style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontWeight:
-                                                              FontWeight.w900,
-                                                          fontSize: 48 *
-                                                              globals
-                                                                  .scaleParam),
-                                                    )
-                                                  : Text("data")),
-                                        )),
-                                  ],
-                                ))),
+                          child: AnimatedContainer(
+                            duration: Durations.short1,
+                            color: Colors.transparent,
+                            width: double.infinity,
+                            height: isExpanded ? 0 : constraints.minHeight,
+                            child: Row(
+                              children: [
+                                AnimatedContainer(
+                                  duration: Durations.short1,
+                                  padding: EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                      color: isExpanded ? Colors.white : Colors.black,
+                                      borderRadius: BorderRadius.only(
+                                        topRight: Radius.elliptical(
+                                          _tlr,
+                                          _tlr,
+                                        ),
+                                      )),
+                                  width: isExpanded ? MediaQuery.of(context).size.width * 1 : MediaQuery.of(context).size.width * 0.7,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      _dsController.animateTo(1, duration: Durations.medium4, curve: Curves.decelerate);
+                                    },
+                                    child: Container(
+                                      alignment: isExpanded ? Alignment.topLeft : Alignment.centerLeft,
+                                      height: isExpanded ? constraints.smallest.height : constraints.minHeight,
+                                      child: orders.length >= 1
+                                          ? Text(
+                                              formatActiveOrderString(orders.length),
+                                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 48 * globals.scaleParam),
+                                            )
+                                          : Text("data"),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                         // SliverToBoxAdapter(
                         //   child: Center(
                         //     child: Container(
@@ -211,22 +190,15 @@ class _BottomBarState extends State<BottomBar>
                             child: Column(
                               children: [
                                 Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       formatActiveOrderString(orders.length),
-                                      style: TextStyle(
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 48 * globals.scaleParam),
+                                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 48 * globals.scaleParam),
                                     ),
                                     IconButton(
                                         onPressed: () {
-                                          _dsController.animateTo(
-                                              _sheetPosition,
-                                              duration: Durations.short1,
-                                              curve: Curves.bounceOut);
+                                          _dsController.animateTo(_sheetPosition, duration: Durations.short1, curve: Curves.bounceOut);
                                         },
                                         icon: Icon(Icons.close))
                                   ],
@@ -293,7 +265,7 @@ class Grabber extends StatelessWidget {
             width: 32.0,
             height: 4.0,
             decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(8.0),
             ),
           ),

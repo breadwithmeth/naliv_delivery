@@ -522,19 +522,41 @@ class _ProductPageState extends State<ProductPage> {
                                         child: Column(
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
-                                            Text(
-                                              "${amountInCart.ceil() > amountInCart ? amountInCart : amountInCart.round()}",
-                                              textHeightBehavior: const TextHeightBehavior(
-                                                applyHeightToFirstAscent: false,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 38 * globals.scaleParam,
-                                                color: Theme.of(context).colorScheme.onSurface,
-                                                height:
-                                                    parentItemMultiplier != 1 || quantity != 1 || options.isNotEmpty ? 2 * globals.scaleParam : null,
-                                              ),
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    "${amountInCart.ceil() > amountInCart ? amountInCart : amountInCart.round()}",
+                                                    textHeightBehavior: const TextHeightBehavior(
+                                                      applyHeightToFirstAscent: false,
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.w700,
+                                                      fontSize: 36 * globals.scaleParam,
+                                                      color: Theme.of(context).colorScheme.onSurface,
+                                                      height: parentItemMultiplier != 1 || quantity != 1 || options.isNotEmpty
+                                                          ? 2 * globals.scaleParam
+                                                          : null,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Text(
+                                                  widget.item["options"] != null ? "бут" : "",
+                                                  textHeightBehavior: const TextHeightBehavior(
+                                                    applyHeightToFirstAscent: false,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 32 * globals.scaleParam,
+                                                    color: Theme.of(context).colorScheme.onSurface,
+                                                    height: parentItemMultiplier != 1 || quantity != 1 || options.isNotEmpty
+                                                        ? 1 * globals.scaleParam
+                                                        : null,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                             parentItemMultiplier != 1 || quantity != 1 || options.isNotEmpty
                                                 ? Text(
@@ -667,50 +689,61 @@ class _ProductPageState extends State<ProductPage> {
                 showAdaptiveDialog(
                   context: context,
                   builder: (context) {
-                    return Dialog.fullscreen(
-                      child: LayoutBuilder(builder: (context, constraints) {
-                        return Stack(
-                          children: [
-                            SizedBox(
-                              width: constraints.maxWidth,
-                              height: constraints.maxHeight,
-                              child: InteractiveViewer(
-                                panEnabled: true,
-                                boundaryMargin: EdgeInsets.all(100),
-                                minScale: 0.5,
-                                maxScale: 5,
-                                child: ExtendedImage.network(
-                                  item["img"],
-                                  width: double.infinity,
-                                  // mode: ExtendedImageMode.gesture,
-                                  // initGestureConfigHandler: (state) {
-                                  //   return GestureConfig(
-                                  //     minScale: 0.8,
-                                  //     maxScale: 3.0,
-                                  //     speed: 1.0,
-                                  //     inertialSpeed: 100.0,
-                                  //   );
-                                  // },
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                      },
+                      onDoubleTap: () {},
+                      child: Dialog.fullscreen(
+                        backgroundColor: Colors.black12,
+                        child: LayoutBuilder(builder: (context, constraints) {
+                          return Stack(
+                            children: [
+                              SizedBox(
+                                width: constraints.maxWidth,
+                                height: constraints.maxHeight,
+                                child: InteractiveViewer(
+                                  panEnabled: true,
+                                  boundaryMargin: EdgeInsets.all(100 * globals.scaleParam),
+                                  minScale: 1,
+                                  maxScale: 5,
+                                  child: ExtendedImage.network(
+                                    item["img"],
+                                    width: double.infinity,
+                                    // mode: ExtendedImageMode.gesture,
+                                    // initGestureConfigHandler: (state) {
+                                    //   return GestureConfig(
+                                    //     minScale: 0.8,
+                                    //     maxScale: 3.0,
+                                    //     speed: 1.0,
+                                    //     inertialSpeed: 100.0,
+                                    //   );
+                                    // },
+                                  ),
                                 ),
                               ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.all(20 * globals.scaleParam),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  IconButton(
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                    },
-                                    icon: Icon(Icons.close_fullscreen_rounded),
-                                  ),
-                                ],
+                              Padding(
+                                padding: EdgeInsets.all(20 * globals.scaleParam),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    IconButton(
+                                      style: IconButton.styleFrom(backgroundColor: Colors.white54),
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                      },
+                                      icon: Icon(
+                                        Icons.close_fullscreen_rounded,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
-                        );
-                      }),
+                            ],
+                          );
+                        }),
+                      ),
                     );
                   },
                 );
@@ -945,7 +978,7 @@ class _ProductPageState extends State<ProductPage> {
                                       child: FilterChip(
                                         backgroundColor: Colors.white,
                                         deleteIcon: Container(),
-                                        deleteIconBoxConstraints: BoxConstraints(),
+                                        // deleteIconBoxConstraints: BoxConstraints(),
                                         label: Text(
                                           options[indexOption]["options"][index]["price"] != null &&
                                                   options[indexOption]["options"][index]["price"] != 0

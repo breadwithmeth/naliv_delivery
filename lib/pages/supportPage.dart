@@ -12,6 +12,7 @@ class _SupportPageState extends State<SupportPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         title: Text("Поддержка"),
         automaticallyImplyLeading: false,
@@ -36,7 +37,7 @@ class _SupportPageState extends State<SupportPage> {
                     "Временно доступно только по номеру call-центра",
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.secondary,
+                      color: Colors.grey,
                       fontSize: 42 * globals.scaleParam,
                       fontWeight: FontWeight.w600,
                     ),

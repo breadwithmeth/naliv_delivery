@@ -21,8 +21,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage>
-    with AutomaticKeepAliveClientMixin<HomePage> {
+class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin<HomePage> {
   @override
   bool get wantKeepAlive => true;
 
@@ -78,8 +77,7 @@ class _HomePageState extends State<HomePage>
             bottomSheet: BottomBar(),
             backgroundColor: Colors.grey.shade100,
             key: _scaffoldKey,
-            floatingActionButtonLocation:
-                FloatingActionButtonLocation.endContained,
+            floatingActionButtonLocation: FloatingActionButtonLocation.endContained,
             floatingActionButton: SizedBox(
               child: CartButton(
                 business: widget.business,
@@ -91,8 +89,7 @@ class _HomePageState extends State<HomePage>
               automaticallyImplyLeading: false,
               titleSpacing: 0,
               title: Padding(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
+                padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -119,14 +116,12 @@ class _HomePageState extends State<HomePage>
                               Text(
                                 widget.business["name"],
                                 maxLines: 1,
-                                style: TextStyle(
-                                    fontSize: 40 * globals.scaleParam),
+                                style: TextStyle(fontSize: 40 * globals.scaleParam),
                               ),
                               Text(
                                 widget.business["address"],
                                 maxLines: 1,
-                                style: TextStyle(
-                                    fontSize: 32 * globals.scaleParam),
+                                style: TextStyle(fontSize: 32 * globals.scaleParam),
                               ),
                             ],
                           ),
@@ -152,13 +147,9 @@ class _HomePageState extends State<HomePage>
                                 ),
                               );
                             },
-                            style: TextButton.styleFrom(
-                                foregroundColor: Colors.white.withOpacity(0)),
+                            style: TextButton.styleFrom(foregroundColor: Colors.white.withOpacity(0)),
                             child: Container(
-                              decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.1),
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(10))),
+                              decoration: BoxDecoration(color: Colors.black.withOpacity(0.1), borderRadius: BorderRadius.all(Radius.circular(10))),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
@@ -174,8 +165,7 @@ class _HomePageState extends State<HomePage>
                                     ),
                                   ),
                                   Container(
-                                    padding:
-                                        EdgeInsets.all(20 * globals.scaleParam),
+                                    padding: EdgeInsets.all(20 * globals.scaleParam),
                                     child: Icon(
                                       Icons.search,
                                       color: Colors.black,
@@ -219,24 +209,20 @@ class _HomePageState extends State<HomePage>
                               padding: EdgeInsets.all(0),
                               physics: NeverScrollableScrollPhysics(),
                               shrinkWrap: true,
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                 // maxCrossAxisExtent: 650 * globals.scaleParam,
                                 crossAxisCount: MediaQuery.of(context).size.aspectRatio > 1 ? 4 : 2,
                                 childAspectRatio: 1,
                                 crossAxisSpacing: 0,
                                 mainAxisSpacing: 0,
                               ),
-                              itemCount: snapshot.data!.length % 2 != 0
-                                  ? snapshot.data!.length + 1 + 2
-                                  : snapshot.data!.length + 2,
+                              itemCount: snapshot.data!.length % 2 != 0 ? snapshot.data!.length + 1 + 2 : snapshot.data!.length + 2,
                               itemBuilder: (BuildContext ctx, index) {
                                 return (snapshot.data!.length % 2 != 0 && index >= snapshot.data!.length) ||
                                         (index >= snapshot.data!.length && snapshot.data!.length % 2 == 0)
                                     ? SizedBox()
                                     : CategoryItem(
-                                        category_id: snapshot.data![index]
-                                            ["category_id"],
+                                        category_id: snapshot.data![index]["category_id"],
                                         name: snapshot.data![index]["name"],
                                         image: snapshot.data![index]["photo"],
                                         categories: snapshot.data!,
@@ -361,34 +347,44 @@ class _CategoryItemState extends State<CategoryItem> {
                         ),
                       ),
                     ),
-                    Container(
-                      alignment: Alignment.topLeft,
-                      child: Container(
-                        margin: EdgeInsets.all(10 * globals.scaleParam),
-                        // color: Colors.red,
-                        height: constraints.maxHeight * 0.28,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                widget.name,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                                maxLines: 3,
-                                style: GoogleFonts.montserratAlternates(
-                                  textStyle: TextStyle(
-                                    fontSize: 46 * globals.scaleParam,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black,
-                                    height: 2 * globals.scaleParam,
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Calculate font size dynamically
+                        double fontSize = 48 * globals.scaleParam;
+                        double maxHeight = constraints.maxHeight * 0.28;
+
+                        // Adjust the font size to fit within the height
+                        double calculatedFontSize = maxHeight / (3 * 2 * globals.scaleParam); // 3 lines with height multiplier
+
+                        return Container(
+                          alignment: Alignment.topLeft,
+                          child: Container(
+                            margin: EdgeInsets.all(10 * globals.scaleParam),
+                            height: maxHeight,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    widget.name,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                    maxLines: 3,
+                                    style: GoogleFonts.montserratAlternates(
+                                      textStyle: TextStyle(
+                                        fontSize: fontSize > calculatedFontSize ? calculatedFontSize : fontSize,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black,
+                                        height: 2 * globals.scaleParam,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
