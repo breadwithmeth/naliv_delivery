@@ -3,68 +3,17 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/pages/paintLogoPage.dart';
-import 'package:workmanager/workmanager.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/pages/permissionPage.dart';
 import 'package:naliv_delivery/pages/preLoadDataPage.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:socket_io_client/socket_io_client.dart' as io;
-import 'package:flutter_background_service/flutter_background_service.dart';
 import 'dart:async';
 import 'dart:ui';
-import 'package:background_location/background_location.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
-
-sendData() {
-  _determinePosition().then((_p) {
-    setCityAuto(_p.latitude, _p.longitude);
-    print(_p.longitude);
-  });
-}
-
-Future<Position> _determinePosition() async {
-  bool serviceEnabled;
-  LocationPermission permission;
-
-  // Test if location services are enabled.
-  serviceEnabled = await Geolocator.isLocationServiceEnabled();
-  if (!serviceEnabled) {
-    // Location services are not enabled don't continue
-    // accessing the position and request users of the
-    // App to enable the location services.
-    return Future.error('Location services are disabled.');
-  }
-
-  permission = await Geolocator.checkPermission();
-
-  if (permission == LocationPermission.denied) {
-    permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied) {
-      // Permissions are denied, next time you could try
-      // requesting permissions again (this is also where
-      // Android's shouldShowRequestPermissionRationale
-      // returned true. According to Android guidelines
-      // your App should show an explanatory UI now.
-      return Future.error('Location permissions are denied');
-    }
-  }
-
-  if (permission == LocationPermission.deniedForever) {
-    // Permissions are denied forever, handle appropriately.
-    return Future.error('Location permissions are permanently denied, we cannot request permissions.');
-  }
-
-  // When we reach here, permissions are granted and we can
-  // continue accessing the position of the device.
-  return await Geolocator.getCurrentPosition();
-}
 
 Future<void> main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -89,52 +38,6 @@ class _MainState extends State<Main> {
   // Widget _redirect = const StartLoadingPage();
   Widget _redirect = PaintLogoPage(city: "Караганда");
 
-  Future<bool> _requestPermission() async {
-    bool isGranted = true;
-    final camera = Permission.camera;
-
-    if (await camera.isDenied) {
-      await camera.request().then((value) {
-        if (value.isPermanentlyDenied || value.isDenied) {
-          isGranted = false;
-        }
-      });
-    } else if (await camera.isPermanentlyDenied) {
-      setState(() {
-        _redirect = const PermissionPage();
-      });
-    }
-
-    final location = Permission.locationWhenInUse;
-
-    if (await location.isDenied) {
-      await location.request().then((value) {
-        if (value.isPermanentlyDenied || value.isDenied) {
-          isGranted = false;
-        }
-      });
-    } else if (await location.isPermanentlyDenied) {
-      setState(() {
-        _redirect = const PermissionPage();
-      });
-    }
-    final storage = Permission.storage;
-
-    if (await storage.isDenied) {
-      await storage.request().then((value) {
-        if (value.isPermanentlyDenied || value.isDenied) {
-          isGranted = false;
-        }
-      });
-    } else if (await storage.isPermanentlyDenied) {
-      setState(() {
-        _redirect = const PermissionPage();
-      });
-    }
-
-    return isGranted;
-  }
-
   @override
   void initState() {
     super.initState();
@@ -144,7 +47,7 @@ class _MainState extends State<Main> {
     });
     _checkAuth();
     setState(() {
-      _redirect = PermissionPage();
+      // _redirect = PermissionPage();
     });
     FlutterNativeSplash.remove();
   }
@@ -190,13 +93,16 @@ class _MainState extends State<Main> {
     // ]);
     // First get the FlutterView.
     FlutterView view = WidgetsBinding.instance.platformDispatcher.views.first;
-    print("SCREEN WIDTH IS: ${view.display.size.width}; SCREEN HEIGHT IS: ${view.display.size.height}");
+    print(
+        "SCREEN WIDTH IS: ${view.display.size.width}; SCREEN HEIGHT IS: ${view.display.size.height}");
     // 1560 + 720
     if (view.display.size.width + view.display.size.height >= 2560 + 1600) {
       globals.scaleParam = (view.display.size.shortestSide / 720) * 0.3;
-    } else if (view.display.size.width + view.display.size.height >= 1920 + 1080) {
+    } else if (view.display.size.width + view.display.size.height >=
+        1920 + 1080) {
       globals.scaleParam = (view.display.size.shortestSide / 720) * 0.3;
-    } else if (view.display.size.width + view.display.size.height >= (1560 + 720)) {
+    } else if (view.display.size.width + view.display.size.height >=
+        (1560 + 720)) {
       globals.scaleParam = (view.display.size.shortestSide / 720) * 0.4;
     } else {
       globals.scaleParam = 0.5;
@@ -224,13 +130,16 @@ class _MainState extends State<Main> {
           primary: Colors.black,
           onPrimary: Colors.white,
           onError: Colors.white,
-          secondary: Colors.black38, // TODO: Change this later? To make more sense with black/white style
+          secondary: Colors
+              .black38, // TODO: Change this later? To make more sense with black/white style
           onSecondary: Colors.black,
         ),
         useMaterial3: true,
         brightness: Brightness.light,
-        pageTransitionsTheme: const PageTransitionsTheme(
-            builders: {TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(), TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder()}),
+        pageTransitionsTheme: const PageTransitionsTheme(builders: {
+          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder()
+        }),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(),
         scaffoldBackgroundColor: Colors.white,
         appBarTheme: AppBarTheme(
@@ -240,14 +149,16 @@ class _MainState extends State<Main> {
           surfaceTintColor: Colors.white,
           elevation: 4,
           scrolledUnderElevation: 4,
-          titleTextStyle: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w700, color: Colors.black),
+          titleTextStyle: GoogleFonts.inter(
+              fontSize: 24, fontWeight: FontWeight.w700, color: Colors.black),
           // backgroundColor: Colors.white,
           // shadowColor: Colors.grey.withOpacity(0.2),
           // foregroundColor: Colors.black
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(15))),
+            shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(15))),
             backgroundColor: Colors.black,
             // backgroundColor: Color(0xFFFFCA3C),
             foregroundColor: Colors.white,

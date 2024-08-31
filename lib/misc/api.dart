@@ -974,3 +974,24 @@ Future<Map> getBonuses() async {
   print(response.body);
   return result;
 }
+
+Future<Map> getOrderDetails(String order_id) async {
+  String? token = await getToken();
+  if (token == null) {
+    return {};
+  }
+  var url = Uri.https(URL_API, 'api/item/getOrderDetails');
+  var response = await client.post(
+    url,
+    headers: {
+      "Content-Type": "application/json",
+      "AUTH": token,
+    },
+    body: json.encode({"order_id": order_id}),
+  );
+
+  Map<String, dynamic> result = json.decode(response.body) ?? {};
+  print(json.encode(response.statusCode));
+  print(response.body);
+  return result;
+}

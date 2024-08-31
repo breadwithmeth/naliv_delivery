@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:ui';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -13,7 +15,8 @@ class BottomBar extends StatefulWidget {
   State<BottomBar> createState() => _BottomBarState();
 }
 
-class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMixin {
+class _BottomBarState extends State<BottomBar>
+    with SingleTickerProviderStateMixin {
   bool get _isOnDesktopAndWeb {
     if (kIsWeb) {
       return true;
@@ -51,7 +54,9 @@ class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMix
     });
   }
 
-  final DraggableScrollableController _dsController = DraggableScrollableController();
+  late Timer periodicTimer;
+  final DraggableScrollableController _dsController =
+      DraggableScrollableController();
 
   double _sheetPosition = 0.1;
   final double _dragSensitivity = 600;
@@ -62,6 +67,13 @@ class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMix
   void initState() {
     super.initState();
 
+    periodicTimer = Timer.periodic(
+      const Duration(seconds: 10),
+      (timer) {
+        _getActiveOrders();
+      },
+    );
+
     if (mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         setState(() {
@@ -71,7 +83,7 @@ class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMix
         _getActiveOrders();
         _dsController.addListener(() {
           setState(() {
-            if (_dsController.size > 0.25) {
+            if (_dsController.size > 0.12) {
               _cs = MediaQuery.of(context).size.width * 1;
               _tlr = 0;
               isExpanded = true;
@@ -95,6 +107,7 @@ class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMix
   void dispose() {
     // TODO: implement dispose
     _dsController.dispose();
+    periodicTimer.cancel();
     super.dispose();
   }
 
@@ -113,7 +126,7 @@ class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMix
             : Container(
                 clipBehavior: Clip.antiAliasWithSaveLayer,
                 decoration: BoxDecoration(
-                  color: Colors.transparent,
+                  color: isExpanded ? Colors.white : Colors.transparent,
                 ),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -122,35 +135,63 @@ class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMix
                       slivers: [
                         SliverToBoxAdapter(
                           child: AnimatedContainer(
-                            duration: Durations.short1,
-                            color: Colors.transparent,
+                            duration: Durations.extralong1,
+                            color:
+                                isExpanded ? Colors.white : Colors.transparent,
                             width: double.infinity,
-                            height: isExpanded ? 0 : constraints.minHeight,
+                            height: isExpanded ? 1 : constraints.minHeight,
                             child: Row(
                               children: [
                                 AnimatedContainer(
-                                  duration: Durations.short1,
+                                  duration: Durations.extralong1,
                                   padding: EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                      color: isExpanded ? Colors.white : Colors.black,
+                                      color: isExpanded
+                                          ? Colors.transparent
+                                          : Colors.black,
                                       borderRadius: BorderRadius.only(
-                                        topRight: Radius.elliptical(
-                                          _tlr,
-                                          _tlr,
-                                        ),
-                                      )),
-                                  width: isExpanded ? MediaQuery.of(context).size.width * 1 : MediaQuery.of(context).size.width * 0.7,
+                                          topRight: Radius.elliptical(
+                                            MediaQuery.of(context).size.width *
+                                                3,
+                                            MediaQuery.of(context).size.width *
+                                                1,
+                                          ),
+                                          topLeft: Radius.elliptical(
+                                            MediaQuery.of(context).size.width *
+                                                0.7,
+                                            MediaQuery.of(context).size.width *
+                                                0.2,
+                                          ),
+                                          bottomLeft: Radius.circular(
+                                              isExpanded ? 1000 : 0),
+                                          bottomRight: Radius.circular(
+                                              isExpanded ? 1000 : 50))),
+                                  width: isExpanded
+                                      ? MediaQuery.of(context).size.width * 1
+                                      : MediaQuery.of(context).size.width * 0.7,
                                   child: GestureDetector(
                                     onTap: () {
-                                      _dsController.animateTo(1, duration: Durations.medium4, curve: Curves.decelerate);
+                                      _dsController.animateTo(1,
+                                          duration:
+                                              Duration(microseconds: 1000),
+                                          curve: Curves.bounceIn);
                                     },
                                     child: Container(
-                                      alignment: isExpanded ? Alignment.topLeft : Alignment.centerLeft,
-                                      height: isExpanded ? constraints.smallest.height : constraints.minHeight,
+                                      alignment: isExpanded
+                                          ? Alignment.topLeft
+                                          : Alignment.centerLeft,
+                                      height: isExpanded
+                                          ? constraints.smallest.height
+                                          : constraints.minHeight,
                                       child: orders.length >= 1
                                           ? Text(
-                                              formatActiveOrderString(orders.length),
-                                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 48 * globals.scaleParam),
+                                              formatActiveOrderString(
+                                                  orders.length),
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w900,
+                                                  fontSize:
+                                                      48 * globals.scaleParam),
                                             )
                                           : Text("data"),
                                     ),
@@ -190,15 +231,22 @@ class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMix
                             child: Column(
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       formatActiveOrderString(orders.length),
-                                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 48 * globals.scaleParam),
+                                      style: TextStyle(
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 48 * globals.scaleParam),
                                     ),
                                     IconButton(
                                         onPressed: () {
-                                          _dsController.animateTo(_sheetPosition, duration: Durations.short1, curve: Curves.bounceOut);
+                                          _dsController.animateTo(
+                                              _sheetPosition,
+                                              duration: Durations.short1,
+                                              curve: Curves.bounceOut);
                                         },
                                         icon: Icon(Icons.close))
                                   ],
@@ -208,19 +256,7 @@ class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMix
                                   shrinkWrap: true,
                                   itemCount: orders.length,
                                   itemBuilder: (context, index) {
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                          border: Border(
-                                              bottom: BorderSide(
-                                                  color: Colors.grey))),
-                                      child: ListTile(
-                                          title: Text(
-                                        '#${orders[index]["order_uuid"]}',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.black),
-                                      ), ),
-                                    );
+                                    return OrderListTile(order: orders[index]);
                                   },
                                 )
                               ],
@@ -233,6 +269,130 @@ class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMix
                 ));
       },
     );
+  }
+}
+
+class OrderListTile extends StatefulWidget {
+  const OrderListTile({super.key, required this.order});
+  final Map order;
+
+  @override
+  State<OrderListTile> createState() => _OrderListTileState();
+}
+
+class _OrderListTileState extends State<OrderListTile> {
+  bool isExpanded = false;
+
+  Map orderDetails = {};
+  List orderItems = [];
+
+  _getOrderDetails(String order_id) async {
+    await getOrderDetails(order_id).then((od) {
+      if (od.isNotEmpty) {
+        setState(() {
+          orderDetails = od;
+          orderItems = od["items"];
+        });
+      }
+    });
+  }
+
+  Widget getOrderStatusFormat(String string) {
+    if (string == "66") {
+      return Container(
+        color: Colors.red,
+        padding: EdgeInsets.all(5 * globals.scaleParam),
+        child: Text("Заказ ожидает оплаты",
+            style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                fontSize: 36 * globals.scaleParam)),
+      );
+    } else if (string == "0") {
+      return Container(
+        color: Colors.yellow.shade800,
+        padding: EdgeInsets.all(5 * globals.scaleParam),
+        child: Text("Заказ отправлен в магазин",
+            style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                fontSize: 36 * globals.scaleParam)),
+      );
+    } else if (string == "1") {
+      return Container(
+        color: Colors.yellow.shade800,
+        padding: EdgeInsets.all(5 * globals.scaleParam),
+        child: Text("Ожидает сборки",
+            style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                fontSize: 36 * globals.scaleParam)),
+      );
+    } else if (string == "2") {
+      return Container(
+        color: Colors.teal.shade700,
+        padding: EdgeInsets.all(5 * globals.scaleParam),
+        child: Text("Заказ собран",
+            style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                fontSize: 36 * globals.scaleParam)),
+      );
+    } else if (string == "3") {
+      return Container(
+        color: Colors.greenAccent.shade700,
+        padding: EdgeInsets.all(5 * globals.scaleParam),
+        child: Text("Заказ забрал курьер",
+            style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                fontSize: 36 * globals.scaleParam)),
+      );
+    } else {
+      return Container();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration:
+          BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey))),
+      child: ExpansionTile(
+          childrenPadding: EdgeInsets.all(20),
+          onExpansionChanged: (value) {
+            if (value) {
+              _getOrderDetails(widget.order["order_id"]);
+            }
+          },
+          title: Text(
+            '#${widget.order["order_uuid"]}',
+            style: TextStyle(fontWeight: FontWeight.w700, color: Colors.black),
+          ),
+          subtitle: Row(
+            children: [
+              getOrderStatusFormat(widget.order["order_status"] ?? "99"),
+            ],
+          ),
+          children: [
+            orderItems.length == 0
+                ? LinearProgressIndicator()
+                : ListView.builder(
+                    primary: false,
+                    shrinkWrap: true,
+                    itemCount: orderItems.length,
+                    itemBuilder: (context, index) {
+                      return Row(
+                        children: [
+                          Text(orderItems[index]["name"]),
+                          Text(orderItems[index]["amount"])
+                        ],
+                      );
+                    },
+                  )
+          ]),
+    );
+    ;
   }
 }
 

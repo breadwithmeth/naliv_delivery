@@ -57,6 +57,65 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
         }
       });
     }
+    if (_currentCity.isEmpty) {
+      showDialog(
+        barrierColor: Colors.white70,
+        context: context,
+        builder: (context) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            shape: const RoundedRectangleBorder(),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+              child: Container(
+                alignment: Alignment.center,
+                color: Colors.transparent,
+                padding: EdgeInsets.all(20 * globals.scaleParam),
+                child: ListView.builder(
+                  primary: false,
+                  itemCount: widget.cities.length,
+                  itemBuilder: (context, index) {
+                    return TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _currentCity = widget.cities[index]["name"];
+                        });
+                        _mapController.move(
+                            LatLng(
+                                (double.parse(widget.cities[index]["x1"]) +
+                                        double.parse(
+                                            widget.cities[index]["x2"])) /
+                                    2,
+                                (double.parse(widget.cities[index]["y1"]) +
+                                        double.parse(
+                                            widget.cities[index]["y1"])) /
+                                    2),
+                            10);
+                        Navigator.pop(context);
+                      },
+                      child: Container(
+                        padding: EdgeInsets.all(10 * globals.scaleParam),
+                        child: Row(
+                          children: [
+                            Text(
+                              widget.cities[index]["name"],
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 48 * globals.scaleParam,
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
   }
 
   Future<void> searchGeoData(double lon, double lat) async {
@@ -110,9 +169,10 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
   @override
   void initState() {
     super.initState();
-    setCurrentCity();
 
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {});
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      setCurrentCity();
+    });
     Future.delayed(
       Durations.extralong4,
     ).then((v) {
