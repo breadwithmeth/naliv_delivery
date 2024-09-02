@@ -136,47 +136,28 @@ class _BottomBarState extends State<BottomBar>
                         SliverToBoxAdapter(
                           child: AnimatedContainer(
                             duration: Durations.extralong1,
-                            color:
-                                isExpanded ? Colors.white : Colors.transparent,
-                            width: double.infinity,
+                            color: Colors.transparent,
+                            // width: double.infinity,
                             height: isExpanded ? 1 : constraints.minHeight,
                             child: Row(
                               children: [
                                 AnimatedContainer(
-                                  duration: Durations.extralong1,
-                                  padding: EdgeInsets.all(10),
+                                  duration: Durations.short1,
                                   decoration: BoxDecoration(
-                                      color: isExpanded
-                                          ? Colors.transparent
-                                          : Colors.black,
-                                      borderRadius: BorderRadius.only(
-                                          topRight: Radius.elliptical(
-                                            MediaQuery.of(context).size.width *
-                                                3,
-                                            MediaQuery.of(context).size.width *
-                                                1,
-                                          ),
-                                          topLeft: Radius.elliptical(
-                                            MediaQuery.of(context).size.width *
-                                                0.7,
-                                            MediaQuery.of(context).size.width *
-                                                0.2,
-                                          ),
-                                          bottomLeft: Radius.circular(
-                                              isExpanded ? 1000 : 0),
-                                          bottomRight: Radius.circular(
-                                              isExpanded ? 1000 : 50))),
-                                  width: isExpanded
-                                      ? MediaQuery.of(context).size.width * 1
-                                      : MediaQuery.of(context).size.width * 0.7,
+                                      color: Colors.transparent,
+                                      borderRadius: BorderRadius.all(
+                                          Radius.circular(30))),
+                                  // width: isExpanded
+                                  //     ? MediaQuery.of(context).size.width * 1
+                                  //     : MediaQuery.of(context).size.width * 0.7,
                                   child: GestureDetector(
                                     onTap: () {
                                       _dsController.animateTo(1,
-                                          duration:
-                                              Duration(microseconds: 1000),
+                                          duration: Duration(microseconds: 10),
                                           curve: Curves.bounceIn);
                                     },
                                     child: Container(
+                                      color: Colors.transparent,
                                       alignment: isExpanded
                                           ? Alignment.topLeft
                                           : Alignment.centerLeft,
@@ -184,16 +165,34 @@ class _BottomBarState extends State<BottomBar>
                                           ? constraints.smallest.height
                                           : constraints.minHeight,
                                       child: orders.length >= 1
-                                          ? Text(
-                                              formatActiveOrderString(
-                                                  orders.length),
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.w900,
-                                                  fontSize:
-                                                      48 * globals.scaleParam),
+                                          ? Container(
+                                              margin: EdgeInsets.all(
+                                                  15 * globals.scaleParam),
+                                              padding: EdgeInsets.only(
+                                                  top: 45 * globals.scaleParam,
+                                                  bottom:
+                                                      45 * globals.scaleParam,
+                                                  left: 60 * globals.scaleParam,
+                                                  right:
+                                                      60 * globals.scaleParam),
+                                              decoration: BoxDecoration(
+                                                  color: Colors.black,
+                                                  borderRadius:
+                                                      BorderRadius.all(
+                                                          Radius.circular(
+                                                              500))),
+                                              child: Text(
+                                                // formatActiveOrderString(
+                                                //     orders.length),
+                                                orders.length.toString(),
+                                                style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.w900,
+                                                    fontSize: 36 *
+                                                        globals.scaleParam),
+                                              ),
                                             )
-                                          : Text("data"),
+                                          : Container(),
                                     ),
                                   ),
                                 ),

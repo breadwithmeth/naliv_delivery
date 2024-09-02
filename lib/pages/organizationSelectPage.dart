@@ -520,7 +520,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
       key: _key,
       drawerEnableOpenDragGesture: false,
       drawerScrimColor: Colors.white,
-      bottomSheet: context.mounted ? BottomBar() : Container(),
+      // bottomSheet: context.mounted ? BottomBar() : Container(),
       endDrawer: SafeArea(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
