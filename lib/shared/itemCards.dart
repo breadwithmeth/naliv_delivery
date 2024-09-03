@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:naliv_delivery/pages/productPage.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
@@ -2685,11 +2686,11 @@ class _ItemCardListTileState extends State<ItemCardListTile>
       builder: (context) {
         // widget.element["amount"] = amountInCart.toString();
         return ProductPage(
-          item: element,
-          index: widget.index,
-          returnDataAmount: updateCurrentItem,
-          business: widget.business,
-        );
+            item: element,
+            index: widget.index,
+            returnDataAmount: updateCurrentItem,
+            business: widget.business,
+            promotions: promotions);
       },
     );
   }
@@ -2857,7 +2858,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                             flex: 15,
                             child: Padding(
                               padding: EdgeInsets.only(
-                                left: 10 * globals.scaleParam,
+                                left: 20 * globals.scaleParam,
                                 right: 10 * globals.scaleParam,
                                 top: 12 * globals.scaleParam,
                                 // bottom: 10 * globals.scaleParam,
@@ -2869,7 +2870,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                 mainAxisSize: MainAxisSize.max,
                                 children: [
                                   Flexible(
-                                    flex: 6,
+                                    flex: 5,
                                     fit: FlexFit.tight,
                                     child: Row(
                                       mainAxisAlignment:
@@ -2891,7 +2892,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                                         TextOverflow.ellipsis,
                                                     maxLines: 2,
                                                     style: TextStyle(
-                                                      fontSize: 32 *
+                                                      fontSize: 38 *
                                                           globals.scaleParam,
                                                       fontWeight:
                                                           FontWeight.w600,
@@ -2906,10 +2907,10 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                       ],
                                     ),
                                   ),
-                                  Spacer(),
+                                  // Spacer(),
 
                                   Flexible(
-                                    flex: 5,
+                                    flex: 3,
                                     fit: FlexFit.tight,
                                     child: Text(
                                       element["description"],
@@ -2965,7 +2966,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                   //   ),
                                   // ),
                                   Flexible(
-                                    flex: 4,
+                                    flex: 5,
                                     fit: FlexFit.tight,
                                     child: Row(
                                       mainAxisAlignment: MainAxisAlignment.end,
@@ -2976,10 +2977,10 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                             globals.formatCost(
                                                 (element['price'] ?? "")
                                                     .toString()),
-                                            style: TextStyle(
+                                            style: GoogleFonts.inter(
                                               color: Colors.black,
-                                              fontWeight: FontWeight.w900,
-                                              fontSize: 38 * globals.scaleParam,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 48 * globals.scaleParam,
                                             ),
                                           ),
                                         ),
@@ -2987,7 +2988,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                           child: Text(
                                             "₸",
                                             textAlign: TextAlign.start,
-                                            style: TextStyle(
+                                            style: GoogleFonts.inter(
                                               color: Colors.grey.shade600,
                                               fontWeight: FontWeight.w700,
                                               fontSize: 38 * globals.scaleParam,
@@ -3336,6 +3337,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                     business: widget.business,
                                     dontClearOptions: true,
                                     cartItemId: index,
+                                    promotions: promotions,
                                   );
                                 },
                               );

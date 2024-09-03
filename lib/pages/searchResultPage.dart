@@ -4,7 +4,13 @@ import 'package:naliv_delivery/pages/productPage.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 
 class SearchResultPage extends StatefulWidget {
-  const SearchResultPage({super.key, required this.search, required this.page, required this.business, this.result, this.category_id = ""});
+  const SearchResultPage(
+      {super.key,
+      required this.search,
+      required this.page,
+      required this.business,
+      this.result,
+      this.category_id = ""});
   final String search;
   final int page;
   final Map<dynamic, dynamic> business;
@@ -27,9 +33,11 @@ class _SearchResultPageState extends State<SearchResultPage> {
   Future<void> _getItems() async {
     try {
       if (widget.category_id == "") {
-        responseList = await getItemsMain(_pageNumber, widget.business["business_id"], widget.search, widget.category_id);
+        responseList = await getItemsMain(_pageNumber,
+            widget.business["business_id"], widget.search, widget.category_id);
       } else {
-        responseList = await getItemsMain(_pageNumber, widget.business["business_id"], widget.search, widget.category_id);
+        responseList = await getItemsMain(_pageNumber,
+            widget.business["business_id"], widget.search, widget.category_id);
       }
       if (responseList != null) {
         List<Item> itemList = responseList!.map((data) => Item(data)).toList();
@@ -113,12 +121,12 @@ class _SearchResultPageState extends State<SearchResultPage> {
               isScrollControlled: true,
               builder: (context) {
                 return ProductPage(
-                  item: item.data,
-                  index: index,
-                  returnDataAmountSearchPage: updateDataAmount,
-                  // returnDataAmount: updateDataAmount,
-                  business: widget.business,
-                );
+                    item: item.data,
+                    index: index,
+                    returnDataAmountSearchPage: updateDataAmount,
+                    // returnDataAmount: updateDataAmount,
+                    business: widget.business,
+                    promotions: []);
               },
             );
           },
@@ -218,15 +226,19 @@ class _SearchResultPageState extends State<SearchResultPage> {
                   setState(() {});
                 },
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
               isDense: true,
               fillColor: Colors.black12,
               filled: true,
               focusedBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Colors.white, width: 0)),
+                  borderRadius: BorderRadius.all(Radius.circular(10)),
+                  borderSide: BorderSide(color: Colors.white, width: 0)),
               enabledBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Colors.white, width: 0)),
-              border: const OutlineInputBorder(borderSide: BorderSide(color: Colors.white, width: 0))),
+                  borderRadius: BorderRadius.all(Radius.circular(10)),
+                  borderSide: BorderSide(color: Colors.white, width: 0)),
+              border: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white, width: 0))),
         ),
       ),
       body: buildPostsView(),
