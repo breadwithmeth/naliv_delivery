@@ -177,8 +177,8 @@ class _MainState extends State<Main> {
         dividerTheme: DividerThemeData(
           color: Colors.grey.shade300,
         ),
-        textTheme: GoogleFonts.nunitoTextTheme().copyWith(
-          labelLarge: GoogleFonts.nunito(fontWeight: FontWeight.w700),
+        textTheme: GoogleFonts.interTextTheme().copyWith(
+          labelLarge: GoogleFonts.inter(fontWeight: FontWeight.w700),
         ),
 
         // До этого здесь был шрифт Mulish

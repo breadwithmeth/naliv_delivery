@@ -2808,50 +2808,6 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                             ),
                                     ),
                                   ),
-                                  promotions.isEmpty
-                                      ? Container()
-                                      : ListView.builder(
-                                          primary: false,
-                                          shrinkWrap: true,
-                                          itemCount: promotions.length,
-                                          itemBuilder: (context, index) {
-                                            return Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Container(
-                                                  decoration: BoxDecoration(
-                                                      borderRadius: BorderRadius
-                                                          .all(Radius.circular(15 *
-                                                              globals
-                                                                  .scaleParam)),
-                                                      gradient: LinearGradient(
-                                                        begin:
-                                                            Alignment.topRight,
-                                                        end: Alignment
-                                                            .bottomLeft,
-                                                        colors: [
-                                                          Color(0xFFFF8008),
-                                                          Color(0xFFFFC837),
-                                                        ],
-                                                      )),
-                                                  padding: EdgeInsets.all(
-                                                      15 * globals.scaleParam),
-                                                  margin: EdgeInsets.all(
-                                                      10 * globals.scaleParam),
-                                                  child: Text(
-                                                      promotions[index]["name"],
-                                                      style: TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.w900,
-                                                          color: Colors.white,
-                                                          fontSize: 32 *
-                                                              globals
-                                                                  .scaleParam)),
-                                                )
-                                              ],
-                                            );
-                                          },
-                                        )
                                 ],
                               )),
                           Expanded(
@@ -2891,13 +2847,13 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                                     overflow:
                                                         TextOverflow.ellipsis,
                                                     maxLines: 2,
-                                                    style: TextStyle(
-                                                      fontSize: 38 *
-                                                          globals.scaleParam,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      height: 1,
-                                                    ),
+                                                    style: GoogleFonts.inter(
+                                                        fontSize: 44 *
+                                                            globals.scaleParam,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        height: 1,
+                                                        letterSpacing: 0),
                                                   ),
                                                 ),
                                               ],
@@ -2909,21 +2865,21 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                   ),
                                   // Spacer(),
 
-                                  Flexible(
-                                    flex: 3,
-                                    fit: FlexFit.tight,
-                                    child: Text(
-                                      element["description"],
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: Colors.grey,
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 21 * globals.scaleParam,
-                                        height: 1,
-                                      ),
-                                    ),
-                                  ),
+                                  // Flexible(
+                                  //   flex: 3,
+                                  //   fit: FlexFit.tight,
+                                  //   child: Text(
+                                  //     element["description"],
+                                  //     maxLines: 2,
+                                  //     overflow: TextOverflow.ellipsis,
+                                  //     style: TextStyle(
+                                  //       color: Colors.grey,
+                                  //       fontWeight: FontWeight.w500,
+                                  //       fontSize: 21 * globals.scaleParam,
+                                  //       height: 1,
+                                  //     ),
+                                  //   ),
+                                  // ),
 
                                   // Flexible(
                                   //   flex: 4,
@@ -2966,6 +2922,60 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                   //   ),
                                   // ),
                                   Flexible(
+                                    flex: 4,
+                                    fit: FlexFit.tight,
+                                    child: promotions.isEmpty
+                                        ? Container()
+                                        : ListView.builder(
+                                            primary: false,
+                                            shrinkWrap: true,
+                                            itemCount: promotions.length,
+                                            itemBuilder: (context, index) {
+                                              return Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.center,
+                                                children: [
+                                                  Container(
+                                                    alignment: Alignment.center,
+                                                    decoration: BoxDecoration(
+                                                        borderRadius: BorderRadius
+                                                            .all(Radius
+                                                                .circular(10 *
+                                                                    globals
+                                                                        .scaleParam)),
+                                                        gradient:
+                                                            LinearGradient(
+                                                          begin: Alignment
+                                                              .topRight,
+                                                          end: Alignment
+                                                              .bottomLeft,
+                                                          colors: [
+                                                            Colors.purpleAccent,
+                                                            Color(0xFFFFC837),
+                                                          ],
+                                                        )),
+                                                    padding: EdgeInsets.all(10 *
+                                                        globals.scaleParam),
+                                                    margin: EdgeInsets.all(
+                                                        3 * globals.scaleParam),
+                                                    child: Text(
+                                                        promotions[index]
+                                                            ["name"],
+                                                        style: GoogleFonts.inter(
+                                                            fontWeight:
+                                                                FontWeight.w900,
+                                                            color: Colors.white,
+                                                            fontSize: 24 *
+                                                                globals
+                                                                    .scaleParam)),
+                                                  )
+                                                ],
+                                              );
+                                            },
+                                          ),
+                                  ),
+                                  Flexible(
                                     flex: 5,
                                     fit: FlexFit.tight,
                                     child: Row(
@@ -2979,7 +2989,7 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                                     .toString()),
                                             style: GoogleFonts.inter(
                                               color: Colors.black,
-                                              fontWeight: FontWeight.w700,
+                                              fontWeight: FontWeight.w900,
                                               fontSize: 48 * globals.scaleParam,
                                             ),
                                           ),
@@ -2990,8 +3000,8 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                                             textAlign: TextAlign.start,
                                             style: GoogleFonts.inter(
                                               color: Colors.grey.shade600,
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 38 * globals.scaleParam,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 48 * globals.scaleParam,
                                             ),
                                           ),
                                         ),

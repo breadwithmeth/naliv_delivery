@@ -454,6 +454,7 @@ class _ProductPageState extends State<ProductPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
+              // color: Colors.black,
               decoration: BoxDecoration(
                   borderRadius: BorderRadius.all(
                       Radius.circular(15 * globals.scaleParam)),
@@ -461,14 +462,14 @@ class _ProductPageState extends State<ProductPage> {
                     begin: Alignment.topRight,
                     end: Alignment.bottomLeft,
                     colors: [
-                      Color(0xFFFF8008),
+                      Colors.purpleAccent,
                       Color(0xFFFFC837),
                     ],
                   )),
-              padding: EdgeInsets.all(15 * globals.scaleParam),
-              margin: EdgeInsets.all(10 * globals.scaleParam),
+              padding: EdgeInsets.all(10 * globals.scaleParam),
+              margin: EdgeInsets.all(0 * globals.scaleParam),
               child: Text(widget.promotions[index]["name"],
-                  style: TextStyle(
+                  style: GoogleFonts.inter(
                       fontWeight: FontWeight.w900,
                       color: Colors.white,
                       fontSize: 32 * globals.scaleParam)),
@@ -482,6 +483,7 @@ class _ProductPageState extends State<ProductPage> {
   Scaffold _productPage(
       BuildContext context, ScrollController scrollController) {
     return Scaffold(
+        backgroundColor: Colors.white,
         // color: Colors.white,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton: SlideTransition(
@@ -490,8 +492,7 @@ class _ProductPageState extends State<ProductPage> {
             builder: (context, constraints) {
               if (options.isNotEmpty && !isRequiredSelected) {
                 return Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
+                  padding: EdgeInsets.symmetric(horizontal: 0),
                   child: SizedBox(
                     width: constraints.maxWidth * 0.95,
                     height: 125 * globals.scaleParam,
@@ -811,600 +812,669 @@ class _ProductPageState extends State<ProductPage> {
         ),
         body: Container(
           clipBehavior: Clip.antiAliasWithSaveLayer,
-          margin: EdgeInsets.only(left: 10, right: 10),
+          // margin: EdgeInsets.only(left: 10, right: 10),
           decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+
               // color: Colors.amber,
-              borderRadius: BorderRadius.all(Radius.circular(15))),
+              borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(30), topRight: Radius.circular(30))),
           child: ListView(
             controller: scrollController,
             children: [
               Container(
-                width: MediaQuery.sizeOf(context).width * 0.5,
-                height: MediaQuery.sizeOf(context).height * 0.5,
-                alignment: Alignment.center,
-                child: GestureDetector(
-                  onTap: () {
-                    showAdaptiveDialog(
-                      context: context,
-                      builder: (context) {
-                        return GestureDetector(
-                          onTap: () {
-                            Navigator.pop(context);
-                          },
-                          onDoubleTap: () {},
-                          child: Dialog.fullscreen(
-                            backgroundColor: Colors.black12,
-                            child:
-                                LayoutBuilder(builder: (context, constraints) {
-                              return Stack(
-                                children: [
-                                  SizedBox(
-                                    width: constraints.maxWidth,
-                                    height: constraints.maxHeight,
-                                    child: InteractiveViewer(
-                                        panEnabled: true,
-                                        boundaryMargin: EdgeInsets.all(
-                                            100 * globals.scaleParam),
-                                        minScale: 1,
-                                        maxScale: 5,
-                                        child: Stack(
-                                          children: [
-                                            ExtendedImage.network(
-                                              item["img"],
-                                              width: double.infinity,
-                                              // mode: ExtendedImageMode.gesture,
-                                              // initGestureConfigHandler: (state) {
-                                              //   return GestureConfig(
-                                              //     minScale: 0.8,
-                                              //     maxScale: 3.0,
-                                              //     speed: 1.0,
-                                              //     inertialSpeed: 100.0,
-                                              //   );
-                                              // },
-                                            ),
-                                          ],
-                                        )),
-                                  ),
-                                  Padding(
-                                    padding:
-                                        EdgeInsets.all(20 * globals.scaleParam),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        IconButton(
-                                          style: IconButton.styleFrom(
-                                              backgroundColor: Colors.white54),
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                          },
-                                          icon: Icon(
-                                            Icons.close_fullscreen_rounded,
-                                            color: Colors.black,
+                margin: EdgeInsets.only(
+                  bottom: 5,
+                ),
+                clipBehavior: Clip.none,
+                decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                          offset: Offset(0, 2),
+                          blurRadius: 10,
+                          color: Colors.blueGrey.shade50)
+                    ],
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(30),
+                        bottomRight: Radius.circular(30))),
+                padding: EdgeInsets.all(20 * globals.scaleParam),
+                child: Column(
+                  children: [
+                    Container(
+                      clipBehavior: Clip.none,
+                      // width: MediaQuery.sizeOf(context).width * 0.5,
+                      // height: MediaQuery.sizeOf(context).height * 0.5,
+                      alignment: Alignment.center,
+                      child: GestureDetector(onTap: () {
+                        showDialog(
+                          useSafeArea: true,
+                          context: context,
+                          builder: (context) {
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.pop(context);
+                              },
+                              onDoubleTap: () {},
+                              child: Dialog.fullscreen(
+                                backgroundColor: Colors.black12,
+                                child: LayoutBuilder(
+                                    builder: (context, constraints) {
+                                  return Stack(
+                                    children: [
+                                      Container(
+                                        clipBehavior: Clip.none,
+                                        alignment: Alignment.center,
+                                        width:
+                                            MediaQuery.of(context).size.width,
+                                        height:
+                                            MediaQuery.of(context).size.height,
+                                        child: InteractiveViewer(
+                                          // constrained: false,
+                                          panEnabled: true,
+                                          boundaryMargin: EdgeInsets.all(
+                                              100 * globals.scaleParam),
+                                          minScale: 1,
+                                          maxScale: 5,
+                                          child: ExtendedImage.network(
+                                            item["img"],
+                                            width: double.infinity,
+                                            height: constraints.maxHeight,
+                                            // mode: ExtendedImageMode.gesture,
+                                            // initGestureConfigHandler: (state) {
+                                            //   return GestureConfig(
+                                            //     minScale: 0.8,
+                                            //     maxScale: 3.0,
+                                            //     speed: 1.0,
+                                            //     inertialSpeed: 100.0,
+                                            //   );
+                                            // },
                                           ),
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                      Padding(
+                                        padding: EdgeInsets.all(
+                                            20 * globals.scaleParam),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.end,
+                                          children: [
+                                            IconButton(
+                                              style: IconButton.styleFrom(
+                                                  backgroundColor:
+                                                      Colors.white54),
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                              },
+                                              icon: Icon(
+                                                Icons.close_fullscreen_rounded,
+                                                color: Colors.black,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }),
+                              ),
+                            );
+                          },
+                        );
+                      }, child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return Container(
+                              width: constraints.maxWidth,
+                              height: constraints.maxWidth,
+                              // margin: EdgeInsets.all(10),
+                              decoration: const BoxDecoration(
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(15),
+                                ),
+                              ),
+                              clipBehavior: Clip.antiAliasWithSaveLayer,
+                              child: Stack(
+                                children: [
+                                  ExtendedImage.network(
+                                    item["img"],
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    // mode: ExtendedImageMode.gesture,
+                                    // initGestureConfigHandler: (state) {
+                                    //   return GestureConfig(
+                                    //     minScale: 0.8,
+                                    //     maxScale: 3.0,
+                                    //     speed: 1.0,
+                                    //     inertialSpeed: 100.0,
+                                    //   );
+                                    // },
                                   ),
                                 ],
-                              );
-                            }),
+                              ));
+                        },
+                      )),
+                    ),
+                    item.isNotEmpty
+                        ? Container(
+                            // color: Colors.grey.shade50,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 1 *
+                                  (MediaQuery.sizeOf(context).height / 1080),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                  height: 5 * globals.scaleParam,
+                                ),
+                                buildPromotions(),
+                                Text(
+                                  item["name"] ?? "",
+                                  style: GoogleFonts.inter(
+                                      fontSize: 54 * globals.scaleParam,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black,
+                                      letterSpacing: 0),
+                                ),
+                                SizedBox(
+                                  height: 5 * globals.scaleParam,
+                                ),
+                                Padding(
+                                  padding: EdgeInsets.only(
+                                      left: 0 * globals.scaleParam),
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              globals.formatCost(
+                                                  (item['price'] ?? '')
+                                                      .toString()),
+                                              style: GoogleFonts.inter(
+                                                fontSize:
+                                                    86 * globals.scaleParam,
+                                                fontWeight: FontWeight.w900,
+                                                color: Colors.black,
+                                              ),
+                                            ),
+                                          ),
+                                          Flexible(
+                                            child: Text(
+                                              "₸",
+                                              style: GoogleFonts.inter(
+                                                color: Colors.grey.shade600,
+                                                fontWeight: FontWeight.w900,
+                                                fontSize:
+                                                    86 * globals.scaleParam,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      //* NO MORE IN_STOCK CHANGE
+                                      // Row(
+                                      //   children: [
+                                      //     Flexible(
+                                      //       child: Text(
+                                      //         // Automatically sets units of choice
+                                      //         item["unit"] != "шт"
+                                      //             ? "В наличии: ${(item['in_stock'] ?? "")} ${item["unit"]}"
+                                      //             : item["quantity"] != 1
+                                      //                 ? "В наличии: ${item["in_stock"]} кг"
+                                      //                 : "В наличии: ${(item["in_stock"]).round()} ${item["unit"]}",
+                                      //         style: TextStyle(
+                                      //           fontSize: 28 * globals.scaleParam,
+                                      //           fontWeight: FontWeight.w700,
+                                      //           color: Theme.of(context).colorScheme.secondary,
+                                      //         ),
+                                      //       ),
+                                      //     ),
+                                      //   ],
+                                      // ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        // TODO: Maybe not even needed anymore, content inside productPage loads immediately because data recieved from categoryPage
+                        : Shimmer.fromColors(
+                            baseColor: Theme.of(context)
+                                .colorScheme
+                                .secondary
+                                .withOpacity(0.05),
+                            highlightColor:
+                                Theme.of(context).colorScheme.secondary,
+                            child: Container(
+                              width: MediaQuery.of(context).size.width * 0.8,
+                              height: 40,
+                              color: Colors.white,
+                            ),
+                          ),
+                  ],
+                ),
+              ),
+
+              //! Options
+              Container(
+                padding: EdgeInsets.symmetric(
+                    vertical: 5 * globals.scaleParam,
+                    horizontal: 25 * globals.scaleParam),
+                // color: Colors.grey.shade100,
+                child: ListView(
+                  primary: false,
+                  shrinkWrap: true,
+                  children: [
+                    ListView.builder(
+                      primary: false,
+                      shrinkWrap: true,
+                      itemCount: options.length,
+                      itemBuilder: (context, indexOption) {
+                        return Container(
+                          // padding: EdgeInsets.only(
+                          //     left: 30 * globals.scaleParam,
+                          //     right: 30 * globals.scaleParam),
+                          margin: EdgeInsets.only(
+                              left: 15 * globals.scaleParam,
+                              right: 15 * globals.scaleParam),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    options[indexOption]["name"],
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 48 * globals.scaleParam),
+                                  ),
+                                  options[indexOption]["required"] == 1
+                                      ? Container(
+                                          // color: Colors.white,
+                                          child: Text(
+                                            "Обязательно",
+                                            style: TextStyle(
+                                                color: Colors.red,
+                                                fontWeight: FontWeight.w700,
+                                                fontSize:
+                                                    36 * globals.scaleParam),
+                                          ),
+                                        )
+                                      : Container(),
+                                ],
+                              ),
+                              ListView.builder(
+                                primary: false,
+                                shrinkWrap: true,
+                                itemCount:
+                                    options[indexOption]["options"].length,
+                                itemBuilder: (context, index) {
+                                  return options[indexOption]["selection"] ==
+                                          "SINGLE"
+                                      ? Row(
+                                          children: [
+                                            Flexible(
+                                              child: ChoiceChip(
+                                                  shape: RoundedRectangleBorder(
+                                                      side: BorderSide.none,
+                                                      borderRadius:
+                                                          BorderRadius.zero),
+                                                  avatar: Icon(
+                                                      Icons.circle_outlined),
+                                                  selectedColor: Colors
+                                                      .amberAccent.shade200,
+                                                  disabledColor: Colors.white,
+                                                  backgroundColor: Colors.white,
+                                                  label: Text(
+                                                    "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}",
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w700),
+                                                  ),
+                                                  selected: options[indexOption]
+                                                          [
+                                                          "selected_relation_id"] ==
+                                                      options[indexOption]
+                                                              ["options"][index]
+                                                          ["relation_id"],
+                                                  onSelected: (v) {
+                                                    // print(v);
+                                                    print(options);
+                                                    if (v) {
+                                                      setState(() {
+                                                        options[indexOption][
+                                                                "selected_relation_id"] =
+                                                            options[indexOption]
+                                                                        [
+                                                                        "options"]
+                                                                    [index]
+                                                                ["relation_id"];
+                                                        requiredSelected =
+                                                            options[indexOption]
+                                                                        [
+                                                                        "options"]
+                                                                    [index]
+                                                                ["relation_id"];
+                                                        optionsAddedCost =
+                                                            options[indexOption]
+                                                                    ["options"][
+                                                                index]["price"];
+                                                        parentItemMultiplier =
+                                                            options[indexOption]
+                                                                        [
+                                                                        "options"]
+                                                                    [index][
+                                                                "parent_item_amount"];
+                                                        if (amountInCart *
+                                                                parentItemMultiplier >
+                                                            widget.item[
+                                                                "in_stock"]) {
+                                                          amountInCart = (widget
+                                                                          .item[
+                                                                      "in_stock"] /
+                                                                  parentItemMultiplier)
+                                                              .truncateToDouble();
+                                                        }
+                                                      });
+                                                    } else {
+                                                      setState(() {
+                                                        options[indexOption][
+                                                                "selected_relation_id"] =
+                                                            null;
+                                                        requiredSelected = null;
+                                                        optionsAddedCost = 0;
+                                                        parentItemMultiplier =
+                                                            1;
+                                                      });
+
+                                                      // setState(() {
+                                                      //   amountInCart = 0;
+                                                      // });
+                                                      // _finalizeCartAmount();
+                                                    }
+                                                    _checkOptions();
+                                                    getBuyButtonCurrentActionText();
+                                                  }
+                                                  // dense: true,
+                                                  //   onChanged: (v) {
+
+                                                  //   },
+                                                  //   groupValue: options[index_option]
+                                                  //       ["selected_relation_id"],
+                                                  //   value: options[index_option]
+                                                  //           ["options"][index]
+                                                  //       ["relation_id"],
+                                                  //
+                                                  ),
+                                            )
+                                          ],
+                                        )
+                                      : Container(
+                                          alignment: Alignment.centerLeft,
+                                          decoration: BoxDecoration(
+                                              // boxShadow: [
+                                              //   BoxShadow(
+                                              //       offset: Offset(2, 2),
+                                              //       blurRadius: 5,
+                                              //       color: Colors.grey.shade400)
+                                              // ],
+                                              // color: Colors.white,
+                                              borderRadius: BorderRadius.all(
+                                                  Radius.circular(15))),
+                                          // margin: EdgeInsets.all(10 * globals.scaleParam),
+                                          child: Row(
+                                            children: [
+                                              Flexible(
+                                                child: FilterChip(
+                                                  backgroundColor: Colors.white,
+                                                  deleteIcon: Container(),
+                                                  // deleteIconBoxConstraints: BoxConstraints(),
+                                                  label: Text(
+                                                    options[indexOption]["options"]
+                                                                        [index]
+                                                                    ["price"] !=
+                                                                null &&
+                                                            options[indexOption]
+                                                                            [
+                                                                            "options"]
+                                                                        [index]
+                                                                    ["price"] !=
+                                                                0
+                                                        ? "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}"
+                                                        : options[indexOption]
+                                                                ["options"]
+                                                            [index]["name"],
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w700),
+                                                  ),
+                                                  selected: List.castFrom(options[
+                                                              indexOption][
+                                                          "selected_relation_id"])
+                                                      .contains(options[
+                                                                  indexOption]
+                                                              ["options"][index]
+                                                          ["relation_id"]),
+                                                  onSelected: (v) {
+                                                    if (v) {
+                                                      setState(() {
+                                                        options[indexOption][
+                                                                "selected_relation_id"]
+                                                            .add(options[indexOption]
+                                                                        [
+                                                                        "options"]
+                                                                    [index][
+                                                                "relation_id"]);
+                                                      });
+                                                    } else {
+                                                      setState(() {
+                                                        options[indexOption][
+                                                                "selected_relation_id"]
+                                                            .removeWhere((item) =>
+                                                                item ==
+                                                                options[indexOption]
+                                                                            [
+                                                                            "options"]
+                                                                        [index][
+                                                                    "relation_id"]);
+                                                      });
+                                                    }
+                                                    _checkOptions();
+                                                    getBuyButtonCurrentActionText();
+                                                  },
+                                                  onDeleted: () {},
+                                                  // value: isCheckBoxSelected,
+                                                  // onChanged: (v) {}
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                },
+                              )
+                            ],
                           ),
                         );
                       },
-                    );
-                  },
-                  child: Container(
-                      // margin: EdgeInsets.all(10),
-                      decoration: const BoxDecoration(
-                        borderRadius: BorderRadius.all(
-                          Radius.circular(15),
-                        ),
-                      ),
-                      clipBehavior: Clip.antiAliasWithSaveLayer,
-                      child: Stack(
-                        children: [
-                          ExtendedImage.network(
-                            item["img"],
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            // mode: ExtendedImageMode.gesture,
-                            // initGestureConfigHandler: (state) {
-                            //   return GestureConfig(
-                            //     minScale: 0.8,
-                            //     maxScale: 3.0,
-                            //     speed: 1.0,
-                            //     inertialSpeed: 100.0,
-                            //   );
-                            // },
-                          ),
-                          Container(
-                            padding: EdgeInsets.all(35 * globals.scaleParam),
-                            child: buildPromotions(),
-                          )
-                        ],
-                      )),
-                ),
-              ),
-              item.isNotEmpty
-                  ? Container(
-                      // color: Colors.grey.shade50,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 10 * globals.scaleParam,
-                        vertical:
-                            10 * (MediaQuery.sizeOf(context).height / 1080),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Text(
-                            item["name"] ?? "",
-                            style: GoogleFonts.inter(
-                                fontSize: 54 * globals.scaleParam,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black,
-                                letterSpacing: 0),
-                          ),
-                          SizedBox(
-                            height: 20 * globals.scaleParam,
-                          ),
-                          Padding(
-                            padding:
-                                EdgeInsets.only(left: 0 * globals.scaleParam),
-                            child: Column(
-                              children: [
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        globals.formatCost(
-                                            (item['price'] ?? '').toString()),
-                                        style: GoogleFonts.inter(
-                                          fontSize: 86 * globals.scaleParam,
-                                          fontWeight: FontWeight.w900,
-                                          color: Colors.blueAccent.shade700,
-                                        ),
-                                      ),
-                                    ),
-                                    Flexible(
-                                      child: Text(
-                                        "₸",
-                                        textAlign: TextAlign.start,
-                                        style: GoogleFonts.inter(
-                                          color: Colors.grey.shade600,
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 86 * globals.scaleParam,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                //* NO MORE IN_STOCK CHANGE
-                                // Row(
-                                //   children: [
-                                //     Flexible(
-                                //       child: Text(
-                                //         // Automatically sets units of choice
-                                //         item["unit"] != "шт"
-                                //             ? "В наличии: ${(item['in_stock'] ?? "")} ${item["unit"]}"
-                                //             : item["quantity"] != 1
-                                //                 ? "В наличии: ${item["in_stock"]} кг"
-                                //                 : "В наличии: ${(item["in_stock"]).round()} ${item["unit"]}",
-                                //         style: TextStyle(
-                                //           fontSize: 28 * globals.scaleParam,
-                                //           fontWeight: FontWeight.w700,
-                                //           color: Theme.of(context).colorScheme.secondary,
-                                //         ),
-                                //       ),
-                                //     ),
-                                //   ],
-                                // ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  // TODO: Maybe not even needed anymore, content inside productPage loads immediately because data recieved from categoryPage
-                  : Shimmer.fromColors(
-                      baseColor: Theme.of(context)
-                          .colorScheme
-                          .secondary
-                          .withOpacity(0.05),
-                      highlightColor: Theme.of(context).colorScheme.secondary,
-                      child: Container(
-                        width: MediaQuery.of(context).size.width * 0.8,
-                        height: 40,
-                        color: Colors.white,
-                      ),
                     ),
-              // Container(
-              //   width: MediaQuery.of(context).size.width,
-              //   padding: EdgeInsets.symmetric(
-              //       horizontal: 30 * globals.scaleParam,
-              //       vertical: 10 * (MediaQuery.sizeOf(context).height / 1080)),
-              //   child: Wrap(
-              //     children: propertiesWidget,
-              //   ),
-              // ),
-
-              //! Options
-              ListView.builder(
-                primary: false,
-                shrinkWrap: true,
-                itemCount: options.length,
-                itemBuilder: (context, indexOption) {
-                  return Container(
-                    // padding: EdgeInsets.only(
-                    //     left: 30 * globals.scaleParam,
-                    //     right: 30 * globals.scaleParam),
-                    margin: EdgeInsets.only(
-                        left: 15 * globals.scaleParam,
-                        right: 15 * globals.scaleParam),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              options[indexOption]["name"],
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 48 * globals.scaleParam),
+                    item["group"] != null
+                        ? Container(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 20 * globals.scaleParam),
+                            height: 50,
+                            width: MediaQuery.of(context).size.width,
+                            child: ListView(
+                              primary: false,
+                              shrinkWrap: true,
+                              scrollDirection: Axis.horizontal,
+                              children: groupItems,
                             ),
-                            options[indexOption]["required"] == 1
-                                ? Container(
-                                    color: Colors.white,
-                                    child: Text(
-                                      "Обязательно",
-                                      style: TextStyle(
-                                          color: Colors.red,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 36 * globals.scaleParam),
+                          )
+                        : Container(),
+                    // const SizedBox(
+                    //   height: 5,
+                    // ),
+
+                    Stack(
+                      children: [
+                        // Container(
+                        //   height: 25,
+                        //   padding: EdgeInsets.symmetric(
+                        //       horizontal: 30 * scale_param),
+                        //   decoration: BoxDecoration(
+                        //     boxShadow: [
+                        //       BoxShadow(
+                        //           color: Colors.grey.withOpacity(0.15),
+                        //           offset: const Offset(0, -1),
+                        //           blurRadius: 15,
+                        //           spreadRadius: 1)
+                        //     ],
+                        //     border: Border(
+                        //       bottom: BorderSide(color: Colors.grey.shade200, width: 3),
+                        //     ),
+                        //   ),
+                        //   child: const Row(
+                        //     children: [],
+                        //   ),
+                        // ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Flexible(
+                              fit: FlexFit.tight,
+                              child: GestureDetector(
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      bottom: BorderSide(
+                                        width: 3,
+                                        color: currentTab == 0
+                                            ? Colors.black
+                                            : Colors.grey.shade200,
+                                      ),
                                     ),
-                                  )
-                                : Container(),
+                                  ),
+                                  child: Text(
+                                    "Описание",
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                    style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 32 * globals.scaleParam),
+                                  ),
+                                ),
+                                onTap: () {
+                                  setState(() {
+                                    currentTab = 0;
+                                  });
+                                },
+                              ),
+                            ),
+                            Flexible(
+                              fit: FlexFit.tight,
+                              child: GestureDetector(
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      bottom: BorderSide(
+                                        width: 3,
+                                        color: currentTab == 1
+                                            ? Colors.black
+                                            : Colors.grey.shade200,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    "О бренде",
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                    style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 32 * globals.scaleParam),
+                                  ),
+                                ),
+                                onTap: () {
+                                  setState(() {
+                                    currentTab = 1;
+                                  });
+                                },
+                              ),
+                            ),
+                            Flexible(
+                              fit: FlexFit.tight,
+                              child: GestureDetector(
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      bottom: BorderSide(
+                                        width: 3,
+                                        color: currentTab == 2
+                                            ? Colors.black
+                                            : Colors.grey.shade200,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    "Производитель",
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                    style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 32 * globals.scaleParam),
+                                  ),
+                                ),
+                                onTap: () {
+                                  setState(() {
+                                    currentTab = 2;
+                                  });
+                                },
+                              ),
+                            ),
                           ],
-                        ),
-                        ListView.builder(
-                          primary: false,
-                          shrinkWrap: true,
-                          itemCount: options[indexOption]["options"].length,
-                          itemBuilder: (context, index) {
-                            return options[indexOption]["selection"] == "SINGLE"
-                                ? Row(
-                                    children: [
-                                      Flexible(
-                                        child: ChoiceChip(
-                                            selectedColor:
-                                                Colors.amberAccent.shade200,
-                                            disabledColor: Colors.white,
-                                            backgroundColor: Colors.white,
-                                            label: Text(
-                                              "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}",
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.w700),
-                                            ),
-                                            selected: options[indexOption]
-                                                    ["selected_relation_id"] ==
-                                                options[indexOption]["options"]
-                                                    [index]["relation_id"],
-                                            onSelected: (v) {
-                                              // print(v);
-                                              print(options);
-                                              if (v) {
-                                                setState(() {
-                                                  options[indexOption][
-                                                          "selected_relation_id"] =
-                                                      options[indexOption]
-                                                              ["options"][index]
-                                                          ["relation_id"];
-                                                  requiredSelected =
-                                                      options[indexOption]
-                                                              ["options"][index]
-                                                          ["relation_id"];
-                                                  optionsAddedCost =
-                                                      options[indexOption]
-                                                              ["options"][index]
-                                                          ["price"];
-                                                  parentItemMultiplier =
-                                                      options[indexOption]
-                                                              ["options"][index]
-                                                          [
-                                                          "parent_item_amount"];
-                                                  if (amountInCart *
-                                                          parentItemMultiplier >
-                                                      widget.item["in_stock"]) {
-                                                    amountInCart = (widget.item[
-                                                                "in_stock"] /
-                                                            parentItemMultiplier)
-                                                        .truncateToDouble();
-                                                  }
-                                                });
-                                              } else {
-                                                setState(() {
-                                                  options[indexOption][
-                                                          "selected_relation_id"] =
-                                                      null;
-                                                  requiredSelected = null;
-                                                  optionsAddedCost = 0;
-                                                  parentItemMultiplier = 1;
-                                                });
-
-                                                // setState(() {
-                                                //   amountInCart = 0;
-                                                // });
-                                                // _finalizeCartAmount();
-                                              }
-                                              _checkOptions();
-                                              getBuyButtonCurrentActionText();
-                                            }
-                                            // dense: true,
-                                            //   onChanged: (v) {
-
-                                            //   },
-                                            //   groupValue: options[index_option]
-                                            //       ["selected_relation_id"],
-                                            //   value: options[index_option]
-                                            //           ["options"][index]
-                                            //       ["relation_id"],
-                                            //
-                                            ),
-                                      )
-                                    ],
-                                  )
-                                : Container(
-                                    alignment: Alignment.centerLeft,
-                                    decoration: BoxDecoration(
-                                        // boxShadow: [
-                                        //   BoxShadow(
-                                        //       offset: Offset(2, 2),
-                                        //       blurRadius: 5,
-                                        //       color: Colors.grey.shade400)
-                                        // ],
-                                        // color: Colors.white,
-                                        borderRadius: BorderRadius.all(
-                                            Radius.circular(15))),
-                                    // margin: EdgeInsets.all(10 * globals.scaleParam),
-                                    child: Row(
-                                      children: [
-                                        Flexible(
-                                          child: FilterChip(
-                                            backgroundColor: Colors.white,
-                                            deleteIcon: Container(),
-                                            // deleteIconBoxConstraints: BoxConstraints(),
-                                            label: Text(
-                                              options[indexOption]["options"]
-                                                                  [index]
-                                                              ["price"] !=
-                                                          null &&
-                                                      options[indexOption]
-                                                                  ["options"][
-                                                              index]["price"] !=
-                                                          0
-                                                  ? "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}"
-                                                  : options[indexOption]
-                                                          ["options"][index]
-                                                      ["name"],
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.w700),
-                                            ),
-                                            selected: List.castFrom(options[
-                                                        indexOption]
-                                                    ["selected_relation_id"])
-                                                .contains(options[indexOption]
-                                                        ["options"][index]
-                                                    ["relation_id"]),
-                                            onSelected: (v) {
-                                              if (v) {
-                                                setState(() {
-                                                  options[indexOption][
-                                                          "selected_relation_id"]
-                                                      .add(options[indexOption]
-                                                              ["options"][index]
-                                                          ["relation_id"]);
-                                                });
-                                              } else {
-                                                setState(() {
-                                                  options[indexOption][
-                                                          "selected_relation_id"]
-                                                      .removeWhere((item) =>
-                                                          item ==
-                                                          options[indexOption][
-                                                                      "options"]
-                                                                  [index]
-                                                              ["relation_id"]);
-                                                });
-                                              }
-                                              _checkOptions();
-                                              getBuyButtonCurrentActionText();
-                                            },
-                                            onDeleted: () {},
-                                            // value: isCheckBoxSelected,
-                                            // onChanged: (v) {}
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                          },
                         )
                       ],
                     ),
-                  );
-                },
-              ),
-              item["group"] != null
-                  ? Container(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 20 * globals.scaleParam),
-                      height: 50,
-                      width: MediaQuery.of(context).size.width,
-                      child: ListView(
-                        primary: false,
-                        shrinkWrap: true,
-                        scrollDirection: Axis.horizontal,
-                        children: groupItems,
+                    Container(
+                      padding: EdgeInsets.all(30 * globals.scaleParam),
+                      child: Text(
+                        TabText[currentTab],
+                        style: TextStyle(
+                          color: Colors.grey.shade700,
+                          fontWeight: FontWeight.w400,
+                          fontSize: 34 * globals.scaleParam,
+                        ),
                       ),
+                    ),
+                    Container(
+                      padding: EdgeInsets.all(30 * globals.scaleParam),
+                      child: Table(
+                        columnWidths: const {
+                          0: FlexColumnWidth(),
+                          1: FlexColumnWidth()
+                        },
+                        border: TableBorder(
+                            horizontalInside: BorderSide(
+                                width: 1, color: Colors.grey.shade400),
+                            bottom: BorderSide(
+                                width: 1, color: Colors.grey.shade400)),
+                        children: properties,
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 100,
                     )
-                  : Container(),
-              // const SizedBox(
-              //   height: 5,
-              // ),
-
-              Stack(
-                children: [
-                  // Container(
-                  //   height: 25,
-                  //   padding: EdgeInsets.symmetric(
-                  //       horizontal: 30 * scale_param),
-                  //   decoration: BoxDecoration(
-                  //     boxShadow: [
-                  //       BoxShadow(
-                  //           color: Colors.grey.withOpacity(0.15),
-                  //           offset: const Offset(0, -1),
-                  //           blurRadius: 15,
-                  //           spreadRadius: 1)
-                  //     ],
-                  //     border: Border(
-                  //       bottom: BorderSide(color: Colors.grey.shade200, width: 3),
-                  //     ),
-                  //   ),
-                  //   child: const Row(
-                  //     children: [],
-                  //   ),
-                  // ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Flexible(
-                        fit: FlexFit.tight,
-                        child: GestureDetector(
-                          child: Container(
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                  width: 3,
-                                  color: currentTab == 0
-                                      ? Colors.black
-                                      : Colors.grey.shade200,
-                                ),
-                              ),
-                            ),
-                            child: Text(
-                              "Описание",
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                              style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 32 * globals.scaleParam),
-                            ),
-                          ),
-                          onTap: () {
-                            setState(() {
-                              currentTab = 0;
-                            });
-                          },
-                        ),
-                      ),
-                      Flexible(
-                        fit: FlexFit.tight,
-                        child: GestureDetector(
-                          child: Container(
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                  width: 3,
-                                  color: currentTab == 1
-                                      ? Colors.black
-                                      : Colors.grey.shade200,
-                                ),
-                              ),
-                            ),
-                            child: Text(
-                              "О бренде",
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                              style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 32 * globals.scaleParam),
-                            ),
-                          ),
-                          onTap: () {
-                            setState(() {
-                              currentTab = 1;
-                            });
-                          },
-                        ),
-                      ),
-                      Flexible(
-                        fit: FlexFit.tight,
-                        child: GestureDetector(
-                          child: Container(
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                  width: 3,
-                                  color: currentTab == 2
-                                      ? Colors.black
-                                      : Colors.grey.shade200,
-                                ),
-                              ),
-                            ),
-                            child: Text(
-                              "Производитель",
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                              style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 32 * globals.scaleParam),
-                            ),
-                          ),
-                          onTap: () {
-                            setState(() {
-                              currentTab = 2;
-                            });
-                          },
-                        ),
-                      ),
-                    ],
-                  )
-                ],
-              ),
-              Container(
-                padding: EdgeInsets.all(30 * globals.scaleParam),
-                child: Text(
-                  TabText[currentTab],
-                  style: TextStyle(
-                    color: Colors.grey.shade700,
-                    fontWeight: FontWeight.w400,
-                    fontSize: 34 * globals.scaleParam,
-                  ),
+                  ],
                 ),
-              ),
-              Container(
-                padding: EdgeInsets.all(30 * globals.scaleParam),
-                child: Table(
-                  columnWidths: const {
-                    0: FlexColumnWidth(),
-                    1: FlexColumnWidth()
-                  },
-                  border: TableBorder(
-                      horizontalInside:
-                          BorderSide(width: 1, color: Colors.grey.shade400),
-                      bottom:
-                          BorderSide(width: 1, color: Colors.grey.shade400)),
-                  children: properties,
-                ),
-              ),
-              const SizedBox(
-                height: 100,
               )
             ],
           ),
