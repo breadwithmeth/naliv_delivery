@@ -133,9 +133,9 @@ class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMix
                       slivers: [
                         SliverToBoxAdapter(
                           child: AnimatedContainer(
-                            duration: Durations.extralong1,
+                            duration: Durations.short1,
                             color: Colors.transparent,
-                            // width: double.infinity,
+                            width: double.infinity,
                             height: isExpanded ? 1 : constraints.minHeight,
                             child: Row(
                               children: [
