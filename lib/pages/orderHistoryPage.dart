@@ -103,7 +103,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     Flexible(
-                                      flex: 2,
+                                      flex: 15,
                                       fit: FlexFit.tight,
                                       child: Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
@@ -138,31 +138,19 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                       ),
                                     ),
                                     Flexible(
+                                      flex: 10,
                                       fit: FlexFit.tight,
                                       child: Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment: CrossAxisAlignment.center,
                                         children: [
                                           Flexible(
-                                            fit: FlexFit.tight,
                                             child: Text(
-                                              snapshot.data![index]["b_name"] != null ? "Доставка" : "Самовывоз",
+                                              "${globals.formatCost("14252")} W.I.P тг",
                                               textAlign: TextAlign.start,
                                               style: TextStyle(
                                                 color: Colors.white,
-                                                fontSize: 40 * globals.scaleParam,
-                                                fontWeight: FontWeight.w900,
-                                              ),
-                                            ),
-                                          ),
-                                          Flexible(
-                                            fit: FlexFit.tight,
-                                            child: Text(
-                                              "${globals.formatCost("14252")} тг",
-                                              textAlign: TextAlign.start,
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 40 * globals.scaleParam,
+                                                fontSize: 42 * globals.scaleParam,
                                                 fontWeight: FontWeight.w900,
                                                 height: 1.1,
                                               ),
