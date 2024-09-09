@@ -144,31 +144,35 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Flexible(
-                                            fit: FlexFit.tight,
-                                            child: Text(
-                                              snapshot.data![index]["a_name"].toString(),
-                                              textAlign: TextAlign.start,
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 40 * globals.scaleParam,
-                                                fontWeight: FontWeight.w900,
-                                              ),
-                                            ),
-                                          ),
-                                          Flexible(
-                                            fit: FlexFit.tight,
-                                            child: Text(
-                                              snapshot.data![index]["a_address"].toString(),
-                                              textAlign: TextAlign.start,
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 40 * globals.scaleParam,
-                                                fontWeight: FontWeight.w900,
-                                                height: 1.1,
-                                              ),
-                                            ),
-                                          ),
+                                          snapshot.data![index]["a_name"] != null
+                                              ? Flexible(
+                                                  fit: FlexFit.tight,
+                                                  child: Text(
+                                                    snapshot.data![index]["a_name"].toString(),
+                                                    textAlign: TextAlign.start,
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 40 * globals.scaleParam,
+                                                      fontWeight: FontWeight.w900,
+                                                    ),
+                                                  ),
+                                                )
+                                              : SizedBox(),
+                                          snapshot.data![index]["a_address"] != null
+                                              ? Flexible(
+                                                  fit: FlexFit.tight,
+                                                  child: Text(
+                                                    snapshot.data![index]["a_address"].toString(),
+                                                    textAlign: TextAlign.start,
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 40 * globals.scaleParam,
+                                                      fontWeight: FontWeight.w900,
+                                                      height: 1.1,
+                                                    ),
+                                                  ),
+                                                )
+                                              : SizedBox(),
                                         ],
                                       ),
                                     ),
