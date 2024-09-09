@@ -985,3 +985,37 @@ Future<Map> getOrderDetails(String order_id) async {
   print(response.body);
   return result;
 }
+
+Future<Map<String, dynamic>> getPaymentPageForUnpaidOrder(
+    String order_id) async {
+  // Returns null in two situations, token is null or wrong order (406)
+  String? token = await getToken();
+  if (token == null) {
+    return {"status": null};
+  }
+  Map body = {
+    'order_id': order_id,
+  };
+
+  var url = Uri.https(URL_API, '/api/item/getPaymentPageForUnpaidOrder');
+  var response = await client.post(
+    url,
+    headers: {"Content-Type": "application/json", "AUTH": token},
+    body: json.encode(body),
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(json.encode(response.statusCode));
+  print(response.body);
+  int data = response.statusCode;
+  if (data == 200) {
+    return {"status": true, "data": utf8.decode(response.bodyBytes)};
+  } else if (data == 400) {
+    return {
+      "status": false,
+      "data": json.decode(utf8.decode(response.bodyBytes))
+    };
+  } else {
+    return {"status": null};
+  }
+}

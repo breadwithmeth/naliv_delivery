@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:naliv_delivery/misc/api.dart';
+import 'package:naliv_delivery/pages/webViewCardPayPage.dart';
 import '../globals.dart' as globals;
 
 class BottomBar extends StatefulWidget {
@@ -163,10 +164,14 @@ class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMix
                                                   right: 60 * globals.scaleParam),
                                               decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.all(Radius.circular(500))),
                                               child: Text(
-                                                // formatActiveOrderString(
-                                                //     orders.length),
-                                                orders.length.toString(),
-                                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 36 * globals.scaleParam),
+                                                formatActiveOrderString(
+                                                    orders.length),
+                                                // orders.length.toString(),
+                                                style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.w900,
+                                                    fontSize: 36 *
+                                                        globals.scaleParam),
                                               ),
                                             )
                                           : Container(),
@@ -322,6 +327,23 @@ class _OrderListTileState extends State<OrderListTile> {
               getOrderStatusFormat(widget.order["order_status"] ?? "99"),
             ],
           ),
+          trailing: widget.order["order_status"] == "66"
+              ? ElevatedButton(
+                  onPressed: () {
+                    getPaymentPageForUnpaidOrder(widget.order["order_id"])
+                        .then((v) {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => WebViewCardPayPage(
+                            htmlString: v["data"],
+                          ),
+                        ),
+                      );
+                    });
+                  },
+                  child: Text("Оплатить"))
+              : null,
           children: [
             orderItems.length == 0
                 ? LinearProgressIndicator()
@@ -330,21 +352,32 @@ class _OrderListTileState extends State<OrderListTile> {
                     shrinkWrap: true,
                     itemCount: orderItems.length,
                     itemBuilder: (context, index) {
-                      return Row(
-                        children: [
-                          Flexible(
-                            flex: 4,
-                            fit: FlexFit.tight,
-                            child: Text(orderItems[index]["name"]),
-                          ),
-                          Flexible(
-                            fit: FlexFit.tight,
-                            child: Text(orderItems[index]["amount"]),
-                          ),
-                        ],
+                      return Container(
+                        decoration: BoxDecoration(
+                            border: Border(
+                                bottom:
+                                    BorderSide(width: 1, color: Colors.grey))),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Flexible(
+                              flex: 2,
+                              child: Text(orderItems[index]["name"]),
+                            ),
+                            Flexible(child: Text(orderItems[index]["amount"]))
+                          ],
+                        ),
                       );
                     },
-                  )
+                  ),
+            Row(
+              children: [
+                Flexible(
+                    child: Text(double.parse(orderDetails["sum"] ?? "99999999")
+                            .toStringAsFixed(2) ??
+                        ""))
+              ],
+            )
           ]),
     );
     ;

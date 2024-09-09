@@ -377,7 +377,7 @@ class _ProductPageState extends State<ProductPage> {
       snapAnimationDuration: const Duration(milliseconds: 150),
       builder: ((context, scrollController) {
         return Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: Colors.white,
           ),
           child: Column(
@@ -425,8 +425,9 @@ class _ProductPageState extends State<ProductPage> {
             Container(
               // color: Colors.black,
               decoration: BoxDecoration(
-                  borderRadius: BorderRadius.all(Radius.circular(15 * globals.scaleParam)),
-                  gradient: LinearGradient(
+                  borderRadius: BorderRadius.all(
+                      Radius.circular(15 * globals.scaleParam)),
+                  gradient: const LinearGradient(
                     begin: Alignment.topRight,
                     end: Alignment.bottomLeft,
                     colors: [
@@ -451,24 +452,25 @@ class _ProductPageState extends State<ProductPage> {
         // color: Colors.white,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton: SlideTransition(
-          position: AlwaysStoppedAnimation(Offset(0, -0.25)),
+          position: const AlwaysStoppedAnimation(Offset(0, -0.25)),
           child: LayoutBuilder(
             builder: (context, constraints) {
               if (options.isNotEmpty && !isRequiredSelected) {
                 return Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 0),
+                  padding: const EdgeInsets.symmetric(horizontal: 0),
                   child: SizedBox(
                     width: constraints.maxWidth * 0.95,
                     height: 125 * globals.scaleParam,
                     child: Row(
                       children: [
-                        MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height
-                            ? Flexible(
+                        MediaQuery.sizeOf(context).width >
+                                MediaQuery.sizeOf(context).height
+                            ? const Flexible(
                                 flex: 8,
                                 fit: FlexFit.tight,
                                 child: SizedBox(),
                               )
-                            : SizedBox(),
+                            : const SizedBox(),
                         Flexible(
                           flex: 5,
                           fit: FlexFit.tight,
@@ -521,7 +523,8 @@ class _ProductPageState extends State<ProductPage> {
                                   borderRadius: BorderRadius.all(Radius.circular(30 * globals.scaleParam)),
                                 ),
                                 child: ClipRRect(
-                                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                                  borderRadius: const BorderRadius.all(
+                                      Radius.circular(8)),
                                   clipBehavior: Clip.antiAliasWithSaveLayer,
                                   child: GestureDetector(
                                     behavior: HitTestBehavior.opaque,
@@ -540,7 +543,8 @@ class _ProductPageState extends State<ProductPage> {
                                             },
                                             icon: Container(
                                               decoration: BoxDecoration(
-                                                borderRadius: BorderRadius.all(
+                                                borderRadius:
+                                                    const BorderRadius.all(
                                                   Radius.circular(100),
                                                 ),
                                                 color: Colors.grey.shade400,
@@ -607,7 +611,7 @@ class _ProductPageState extends State<ProductPage> {
                                                         height: 1 * globals.scaleParam,
                                                       ),
                                                     )
-                                                  : SizedBox(),
+                                                  : const SizedBox(),
                                             ],
                                           ),
                                         ),
@@ -622,7 +626,8 @@ class _ProductPageState extends State<ProductPage> {
                                             icon: Container(
                                               padding: EdgeInsets.all(5 * globals.scaleParam),
                                               decoration: BoxDecoration(
-                                                borderRadius: BorderRadius.all(
+                                                borderRadius:
+                                                    const BorderRadius.all(
                                                   Radius.circular(100),
                                                 ),
                                                 color: Colors.grey.shade400,
@@ -666,8 +671,8 @@ class _ProductPageState extends State<ProductPage> {
                                       }
                                     : null,
                                 child: Container(
-                                  decoration: BoxDecoration(
-                                    boxShadow: const [
+                                  decoration: const BoxDecoration(
+                                    boxShadow: [
                                       BoxShadow(
                                         offset: Offset(3, 5),
                                         color: Colors.black38,
@@ -716,19 +721,27 @@ class _ProductPageState extends State<ProductPage> {
               color: Colors.grey.shade50,
 
               // color: Colors.amber,
-              borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30))),
+              borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(30), topRight: Radius.circular(30))),
           child: ListView(
             controller: scrollController,
             children: [
               Container(
-                margin: EdgeInsets.only(
+                margin: const EdgeInsets.only(
                   bottom: 5,
                 ),
                 clipBehavior: Clip.none,
                 decoration: BoxDecoration(
-                    boxShadow: [BoxShadow(offset: Offset(0, 2), blurRadius: 10, color: Colors.blueGrey.shade50)],
+                    boxShadow: [
+                      BoxShadow(
+                          offset: const Offset(0, 2),
+                          blurRadius: 10,
+                          color: Colors.blueGrey.shade50)
+                    ],
                     color: Colors.white,
-                    borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30))),
+                    borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(30),
+                        bottomRight: Radius.circular(30))),
                 padding: EdgeInsets.all(20 * globals.scaleParam),
                 child: Column(
                   children: [
@@ -789,7 +802,7 @@ class _ProductPageState extends State<ProductPage> {
                                               onPressed: () {
                                                 Navigator.pop(context);
                                               },
-                                              icon: Icon(
+                                              icon: const Icon(
                                                 Icons.close_fullscreen_rounded,
                                                 color: Colors.black,
                                               ),
@@ -978,15 +991,45 @@ class _ProductPageState extends State<ProductPage> {
                                       ? Row(
                                           children: [
                                             Flexible(
+                                                child: Theme(
+                                              data: ThemeData(
+                                                  canvasColor:
+                                                      Colors.transparent),
                                               child: ChoiceChip(
-                                                  shape: RoundedRectangleBorder(side: BorderSide.none, borderRadius: BorderRadius.zero),
-                                                  avatar: Icon(Icons.circle_outlined),
-                                                  selectedColor: Colors.amberAccent.shade200,
-                                                  disabledColor: Colors.white,
-                                                  backgroundColor: Colors.white,
+                                                  showCheckmark: true,
+                                                  // side: BorderSide.none,
+                                                  shape: const StadiumBorder(
+                                                    side: BorderSide(
+                                                        color: Colors.grey,
+                                                        width: 1),
+                                                  ),
+                                                  // avatar: const Icon(
+                                                  //     Icons.circle_outlined),
+                                                  // avatarBorder:
+                                                  //     RoundedRectangleBorder(),
+
+                                                  // selectedColor: Colors
+                                                  //     .amberAccent.shade200,
+
+                                                  disabledColor:
+                                                      Colors.transparent,
+                                                  backgroundColor:
+                                                      Colors.grey.shade100,
+                                                  checkmarkColor: Colors.black,
+                                                  selectedColor: Colors.white,
+                                                  surfaceTintColor:
+                                                      Colors.white,
+                                                  shadowColor: Colors.white,
+                                                  color: WidgetStateColor
+                                                      .transparent,
+                                                  selectedShadowColor:
+                                                      Colors.transparent,
+                                                  
                                                   label: Text(
                                                     "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}",
-                                                    style: TextStyle(fontWeight: FontWeight.w700),
+                                                    style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w700),
                                                   ),
                                                   selected: options[indexOption]["selected_relation_id"] ==
                                                       options[indexOption]["options"][index]["relation_id"],
@@ -1031,12 +1074,12 @@ class _ProductPageState extends State<ProductPage> {
                                                   //       ["relation_id"],
                                                   //
                                                   ),
-                                            )
+                                            ))
                                           ],
                                         )
                                       : Container(
                                           alignment: Alignment.centerLeft,
-                                          decoration: BoxDecoration(
+                                          decoration: const BoxDecoration(
                                               // boxShadow: [
                                               //   BoxShadow(
                                               //       offset: Offset(2, 2),
@@ -1057,8 +1100,12 @@ class _ProductPageState extends State<ProductPage> {
                                                     options[indexOption]["options"][index]["price"] != null &&
                                                             options[indexOption]["options"][index]["price"] != 0
                                                         ? "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}"
-                                                        : options[indexOption]["options"][index]["name"],
-                                                    style: TextStyle(fontWeight: FontWeight.w700),
+                                                        : options[indexOption]
+                                                                ["options"]
+                                                            [index]["name"],
+                                                    style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w700),
                                                   ),
                                                   selected: List.castFrom(options[indexOption]["selected_relation_id"])
                                                       .contains(options[indexOption]["options"][index]["relation_id"]),
