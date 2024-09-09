@@ -80,7 +80,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                       onTap: () {
                         Navigator.push(context, MaterialPageRoute(
                           builder: (context) {
-                            return OrderInfoPage();
+                            return OrderInfoPage(
+                              orderId: snapshot.data![index]["order_id"].toString(),
+                            );
                           },
                         ));
                       },
@@ -103,7 +105,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     Flexible(
-                                      flex: 2,
                                       fit: FlexFit.tight,
                                       child: Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
@@ -146,7 +147,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                           Flexible(
                                             fit: FlexFit.tight,
                                             child: Text(
-                                              snapshot.data![index]["b_name"] != null ? "Доставка" : "Самовывоз",
+                                              snapshot.data![index]["a_name"].toString(),
                                               textAlign: TextAlign.start,
                                               style: TextStyle(
                                                 color: Colors.white,
@@ -158,7 +159,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                           Flexible(
                                             fit: FlexFit.tight,
                                             child: Text(
-                                              "${globals.formatCost("14252")} тг",
+                                              snapshot.data![index]["a_address"].toString(),
                                               textAlign: TextAlign.start,
                                               style: TextStyle(
                                                 color: Colors.white,
@@ -199,37 +200,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                       //     ),
                                       //   ),
                                       // ),
-                                      Flexible(
-                                        flex: 2,
-                                        fit: FlexFit.tight,
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Flexible(
-                                              child: Text(
-                                                snapshot.data![index]["a_name"].toString(),
-                                                textAlign: TextAlign.center,
-                                                style: TextStyle(
-                                                  color: Theme.of(context).colorScheme.onSurface,
-                                                  fontSize: 42 * globals.scaleParam,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ),
-                                            Flexible(
-                                              child: Text(
-                                                snapshot.data![index]["a_address"].toString(),
-                                                textAlign: TextAlign.center,
-                                                style: TextStyle(
-                                                  color: Theme.of(context).colorScheme.onSurface,
-                                                  fontSize: 42 * globals.scaleParam,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
                                     ],
                                   ),
                                 );
