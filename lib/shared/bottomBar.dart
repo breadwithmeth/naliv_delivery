@@ -164,14 +164,9 @@ class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMix
                                                   right: 60 * globals.scaleParam),
                                               decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.all(Radius.circular(500))),
                                               child: Text(
-                                                formatActiveOrderString(
-                                                    orders.length),
+                                                formatActiveOrderString(orders.length),
                                                 // orders.length.toString(),
-                                                style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.w900,
-                                                    fontSize: 36 *
-                                                        globals.scaleParam),
+                                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 36 * globals.scaleParam),
                                               ),
                                             )
                                           : Container(),
@@ -324,14 +319,13 @@ class _OrderListTileState extends State<OrderListTile> {
           ),
           subtitle: Row(
             children: [
-              getOrderStatusFormat(widget.order["order_status"] ?? "99"),
+              Flexible(child: getOrderStatusFormat(widget.order["order_status"] ?? "99")),
             ],
           ),
           trailing: widget.order["order_status"] == "66"
               ? ElevatedButton(
                   onPressed: () {
-                    getPaymentPageForUnpaidOrder(widget.order["order_id"])
-                        .then((v) {
+                    getPaymentPageForUnpaidOrder(widget.order["order_id"]).then((v) {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
@@ -353,10 +347,7 @@ class _OrderListTileState extends State<OrderListTile> {
                     itemCount: orderItems.length,
                     itemBuilder: (context, index) {
                       return Container(
-                        decoration: BoxDecoration(
-                            border: Border(
-                                bottom:
-                                    BorderSide(width: 1, color: Colors.grey))),
+                        decoration: BoxDecoration(border: Border(bottom: BorderSide(width: 1, color: Colors.grey))),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -371,12 +362,7 @@ class _OrderListTileState extends State<OrderListTile> {
                     },
                   ),
             Row(
-              children: [
-                Flexible(
-                    child: Text(double.parse(orderDetails["sum"] ?? "99999999")
-                            .toStringAsFixed(2) ??
-                        ""))
-              ],
+              children: [Flexible(child: Text(double.parse(orderDetails["sum"] ?? "99999999").toStringAsFixed(2) ?? ""))],
             )
           ]),
     );
