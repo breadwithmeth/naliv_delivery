@@ -220,7 +220,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
       onPopInvoked: (didPop) {
         if (!didPop) {
           print("IT DIDN'T POPPED");
-          Navigator.pop(context, items);
+          Navigator.pop(context, true);
         } else {
           print("WELL DAMN. IT POPPED");
         }
@@ -244,7 +244,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                       child: IconButton(
                         padding: EdgeInsets.zero,
                         onPressed: () {
-                          Navigator.pop(context);
+                          Navigator.pop(context, true);
                         },
                         icon: Icon(Icons.arrow_back_rounded),
                       ),

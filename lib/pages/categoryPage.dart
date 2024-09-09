@@ -1,19 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/cartPage.dart';
 import 'package:naliv_delivery/shared/bottomBar.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/searchPage.dart';
 import 'package:naliv_delivery/shared/cartButton.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
+import 'package:provider/provider.dart';
+
+class CategoryNotifier extends ChangeNotifier {
+  // A list that tracks whether a particular page needs refreshing
+  //! HARDCODED CAPPED AT 100 PAGES. I hope we will never have that many pages
+  List<bool> _needsRefresh = List.generate(
+    100,
+    (index) {
+      return false;
+    },
+  );
+
+  bool getNeedsRefresh(int index) {
+    return _needsRefresh[index];
+  }
+
+  void triggerRefresh(int index) {
+    _needsRefresh[index] = true;
+    notifyListeners();
+  }
+
+  void resetRefresh(int index) {
+    _needsRefresh[index] = false;
+  }
+}
 
 class CategoryPage extends StatefulWidget {
   const CategoryPage(
-      {super.key,
-      required this.categoryId,
-      required this.categoryName,
-      required this.categories,
-      required this.business,
-      required this.user});
+      {super.key, required this.categoryId, required this.categoryName, required this.categories, required this.business, required this.user});
   final String categoryId;
   final String categoryName;
   final List<dynamic> categories;
@@ -24,9 +45,48 @@ class CategoryPage extends StatefulWidget {
 }
 
 class _CategoryPageState extends State<CategoryPage> {
+  @override
+  Widget build(BuildContext context) {
+    Size _size = MediaQuery.sizeOf(context);
+    return ChangeNotifierProvider(
+      create: (_) => CategoryNotifier(),
+      child: ParentCategoryPage(
+        business: widget.business,
+        categories: widget.categories,
+        categoryId: widget.categoryId,
+        categoryName: widget.categoryName,
+        user: widget.user,
+        size: _size,
+      ),
+    );
+  }
+}
+
+class ParentCategoryPage extends StatefulWidget {
+  const ParentCategoryPage(
+      {super.key,
+      required this.categoryId,
+      required this.categoryName,
+      required this.categories,
+      required this.business,
+      required this.user,
+      required this.size});
+  final String categoryId;
+  final String categoryName;
+  final List<dynamic> categories;
+  final Map<dynamic, dynamic> business;
+  final Map user;
+  final Size size;
+
+  @override
+  State<ParentCategoryPage> createState() => _ParentCategoryPageState();
+}
+
+class _ParentCategoryPageState extends State<ParentCategoryPage> with SingleTickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int initialIndexTabbar = 0;
   List<Map<String, dynamic>> categoriesWidgetList = [];
+  late TabController _tabController;
 
   void toggleDrawer() async {
     if (_scaffoldKey.currentState!.isEndDrawerOpen) {
@@ -61,162 +121,195 @@ class _CategoryPageState extends State<CategoryPage> {
   @override
   void initState() {
     super.initState();
-    // getCategoriesWidgetList();
+    _tabController = TabController(
+      vsync: this,
+      length: widget.categories.length,
+      initialIndex: widget.categories.indexWhere(
+        (element) => element["category_id"] == widget.categoryId,
+      ),
+    );
+    getCategoriesWidgetList(widget.size.width);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    getCategoriesWidgetList(MediaQuery.sizeOf(context).width);
-    return DefaultTabController(
-      initialIndex: initialIndexTabbar,
-      length: widget.categories.length,
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        key: _scaffoldKey,
-        floatingActionButtonLocation: FloatingActionButtonLocation.endContained,
-        floatingActionButton: CartButton(
-          business: widget.business,
-          user: widget.user,
-        ),
-        appBar: AppBar(
-          toolbarHeight: 105 * globals.scaleParam,
-          bottom: PreferredSize(
-            preferredSize:
-                Size(MediaQuery.sizeOf(context).width, 85 * globals.scaleParam),
-            child: TabBar(
-              tabAlignment: TabAlignment.start,
-              physics: const BouncingScrollPhysics(),
-              labelPadding: EdgeInsets.symmetric(
-                  horizontal: 10 * globals.scaleParam,
-                  vertical: 10 * globals.scaleParam),
-              labelStyle: TextStyle(
-                fontSize: 38 * globals.scaleParam,
-                fontWeight: FontWeight.w500,
-                color: Theme.of(context).colorScheme.onSurface,
+    return Scaffold(
+      backgroundColor: Colors.white,
+      key: _scaffoldKey,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endContained,
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(bottom: 35 * globals.scaleParam),
+        child: SizedBox(
+          width: 200 * globals.scaleParam,
+          height: 165 * globals.scaleParam,
+          child: FloatingActionButton(
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(
+                Radius.circular(15),
               ),
-              unselectedLabelColor:
-                  Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-              isScrollable: true,
-              tabs: categoriesWidgetList
-                  .map((e) => e["widget"] as Widget)
-                  .toList(),
             ),
+            child: Icon(
+              size: 70 * globals.scaleParam,
+              Icons.shopping_basket_rounded,
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) {
+                    return CartPage(
+                      business: widget.business,
+                      user: widget.user,
+                    );
+                  },
+                ),
+              ).then(
+                (value) {
+                  if (value != null) {
+                    if (value) {
+                      print("REFRESHING");
+                      Provider.of<CategoryNotifier>(context, listen: false).triggerRefresh(_tabController.index);
+                    }
+                  }
+                },
+              );
+            },
           ),
-          actions: [
-            Builder(builder: (context) => const SizedBox()),
-          ], // Important: removes endDrawer button form appbar
-          automaticallyImplyLeading: false,
-          titleSpacing: 0,
-          title: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        icon: Icon(Icons.arrow_back_rounded),
-                      ),
+        ),
+      ),
+      appBar: AppBar(
+        toolbarHeight: 105 * globals.scaleParam,
+        bottom: PreferredSize(
+          preferredSize: Size(MediaQuery.sizeOf(context).width, 85 * globals.scaleParam),
+          child: TabBar(
+            controller: _tabController,
+            tabAlignment: TabAlignment.start,
+            physics: const BouncingScrollPhysics(),
+            labelPadding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam, vertical: 10 * globals.scaleParam),
+            labelStyle: TextStyle(
+              fontSize: 38 * globals.scaleParam,
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+            isScrollable: true,
+            tabs: categoriesWidgetList.map((e) => e["widget"] as Widget).toList(),
+          ),
+        ),
+        actions: [
+          Builder(builder: (context) => const SizedBox()),
+        ], // Important: removes endDrawer button form appbar
+        automaticallyImplyLeading: false,
+        titleSpacing: 0,
+        title: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.max,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Flexible(
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      icon: Icon(Icons.arrow_back_rounded),
                     ),
-                    Flexible(
-                      flex: 3,
-                      fit: FlexFit.tight,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.business["name"],
-                            maxLines: 1,
-                            style: TextStyle(fontSize: 40 * globals.scaleParam),
-                          ),
-                          Text(
-                            widget.business["address"],
-                            maxLines: 1,
-                            style: TextStyle(fontSize: 32 * globals.scaleParam),
-                          ),
-                        ],
-                      ),
+                  ),
+                  Flexible(
+                    flex: 3,
+                    fit: FlexFit.tight,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.business["name"],
+                          maxLines: 1,
+                          style: TextStyle(fontSize: 40 * globals.scaleParam),
+                        ),
+                        Text(
+                          widget.business["address"],
+                          maxLines: 1,
+                          style: TextStyle(fontSize: 32 * globals.scaleParam),
+                        ),
+                      ],
                     ),
-                    Flexible(
-                      flex: 4,
-                      fit: FlexFit.tight,
-                      child: TextButton(
-                        onPressed: () {
-                          // Navigator.push(context, MaterialPageRoute(
-                          //   builder: (context) {
-                          //     return SearchPage(
-                          //       business: widget.business,
-                          //     );
-                          //   },
-                          // ));
-                          Navigator.push(
-                            context,
-                            globals.getPlatformSpecialRoute(
-                              SearchPage(
-                                  business: widget.business,
-                                  category_id:
-                                      categoriesWidgetList[initialIndexTabbar]
-                                          ["category_id"]),
+                  ),
+                  Flexible(
+                    flex: 4,
+                    fit: FlexFit.tight,
+                    child: TextButton(
+                      onPressed: () {
+                        // Navigator.push(context, MaterialPageRoute(
+                        //   builder: (context) {
+                        //     return SearchPage(
+                        //       business: widget.business,
+                        //     );
+                        //   },
+                        // ));
+                        Navigator.push(
+                          context,
+                          globals.getPlatformSpecialRoute(
+                            SearchPage(business: widget.business, category_id: categoriesWidgetList[initialIndexTabbar]["category_id"]),
+                          ),
+                        );
+                      },
+                      style: TextButton.styleFrom(foregroundColor: Colors.white.withOpacity(0)),
+                      child: Container(
+                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.1), borderRadius: BorderRadius.all(Radius.circular(10))),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Spacer(
+                              flex: 3,
                             ),
-                          );
-                        },
-                        style: TextButton.styleFrom(
-                            foregroundColor: Colors.white.withOpacity(0)),
-                        child: Container(
-                          decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.1),
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(10))),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Spacer(
-                                flex: 3,
+                            Text(
+                              "Найти",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 30 * globals.scaleParam,
+                                color: Colors.black,
                               ),
-                              Text(
-                                "Найти",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 30 * globals.scaleParam,
-                                  color: Colors.black,
-                                ),
+                            ),
+                            Container(
+                              padding: EdgeInsets.all(20 * globals.scaleParam),
+                              child: Icon(
+                                Icons.search,
+                                color: Colors.black,
                               ),
-                              Container(
-                                padding:
-                                    EdgeInsets.all(20 * globals.scaleParam),
-                                child: Icon(
-                                  Icons.search,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        body: TabBarView(
-          children: [
-            for (int j = 0; j < widget.categories.length; j++)
-              CategoryPageList(
-                categoryId: categoriesWidgetList[j]["category_id"],
-                business: widget.business,
-              )
-          ],
-        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          for (int j = 0; j < widget.categories.length; j++)
+            CategoryPageList(
+              categoryId: categoriesWidgetList[j]["category_id"],
+              business: widget.business,
+              index: j,
+            )
+        ],
       ),
     );
   }
@@ -250,17 +343,18 @@ class CategoryPageList extends StatefulWidget {
     super.key,
     required this.categoryId,
     required this.business,
+    required this.index,
   });
 
   final String categoryId;
   final Map<dynamic, dynamic> business;
+  final int index;
 
   @override
   State<CategoryPageList> createState() => _CategoryPageListState();
 }
 
-class _CategoryPageListState extends State<CategoryPageList>
-    with SingleTickerProviderStateMixin<CategoryPageList> {
+class _CategoryPageListState extends State<CategoryPageList> with SingleTickerProviderStateMixin<CategoryPageList> {
   late bool _isLastPage;
   late int _pageNumber;
   late bool _error;
@@ -275,8 +369,7 @@ class _CategoryPageListState extends State<CategoryPageList>
 
   Future<void> _getItems() async {
     try {
-      List? responseList = await getItemsMain(
-          _pageNumber, widget.business["business_id"], "", widget.categoryId);
+      List? responseList = await getItemsMain(_pageNumber, widget.business["business_id"], "", widget.categoryId);
       if (responseList != null) {
         List<dynamic> itemList = responseList;
         // List<dynamic> itemList = responseList.map((data) => Item(data)).toList();
@@ -363,70 +456,88 @@ class _CategoryPageListState extends State<CategoryPageList>
         return Center(child: errorDialog(size: 20));
       }
     }
-    return Stack(
-      children: [
-        Container(
-          color: Colors.grey.shade100,
-        ),
-        CustomScrollView(
-          slivers: [
-            _items.length > 1
-                ? SliverList.builder(
-                    addAutomaticKeepAlives: false,
-                    itemCount: _items.length + (_isLastPage ? 0 : 1),
-                    itemBuilder: (context, index) {
-                      if ((index == _items.length - _nextPageTrigger) &&
-                          (!_isLastPage)) {
-                        _getItems();
-                      }
-                      if (index == _items.length) {
-                        if (_error) {
-                          return Center(child: errorDialog(size: 15));
-                        } else {
-                          return const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(8),
-                              child: CircularProgressIndicator(),
-                            ),
+    return Consumer<CategoryNotifier>(
+      builder: (context, notifier, child) {
+        // Check if this category needs to be refreshed
+        if (notifier.getNeedsRefresh(widget.index)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            setState(() {
+              _pageNumber = 0;
+              _items = [];
+              _isLastPage = false;
+              _loading = true;
+              _error = false;
+              _getItems();
+            });
+            // Reset the refresh state
+            notifier.resetRefresh(widget.index);
+          });
+        }
+        return Stack(
+          children: [
+            Container(
+              color: Colors.grey.shade100,
+            ),
+            CustomScrollView(
+              slivers: [
+                _items.length > 1
+                    ? SliverList.builder(
+                        addAutomaticKeepAlives: false,
+                        itemCount: _items.length + (_isLastPage ? 0 : 1),
+                        itemBuilder: (context, index) {
+                          if ((index == _items.length - _nextPageTrigger) && (!_isLastPage)) {
+                            _getItems();
+                          }
+                          if (index == _items.length) {
+                            if (_error) {
+                              return Center(child: errorDialog(size: 15));
+                            } else {
+                              return const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(8),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
+                          }
+                          final Map<String, dynamic> item = _items[index];
+                          return ItemCardListTile(
+                            itemId: item["item_id"],
+                            element: item,
+                            categoryId: "",
+                            categoryName: "",
+                            scroll: 0,
+                            business: widget.business,
+                            index: index,
+                            categoryPageUpdateData: updateDataAmount,
                           );
-                        }
-                      }
-                      final Map<String, dynamic> item = _items[index];
-                      return ItemCardListTile(
-                        itemId: item["item_id"],
-                        element: item,
-                        categoryId: "",
-                        categoryName: "",
-                        scroll: 0,
-                        business: widget.business,
-                        index: index,
-                        categoryPageUpdateData: updateDataAmount,
-                      );
-                    },
-                  )
-                : SliverToBoxAdapter(
-                    child: Container(
-                      height: MediaQuery.sizeOf(context).height * 0.8,
-                      alignment: Alignment.center,
-                      child: Text(
-                        "Категория пуста",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 52 * globals.scaleParam,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade400,
+                        },
+                      )
+                    : SliverToBoxAdapter(
+                        child: Container(
+                          height: MediaQuery.sizeOf(context).height * 0.8,
+                          alignment: Alignment.center,
+                          child: Text(
+                            "Категория пуста",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 52 * globals.scaleParam,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade400,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: 200 * globals.scaleParam,
                   ),
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: 200 * globals.scaleParam,
-              ),
-            )
+                )
+              ],
+            ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 }

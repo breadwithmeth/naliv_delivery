@@ -50,8 +50,7 @@ class _ProductPageState extends State<ProductPage> {
   // bool isDescriptionLoaded = false;
 
   Future<void> _getItem() async {
-    await getItem(widget.item["item_id"], widget.business["business_id"])
-        .then((value) {
+    await getItem(widget.item["item_id"], widget.business["business_id"]).then((value) {
       // // print(value);
       if (value.isNotEmpty) {
         setState(() {
@@ -79,12 +78,7 @@ class _ProductPageState extends State<ProductPage> {
   bool isLastServerCallWasSucceed = false;
   bool isRequiredSelected = false;
 
-  Map<String, String> buyButtonActionTextMap = {
-    "add": "Добавить",
-    "remove": "Убрать всё",
-    "update": "Обновить",
-    "loading": "Загружаю.."
-  };
+  Map<String, String> buyButtonActionTextMap = {"add": "Добавить", "remove": "Убрать всё", "update": "Обновить", "loading": "Загружаю.."};
   late String buyButtonActionText;
   late Color buyButtonActionColor;
   double inStock = 0.0;
@@ -170,10 +164,7 @@ class _ProductPageState extends State<ProductPage> {
       isServerCallOnGoing = true;
       isLastServerCallWasSucceed = false;
     });
-    await changeCartItem(
-            item["item_id"], amountInCart, widget.business["business_id"],
-            options: options)
-        .then(
+    await changeCartItem(item["item_id"], amountInCart, widget.business["business_id"], options: options).then(
       (value) {
         if (value != null) {
           if (options.isEmpty) {
@@ -187,15 +178,12 @@ class _ProductPageState extends State<ProductPage> {
               if (newCart[0].isEmpty) {
                 actualCartAmount = 0;
               } else {
-                actualCartAmount =
-                    double.parse(newCart[0]["amount"].toString());
+                actualCartAmount = double.parse(newCart[0]["amount"].toString());
               }
             });
           } else {
             setState(() {
-              newCart = value
-                  .where((el) => el["item_id"] == widget.item["item_id"])
-                  .toList();
+              newCart = value.where((el) => el["item_id"] == widget.item["item_id"]).toList();
             });
             print("asdasd");
           }
@@ -230,9 +218,7 @@ class _ProductPageState extends State<ProductPage> {
 
   void _removeFromCart() {
     setState(() {
-      if (((amountInCart * parentItemMultiplier) -
-              (quantity * parentItemMultiplier)) >
-          0) {
+      if (((amountInCart * parentItemMultiplier) - (quantity * parentItemMultiplier)) > 0) {
         amountInCart -= quantity;
         amountInCart = double.parse(amountInCart.toStringAsFixed(3));
         getBuyButtonCurrentActionText();
@@ -245,9 +231,7 @@ class _ProductPageState extends State<ProductPage> {
 
   void _addToCart() {
     setState(() {
-      if (((amountInCart * parentItemMultiplier) +
-              (quantity * parentItemMultiplier)) <=
-          widget.item["in_stock"]) {
+      if (((amountInCart * parentItemMultiplier) + (quantity * parentItemMultiplier)) <= widget.item["in_stock"]) {
         amountInCart += quantity;
         amountInCart = double.parse(amountInCart.toStringAsFixed(3));
         getBuyButtonCurrentActionText();
@@ -268,9 +252,7 @@ class _ProductPageState extends State<ProductPage> {
             "${buyButtonActionTextMap["update"]!} ${globals.formatCost(((amountInCart * item["price"] * parentItemMultiplier) + (optionsAddedCost * amountInCart)).toString())} ₸";
         buyButtonActionColor = Colors.blueGrey;
       });
-    } else if ((actualCartAmount == amountInCart &&
-            requiredSelected == actualRequiredSelected) ||
-        amountInCart == 0) {
+    } else if ((actualCartAmount == amountInCart && requiredSelected == actualRequiredSelected) || amountInCart == 0) {
       setState(() {
         buyButtonActionText =
             "${buyButtonActionTextMap["remove"]!} ${globals.formatCost(((actualCartAmount * item["price"] * actualItemMultiplier) + (actualOptionsAddedCost * amountInCart)).toString())} ₸";
@@ -297,17 +279,11 @@ class _ProductPageState extends State<ProductPage> {
 
     if (dy.abs() >= 50 * globals.scaleParam) {
       setState(() {
-        if (dy > 0 &&
-            ((amountInCart * parentItemMultiplier) -
-                    (quantity * parentItemMultiplier)) >=
-                0) {
+        if (dy > 0 && ((amountInCart * parentItemMultiplier) - (quantity * parentItemMultiplier)) >= 0) {
           HapticFeedback.lightImpact();
           amountInCart -= quantity; // Swiping down decrements
           amountInCart = double.parse(amountInCart.toStringAsFixed(3));
-        } else if (dy < 0 &&
-            ((amountInCart * parentItemMultiplier) +
-                    (quantity * parentItemMultiplier)) <=
-                item["in_stock"]) {
+        } else if (dy < 0 && ((amountInCart * parentItemMultiplier) + (quantity * parentItemMultiplier)) <= item["in_stock"]) {
           HapticFeedback.lightImpact();
           amountInCart += quantity; // Swiping up increments
           amountInCart = double.parse(amountInCart.toStringAsFixed(3));
@@ -341,13 +317,10 @@ class _ProductPageState extends State<ProductPage> {
           actualCartAmount = amountInCart;
 
           //! TODO: VERY UNSTABLE IF FIRST OPTION IS NOT REQUIRED ONE, THEN PRICE WOULD BE CALCULATED WRONG!!!!!!!!!!
-          optionsAddedCost = widget.item["cart"][widget.cartItemId]
-              ["selected_options"][0]["price"];
+          optionsAddedCost = widget.item["cart"][widget.cartItemId]["selected_options"][0]["price"];
           actualOptionsAddedCost = double.parse(optionsAddedCost.toString());
 
-          parentItemMultiplier = widget.item["cart"][widget.cartItemId]
-                  ["selected_options"][0]["parent_item_amount"] ??
-              1;
+          parentItemMultiplier = widget.item["cart"][widget.cartItemId]["selected_options"][0]["parent_item_amount"] ?? 1;
           actualItemMultiplier = parentItemMultiplier;
         });
       }
@@ -370,10 +343,7 @@ class _ProductPageState extends State<ProductPage> {
 
     setState(() {
       quantity = item["quantity"];
-      if (quantity != 1 &&
-          (widget.item["cart"] == [] ||
-              widget.item["cart"] == null ||
-              widget.item["cart"].isEmpty)) {
+      if (quantity != 1 && (widget.item["cart"] == [] || widget.item["cart"] == null || widget.item["cart"].isEmpty)) {
         amountInCart = quantity;
       }
     });
@@ -417,8 +387,7 @@ class _ProductPageState extends State<ProductPage> {
                 height: 16 * globals.scaleParam,
                 margin: EdgeInsets.symmetric(vertical: 35 * globals.scaleParam),
                 decoration: BoxDecoration(
-                  color:
-                      Colors.black, // Change this color to your desired color
+                  color: Colors.black, // Change this color to your desired color
                   borderRadius: BorderRadius.circular(4.0),
                 ),
               ),
@@ -456,8 +425,7 @@ class _ProductPageState extends State<ProductPage> {
             Container(
               // color: Colors.black,
               decoration: BoxDecoration(
-                  borderRadius: BorderRadius.all(
-                      Radius.circular(15 * globals.scaleParam)),
+                  borderRadius: BorderRadius.all(Radius.circular(15 * globals.scaleParam)),
                   gradient: LinearGradient(
                     begin: Alignment.topRight,
                     end: Alignment.bottomLeft,
@@ -469,10 +437,7 @@ class _ProductPageState extends State<ProductPage> {
               padding: EdgeInsets.all(10 * globals.scaleParam),
               margin: EdgeInsets.all(0 * globals.scaleParam),
               child: Text(widget.promotions[index]["name"],
-                  style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      fontSize: 32 * globals.scaleParam)),
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 32 * globals.scaleParam)),
             )
           ],
         );
@@ -480,8 +445,7 @@ class _ProductPageState extends State<ProductPage> {
     );
   }
 
-  Scaffold _productPage(
-      BuildContext context, ScrollController scrollController) {
+  Scaffold _productPage(BuildContext context, ScrollController scrollController) {
     return Scaffold(
         backgroundColor: Colors.white,
         // color: Colors.white,
@@ -498,8 +462,7 @@ class _ProductPageState extends State<ProductPage> {
                     height: 125 * globals.scaleParam,
                     child: Row(
                       children: [
-                        MediaQuery.sizeOf(context).width >
-                                MediaQuery.sizeOf(context).height
+                        MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height
                             ? Flexible(
                                 flex: 8,
                                 fit: FlexFit.tight,
@@ -519,15 +482,11 @@ class _ProductPageState extends State<ProductPage> {
                                     blurRadius: 5,
                                   )
                                 ],
-                                borderRadius: BorderRadius.all(
-                                    Radius.circular(30 * globals.scaleParam))),
+                                borderRadius: BorderRadius.all(Radius.circular(30 * globals.scaleParam))),
                             alignment: Alignment.center,
                             child: Text(
                               "Выберите опцию",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                  fontSize: 48 * globals.scaleParam),
+                              style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 48 * globals.scaleParam),
                             ),
                           ),
                         ),
@@ -548,8 +507,7 @@ class _ProductPageState extends State<ProductPage> {
                             flex: 8,
                             fit: FlexFit.tight,
                             child: Padding(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 10 * globals.scaleParam),
+                              padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: Colors.grey.shade200,
@@ -560,23 +518,18 @@ class _ProductPageState extends State<ProductPage> {
                                       blurRadius: 5,
                                     )
                                   ],
-                                  borderRadius: BorderRadius.all(
-                                      Radius.circular(30 * globals.scaleParam)),
+                                  borderRadius: BorderRadius.all(Radius.circular(30 * globals.scaleParam)),
                                 ),
                                 child: ClipRRect(
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(8)),
+                                  borderRadius: BorderRadius.all(Radius.circular(8)),
                                   clipBehavior: Clip.antiAliasWithSaveLayer,
                                   child: GestureDetector(
                                     behavior: HitTestBehavior.opaque,
                                     onLongPressStart: _onLongPressStart,
-                                    onLongPressMoveUpdate:
-                                        _onLongPressMoveUpdate,
+                                    onLongPressMoveUpdate: _onLongPressMoveUpdate,
                                     child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
                                       children: [
                                         Flexible(
                                           fit: FlexFit.tight,
@@ -594,9 +547,7 @@ class _ProductPageState extends State<ProductPage> {
                                               ),
                                               child: Icon(
                                                 Icons.remove_rounded,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurface,
+                                                color: Theme.of(context).colorScheme.onSurface,
                                               ),
                                             ),
                                           ),
@@ -604,96 +555,56 @@ class _ProductPageState extends State<ProductPage> {
                                         Flexible(
                                           fit: FlexFit.tight,
                                           child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
+                                            mainAxisAlignment: MainAxisAlignment.center,
                                             children: [
                                               Row(
                                                 children: [
                                                   Expanded(
                                                     child: Text(
                                                       "${amountInCart.ceil() > amountInCart ? amountInCart : amountInCart.round()}",
-                                                      textHeightBehavior:
-                                                          const TextHeightBehavior(
-                                                        applyHeightToFirstAscent:
-                                                            false,
+                                                      textHeightBehavior: const TextHeightBehavior(
+                                                        applyHeightToFirstAscent: false,
                                                       ),
-                                                      textAlign:
-                                                          TextAlign.center,
+                                                      textAlign: TextAlign.center,
                                                       style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                        fontSize: 36 *
-                                                            globals.scaleParam,
-                                                        color: Theme.of(context)
-                                                            .colorScheme
-                                                            .onSurface,
-                                                        height: parentItemMultiplier !=
-                                                                    1 ||
-                                                                quantity != 1 ||
-                                                                options
-                                                                    .isNotEmpty
-                                                            ? 2 *
-                                                                globals
-                                                                    .scaleParam
+                                                        fontWeight: FontWeight.w700,
+                                                        fontSize: 36 * globals.scaleParam,
+                                                        color: Theme.of(context).colorScheme.onSurface,
+                                                        height: parentItemMultiplier != 1 || quantity != 1 || options.isNotEmpty
+                                                            ? 2 * globals.scaleParam
                                                             : null,
                                                       ),
                                                     ),
                                                   ),
                                                   Text(
-                                                    widget.item["options"] !=
-                                                            null
-                                                        ? "бут"
-                                                        : "",
-                                                    textHeightBehavior:
-                                                        const TextHeightBehavior(
-                                                      applyHeightToFirstAscent:
-                                                          false,
+                                                    widget.item["options"] != null ? "бут" : "",
+                                                    textHeightBehavior: const TextHeightBehavior(
+                                                      applyHeightToFirstAscent: false,
                                                     ),
                                                     textAlign: TextAlign.center,
                                                     style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      fontSize: 32 *
-                                                          globals.scaleParam,
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .onSurface,
-                                                      height:
-                                                          parentItemMultiplier !=
-                                                                      1 ||
-                                                                  quantity !=
-                                                                      1 ||
-                                                                  options
-                                                                      .isNotEmpty
-                                                              ? 1 *
-                                                                  globals
-                                                                      .scaleParam
-                                                              : null,
+                                                      fontWeight: FontWeight.w700,
+                                                      fontSize: 32 * globals.scaleParam,
+                                                      color: Theme.of(context).colorScheme.onSurface,
+                                                      height: parentItemMultiplier != 1 || quantity != 1 || options.isNotEmpty
+                                                          ? 1 * globals.scaleParam
+                                                          : null,
                                                     ),
                                                   ),
                                                 ],
                                               ),
-                                              parentItemMultiplier != 1 ||
-                                                      quantity != 1 ||
-                                                      options.isNotEmpty
+                                              parentItemMultiplier != 1 || quantity != 1 || options.isNotEmpty
                                                   ? Text(
                                                       "${amountInCart.ceil() > amountInCart ? amountInCart * parentItemMultiplier : amountInCart.round() * parentItemMultiplier} ${quantity != 1 ? "кг" : item["unit"]}",
-                                                      textHeightBehavior:
-                                                          const TextHeightBehavior(
-                                                        applyHeightToFirstAscent:
-                                                            false,
+                                                      textHeightBehavior: const TextHeightBehavior(
+                                                        applyHeightToFirstAscent: false,
                                                       ),
-                                                      textAlign:
-                                                          TextAlign.center,
+                                                      textAlign: TextAlign.center,
                                                       style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                        fontSize: 26 *
-                                                            globals.scaleParam,
-                                                        color: Colors
-                                                            .grey.shade600,
-                                                        height: 1 *
-                                                            globals.scaleParam,
+                                                        fontWeight: FontWeight.w700,
+                                                        fontSize: 26 * globals.scaleParam,
+                                                        color: Colors.grey.shade600,
+                                                        height: 1 * globals.scaleParam,
                                                       ),
                                                     )
                                                   : SizedBox(),
@@ -709,8 +620,7 @@ class _ProductPageState extends State<ProductPage> {
                                               _addToCart();
                                             },
                                             icon: Container(
-                                              padding: EdgeInsets.all(
-                                                  5 * globals.scaleParam),
+                                              padding: EdgeInsets.all(5 * globals.scaleParam),
                                               decoration: BoxDecoration(
                                                 borderRadius: BorderRadius.all(
                                                   Radius.circular(100),
@@ -719,9 +629,7 @@ class _ProductPageState extends State<ProductPage> {
                                               ),
                                               child: Icon(
                                                 Icons.add_rounded,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurface,
+                                                color: Theme.of(context).colorScheme.onSurface,
                                               ),
                                             ),
                                           ),
@@ -737,32 +645,26 @@ class _ProductPageState extends State<ProductPage> {
                             flex: 10,
                             fit: FlexFit.tight,
                             child: Padding(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 10 * globals.scaleParam),
+                              padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: buyButtonActionColor,
                                   padding: EdgeInsets.zero,
                                 ),
-                                onPressed:
-                                    (isRequiredSelected && amountInCart > 0) ||
-                                            actualCartAmount > 0 ||
-                                            options.isEmpty
-                                        ? () {
-                                            if (actualCartAmount == 0) {
-                                              _finalizeCartAmount();
-                                            } else if (actualCartAmount ==
-                                                    amountInCart ||
-                                                amountInCart == 0) {
-                                              setState(() {
-                                                amountInCart = 0;
-                                              });
-                                              _finalizeCartAmount();
-                                            } else {
-                                              _finalizeCartAmount();
-                                            }
-                                          }
-                                        : null,
+                                onPressed: (isRequiredSelected && amountInCart > 0) || actualCartAmount > 0 || options.isEmpty
+                                    ? () {
+                                        if (actualCartAmount == 0) {
+                                          _finalizeCartAmount();
+                                        } else if (actualCartAmount == amountInCart || amountInCart == 0) {
+                                          setState(() {
+                                            amountInCart = 0;
+                                          });
+                                          _finalizeCartAmount();
+                                        } else {
+                                          _finalizeCartAmount();
+                                        }
+                                      }
+                                    : null,
                                 child: Container(
                                   decoration: BoxDecoration(
                                     boxShadow: const [
@@ -785,11 +687,8 @@ class _ProductPageState extends State<ProductPage> {
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
                                                 fontWeight: FontWeight.w700,
-                                                fontSize:
-                                                    38 * globals.scaleParam,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onPrimary,
+                                                fontSize: 38 * globals.scaleParam,
+                                                color: Theme.of(context).colorScheme.onPrimary,
                                               ),
                                             ),
                                           ),
@@ -817,8 +716,7 @@ class _ProductPageState extends State<ProductPage> {
               color: Colors.grey.shade50,
 
               // color: Colors.amber,
-              borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(30), topRight: Radius.circular(30))),
+              borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30))),
           child: ListView(
             controller: scrollController,
             children: [
@@ -828,16 +726,9 @@ class _ProductPageState extends State<ProductPage> {
                 ),
                 clipBehavior: Clip.none,
                 decoration: BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                          offset: Offset(0, 2),
-                          blurRadius: 10,
-                          color: Colors.blueGrey.shade50)
-                    ],
+                    boxShadow: [BoxShadow(offset: Offset(0, 2), blurRadius: 10, color: Colors.blueGrey.shade50)],
                     color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(30),
-                        bottomRight: Radius.circular(30))),
+                    borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30))),
                 padding: EdgeInsets.all(20 * globals.scaleParam),
                 child: Column(
                   children: [
@@ -858,22 +749,18 @@ class _ProductPageState extends State<ProductPage> {
                               onDoubleTap: () {},
                               child: Dialog.fullscreen(
                                 backgroundColor: Colors.black12,
-                                child: LayoutBuilder(
-                                    builder: (context, constraints) {
+                                child: LayoutBuilder(builder: (context, constraints) {
                                   return Stack(
                                     children: [
                                       Container(
                                         clipBehavior: Clip.none,
                                         alignment: Alignment.center,
-                                        width:
-                                            MediaQuery.of(context).size.width,
-                                        height:
-                                            MediaQuery.of(context).size.height,
+                                        width: MediaQuery.of(context).size.width,
+                                        height: MediaQuery.of(context).size.height,
                                         child: InteractiveViewer(
                                           // constrained: false,
                                           panEnabled: true,
-                                          boundaryMargin: EdgeInsets.all(
-                                              100 * globals.scaleParam),
+                                          boundaryMargin: EdgeInsets.all(100 * globals.scaleParam),
                                           minScale: 1,
                                           maxScale: 5,
                                           child: ExtendedImage.network(
@@ -893,16 +780,12 @@ class _ProductPageState extends State<ProductPage> {
                                         ),
                                       ),
                                       Padding(
-                                        padding: EdgeInsets.all(
-                                            20 * globals.scaleParam),
+                                        padding: EdgeInsets.all(20 * globals.scaleParam),
                                         child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.end,
+                                          mainAxisAlignment: MainAxisAlignment.end,
                                           children: [
                                             IconButton(
-                                              style: IconButton.styleFrom(
-                                                  backgroundColor:
-                                                      Colors.white54),
+                                              style: IconButton.styleFrom(backgroundColor: Colors.white54),
                                               onPressed: () {
                                                 Navigator.pop(context);
                                               },
@@ -959,8 +842,7 @@ class _ProductPageState extends State<ProductPage> {
                             // color: Colors.grey.shade50,
                             padding: EdgeInsets.symmetric(
                               horizontal: 10,
-                              vertical: 1 *
-                                  (MediaQuery.sizeOf(context).height / 1080),
+                              vertical: 1 * (MediaQuery.sizeOf(context).height / 1080),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -973,31 +855,23 @@ class _ProductPageState extends State<ProductPage> {
                                 Text(
                                   item["name"] ?? "",
                                   style: GoogleFonts.inter(
-                                      fontSize: 54 * globals.scaleParam,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.black,
-                                      letterSpacing: 0),
+                                      fontSize: 52 * globals.scaleParam, fontWeight: FontWeight.w700, color: Colors.black, letterSpacing: 0),
                                 ),
                                 SizedBox(
                                   height: 5 * globals.scaleParam,
                                 ),
                                 Padding(
-                                  padding: EdgeInsets.only(
-                                      left: 0 * globals.scaleParam),
+                                  padding: EdgeInsets.only(left: 0 * globals.scaleParam),
                                   child: Column(
                                     children: [
                                       Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Flexible(
                                             child: Text(
-                                              globals.formatCost(
-                                                  (item['price'] ?? '')
-                                                      .toString()),
+                                              globals.formatCost((item['price'] ?? '').toString()),
                                               style: GoogleFonts.inter(
-                                                fontSize:
-                                                    86 * globals.scaleParam,
+                                                fontSize: 62 * globals.scaleParam,
                                                 fontWeight: FontWeight.w900,
                                                 color: Colors.black,
                                               ),
@@ -1009,8 +883,7 @@ class _ProductPageState extends State<ProductPage> {
                                               style: GoogleFonts.inter(
                                                 color: Colors.grey.shade600,
                                                 fontWeight: FontWeight.w900,
-                                                fontSize:
-                                                    86 * globals.scaleParam,
+                                                fontSize: 62 * globals.scaleParam,
                                               ),
                                             ),
                                           ),
@@ -1044,12 +917,8 @@ class _ProductPageState extends State<ProductPage> {
                           )
                         // TODO: Maybe not even needed anymore, content inside productPage loads immediately because data recieved from categoryPage
                         : Shimmer.fromColors(
-                            baseColor: Theme.of(context)
-                                .colorScheme
-                                .secondary
-                                .withOpacity(0.05),
-                            highlightColor:
-                                Theme.of(context).colorScheme.secondary,
+                            baseColor: Theme.of(context).colorScheme.secondary.withOpacity(0.05),
+                            highlightColor: Theme.of(context).colorScheme.secondary,
                             child: Container(
                               width: MediaQuery.of(context).size.width * 0.8,
                               height: 40,
@@ -1062,9 +931,7 @@ class _ProductPageState extends State<ProductPage> {
 
               //! Options
               Container(
-                padding: EdgeInsets.symmetric(
-                    vertical: 5 * globals.scaleParam,
-                    horizontal: 25 * globals.scaleParam),
+                padding: EdgeInsets.symmetric(vertical: 5 * globals.scaleParam, horizontal: 25 * globals.scaleParam),
                 // color: Colors.grey.shade100,
                 child: ListView(
                   primary: false,
@@ -1079,9 +946,7 @@ class _ProductPageState extends State<ProductPage> {
                           // padding: EdgeInsets.only(
                           //     left: 30 * globals.scaleParam,
                           //     right: 30 * globals.scaleParam),
-                          margin: EdgeInsets.only(
-                              left: 15 * globals.scaleParam,
-                              right: 15 * globals.scaleParam),
+                          margin: EdgeInsets.only(left: 15 * globals.scaleParam, right: 15 * globals.scaleParam),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -1091,20 +956,14 @@ class _ProductPageState extends State<ProductPage> {
                                 children: [
                                   Text(
                                     options[indexOption]["name"],
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 48 * globals.scaleParam),
+                                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 48 * globals.scaleParam),
                                   ),
                                   options[indexOption]["required"] == 1
                                       ? Container(
                                           // color: Colors.white,
                                           child: Text(
                                             "Обязательно",
-                                            style: TextStyle(
-                                                color: Colors.red,
-                                                fontWeight: FontWeight.w700,
-                                                fontSize:
-                                                    36 * globals.scaleParam),
+                                            style: TextStyle(color: Colors.red, fontWeight: FontWeight.w700, fontSize: 36 * globals.scaleParam),
                                           ),
                                         )
                                       : Container(),
@@ -1113,85 +972,44 @@ class _ProductPageState extends State<ProductPage> {
                               ListView.builder(
                                 primary: false,
                                 shrinkWrap: true,
-                                itemCount:
-                                    options[indexOption]["options"].length,
+                                itemCount: options[indexOption]["options"].length,
                                 itemBuilder: (context, index) {
-                                  return options[indexOption]["selection"] ==
-                                          "SINGLE"
+                                  return options[indexOption]["selection"] == "SINGLE"
                                       ? Row(
                                           children: [
                                             Flexible(
                                               child: ChoiceChip(
-                                                  shape: RoundedRectangleBorder(
-                                                      side: BorderSide.none,
-                                                      borderRadius:
-                                                          BorderRadius.zero),
-                                                  avatar: Icon(
-                                                      Icons.circle_outlined),
-                                                  selectedColor: Colors
-                                                      .amberAccent.shade200,
+                                                  shape: RoundedRectangleBorder(side: BorderSide.none, borderRadius: BorderRadius.zero),
+                                                  avatar: Icon(Icons.circle_outlined),
+                                                  selectedColor: Colors.amberAccent.shade200,
                                                   disabledColor: Colors.white,
                                                   backgroundColor: Colors.white,
                                                   label: Text(
                                                     "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}",
-                                                    style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.w700),
+                                                    style: TextStyle(fontWeight: FontWeight.w700),
                                                   ),
-                                                  selected: options[indexOption]
-                                                          [
-                                                          "selected_relation_id"] ==
-                                                      options[indexOption]
-                                                              ["options"][index]
-                                                          ["relation_id"],
+                                                  selected: options[indexOption]["selected_relation_id"] ==
+                                                      options[indexOption]["options"][index]["relation_id"],
                                                   onSelected: (v) {
                                                     // print(v);
                                                     print(options);
                                                     if (v) {
                                                       setState(() {
-                                                        options[indexOption][
-                                                                "selected_relation_id"] =
-                                                            options[indexOption]
-                                                                        [
-                                                                        "options"]
-                                                                    [index]
-                                                                ["relation_id"];
-                                                        requiredSelected =
-                                                            options[indexOption]
-                                                                        [
-                                                                        "options"]
-                                                                    [index]
-                                                                ["relation_id"];
-                                                        optionsAddedCost =
-                                                            options[indexOption]
-                                                                    ["options"][
-                                                                index]["price"];
-                                                        parentItemMultiplier =
-                                                            options[indexOption]
-                                                                        [
-                                                                        "options"]
-                                                                    [index][
-                                                                "parent_item_amount"];
-                                                        if (amountInCart *
-                                                                parentItemMultiplier >
-                                                            widget.item[
-                                                                "in_stock"]) {
-                                                          amountInCart = (widget
-                                                                          .item[
-                                                                      "in_stock"] /
-                                                                  parentItemMultiplier)
-                                                              .truncateToDouble();
+                                                        options[indexOption]["selected_relation_id"] =
+                                                            options[indexOption]["options"][index]["relation_id"];
+                                                        requiredSelected = options[indexOption]["options"][index]["relation_id"];
+                                                        optionsAddedCost = options[indexOption]["options"][index]["price"];
+                                                        parentItemMultiplier = options[indexOption]["options"][index]["parent_item_amount"];
+                                                        if (amountInCart * parentItemMultiplier > widget.item["in_stock"]) {
+                                                          amountInCart = (widget.item["in_stock"] / parentItemMultiplier).truncateToDouble();
                                                         }
                                                       });
                                                     } else {
                                                       setState(() {
-                                                        options[indexOption][
-                                                                "selected_relation_id"] =
-                                                            null;
+                                                        options[indexOption]["selected_relation_id"] = null;
                                                         requiredSelected = null;
                                                         optionsAddedCost = 0;
-                                                        parentItemMultiplier =
-                                                            1;
+                                                        parentItemMultiplier = 1;
                                                       });
 
                                                       // setState(() {
@@ -1226,8 +1044,7 @@ class _ProductPageState extends State<ProductPage> {
                                               //       color: Colors.grey.shade400)
                                               // ],
                                               // color: Colors.white,
-                                              borderRadius: BorderRadius.all(
-                                                  Radius.circular(15))),
+                                              borderRadius: BorderRadius.all(Radius.circular(15))),
                                           // margin: EdgeInsets.all(10 * globals.scaleParam),
                                           child: Row(
                                             children: [
@@ -1237,53 +1054,24 @@ class _ProductPageState extends State<ProductPage> {
                                                   deleteIcon: Container(),
                                                   // deleteIconBoxConstraints: BoxConstraints(),
                                                   label: Text(
-                                                    options[indexOption]["options"]
-                                                                        [index]
-                                                                    ["price"] !=
-                                                                null &&
-                                                            options[indexOption]
-                                                                            [
-                                                                            "options"]
-                                                                        [index]
-                                                                    ["price"] !=
-                                                                0
+                                                    options[indexOption]["options"][index]["price"] != null &&
+                                                            options[indexOption]["options"][index]["price"] != 0
                                                         ? "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}"
-                                                        : options[indexOption]
-                                                                ["options"]
-                                                            [index]["name"],
-                                                    style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.w700),
+                                                        : options[indexOption]["options"][index]["name"],
+                                                    style: TextStyle(fontWeight: FontWeight.w700),
                                                   ),
-                                                  selected: List.castFrom(options[
-                                                              indexOption][
-                                                          "selected_relation_id"])
-                                                      .contains(options[
-                                                                  indexOption]
-                                                              ["options"][index]
-                                                          ["relation_id"]),
+                                                  selected: List.castFrom(options[indexOption]["selected_relation_id"])
+                                                      .contains(options[indexOption]["options"][index]["relation_id"]),
                                                   onSelected: (v) {
                                                     if (v) {
                                                       setState(() {
-                                                        options[indexOption][
-                                                                "selected_relation_id"]
-                                                            .add(options[indexOption]
-                                                                        [
-                                                                        "options"]
-                                                                    [index][
-                                                                "relation_id"]);
+                                                        options[indexOption]["selected_relation_id"]
+                                                            .add(options[indexOption]["options"][index]["relation_id"]);
                                                       });
                                                     } else {
                                                       setState(() {
-                                                        options[indexOption][
-                                                                "selected_relation_id"]
-                                                            .removeWhere((item) =>
-                                                                item ==
-                                                                options[indexOption]
-                                                                            [
-                                                                            "options"]
-                                                                        [index][
-                                                                    "relation_id"]);
+                                                        options[indexOption]["selected_relation_id"]
+                                                            .removeWhere((item) => item == options[indexOption]["options"][index]["relation_id"]);
                                                       });
                                                     }
                                                     _checkOptions();
@@ -1306,8 +1094,7 @@ class _ProductPageState extends State<ProductPage> {
                     ),
                     item["group"] != null
                         ? Container(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 20 * globals.scaleParam),
+                            padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
                             height: 50,
                             width: MediaQuery.of(context).size.width,
                             child: ListView(
@@ -1356,9 +1143,7 @@ class _ProductPageState extends State<ProductPage> {
                                     border: Border(
                                       bottom: BorderSide(
                                         width: 3,
-                                        color: currentTab == 0
-                                            ? Colors.black
-                                            : Colors.grey.shade200,
+                                        color: currentTab == 0 ? Colors.black : Colors.grey.shade200,
                                       ),
                                     ),
                                   ),
@@ -1366,9 +1151,7 @@ class _ProductPageState extends State<ProductPage> {
                                     "Описание",
                                     overflow: TextOverflow.ellipsis,
                                     maxLines: 1,
-                                    style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 32 * globals.scaleParam),
+                                    style: TextStyle(color: Colors.black, fontSize: 32 * globals.scaleParam),
                                   ),
                                 ),
                                 onTap: () {
@@ -1387,9 +1170,7 @@ class _ProductPageState extends State<ProductPage> {
                                     border: Border(
                                       bottom: BorderSide(
                                         width: 3,
-                                        color: currentTab == 1
-                                            ? Colors.black
-                                            : Colors.grey.shade200,
+                                        color: currentTab == 1 ? Colors.black : Colors.grey.shade200,
                                       ),
                                     ),
                                   ),
@@ -1397,9 +1178,7 @@ class _ProductPageState extends State<ProductPage> {
                                     "О бренде",
                                     overflow: TextOverflow.ellipsis,
                                     maxLines: 1,
-                                    style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 32 * globals.scaleParam),
+                                    style: TextStyle(color: Colors.black, fontSize: 32 * globals.scaleParam),
                                   ),
                                 ),
                                 onTap: () {
@@ -1418,9 +1197,7 @@ class _ProductPageState extends State<ProductPage> {
                                     border: Border(
                                       bottom: BorderSide(
                                         width: 3,
-                                        color: currentTab == 2
-                                            ? Colors.black
-                                            : Colors.grey.shade200,
+                                        color: currentTab == 2 ? Colors.black : Colors.grey.shade200,
                                       ),
                                     ),
                                   ),
@@ -1428,9 +1205,7 @@ class _ProductPageState extends State<ProductPage> {
                                     "Производитель",
                                     overflow: TextOverflow.ellipsis,
                                     maxLines: 1,
-                                    style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 32 * globals.scaleParam),
+                                    style: TextStyle(color: Colors.black, fontSize: 32 * globals.scaleParam),
                                   ),
                                 ),
                                 onTap: () {
@@ -1458,15 +1233,10 @@ class _ProductPageState extends State<ProductPage> {
                     Container(
                       padding: EdgeInsets.all(30 * globals.scaleParam),
                       child: Table(
-                        columnWidths: const {
-                          0: FlexColumnWidth(),
-                          1: FlexColumnWidth()
-                        },
+                        columnWidths: const {0: FlexColumnWidth(), 1: FlexColumnWidth()},
                         border: TableBorder(
-                            horizontalInside: BorderSide(
-                                width: 1, color: Colors.grey.shade400),
-                            bottom: BorderSide(
-                                width: 1, color: Colors.grey.shade400)),
+                            horizontalInside: BorderSide(width: 1, color: Colors.grey.shade400),
+                            bottom: BorderSide(width: 1, color: Colors.grey.shade400)),
                         children: properties,
                       ),
                     ),
