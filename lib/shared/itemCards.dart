@@ -1163,7 +1163,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                                     text: element["name"],
                                                     style: TextStyle(
                                                       fontWeight: FontWeight.w500,
-                                                      fontSize: 30 * globals.scaleParam,
+                                                      fontSize: 32 * globals.scaleParam,
                                                     ),
                                                   ),
                                                   element["country"] != null
@@ -2760,7 +2760,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                                     overflow: TextOverflow.ellipsis,
                                                     maxLines: 2,
                                                     style: GoogleFonts.inter(
-                                                        fontSize: 38 * globals.scaleParam, fontWeight: FontWeight.w700, height: 1, letterSpacing: 0),
+                                                        fontSize: 38 * globals.scaleParam, fontWeight: FontWeight.w500, height: 1, letterSpacing: 0),
                                                   ),
                                                 ),
                                               ],
@@ -2888,7 +2888,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                             textAlign: TextAlign.start,
                                             style: GoogleFonts.inter(
                                               color: Colors.grey.shade600,
-                                              fontWeight: FontWeight.w600,
+                                              fontWeight: FontWeight.w900,
                                               fontSize: 40 * globals.scaleParam,
                                             ),
                                           ),
