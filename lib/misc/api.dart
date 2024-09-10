@@ -986,8 +986,7 @@ Future<Map> getOrderDetails(String order_id) async {
   return result;
 }
 
-Future<Map<String, dynamic>> getPaymentPageForUnpaidOrder(
-    String order_id) async {
+Future<Map<String, dynamic>> getPaymentPageForUnpaidOrder(String order_id) async {
   // Returns null in two situations, token is null or wrong order (406)
   String? token = await getToken();
   if (token == null) {
@@ -1011,10 +1010,7 @@ Future<Map<String, dynamic>> getPaymentPageForUnpaidOrder(
   if (data == 200) {
     return {"status": true, "data": utf8.decode(response.bodyBytes)};
   } else if (data == 400) {
-    return {
-      "status": false,
-      "data": json.decode(utf8.decode(response.bodyBytes))
-    };
+    return {"status": false, "data": json.decode(utf8.decode(response.bodyBytes))};
   } else {
     return {"status": null};
   }

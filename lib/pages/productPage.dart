@@ -269,6 +269,7 @@ class _ProductPageState extends State<ProductPage> {
 
   double _startPositionY = 0;
 
+  // TODO: Make long press add and remove without movement
   void _onLongPressStart(LongPressStartDetails details) {
     _startPositionY = details.globalPosition.dy;
     Vibration.vibrate(duration: 100);
@@ -425,8 +426,7 @@ class _ProductPageState extends State<ProductPage> {
             Container(
               // color: Colors.black,
               decoration: BoxDecoration(
-                  borderRadius: BorderRadius.all(
-                      Radius.circular(15 * globals.scaleParam)),
+                  borderRadius: BorderRadius.all(Radius.circular(15 * globals.scaleParam)),
                   gradient: const LinearGradient(
                     begin: Alignment.topRight,
                     end: Alignment.bottomLeft,
@@ -463,8 +463,7 @@ class _ProductPageState extends State<ProductPage> {
                     height: 125 * globals.scaleParam,
                     child: Row(
                       children: [
-                        MediaQuery.sizeOf(context).width >
-                                MediaQuery.sizeOf(context).height
+                        MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height
                             ? const Flexible(
                                 flex: 8,
                                 fit: FlexFit.tight,
@@ -523,8 +522,7 @@ class _ProductPageState extends State<ProductPage> {
                                   borderRadius: BorderRadius.all(Radius.circular(30 * globals.scaleParam)),
                                 ),
                                 child: ClipRRect(
-                                  borderRadius: const BorderRadius.all(
-                                      Radius.circular(8)),
+                                  borderRadius: const BorderRadius.all(Radius.circular(8)),
                                   clipBehavior: Clip.antiAliasWithSaveLayer,
                                   child: GestureDetector(
                                     behavior: HitTestBehavior.opaque,
@@ -543,8 +541,7 @@ class _ProductPageState extends State<ProductPage> {
                                             },
                                             icon: Container(
                                               decoration: BoxDecoration(
-                                                borderRadius:
-                                                    const BorderRadius.all(
+                                                borderRadius: const BorderRadius.all(
                                                   Radius.circular(100),
                                                 ),
                                                 color: Colors.grey.shade400,
@@ -626,8 +623,7 @@ class _ProductPageState extends State<ProductPage> {
                                             icon: Container(
                                               padding: EdgeInsets.all(5 * globals.scaleParam),
                                               decoration: BoxDecoration(
-                                                borderRadius:
-                                                    const BorderRadius.all(
+                                                borderRadius: const BorderRadius.all(
                                                   Radius.circular(100),
                                                 ),
                                                 color: Colors.grey.shade400,
@@ -721,8 +717,7 @@ class _ProductPageState extends State<ProductPage> {
               color: Colors.grey.shade50,
 
               // color: Colors.amber,
-              borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(30), topRight: Radius.circular(30))),
+              borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30))),
           child: ListView(
             controller: scrollController,
             children: [
@@ -732,16 +727,9 @@ class _ProductPageState extends State<ProductPage> {
                 ),
                 clipBehavior: Clip.none,
                 decoration: BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                          offset: const Offset(0, 2),
-                          blurRadius: 10,
-                          color: Colors.blueGrey.shade50)
-                    ],
+                    boxShadow: [BoxShadow(offset: const Offset(0, 2), blurRadius: 10, color: Colors.blueGrey.shade50)],
                     color: Colors.white,
-                    borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(30),
-                        bottomRight: Radius.circular(30))),
+                    borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30))),
                 padding: EdgeInsets.all(20 * globals.scaleParam),
                 child: Column(
                   children: [
@@ -750,78 +738,82 @@ class _ProductPageState extends State<ProductPage> {
                       // width: MediaQuery.sizeOf(context).width * 0.5,
                       // height: MediaQuery.sizeOf(context).height * 0.5,
                       alignment: Alignment.center,
-                      child: GestureDetector(onTap: () {
-                        showDialog(
-                          useSafeArea: true,
-                          context: context,
-                          builder: (context) {
-                            return GestureDetector(
-                              onTap: () {
-                                Navigator.pop(context);
-                              },
-                              onDoubleTap: () {},
-                              child: Dialog.fullscreen(
-                                backgroundColor: Colors.black12,
-                                child: LayoutBuilder(builder: (context, constraints) {
-                                  return Stack(
-                                    children: [
-                                      Container(
-                                        clipBehavior: Clip.none,
-                                        alignment: Alignment.center,
-                                        width: MediaQuery.of(context).size.width,
-                                        height: MediaQuery.of(context).size.height,
-                                        child: InteractiveViewer(
-                                          // constrained: false,
-                                          panEnabled: true,
-                                          boundaryMargin: EdgeInsets.all(100 * globals.scaleParam),
-                                          minScale: 1,
-                                          maxScale: 5,
-                                          child: ExtendedImage.network(
-                                            item["img"],
-                                            width: double.infinity,
-                                            height: constraints.maxHeight,
-                                            // mode: ExtendedImageMode.gesture,
-                                            // initGestureConfigHandler: (state) {
-                                            //   return GestureConfig(
-                                            //     minScale: 0.8,
-                                            //     maxScale: 3.0,
-                                            //     speed: 1.0,
-                                            //     inertialSpeed: 100.0,
-                                            //   );
-                                            // },
+                      child: GestureDetector(
+                        onTap: () {
+                          showDialog(
+                            useSafeArea: true,
+                            context: context,
+                            builder: (context) {
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.pop(context);
+                                },
+                                onDoubleTap: () {},
+                                child: Dialog.fullscreen(
+                                  backgroundColor: Colors.black12,
+                                  child: LayoutBuilder(builder: (context, constraints) {
+                                    return Stack(
+                                      children: [
+                                        Container(
+                                          clipBehavior: Clip.none,
+                                          alignment: Alignment.center,
+                                          width: MediaQuery.of(context).size.width,
+                                          height: MediaQuery.of(context).size.height,
+                                          child: InteractiveViewer(
+                                            // constrained: false,
+                                            panEnabled: true,
+                                            boundaryMargin: EdgeInsets.all(100 * globals.scaleParam),
+                                            minScale: 1,
+                                            maxScale: 5,
+                                            child: ExtendedImage.network(
+                                              item["img"],
+                                              width: double.infinity,
+                                              height: constraints.maxHeight,
+                                              // mode: ExtendedImageMode.gesture,
+                                              // initGestureConfigHandler: (state) {
+                                              //   return GestureConfig(
+                                              //     minScale: 0.8,
+                                              //     maxScale: 3.0,
+                                              //     speed: 1.0,
+                                              //     inertialSpeed: 100.0,
+                                              //   );
+                                              // },
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      Padding(
-                                        padding: EdgeInsets.all(20 * globals.scaleParam),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.end,
-                                          children: [
-                                            IconButton(
-                                              style: IconButton.styleFrom(backgroundColor: Colors.white54),
-                                              onPressed: () {
-                                                Navigator.pop(context);
-                                              },
-                                              icon: const Icon(
-                                                Icons.close_fullscreen_rounded,
-                                                color: Colors.black,
+                                        Padding(
+                                          padding: EdgeInsets.all(20 * globals.scaleParam),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.end,
+                                            children: [
+                                              IconButton(
+                                                style: IconButton.styleFrom(backgroundColor: Colors.white54),
+                                                onPressed: () {
+                                                  Navigator.pop(context);
+                                                },
+                                                icon: const Icon(
+                                                  Icons.close_fullscreen_rounded,
+                                                  color: Colors.black,
+                                                ),
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  );
-                                }),
-                              ),
-                            );
-                          },
-                        );
-                      }, child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          return Container(
+                                      ],
+                                    );
+                                  }),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return Container(
                               width: constraints.maxWidth,
-                              height: constraints.maxWidth,
+                              height: MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height
+                                  ? constraints.maxWidth * 0.35
+                                  : constraints.maxWidth,
                               // margin: EdgeInsets.all(10),
                               decoration: const BoxDecoration(
                                 borderRadius: BorderRadius.all(
@@ -833,7 +825,7 @@ class _ProductPageState extends State<ProductPage> {
                                 children: [
                                   ExtendedImage.network(
                                     item["img"],
-                                    fit: BoxFit.cover,
+                                    fit: BoxFit.contain,
                                     width: double.infinity,
                                     // mode: ExtendedImageMode.gesture,
                                     // initGestureConfigHandler: (state) {
@@ -846,9 +838,11 @@ class _ProductPageState extends State<ProductPage> {
                                     // },
                                   ),
                                 ],
-                              ));
-                        },
-                      )),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                     ),
                     item.isNotEmpty
                         ? Container(
@@ -992,16 +986,12 @@ class _ProductPageState extends State<ProductPage> {
                                           children: [
                                             Flexible(
                                                 child: Theme(
-                                              data: ThemeData(
-                                                  canvasColor:
-                                                      Colors.transparent),
+                                              data: ThemeData(canvasColor: Colors.transparent),
                                               child: ChoiceChip(
                                                   showCheckmark: true,
                                                   // side: BorderSide.none,
                                                   shape: const StadiumBorder(
-                                                    side: BorderSide(
-                                                        color: Colors.grey,
-                                                        width: 1),
+                                                    side: BorderSide(color: Colors.grey, width: 1),
                                                   ),
                                                   // avatar: const Icon(
                                                   //     Icons.circle_outlined),
@@ -1011,25 +1001,17 @@ class _ProductPageState extends State<ProductPage> {
                                                   // selectedColor: Colors
                                                   //     .amberAccent.shade200,
 
-                                                  disabledColor:
-                                                      Colors.transparent,
-                                                  backgroundColor:
-                                                      Colors.grey.shade100,
+                                                  disabledColor: Colors.transparent,
+                                                  backgroundColor: Colors.grey.shade100,
                                                   checkmarkColor: Colors.black,
                                                   selectedColor: Colors.white,
-                                                  surfaceTintColor:
-                                                      Colors.white,
+                                                  surfaceTintColor: Colors.white,
                                                   shadowColor: Colors.white,
-                                                  color: WidgetStateColor
-                                                      .transparent,
-                                                  selectedShadowColor:
-                                                      Colors.transparent,
-                                                  
+                                                  color: WidgetStateColor.transparent,
+                                                  selectedShadowColor: Colors.transparent,
                                                   label: Text(
                                                     "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}",
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.w700),
+                                                    style: const TextStyle(fontWeight: FontWeight.w700),
                                                   ),
                                                   selected: options[indexOption]["selected_relation_id"] ==
                                                       options[indexOption]["options"][index]["relation_id"],
@@ -1100,12 +1082,8 @@ class _ProductPageState extends State<ProductPage> {
                                                     options[indexOption]["options"][index]["price"] != null &&
                                                             options[indexOption]["options"][index]["price"] != 0
                                                         ? "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}"
-                                                        : options[indexOption]
-                                                                ["options"]
-                                                            [index]["name"],
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.w700),
+                                                        : options[indexOption]["options"][index]["name"],
+                                                    style: const TextStyle(fontWeight: FontWeight.w700),
                                                   ),
                                                   selected: List.castFrom(options[indexOption]["selected_relation_id"])
                                                       .contains(options[indexOption]["options"][index]["relation_id"]),

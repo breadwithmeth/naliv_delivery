@@ -15,8 +15,7 @@ class BottomBar extends StatefulWidget {
   State<BottomBar> createState() => _BottomBarState();
 }
 
-class _BottomBarState extends State<BottomBar>
-    with SingleTickerProviderStateMixin {
+class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMixin {
   bool get _isOnDesktopAndWeb {
     if (kIsWeb) {
       return true;
@@ -55,8 +54,7 @@ class _BottomBarState extends State<BottomBar>
   }
 
   late Timer periodicTimer;
-  final DraggableScrollableController _dsController =
-      DraggableScrollableController();
+  final DraggableScrollableController _dsController = DraggableScrollableController();
 
   double _sheetPosition = 0.1;
   final double _dragSensitivity = 600;
@@ -143,44 +141,27 @@ class _BottomBarState extends State<BottomBar>
                               children: [
                                 AnimatedContainer(
                                   duration: Durations.short1,
-                                  decoration: BoxDecoration(
-                                      color: Colors.transparent,
-                                      borderRadius: BorderRadius.all(
-                                          Radius.circular(30))),
+                                  decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.all(Radius.circular(30))),
                                   // width: isExpanded
                                   //     ? MediaQuery.of(context).size.width * 1
                                   //     : MediaQuery.of(context).size.width * 0.7,
                                   child: GestureDetector(
                                     onTap: () {
-                                      _dsController.animateTo(1,
-                                          duration: Duration(microseconds: 10),
-                                          curve: Curves.bounceIn);
+                                      _dsController.animateTo(1, duration: Duration(microseconds: 10), curve: Curves.bounceIn);
                                     },
                                     child: Container(
                                       color: Colors.transparent,
-                                      alignment: isExpanded
-                                          ? Alignment.topLeft
-                                          : Alignment.centerLeft,
-                                      height: isExpanded
-                                          ? constraints.smallest.height
-                                          : constraints.minHeight,
+                                      alignment: isExpanded ? Alignment.topLeft : Alignment.centerLeft,
+                                      height: isExpanded ? constraints.smallest.height : constraints.minHeight,
                                       child: orders.length >= 1
                                           ? Container(
-                                              margin: EdgeInsets.all(
-                                                  15 * globals.scaleParam),
+                                              margin: EdgeInsets.all(15 * globals.scaleParam),
                                               padding: EdgeInsets.only(
                                                   top: 45 * globals.scaleParam,
-                                                  bottom:
-                                                      45 * globals.scaleParam,
+                                                  bottom: 45 * globals.scaleParam,
                                                   left: 60 * globals.scaleParam,
-                                                  right:
-                                                      60 * globals.scaleParam),
-                                              decoration: BoxDecoration(
-                                                  color: Colors.black,
-                                                  borderRadius:
-                                                      BorderRadius.all(
-                                                          Radius.circular(
-                                                              500))),
+                                                  right: 60 * globals.scaleParam),
+                                              decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.all(Radius.circular(500))),
                                               child: Text(
                                                 formatActiveOrderString(orders.length),
                                                 // orders.length.toString(),
@@ -216,31 +197,22 @@ class _BottomBarState extends State<BottomBar>
                         // ),
                         SliverToBoxAdapter(
                           child: Container(
-                            margin:
-                                EdgeInsets.only(top: 60 * globals.scaleParam),
+                            margin: EdgeInsets.only(top: 60 * globals.scaleParam),
                             padding: EdgeInsets.all(40 * globals.scaleParam),
                             width: double.infinity,
-                            height: 1000,
                             color: Colors.white,
                             child: Column(
                               children: [
                                 Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       formatActiveOrderString(orders.length),
-                                      style: TextStyle(
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 48 * globals.scaleParam),
+                                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 48 * globals.scaleParam),
                                     ),
                                     IconButton(
                                         onPressed: () {
-                                          _dsController.animateTo(
-                                              _sheetPosition,
-                                              duration: Durations.short1,
-                                              curve: Curves.bounceOut);
+                                          _dsController.animateTo(_sheetPosition, duration: Durations.short1, curve: Curves.bounceOut);
                                         },
                                         icon: Icon(Icons.close))
                                   ],
@@ -296,51 +268,32 @@ class _OrderListTileState extends State<OrderListTile> {
       return Container(
         color: Colors.red,
         padding: EdgeInsets.all(5 * globals.scaleParam),
-        child: Text("Заказ ожидает оплаты",
-            style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                fontSize: 36 * globals.scaleParam)),
+        child: Text("Заказ ожидает оплаты", style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 36 * globals.scaleParam)),
       );
     } else if (string == "0") {
       return Container(
         color: Colors.yellow.shade800,
         padding: EdgeInsets.all(5 * globals.scaleParam),
-        child: Text("Заказ отправлен в магазин",
-            style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                fontSize: 36 * globals.scaleParam)),
+        child:
+            Text("Заказ отправлен в магазин", style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 36 * globals.scaleParam)),
       );
     } else if (string == "1") {
       return Container(
         color: Colors.yellow.shade800,
         padding: EdgeInsets.all(5 * globals.scaleParam),
-        child: Text("Ожидает сборки",
-            style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                fontSize: 36 * globals.scaleParam)),
+        child: Text("Ожидает сборки", style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 36 * globals.scaleParam)),
       );
     } else if (string == "2") {
       return Container(
         color: Colors.teal.shade700,
         padding: EdgeInsets.all(5 * globals.scaleParam),
-        child: Text("Заказ собран",
-            style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                fontSize: 36 * globals.scaleParam)),
+        child: Text("Заказ собран", style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 36 * globals.scaleParam)),
       );
     } else if (string == "3") {
       return Container(
         color: Colors.greenAccent.shade700,
         padding: EdgeInsets.all(5 * globals.scaleParam),
-        child: Text("Заказ забрал курьер",
-            style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                fontSize: 36 * globals.scaleParam)),
+        child: Text("Заказ забрал курьер", style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 36 * globals.scaleParam)),
       );
     } else {
       return Container();
@@ -350,8 +303,7 @@ class _OrderListTileState extends State<OrderListTile> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: Colors.grey, width: 0.5))),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey, width: 0.5))),
       child: ExpansionTile(
           childrenPadding: EdgeInsets.all(20),
           onExpansionChanged: (value) {
@@ -371,8 +323,7 @@ class _OrderListTileState extends State<OrderListTile> {
           trailing: widget.order["order_status"] == "66"
               ? TextButton(
                   onPressed: () {
-                    getPaymentPageForUnpaidOrder(widget.order["order_id"])
-                        .then((v) {
+                    getPaymentPageForUnpaidOrder(widget.order["order_id"]).then((v) {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -385,9 +336,7 @@ class _OrderListTileState extends State<OrderListTile> {
                   },
                   child: Container(
                     padding: EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                        color: Colors.black,
-                        borderRadius: BorderRadius.all(Radius.circular(5))),
+                    decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.all(Radius.circular(5))),
                     child: Text(
                       "Оплатить",
                       style: TextStyle(color: Colors.white),
@@ -418,7 +367,7 @@ class _OrderListTileState extends State<OrderListTile> {
                     },
                   ),
             Row(
-              children: [Flexible(child: Text(double.parse(orderDetails["sum"] ?? "99999999").toStringAsFixed(2) ?? ""))],
+              children: [Flexible(child: Text(double.parse(orderDetails["sum"] ?? "0").toStringAsFixed(2) ?? ""))],
             )
           ]),
     );

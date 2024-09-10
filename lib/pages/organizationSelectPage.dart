@@ -1108,28 +1108,28 @@ class BusinessItemState extends State<BusinessItem> {
                     return const SizedBox();
                   },
                 ),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.max,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.delivery_dining_rounded,
-                            size: 48 * globals.scaleParam,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                // Column(
+                //   mainAxisAlignment: MainAxisAlignment.end,
+                //   mainAxisSize: MainAxisSize.max,
+                //   crossAxisAlignment: CrossAxisAlignment.start,
+                //   children: [
+                //     Container(
+                //       padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
+                //       decoration: BoxDecoration(
+                //         color: Colors.grey.shade50,
+                //       ),
+                //       child: Row(
+                //         mainAxisSize: MainAxisSize.min,
+                //         children: [
+                //           Icon(
+                //             Icons.delivery_dining_rounded,
+                //             size: 48 * globals.scaleParam,
+                //           ),
+                //         ],
+                //       ),
+                //     ),
+                //   ],
+                // ),
               ]),
             ),
             Expanded(
@@ -1145,17 +1145,36 @@ class BusinessItemState extends State<BusinessItem> {
                           children: [
                             Flexible(
                               fit: FlexFit.tight,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.center,
+                              child: Column(
                                 children: [
                                   Flexible(
-                                    child: Text(
-                                      widget.business["name"],
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 38 * globals.scaleParam,
-                                      ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            widget.business["name"],
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 38 * globals.scaleParam,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Flexible(
+                                    child: Row(
+                                      children: [
+                                        Flexible(
+                                          fit: FlexFit.tight,
+                                          child: Text(
+                                            widget.business["address"],
+                                            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 30 * globals.scaleParam),
+                                          ),
+                                        )
+                                      ],
                                     ),
                                   ),
                                 ],
@@ -1164,26 +1183,12 @@ class BusinessItemState extends State<BusinessItem> {
                             Flexible(
                               fit: FlexFit.tight,
                               child: Row(
-                                children: [
-                                  Flexible(
-                                    fit: FlexFit.tight,
-                                    child: Text(
-                                      widget.business["address"],
-                                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 30 * globals.scaleParam),
-                                    ),
-                                  )
-                                ],
-                              ),
-                            ),
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: Row(
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   Flexible(
                                     child: Text(
-                                      "Короткое описание",
+                                      "Круглосуточно",
                                       style: TextStyle(fontWeight: FontWeight.w500, fontSize: 30 * globals.scaleParam),
                                     ),
                                   ),

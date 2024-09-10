@@ -29,11 +29,15 @@ class PickAddressPage extends StatefulWidget {
 
 class _PickAddressPageState extends State<PickAddressPage> {
   bool alreadyOpenedMap = false;
+  bool isAddressesLoading = true;
   List _cities = [];
   Position? _location;
   List _addresses = [];
   Future<List> _getAddresses() async {
     // List addresses = await getUserAddresses(widget.client["user_id"]);
+    setState(() {
+      isAddressesLoading = true;
+    });
     List addresses = [];
     if (widget.addresses.isEmpty) {
       addresses = await getAddresses();
@@ -42,6 +46,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
     }
     setState(() {
       _addresses = addresses;
+      isAddressesLoading = false;
     });
     return addresses;
   }
@@ -133,7 +138,8 @@ class _PickAddressPageState extends State<PickAddressPage> {
       floatingActionButton: SizedBox(
         width: 200 * globals.scaleParam,
         height: 165 * globals.scaleParam,
-        child: FloatingActionButton(
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(15)))),
           onPressed: () {
             if (_location == null) {
               print("LOCATION WAS NULL, SO GETGEOLOCATION IS STARTED");
@@ -181,421 +187,457 @@ class _PickAddressPageState extends State<PickAddressPage> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ListView.builder(
-              primary: false,
-              shrinkWrap: true,
-              itemCount: _addresses.length,
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    selectAddressClient(_addresses[index]["address_id"], widget.client["user_id"]);
-                    widget.isFromCreateOrder
-                        ? Navigator.pop(
-                            context,
-                          )
-                        : Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
-                            builder: (context) {
-                              return Main(
-                                  // business: widget.business,
-                                  // client: widget.client,
-                                  // customAddress: _addresses[index],
-                                  );
-                            },
-                          ), (Route<dynamic> route) => false);
-                  },
-                  child: Container(
-                    margin: EdgeInsets.only(right: 20 * globals.scaleParam, top: 20 * globals.scaleParam, bottom: 20 * globals.scaleParam),
-                    decoration: BoxDecoration(
-                      border: _addresses[index]["is_selected"] == "1"
-                          ? Border(
-                              left: BorderSide(color: globals.mainColor, width: 10),
-                            )
-                          : Border(
-                              left: BorderSide(color: Colors.grey.shade300, width: 10),
-                            ),
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topRight: Radius.circular(15),
-                        bottomRight: Radius.circular(16),
-                      ), //? If set 15 and 15 strange graphic artifact appear on the smoothed corners
-                    ),
-                    padding: EdgeInsets.symmetric(horizontal: 50 * globals.scaleParam, vertical: 30 * globals.scaleParam),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Flexible(
-                              flex: 2,
-                              fit: FlexFit.tight,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+      body: _addresses.isEmpty
+          ? isAddressesLoading
+              ? Center(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          "Загружаю адреса, пожалуйста подождите",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 42 * globals.scaleParam,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : Center(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          "У вас нет адресов",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 42 * globals.scaleParam,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+          : SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ListView.builder(
+                    primary: false,
+                    shrinkWrap: true,
+                    itemCount: _addresses.length,
+                    itemBuilder: (context, index) {
+                      return GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          selectAddressClient(_addresses[index]["address_id"], widget.client["user_id"]);
+                          widget.isFromCreateOrder
+                              ? Navigator.pop(
+                                  context,
+                                )
+                              : Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+                                  builder: (context) {
+                                    return Main(
+                                        // business: widget.business,
+                                        // client: widget.client,
+                                        // customAddress: _addresses[index],
+                                        );
+                                  },
+                                ), (Route<dynamic> route) => false);
+                        },
+                        child: Container(
+                          margin: EdgeInsets.only(right: 20 * globals.scaleParam, top: 20 * globals.scaleParam, bottom: 20 * globals.scaleParam),
+                          decoration: BoxDecoration(
+                            border: _addresses[index]["is_selected"] == "1"
+                                ? Border(
+                                    left: BorderSide(color: globals.mainColor, width: 10),
+                                  )
+                                : Border(
+                                    left: BorderSide(color: Colors.grey.shade300, width: 10),
+                                  ),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(15),
+                              bottomRight: Radius.circular(16),
+                            ), //? If set 15 and 15 strange graphic artifact appear on the smoothed corners
+                          ),
+                          padding: EdgeInsets.symmetric(horizontal: 50 * globals.scaleParam, vertical: 30 * globals.scaleParam),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    _addresses[index]["city_name"] ?? "",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 44 * globals.scaleParam,
-                                      height: 3.2 * globals.scaleParam,
+                                  Flexible(
+                                    flex: 2,
+                                    fit: FlexFit.tight,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _addresses[index]["city_name"] ?? "",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 44 * globals.scaleParam,
+                                            height: 3.2 * globals.scaleParam,
+                                          ),
+                                        ),
+                                        Text(
+                                          _addresses[index]["address"],
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 42 * globals.scaleParam,
+                                            height: 3.2 * globals.scaleParam,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  Text(
-                                    _addresses[index]["address"],
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 42 * globals.scaleParam,
-                                      height: 3.2 * globals.scaleParam,
+                                  Flexible(
+                                    fit: FlexFit.tight,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            _addresses[index]["name"],
+                                            textAlign: TextAlign.end,
+                                            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 32 * globals.scaleParam),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
+                              Row(
+                                mainAxisSize: MainAxisSize.max,
+                                mainAxisAlignment: MainAxisAlignment.start,
                                 children: [
                                   Flexible(
                                     child: Text(
-                                      _addresses[index]["name"],
-                                      textAlign: TextAlign.end,
+                                      "Подъезд/Вход: ",
                                       style: TextStyle(fontWeight: FontWeight.w500, fontSize: 32 * globals.scaleParam),
                                     ),
                                   ),
+                                  Flexible(
+                                    child: Text(
+                                      _addresses[index]["entrance"] ?? "-",
+                                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 32 * globals.scaleParam),
+                                    ),
+                                  )
                                 ],
                               ),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                "Подъезд/Вход: ",
-                                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 32 * globals.scaleParam),
-                              ),
-                            ),
-                            Flexible(
-                              child: Text(
-                                _addresses[index]["entrance"] ?? "-",
-                                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 32 * globals.scaleParam),
-                              ),
-                            )
-                          ],
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                "Этаж: ",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 32 * globals.scaleParam,
-                                ),
-                              ),
-                            ),
-                            Flexible(
-                              child: Text(
-                                _addresses[index]["floor"] ?? "-",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 32 * globals.scaleParam,
-                                ),
-                              ),
-                            )
-                          ],
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                "Квартира/Офис: ",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 32 * globals.scaleParam,
-                                ),
-                              ),
-                            ),
-                            Flexible(
-                              child: Text(
-                                _addresses[index]["apartment"] ?? "-",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 32 * globals.scaleParam,
-                                ),
-                              ),
-                            )
-                          ],
-                        ),
-                        Padding(
-                          padding: EdgeInsets.only(left: 50 * globals.scaleParam),
-                          child: Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  _addresses[index]["other"] ?? "-",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 32 * globals.scaleParam,
+                              Row(
+                                mainAxisSize: MainAxisSize.max,
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      "Этаж: ",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 32 * globals.scaleParam,
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  Flexible(
+                                    child: Text(
+                                      _addresses[index]["floor"] ?? "-",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 32 * globals.scaleParam,
+                                      ),
+                                    ),
+                                  )
+                                ],
                               ),
+                              Row(
+                                mainAxisSize: MainAxisSize.max,
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      "Квартира/Офис: ",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 32 * globals.scaleParam,
+                                      ),
+                                    ),
+                                  ),
+                                  Flexible(
+                                    child: Text(
+                                      _addresses[index]["apartment"] ?? "-",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 32 * globals.scaleParam,
+                                      ),
+                                    ),
+                                  )
+                                ],
+                              ),
+                              Padding(
+                                padding: EdgeInsets.only(left: 50 * globals.scaleParam),
+                                child: Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        _addresses[index]["other"] ?? "-",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 32 * globals.scaleParam,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
                             ],
                           ),
-                        )
-                      ],
-                    ),
+                        ),
+                        // isThreeLine: true,
+                      );
+                    },
                   ),
-                  // isThreeLine: true,
-                );
-              },
-            ),
-            // FutureBuilder(
-            //   future: _addresses,
-            //   builder: (context, snapshot) {
-            //     if (snapshot.hasData) {
-            //       if (snapshot.data!.isEmpty) {
-            //         return Container(
-            //           height: 500 * globals.scaleParam,
-            //           alignment: Alignment.center,
-            //           child: Row(
-            //             mainAxisAlignment: MainAxisAlignment.center,
-            //             children: [
-            //               Flexible(
-            //                 child: Text(
-            //                   widget.isFirstTime
-            //                       ? "Пожалуйста выберите адрес"
-            //                       : "Здесь пусто",
-            //                   textAlign: TextAlign.center,
-            //                   style: TextStyle(
-            //                     fontSize: 40 * globals.scaleParam,
-            //                     fontWeight: FontWeight.w500,
-            //                     color: Colors.grey,
-            //                     fontFamily: "montserrat",
-            //                   ),
-            //                 ),
-            //               ),
-            //             ],
-            //           ),
-            //         );
-            //       }
-            //       List _addresses = snapshot.data!;
-            //       return ListView.builder(
-            //         primary: false,
-            //         shrinkWrap: true,
-            //         itemCount: _addresses.length,
-            //         itemBuilder: (context, index) {
-            //           return GestureDetector(
-            //             behavior: HitTestBehavior.opaque,
-            //             onTap: () {
-            //               selectAddressClient(_addresses[index]["address_id"],
-            //                   widget.client["user_id"]);
-            //               widget.isFromCreateOrder
-            //                   ? Navigator.pop(context)
-            //                   : Navigator.pushAndRemoveUntil(context,
-            //                       MaterialPageRoute(
-            //                       builder: (context) {
-            //                         return Main(
-            //                             // business: widget.business,
-            //                             // client: widget.client,
-            //                             // customAddress: _addresses[index],
-            //                             );
-            //                       },
-            //                     ), (Route<dynamic> route) => false);
-            //             },
-            //             child: Container(
-            //               decoration: BoxDecoration(
-            //                   border: _addresses[index]["is_selected"] == "1"
-            //                       ? Border(
-            //                           left: BorderSide(
-            //                               color: globals.mainColor, width: 10))
-            //                       : Border()),
-            //               padding: EdgeInsets.symmetric(
-            //                   horizontal: 50 * globals.scaleParam,
-            //                   vertical: 30 * globals.scaleParam),
-            //               child: Column(
-            //                 crossAxisAlignment: CrossAxisAlignment.start,
-            //                 children: [
-            //                   Row(
-            //                     mainAxisAlignment:
-            //                         MainAxisAlignment.spaceBetween,
-            //                     children: [
-            //                       Flexible(
-            //                         flex: 2,
-            //                         fit: FlexFit.tight,
-            //                         child: Column(
-            //                           crossAxisAlignment:
-            //                               CrossAxisAlignment.start,
-            //                           children: [
-            //                             Text(
-            //                               _addresses[index]["address"],
-            //                               style: TextStyle(
-            //                                   fontWeight: FontWeight.w700,
-            //                                   fontSize:
-            //                                       42 * globals.scaleParam),
-            //                             ),
-            //                             Text(
-            //                               _addresses[index]["city_name"] ?? "",
-            //                               style: TextStyle(
-            //                                   fontWeight: FontWeight.w700,
-            //                                   fontSize:
-            //                                       32 * globals.scaleParam),
-            //                             ),
-            //                           ],
-            //                         ),
-            //                       ),
-            //                       Flexible(
-            //                         fit: FlexFit.tight,
-            //                         child: Row(
-            //                           mainAxisAlignment: MainAxisAlignment.end,
-            //                           children: [
-            //                             Flexible(
-            //                               child: Text(
-            //                                 _addresses[index]["name"],
-            //                                 textAlign: TextAlign.end,
-            //                                 style: TextStyle(
-            //                                     fontWeight: FontWeight.w500,
-            //                                     fontSize:
-            //                                         32 * globals.scaleParam),
-            //                               ),
-            //                             ),
-            //                           ],
-            //                         ),
-            //                       ),
-            //                     ],
-            //                   ),
-            //                   Row(
-            //                     mainAxisSize: MainAxisSize.max,
-            //                     mainAxisAlignment: MainAxisAlignment.start,
-            //                     children: [
-            //                       Flexible(
-            //                         child: Text(
-            //                           "Подъезд/Вход: ",
-            //                           style: TextStyle(
-            //                               fontWeight: FontWeight.w500,
-            //                               fontSize: 32 * globals.scaleParam),
-            //                         ),
-            //                       ),
-            //                       Flexible(
-            //                         child: Text(
-            //                           _addresses[index]["entrance"] ?? "-",
-            //                           style: TextStyle(
-            //                               fontWeight: FontWeight.w500,
-            //                               fontSize: 32 * globals.scaleParam),
-            //                         ),
-            //                       )
-            //                     ],
-            //                   ),
-            //                   Row(
-            //                     mainAxisSize: MainAxisSize.max,
-            //                     mainAxisAlignment: MainAxisAlignment.start,
-            //                     children: [
-            //                       Flexible(
-            //                         child: Text(
-            //                           "Этаж: ",
-            //                           style: TextStyle(
-            //                             fontWeight: FontWeight.w500,
-            //                             fontSize: 32 * globals.scaleParam,
-            //                           ),
-            //                         ),
-            //                       ),
-            //                       Flexible(
-            //                         child: Text(
-            //                           _addresses[index]["floor"] ?? "-",
-            //                           style: TextStyle(
-            //                             fontWeight: FontWeight.w500,
-            //                             fontSize: 32 * globals.scaleParam,
-            //                           ),
-            //                         ),
-            //                       )
-            //                     ],
-            //                   ),
-            //                   Row(
-            //                     mainAxisSize: MainAxisSize.max,
-            //                     mainAxisAlignment: MainAxisAlignment.start,
-            //                     children: [
-            //                       Flexible(
-            //                         child: Text(
-            //                           "Квартира/Офис: ",
-            //                           style: TextStyle(
-            //                             fontWeight: FontWeight.w500,
-            //                             fontSize: 32 * globals.scaleParam,
-            //                           ),
-            //                         ),
-            //                       ),
-            //                       Flexible(
-            //                         child: Text(
-            //                           _addresses[index]["apartment"] ?? "-",
-            //                           style: TextStyle(
-            //                             fontWeight: FontWeight.w500,
-            //                             fontSize: 32 * globals.scaleParam,
-            //                           ),
-            //                         ),
-            //                       )
-            //                     ],
-            //                   ),
-            //                   Row(
-            //                     children: [
-            //                       Flexible(
-            //                         child: Text(
-            //                           _addresses[index]["other"] ?? "-",
-            //                           style: TextStyle(
-            //                             fontWeight: FontWeight.w500,
-            //                             fontSize: 32 * globals.scaleParam,
-            //                           ),
-            //                         ),
-            //                       ),
-            //                     ],
-            //                   )
-            //                 ],
-            //               ),
-            //             ),
-            //             // isThreeLine: true,
-            //           );
-            //         },
-            //       );
-            //     } else if (snapshot.hasError) {
-            //       return Text(
-            //         "Error",
-            //         style: TextStyle(
-            //             fontWeight: FontWeight.w500,
-            //             fontSize: 32 * globals.scaleParam),
-            //       );
-            //     } else {
-            //       return LinearProgressIndicator();
-            //     }
-            //   },
-            // )
+                  // FutureBuilder(
+                  //   future: _addresses,
+                  //   builder: (context, snapshot) {
+                  //     if (snapshot.hasData) {
+                  //       if (snapshot.data!.isEmpty) {
+                  //         return Container(
+                  //           height: 500 * globals.scaleParam,
+                  //           alignment: Alignment.center,
+                  //           child: Row(
+                  //             mainAxisAlignment: MainAxisAlignment.center,
+                  //             children: [
+                  //               Flexible(
+                  //                 child: Text(
+                  //                   widget.isFirstTime
+                  //                       ? "Пожалуйста выберите адрес"
+                  //                       : "Здесь пусто",
+                  //                   textAlign: TextAlign.center,
+                  //                   style: TextStyle(
+                  //                     fontSize: 40 * globals.scaleParam,
+                  //                     fontWeight: FontWeight.w500,
+                  //                     color: Colors.grey,
+                  //                     fontFamily: "montserrat",
+                  //                   ),
+                  //                 ),
+                  //               ),
+                  //             ],
+                  //           ),
+                  //         );
+                  //       }
+                  //       List _addresses = snapshot.data!;
+                  //       return ListView.builder(
+                  //         primary: false,
+                  //         shrinkWrap: true,
+                  //         itemCount: _addresses.length,
+                  //         itemBuilder: (context, index) {
+                  //           return GestureDetector(
+                  //             behavior: HitTestBehavior.opaque,
+                  //             onTap: () {
+                  //               selectAddressClient(_addresses[index]["address_id"],
+                  //                   widget.client["user_id"]);
+                  //               widget.isFromCreateOrder
+                  //                   ? Navigator.pop(context)
+                  //                   : Navigator.pushAndRemoveUntil(context,
+                  //                       MaterialPageRoute(
+                  //                       builder: (context) {
+                  //                         return Main(
+                  //                             // business: widget.business,
+                  //                             // client: widget.client,
+                  //                             // customAddress: _addresses[index],
+                  //                             );
+                  //                       },
+                  //                     ), (Route<dynamic> route) => false);
+                  //             },
+                  //             child: Container(
+                  //               decoration: BoxDecoration(
+                  //                   border: _addresses[index]["is_selected"] == "1"
+                  //                       ? Border(
+                  //                           left: BorderSide(
+                  //                               color: globals.mainColor, width: 10))
+                  //                       : Border()),
+                  //               padding: EdgeInsets.symmetric(
+                  //                   horizontal: 50 * globals.scaleParam,
+                  //                   vertical: 30 * globals.scaleParam),
+                  //               child: Column(
+                  //                 crossAxisAlignment: CrossAxisAlignment.start,
+                  //                 children: [
+                  //                   Row(
+                  //                     mainAxisAlignment:
+                  //                         MainAxisAlignment.spaceBetween,
+                  //                     children: [
+                  //                       Flexible(
+                  //                         flex: 2,
+                  //                         fit: FlexFit.tight,
+                  //                         child: Column(
+                  //                           crossAxisAlignment:
+                  //                               CrossAxisAlignment.start,
+                  //                           children: [
+                  //                             Text(
+                  //                               _addresses[index]["address"],
+                  //                               style: TextStyle(
+                  //                                   fontWeight: FontWeight.w700,
+                  //                                   fontSize:
+                  //                                       42 * globals.scaleParam),
+                  //                             ),
+                  //                             Text(
+                  //                               _addresses[index]["city_name"] ?? "",
+                  //                               style: TextStyle(
+                  //                                   fontWeight: FontWeight.w700,
+                  //                                   fontSize:
+                  //                                       32 * globals.scaleParam),
+                  //                             ),
+                  //                           ],
+                  //                         ),
+                  //                       ),
+                  //                       Flexible(
+                  //                         fit: FlexFit.tight,
+                  //                         child: Row(
+                  //                           mainAxisAlignment: MainAxisAlignment.end,
+                  //                           children: [
+                  //                             Flexible(
+                  //                               child: Text(
+                  //                                 _addresses[index]["name"],
+                  //                                 textAlign: TextAlign.end,
+                  //                                 style: TextStyle(
+                  //                                     fontWeight: FontWeight.w500,
+                  //                                     fontSize:
+                  //                                         32 * globals.scaleParam),
+                  //                               ),
+                  //                             ),
+                  //                           ],
+                  //                         ),
+                  //                       ),
+                  //                     ],
+                  //                   ),
+                  //                   Row(
+                  //                     mainAxisSize: MainAxisSize.max,
+                  //                     mainAxisAlignment: MainAxisAlignment.start,
+                  //                     children: [
+                  //                       Flexible(
+                  //                         child: Text(
+                  //                           "Подъезд/Вход: ",
+                  //                           style: TextStyle(
+                  //                               fontWeight: FontWeight.w500,
+                  //                               fontSize: 32 * globals.scaleParam),
+                  //                         ),
+                  //                       ),
+                  //                       Flexible(
+                  //                         child: Text(
+                  //                           _addresses[index]["entrance"] ?? "-",
+                  //                           style: TextStyle(
+                  //                               fontWeight: FontWeight.w500,
+                  //                               fontSize: 32 * globals.scaleParam),
+                  //                         ),
+                  //                       )
+                  //                     ],
+                  //                   ),
+                  //                   Row(
+                  //                     mainAxisSize: MainAxisSize.max,
+                  //                     mainAxisAlignment: MainAxisAlignment.start,
+                  //                     children: [
+                  //                       Flexible(
+                  //                         child: Text(
+                  //                           "Этаж: ",
+                  //                           style: TextStyle(
+                  //                             fontWeight: FontWeight.w500,
+                  //                             fontSize: 32 * globals.scaleParam,
+                  //                           ),
+                  //                         ),
+                  //                       ),
+                  //                       Flexible(
+                  //                         child: Text(
+                  //                           _addresses[index]["floor"] ?? "-",
+                  //                           style: TextStyle(
+                  //                             fontWeight: FontWeight.w500,
+                  //                             fontSize: 32 * globals.scaleParam,
+                  //                           ),
+                  //                         ),
+                  //                       )
+                  //                     ],
+                  //                   ),
+                  //                   Row(
+                  //                     mainAxisSize: MainAxisSize.max,
+                  //                     mainAxisAlignment: MainAxisAlignment.start,
+                  //                     children: [
+                  //                       Flexible(
+                  //                         child: Text(
+                  //                           "Квартира/Офис: ",
+                  //                           style: TextStyle(
+                  //                             fontWeight: FontWeight.w500,
+                  //                             fontSize: 32 * globals.scaleParam,
+                  //                           ),
+                  //                         ),
+                  //                       ),
+                  //                       Flexible(
+                  //                         child: Text(
+                  //                           _addresses[index]["apartment"] ?? "-",
+                  //                           style: TextStyle(
+                  //                             fontWeight: FontWeight.w500,
+                  //                             fontSize: 32 * globals.scaleParam,
+                  //                           ),
+                  //                         ),
+                  //                       )
+                  //                     ],
+                  //                   ),
+                  //                   Row(
+                  //                     children: [
+                  //                       Flexible(
+                  //                         child: Text(
+                  //                           _addresses[index]["other"] ?? "-",
+                  //                           style: TextStyle(
+                  //                             fontWeight: FontWeight.w500,
+                  //                             fontSize: 32 * globals.scaleParam,
+                  //                           ),
+                  //                         ),
+                  //                       ),
+                  //                     ],
+                  //                   )
+                  //                 ],
+                  //               ),
+                  //             ),
+                  //             // isThreeLine: true,
+                  //           );
+                  //         },
+                  //       );
+                  //     } else if (snapshot.hasError) {
+                  //       return Text(
+                  //         "Error",
+                  //         style: TextStyle(
+                  //             fontWeight: FontWeight.w500,
+                  //             fontSize: 32 * globals.scaleParam),
+                  //       );
+                  //     } else {
+                  //       return LinearProgressIndicator();
+                  //     }
+                  //   },
+                  // )
 
-            // Padding(
-            //   padding: EdgeInsets.symmetric(horizontal: 35),
-            //   child: ElevatedButton(
-            //       onPressed: () {},
-            //       child: Row(
-            //         children: [
-            //           Text(
-            //             "Добавить новый адрес",
-            //             style: TextStyle(
-            //                 fontSize: 20, fontWeight: FontWeight.w500),
-            //           )
-            //         ],
-            //       )),
-            // ),
-          ],
-        ),
-      ),
+                  // Padding(
+                  //   padding: EdgeInsets.symmetric(horizontal: 35),
+                  //   child: ElevatedButton(
+                  //       onPressed: () {},
+                  //       child: Row(
+                  //         children: [
+                  //           Text(
+                  //             "Добавить новый адрес",
+                  //             style: TextStyle(
+                  //                 fontSize: 20, fontWeight: FontWeight.w500),
+                  //           )
+                  //         ],
+                  //       )),
+                  // ),
+                ],
+              ),
+            ),
     );
   }
 }

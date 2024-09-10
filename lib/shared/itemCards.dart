@@ -1147,6 +1147,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Flexible(
+                                          flex: 2,
                                           fit: FlexFit.tight,
                                           child: Padding(
                                             padding: EdgeInsets.all(1 * globals.scaleParam),
@@ -2711,7 +2712,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                               clearMemoryCacheWhenDispose: true,
                                               enableMemoryCache: true,
                                               enableLoadState: false,
-                                              fit: BoxFit.cover,
+                                              fit: BoxFit.contain,
                                             )
                                           : ExtendedImage.asset(
                                               "assets/category_items/no_image_ico.png",
@@ -3244,66 +3245,58 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                                                         children: [
                                                           Flexible(
-                                                            child: IconButton(
-                                                              style: IconButton.styleFrom(
-                                                                backgroundColor: Colors.tealAccent.shade700,
-                                                                padding: EdgeInsets.all(
-                                                                  20 * globals.scaleParam,
+                                                              fit: FlexFit.tight,
+                                                              child: Padding(
+                                                                padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
+                                                                child: Row(
+                                                                  children: [
+                                                                    MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height
+                                                                        ? Flexible(
+                                                                            flex: 2,
+                                                                            fit: FlexFit.tight,
+                                                                            child: SizedBox(),
+                                                                          )
+                                                                        : SizedBox(),
+                                                                    Flexible(
+                                                                      fit: FlexFit.tight,
+                                                                      child: ElevatedButton(
+                                                                          onPressed: () async {
+                                                                            await changeCartItem(
+                                                                                    element["item_id"], 0, widget.business["business_id"],
+                                                                                    options:
+                                                                                        _getElementWithSelectedItemsByIndex(index)["options"] ?? [])
+                                                                                .then(
+                                                                              (value) {
+                                                                                List newCart = [];
+                                                                                if (value != null) {
+                                                                                  if (options.isEmpty) {
+                                                                                    setState(() {
+                                                                                      newCart = [
+                                                                                        value.firstWhere(
+                                                                                          (el) => el["item_id"] == element["item_id"],
+                                                                                          orElse: () => [],
+                                                                                        )
+                                                                                      ];
+                                                                                    });
+                                                                                  } else {
+                                                                                    setState(() {
+                                                                                      newCart = value
+                                                                                          .where((el) => el["item_id"] == element["item_id"])
+                                                                                          .toList();
+                                                                                    });
+                                                                                    print("asdasd");
+                                                                                  }
+                                                                                  updateCurrentItem(newCart);
+                                                                                }
+                                                                                Navigator.pop(context);
+                                                                              },
+                                                                            );
+                                                                          },
+                                                                          child: Text("Подтвердить")),
+                                                                    ),
+                                                                  ],
                                                                 ),
-                                                              ),
-                                                              onPressed: () async {
-                                                                await changeCartItem(element["item_id"], 0, widget.business["business_id"],
-                                                                        options: _getElementWithSelectedItemsByIndex(index)["options"] ?? [])
-                                                                    .then(
-                                                                  (value) {
-                                                                    List newCart = [];
-                                                                    if (value != null) {
-                                                                      if (options.isEmpty) {
-                                                                        setState(() {
-                                                                          newCart = [
-                                                                            value.firstWhere(
-                                                                              (el) => el["item_id"] == element["item_id"],
-                                                                              orElse: () => [],
-                                                                            )
-                                                                          ];
-                                                                        });
-                                                                      } else {
-                                                                        setState(() {
-                                                                          newCart = value.where((el) => el["item_id"] == element["item_id"]).toList();
-                                                                        });
-                                                                        print("asdasd");
-                                                                      }
-                                                                      updateCurrentItem(newCart);
-                                                                    }
-                                                                    Navigator.pop(context);
-                                                                  },
-                                                                );
-                                                              },
-                                                              icon: Icon(
-                                                                Icons.done_sharp,
-                                                                size: 130 * globals.scaleParam,
-                                                                color: Colors.white,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          Flexible(
-                                                            child: IconButton(
-                                                              style: IconButton.styleFrom(
-                                                                backgroundColor: Colors.redAccent.shade700,
-                                                                padding: EdgeInsets.all(
-                                                                  20 * globals.scaleParam,
-                                                                ),
-                                                              ),
-                                                              onPressed: () {
-                                                                Navigator.pop(context);
-                                                              },
-                                                              icon: Icon(
-                                                                Icons.close_sharp,
-                                                                size: 130 * globals.scaleParam,
-                                                                color: Colors.white,
-                                                              ),
-                                                            ),
-                                                          ),
+                                                              )),
                                                         ],
                                                       ),
                                                     ),
