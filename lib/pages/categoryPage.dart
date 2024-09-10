@@ -34,7 +34,12 @@ class CategoryNotifier extends ChangeNotifier {
 
 class CategoryPage extends StatefulWidget {
   const CategoryPage(
-      {super.key, required this.categoryId, required this.categoryName, required this.categories, required this.business, required this.user});
+      {super.key,
+      required this.categoryId,
+      required this.categoryName,
+      required this.categories,
+      required this.business,
+      required this.user});
   final String categoryId;
   final String categoryName;
   final List<dynamic> categories;
@@ -82,7 +87,8 @@ class ParentCategoryPage extends StatefulWidget {
   State<ParentCategoryPage> createState() => _ParentCategoryPageState();
 }
 
-class _ParentCategoryPageState extends State<ParentCategoryPage> with SingleTickerProviderStateMixin {
+class _ParentCategoryPageState extends State<ParentCategoryPage>
+    with SingleTickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int initialIndexTabbar = 0;
   List<Map<String, dynamic>> categoriesWidgetList = [];
@@ -175,7 +181,8 @@ class _ParentCategoryPageState extends State<ParentCategoryPage> with SingleTick
                   if (value != null) {
                     if (value) {
                       print("REFRESHING");
-                      Provider.of<CategoryNotifier>(context, listen: false).triggerRefresh(_tabController.index);
+                      Provider.of<CategoryNotifier>(context, listen: false)
+                          .triggerRefresh(_tabController.index);
                     }
                   }
                 },
@@ -187,20 +194,25 @@ class _ParentCategoryPageState extends State<ParentCategoryPage> with SingleTick
       appBar: AppBar(
         toolbarHeight: 105 * globals.scaleParam,
         bottom: PreferredSize(
-          preferredSize: Size(MediaQuery.sizeOf(context).width, 85 * globals.scaleParam),
+          preferredSize:
+              Size(MediaQuery.sizeOf(context).width, 85 * globals.scaleParam),
           child: TabBar(
             controller: _tabController,
             tabAlignment: TabAlignment.start,
             physics: const BouncingScrollPhysics(),
-            labelPadding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam, vertical: 10 * globals.scaleParam),
+            labelPadding: EdgeInsets.symmetric(
+                horizontal: 10 * globals.scaleParam,
+                vertical: 10 * globals.scaleParam),
             labelStyle: TextStyle(
               fontSize: 38 * globals.scaleParam,
               fontWeight: FontWeight.w500,
               color: Theme.of(context).colorScheme.onSurface,
             ),
-            unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+            unselectedLabelColor:
+                Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
             isScrollable: true,
-            tabs: categoriesWidgetList.map((e) => e["widget"] as Widget).toList(),
+            tabs:
+                categoriesWidgetList.map((e) => e["widget"] as Widget).toList(),
           ),
         ),
         actions: [
@@ -261,13 +273,21 @@ class _ParentCategoryPageState extends State<ParentCategoryPage> with SingleTick
                         Navigator.push(
                           context,
                           globals.getPlatformSpecialRoute(
-                            SearchPage(business: widget.business, category_id: categoriesWidgetList[initialIndexTabbar]["category_id"]),
+                            SearchPage(
+                                business: widget.business,
+                                category_id:
+                                    categoriesWidgetList[initialIndexTabbar]
+                                        ["category_id"]),
                           ),
                         );
                       },
-                      style: TextButton.styleFrom(foregroundColor: Colors.white.withOpacity(0)),
+                      style: TextButton.styleFrom(
+                          foregroundColor: Colors.white.withOpacity(0)),
                       child: Container(
-                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.1), borderRadius: BorderRadius.all(Radius.circular(10))),
+                        decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.1),
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(10))),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
@@ -354,7 +374,8 @@ class CategoryPageList extends StatefulWidget {
   State<CategoryPageList> createState() => _CategoryPageListState();
 }
 
-class _CategoryPageListState extends State<CategoryPageList> with SingleTickerProviderStateMixin<CategoryPageList> {
+class _CategoryPageListState extends State<CategoryPageList>
+    with SingleTickerProviderStateMixin<CategoryPageList> {
   late bool _isLastPage;
   late int _pageNumber;
   late bool _error;
@@ -369,7 +390,8 @@ class _CategoryPageListState extends State<CategoryPageList> with SingleTickerPr
 
   Future<void> _getItems() async {
     try {
-      List? responseList = await getItemsMain(_pageNumber, widget.business["business_id"], "", widget.categoryId);
+      List? responseList = await getItemsMain(
+          _pageNumber, widget.business["business_id"], "", widget.categoryId);
       if (responseList != null) {
         List<dynamic> itemList = responseList;
         // List<dynamic> itemList = responseList.map((data) => Item(data)).toList();
@@ -485,7 +507,8 @@ class _CategoryPageListState extends State<CategoryPageList> with SingleTickerPr
                         addAutomaticKeepAlives: false,
                         itemCount: _items.length + (_isLastPage ? 0 : 1),
                         itemBuilder: (context, index) {
-                          if ((index == _items.length - _nextPageTrigger) && (!_isLastPage)) {
+                          if ((index == _items.length - _nextPageTrigger) &&
+                              (!_isLastPage)) {
                             _getItems();
                           }
                           if (index == _items.length) {

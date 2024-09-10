@@ -21,7 +21,8 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin<HomePage> {
+class _HomePageState extends State<HomePage>
+    with AutomaticKeepAliveClientMixin<HomePage> {
   @override
   bool get wantKeepAlive => true;
 
@@ -74,172 +75,168 @@ class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin<
       builder: (context, snapshot) {
         if (snapshot.hasData && isLogoPainted) {
           return Scaffold(
-            bottomSheet: BottomBar(),
-            backgroundColor: Colors.grey.shade100,
-            key: _scaffoldKey,
-            floatingActionButtonLocation: FloatingActionButtonLocation.endContained,
-            floatingActionButton: SizedBox(
-              child: CartButton(
-                business: widget.business,
-                user: widget.user,
+              bottomSheet: BottomBar(),
+              backgroundColor: Colors.grey.shade100,
+              key: _scaffoldKey,
+              floatingActionButtonLocation:
+                  FloatingActionButtonLocation.endContained,
+              floatingActionButton: SizedBox(
+                child: CartButton(
+                  business: widget.business,
+                  user: widget.user,
+                ),
               ),
-            ),
-            appBar: AppBar(
-              toolbarHeight: 115 * globals.scaleParam,
-              automaticallyImplyLeading: false,
-              titleSpacing: 0,
-              title: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Flexible(
-                          child: IconButton(
-                            padding: EdgeInsets.zero,
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            icon: Icon(Icons.arrow_back_rounded),
-                          ),
-                        ),
-                        Flexible(
-                          flex: 3,
-                          fit: FlexFit.tight,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+              body: CustomScrollView(
+                slivers: [
+                  SliverAppBar(
+                    pinned: true,
+                    titleSpacing: 0,
+                    centerTitle: false,
+                    automaticallyImplyLeading: false,
+                    title: Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 20 * globals.scaleParam),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.max,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                widget.business["name"],
-                                maxLines: 1,
-                                style: TextStyle(fontSize: 40 * globals.scaleParam),
+                              Flexible(
+                                child: IconButton(
+                                  padding: EdgeInsets.zero,
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                  },
+                                  icon: Icon(Icons.arrow_back_rounded),
+                                ),
                               ),
-                              Text(
-                                widget.business["address"],
-                                maxLines: 1,
-                                style: TextStyle(fontSize: 32 * globals.scaleParam),
+                              Flexible(
+                                flex: 3,
+                                fit: FlexFit.tight,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      widget.business["name"],
+                                      maxLines: 1,
+                                      style: TextStyle(
+                                          fontSize: 40 * globals.scaleParam),
+                                    ),
+                                    Text(
+                                      widget.business["address"],
+                                      maxLines: 1,
+                                      style: TextStyle(
+                                          fontSize: 32 * globals.scaleParam),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Flexible(
+                                flex: 4,
+                                fit: FlexFit.tight,
+                                child: TextButton(
+                                  onPressed: () {
+                                    // Navigator.push(context, MaterialPageRoute(
+                                    //   builder: (context) {
+                                    //     return SearchPage(
+                                    //       business: widget.business,
+                                    //     );
+                                    //   },
+                                    // ));
+                                    Navigator.push(
+                                      context,
+                                      globals.getPlatformSpecialRoute(
+                                        SearchPage(
+                                          business: widget.business,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  style: TextButton.styleFrom(
+                                      foregroundColor:
+                                          Colors.white.withOpacity(0)),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.1),
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(10))),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        Spacer(
+                                          flex: 3,
+                                        ),
+                                        Text(
+                                          "Найти",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 30 * globals.scaleParam,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: EdgeInsets.all(
+                                              20 * globals.scaleParam),
+                                          child: Icon(
+                                            Icons.search,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                        Flexible(
-                          flex: 4,
-                          fit: FlexFit.tight,
-                          child: TextButton(
-                            onPressed: () {
-                              // Navigator.push(context, MaterialPageRoute(
-                              //   builder: (context) {
-                              //     return SearchPage(
-                              //       business: widget.business,
-                              //     );
-                              //   },
-                              // ));
-                              Navigator.push(
-                                context,
-                                globals.getPlatformSpecialRoute(
-                                  SearchPage(
-                                    business: widget.business,
-                                  ),
-                                ),
-                              );
-                            },
-                            style: TextButton.styleFrom(foregroundColor: Colors.white.withOpacity(0)),
-                            child: Container(
-                              decoration: BoxDecoration(color: Colors.black.withOpacity(0.1), borderRadius: BorderRadius.all(Radius.circular(10))),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Spacer(
-                                    flex: 3,
-                                  ),
-                                  Text(
-                                    "Найти",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 30 * globals.scaleParam,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: EdgeInsets.all(20 * globals.scaleParam),
-                                    child: Icon(
-                                      Icons.search,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                          SizedBox(
+                            height: 10 * globals.scaleParam,
                           ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 10 * globals.scaleParam,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            body: Column(
-              children: [
-                SizedBox(
-                  height: 10 * globals.scaleParam,
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 20 * globals.scaleParam,
-                      vertical: 10 * globals.scaleParam,
-                    ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.all(Radius.circular(10)),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          return SingleChildScrollView(
-                            physics: ClampingScrollPhysics(),
-                            child: GridView.builder(
-                              padding: EdgeInsets.all(0),
-                              physics: NeverScrollableScrollPhysics(),
-                              shrinkWrap: true,
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                // maxCrossAxisExtent: 650 * globals.scaleParam,
-                                crossAxisCount: MediaQuery.of(context).size.aspectRatio > 1 ? 4 : 2,
-                                childAspectRatio: 1,
-                                crossAxisSpacing: 0,
-                                mainAxisSpacing: 0,
-                              ),
-                              itemCount: snapshot.data!.length % 2 != 0 ? snapshot.data!.length + 1 + 2 : snapshot.data!.length + 2,
-                              itemBuilder: (BuildContext ctx, index) {
-                                return (snapshot.data!.length % 2 != 0 && index >= snapshot.data!.length) ||
-                                        (index >= snapshot.data!.length && snapshot.data!.length % 2 == 0)
-                                    ? SizedBox()
-                                    : CategoryItem(
-                                        category_id: snapshot.data![index]["category_id"],
-                                        name: snapshot.data![index]["name"],
-                                        image: snapshot.data![index]["photo"],
-                                        categories: snapshot.data!,
-                                        business: widget.business,
-                                        user: widget.user,
-                                      );
-                              },
-                            ),
-                          );
-                        },
+                        ],
                       ),
                     ),
                   ),
-                )
-              ],
-            ),
-          );
+                  SliverToBoxAdapter(
+                      child: Container(
+                    padding: EdgeInsets.all(22 * globals.scaleParam),
+                    child: GridView.builder(
+                      padding: EdgeInsets.all(0),
+                      physics: NeverScrollableScrollPhysics(),
+                      shrinkWrap: true,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        // maxCrossAxisExtent: 650 * globals.scaleParam,
+                        crossAxisCount:
+                            MediaQuery.of(context).size.aspectRatio > 1 ? 4 : 2,
+                        childAspectRatio: 1,
+                        crossAxisSpacing: 0,
+                        mainAxisSpacing: 0,
+                      ),
+                      itemCount: snapshot.data!.length % 2 != 0
+                          ? snapshot.data!.length + 1 + 2
+                          : snapshot.data!.length + 2,
+                      itemBuilder: (BuildContext ctx, index) {
+                        return (snapshot.data!.length % 2 != 0 &&
+                                    index >= snapshot.data!.length) ||
+                                (index >= snapshot.data!.length &&
+                                    snapshot.data!.length % 2 == 0)
+                            ? SizedBox()
+                            : CategoryItem(
+                                category_id: snapshot.data![index]
+                                    ["category_id"],
+                                name: snapshot.data![index]["name"],
+                                image: snapshot.data![index]["photo"],
+                                categories: snapshot.data!,
+                                business: widget.business,
+                                user: widget.user,
+                              );
+                      },
+                    ),
+                  ))
+                ],
+              ));
         } else {
           return PaintLogoPage(
             city: widget.user["city_name"],
@@ -325,7 +322,8 @@ class _CategoryItemState extends State<CategoryItem> {
                           child: ShaderMask(
                             blendMode: BlendMode.overlay,
                             shaderCallback: (bounds) {
-                              Rect newBounds = Rect.fromLTWH(bounds.left, bounds.top, bounds.width, bounds.height);
+                              Rect newBounds = Rect.fromLTWH(bounds.left,
+                                  bounds.top, bounds.width, bounds.height);
                               return LinearGradient(
                                 colors: [Colors.orange, Colors.yellow],
                               ).createShader(newBounds);
@@ -335,7 +333,8 @@ class _CategoryItemState extends State<CategoryItem> {
                               maxHeight: constraints.maxHeight * 0.667,
                               child: Container(
                                 color: Colors.white,
-                                padding: EdgeInsets.all(10 * globals.scaleParam),
+                                padding:
+                                    EdgeInsets.all(10 * globals.scaleParam),
                                 child: ExtendedImage.network(
                                   widget.image!,
                                   color: Colors.grey.shade400,
@@ -354,7 +353,11 @@ class _CategoryItemState extends State<CategoryItem> {
                         double maxHeight = constraints.maxHeight * 0.28;
 
                         // Adjust the font size to fit within the height
-                        double calculatedFontSize = maxHeight / (3 * 2 * globals.scaleParam); // 3 lines with height multiplier
+                        double calculatedFontSize = maxHeight /
+                            (3 *
+                                2 *
+                                globals
+                                    .scaleParam); // 3 lines with height multiplier
 
                         return Container(
                           alignment: Alignment.topLeft,
@@ -372,7 +375,9 @@ class _CategoryItemState extends State<CategoryItem> {
                                     maxLines: 3,
                                     style: GoogleFonts.montserratAlternates(
                                       textStyle: TextStyle(
-                                        fontSize: fontSize > calculatedFontSize ? calculatedFontSize : fontSize,
+                                        fontSize: fontSize > calculatedFontSize
+                                            ? calculatedFontSize
+                                            : fontSize,
                                         fontWeight: FontWeight.w700,
                                         color: Colors.black,
                                         height: 2 * globals.scaleParam,

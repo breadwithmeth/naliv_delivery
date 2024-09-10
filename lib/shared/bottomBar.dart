@@ -126,7 +126,7 @@ class _BottomBarState extends State<BottomBar>
             : Container(
                 clipBehavior: Clip.antiAliasWithSaveLayer,
                 decoration: BoxDecoration(
-                  color: isExpanded ? Colors.white : Colors.transparent,
+                  color: isExpanded ? Colors.black : Colors.transparent,
                 ),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -182,9 +182,14 @@ class _BottomBarState extends State<BottomBar>
                                                           Radius.circular(
                                                               500))),
                                               child: Text(
-                                                formatActiveOrderString(orders.length),
+                                                formatActiveOrderString(
+                                                    orders.length),
                                                 // orders.length.toString(),
-                                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 36 * globals.scaleParam),
+                                                style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.w900,
+                                                    fontSize: 36 *
+                                                        globals.scaleParam),
                                               ),
                                             )
                                           : Container(),
@@ -215,48 +220,75 @@ class _BottomBarState extends State<BottomBar>
                         //   },
                         // ),
                         SliverToBoxAdapter(
-                          child: Container(
-                            margin:
-                                EdgeInsets.only(top: 60 * globals.scaleParam),
-                            padding: EdgeInsets.all(40 * globals.scaleParam),
-                            width: double.infinity,
-                            height: 1000,
-                            color: Colors.white,
-                            child: Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      formatActiveOrderString(orders.length),
-                                      style: TextStyle(
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 48 * globals.scaleParam),
-                                    ),
-                                    IconButton(
-                                        onPressed: () {
-                                          _dsController.animateTo(
-                                              _sheetPosition,
-                                              duration: Durations.short1,
-                                              curve: Curves.bounceOut);
-                                        },
-                                        icon: Icon(Icons.close))
-                                  ],
-                                ),
-                                ListView.builder(
-                                  primary: false,
-                                  shrinkWrap: true,
-                                  itemCount: orders.length,
-                                  itemBuilder: (context, index) {
-                                    return OrderListTile(order: orders[index]);
+                            child: Container(
+                                height: MediaQuery.of(context).size.height,
+                                color: Colors.black,
+                                padding: EdgeInsets.only(
+                                    top: MediaQueryData.fromView(
+                                            View.of(context))
+                                        .padding
+                                        .top,
+                                    bottom: 20),
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    return SingleChildScrollView(
+                                      child: Container(
+                                        height: constraints.maxHeight,
+                                        // margin:
+                                        //     EdgeInsets.only(top: 60 * globals.scaleParam),
+                                        padding: EdgeInsets.all(
+                                            45 * globals.scaleParam),
+                                        width: double.infinity,
+                                        // height: 1000,
+                                        decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(
+                                                    90 * globals.scaleParam))),
+                                        child: Column(
+                                          children: [
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                Text(
+                                                  formatActiveOrderString(
+                                                      orders.length),
+                                                  style: TextStyle(
+                                                      color: Colors.black,
+                                                      fontWeight:
+                                                          FontWeight.w900,
+                                                      fontSize: 48 *
+                                                          globals.scaleParam),
+                                                ),
+                                                IconButton(
+                                                    onPressed: () {
+                                                      _dsController.animateTo(
+                                                          _sheetPosition,
+                                                          duration:
+                                                              Durations.short1,
+                                                          curve:
+                                                              Curves.bounceOut);
+                                                    },
+                                                    icon: Icon(Icons.close))
+                                              ],
+                                            ),
+                                            ListView.builder(
+                                              primary: false,
+                                              shrinkWrap: true,
+                                              itemCount: orders.length,
+                                              itemBuilder: (context, index) {
+                                                return OrderListTile(
+                                                    order: orders[index]);
+                                              },
+                                            )
+                                          ],
+                                        ),
+                                      ),
+                                    );
                                   },
-                                )
-                              ],
-                            ),
-                          ),
-                        )
+                                )))
                       ],
                     );
                   },
@@ -365,7 +397,9 @@ class _OrderListTileState extends State<OrderListTile> {
           ),
           subtitle: Row(
             children: [
-              Flexible(child: getOrderStatusFormat(widget.order["order_status"] ?? "99")),
+              Flexible(
+                  child: getOrderStatusFormat(
+                      widget.order["order_status"] ?? "99")),
             ],
           ),
           trailing: widget.order["order_status"] == "66"
@@ -403,7 +437,10 @@ class _OrderListTileState extends State<OrderListTile> {
                     itemCount: orderItems.length,
                     itemBuilder: (context, index) {
                       return Container(
-                        decoration: BoxDecoration(border: Border(bottom: BorderSide(width: 1, color: Colors.grey))),
+                        decoration: BoxDecoration(
+                            border: Border(
+                                bottom:
+                                    BorderSide(width: 1, color: Colors.grey))),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -418,7 +455,12 @@ class _OrderListTileState extends State<OrderListTile> {
                     },
                   ),
             Row(
-              children: [Flexible(child: Text(double.parse(orderDetails["sum"] ?? "99999999").toStringAsFixed(2) ?? ""))],
+              children: [
+                Flexible(
+                    child: Text(double.parse(orderDetails["sum"] ?? "99999999")
+                            .toStringAsFixed(2) ??
+                        ""))
+              ],
             )
           ]),
     );
