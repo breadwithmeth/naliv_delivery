@@ -2829,7 +2829,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                   //   ),
                                   // ),
                                   Flexible(
-                                    flex: 4,
+                                    flex: 5,
                                     fit: FlexFit.tight,
                                     child: promotions.isEmpty
                                         ? Container()

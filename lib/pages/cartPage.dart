@@ -31,6 +31,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
   int distance = 0;
   int bonusSum = 0;
   int price = 0;
+  int taxes = 0;
   bool isCartLoading = true;
   bool dismissingItem = false;
 
@@ -51,7 +52,8 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
       localSum = double.parse((cart["sum"] ?? 0.0).toString()).round();
       // distance = double.parse((cart["distance"] ?? 0.0).toString()).round();
       // price = (price / 100).round() * 100;
-      price = double.parse((cart["distance"] ?? 0.0).toString()).round();
+      price = double.parse((cart["delivery"] ?? 0.0).toString()).round();
+      taxes = double.parse((cart["taxes"] ?? 0.0).toString()).round();
       isCartLoading = false;
       itemsAmount;
     });
@@ -315,7 +317,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                         // itemsAmount: itemsAmount,
                                         user: widget.user,
                                         deliveryInfo: Map.from(
-                                          {"distance": distance, "price": price},
+                                          {"distance": distance, "price": price, "taxes": taxes},
                                         ),
                                       );
                                     },

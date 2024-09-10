@@ -64,6 +64,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
   late Animation<Offset> _deliveryChooseAnim;
   PaymentType paymentType = PaymentType.card;
   String paymentDescText = "";
+  Map _deliveryInfo = {};
 
   // Future<void> _getCart() async {
   //   // List cart = await getCart();
@@ -227,21 +228,21 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
     switch (paymentType) {
       case PaymentType.kaspi:
         if (delivery) {
-          paymentDescText = "${globals.formatCost((widget.finalSum + widget.deliveryInfo["price"]).toString())} ₸   ${widget.user["login"]} ";
+          paymentDescText = "${globals.formatCost((widget.finalSum + _deliveryInfo["price"]).toString())} ₸   ${widget.user["login"]} ";
         } else {
           paymentDescText = "${globals.formatCost((widget.finalSum).toString())} ₸   ${widget.user["login"]} ";
         }
         break;
       case PaymentType.card:
         if (delivery) {
-          paymentDescText = "${globals.formatCost((widget.finalSum + widget.deliveryInfo["price"]).toString())} ₸";
+          paymentDescText = "${globals.formatCost((widget.finalSum + _deliveryInfo["price"]).toString())} ₸";
         } else {
           paymentDescText = "${globals.formatCost((widget.finalSum).toString())} ₸";
         }
         break;
       case PaymentType.cash:
         if (delivery) {
-          paymentDescText = "${globals.formatCost((widget.finalSum + widget.deliveryInfo["price"]).toString())} ₸";
+          paymentDescText = "${globals.formatCost((widget.finalSum + _deliveryInfo["price"]).toString())} ₸";
         } else {
           paymentDescText = "${globals.formatCost((widget.finalSum).toString())} ₸";
         }
@@ -252,18 +253,18 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
   // ! TODO: SHOULD BE USED TO RECALCULATE PRICE OF DELIVERY ON FLY, WHEN CHANGING DELIVERY ADDRESS.
   // ! Or get price from backend
   // void calculatePriceOfDistance() {
-  //   double dist = widget.deliveryInfo["distance"] / 1000;
+  //   double dist = _deliveryInfo["distance"] / 1000;
   //   dist = (dist * 2).round() / 2;
   //   if (dist <= 1.5) {
-  //     widget.deliveryInfo['price'] = 700;
+  //     _deliveryInfo['price'] = 700;
   //   } else {
   //     if (dist < 5) {
   //       setState(() {
-  //         widget.deliveryInfo['price'] = ((dist - 1.5) * 300 + 700).toInt();
+  //         _deliveryInfo['price'] = ((dist - 1.5) * 300 + 700).toInt();
   //       });
   //     } else {
   //       setState(() {
-  //         widget.deliveryInfo['price'] = ((dist - 1.5) * 250 + 700).toInt();
+  //         _deliveryInfo['price'] = ((dist - 1.5) * 250 + 700).toInt();
   //       });
   //     }
   //   }
@@ -283,6 +284,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
   @override
   void initState() {
     super.initState();
+    _deliveryInfo = widget.deliveryInfo;
     _controller = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: 300),
@@ -339,8 +341,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                               business: widget.business,
                               user: widget.user,
                               finalSum: delivery
-                                  ? int.parse(((widget.finalSum - 0) + widget.deliveryInfo["price"]).toString())
-                                  : int.parse(((widget.finalSum - 0)).toString()),
+                                  ? double.parse(((widget.finalSum - 0) + _deliveryInfo["price"] + _deliveryInfo["taxes"]).toString()).round()
+                                  : double.parse(((widget.finalSum - 0)).toString()).round(),
                               paymentType:
                                   paymentType == PaymentType.kaspi ? "${paymentType.description}: ${widget.user["login"]}" : paymentType.description,
                             ),
@@ -706,7 +708,41 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                           ),
                                         ).then((value) {
                                           // _getCartDeliveryPrice();
-                                          _getClientAddresses();
+                                          setState(() {
+                                            isCartLoading = true;
+                                          });
+                                          Timer(
+                                            Duration(seconds: 5),
+                                            () {
+                                              if (isCartLoading) {
+                                                isCartLoading = false;
+                                              }
+                                            },
+                                          );
+                                          // Check if name hasn't changed, only for visual consistence
+                                          String beforeCallAddress = currentAddress["address"];
+                                          _getClientAddresses().whenComplete(
+                                            () {
+                                              // Call again if previous address was the same
+                                              if (currentAddress["address"] == beforeCallAddress) {
+                                                _getClientAddresses();
+                                              }
+                                              getCart(widget.business["business_id"]).then(
+                                                (value) {
+                                                  if (value.isNotEmpty) {
+                                                    setState(() {
+                                                      _deliveryInfo["price"] = value["delivery"];
+                                                      _deliveryInfo["taxes"] = value["taxes"];
+                                                    });
+                                                    // _deliveryInfo[""] = value[""]
+                                                  }
+                                                },
+                                              );
+                                              setState(() {
+                                                isCartLoading = false;
+                                              });
+                                            },
+                                          );
                                           print(_getAddresses());
                                         });
                                       },
@@ -830,7 +866,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                       //               flex: 7,
                       //               fit: FlexFit.tight,
                       //               child: Text(
-                      //                 delivery ? "${globals.formatCost((widget.deliveryInfo["price"]).toString())} ₸" : "Без доставки",
+                      //                 delivery ? "${globals.formatCost((_deliveryInfo["price"]).toString())} ₸" : "Без доставки",
                       //                 style: TextStyle(
                       //                   fontSize: 32 * globals.scaleParam,
                       //                   fontWeight: FontWeight.w500,
@@ -1042,7 +1078,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                             Flexible(
                               fit: FlexFit.tight,
                               child: Text(
-                                delivery ? "${globals.formatCost(widget.deliveryInfo["price"].toString())} ₸" : "0 ₸",
+                                delivery ? "${globals.formatCost(_deliveryInfo["price"].toString())} ₸" : "0 ₸",
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w600,
@@ -1060,7 +1096,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                             Flexible(
                               fit: FlexFit.tight,
                               child: Text(
-                                "Бонусы",
+                                "Тариф за сервис",
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w600,
@@ -1071,7 +1107,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                             Flexible(
                               fit: FlexFit.tight,
                               child: Text(
-                                "0 ₸",
+                                delivery ? "${globals.formatCost(_deliveryInfo["taxes"].toString())} ₸" : "0 ₸",
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w600,
@@ -1082,6 +1118,35 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                           ],
                         ),
                       ),
+                      // Flexible(
+                      //   fit: FlexFit.tight,
+                      //   child: Row(
+                      //     children: [
+                      //       Flexible(
+                      //         fit: FlexFit.tight,
+                      //         child: Text(
+                      //           "Бонусы",
+                      //           style: TextStyle(
+                      //             fontSize: 32 * globals.scaleParam,
+                      //             fontWeight: FontWeight.w600,
+                      //             color: Theme.of(context).colorScheme.primary,
+                      //           ),
+                      //         ),
+                      //       ),
+                      //       Flexible(
+                      //         fit: FlexFit.tight,
+                      //         child: Text(
+                      //           "0 ₸",
+                      //           style: TextStyle(
+                      //             fontSize: 32 * globals.scaleParam,
+                      //             fontWeight: FontWeight.w600,
+                      //             color: Theme.of(context).colorScheme.primary,
+                      //           ),
+                      //         ),
+                      //       ),
+                      //     ],
+                      //   ),
+                      // ),
                       Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: 10 * globals.scaleParam,
@@ -1110,7 +1175,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                               child: Text(
                                 //! TODO: Add bonuses instead of hardcoded zero!
                                 delivery
-                                    ? "${globals.formatCost(((widget.finalSum - 0) + widget.deliveryInfo["price"]).toString())} ₸"
+                                    ? "${globals.formatCost(((widget.finalSum - 0) + _deliveryInfo["price"] + _deliveryInfo["taxes"]).toString())} ₸"
                                     : "${globals.formatCost(((widget.finalSum - 0)).toString())} ₸",
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,

@@ -117,7 +117,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                               textAlign: TextAlign.start,
                                               style: TextStyle(
                                                 color: Colors.white,
-                                                fontSize: 40 * globals.scaleParam,
+                                                fontSize: 36 * globals.scaleParam,
                                                 fontWeight: FontWeight.w900,
                                               ),
                                             ),
@@ -129,7 +129,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                               textAlign: TextAlign.start,
                                               style: TextStyle(
                                                 color: Colors.white,
-                                                fontSize: 40 * globals.scaleParam,
+                                                fontSize: 36 * globals.scaleParam,
                                                 fontWeight: FontWeight.w900,
                                                 height: 1.1,
                                               ),
@@ -151,13 +151,25 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                                     snapshot.data![index]["a_name"].toString(),
                                                     textAlign: TextAlign.start,
                                                     style: TextStyle(
+                                                      overflow: TextOverflow.ellipsis,
                                                       color: Colors.white,
-                                                      fontSize: 40 * globals.scaleParam,
+                                                      fontSize: 36 * globals.scaleParam,
                                                       fontWeight: FontWeight.w900,
                                                     ),
                                                   ),
                                                 )
-                                              : SizedBox(),
+                                              : Flexible(
+                                                  child: Text(
+                                                    "Самовывоз",
+                                                    textAlign: TextAlign.start,
+                                                    style: TextStyle(
+                                                      overflow: TextOverflow.ellipsis,
+                                                      color: Colors.white,
+                                                      fontSize: 36 * globals.scaleParam,
+                                                      fontWeight: FontWeight.w900,
+                                                    ),
+                                                  ),
+                                                ),
                                           snapshot.data![index]["a_address"] != null
                                               ? Flexible(
                                                   fit: FlexFit.tight,
@@ -165,8 +177,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                                     snapshot.data![index]["a_address"].toString(),
                                                     textAlign: TextAlign.start,
                                                     style: TextStyle(
+                                                      overflow: TextOverflow.ellipsis,
                                                       color: Colors.white,
-                                                      fontSize: 40 * globals.scaleParam,
+                                                      fontSize: 36 * globals.scaleParam,
                                                       fontWeight: FontWeight.w900,
                                                       height: 1.1,
                                                     ),
