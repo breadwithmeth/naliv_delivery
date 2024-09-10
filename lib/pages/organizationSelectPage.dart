@@ -1293,8 +1293,7 @@ class BusinessItemState extends State<BusinessItem> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 10 * globals.scaleParam),
+                      padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade50,
                       ),
@@ -1349,9 +1348,7 @@ class BusinessItemState extends State<BusinessItem> {
                                     fit: FlexFit.tight,
                                     child: Text(
                                       widget.business["address"],
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 30 * globals.scaleParam),
+                                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 30 * globals.scaleParam),
                                     ),
                                   )
                                 ],
@@ -1366,9 +1363,7 @@ class BusinessItemState extends State<BusinessItem> {
                                   Flexible(
                                     child: Text(
                                       "Короткое описание",
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 30 * globals.scaleParam),
+                                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 30 * globals.scaleParam),
                                     ),
                                   ),
                                 ],

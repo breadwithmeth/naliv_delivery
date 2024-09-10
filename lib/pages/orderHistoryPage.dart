@@ -82,6 +82,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                           builder: (context) {
                             return OrderInfoPage(
                               orderId: snapshot.data![index]["order_id"].toString(),
+                              clientDeliveryInfo: {"a_name": snapshot.data![index]["a_name"], "a_address": snapshot.data![index]["a_address"]},
                             );
                           },
                         ));
@@ -91,13 +92,57 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                         child: Column(
                           children: [
                             Container(
-                              height: 100 * globals.scaleParam,
-                              padding: EdgeInsets.symmetric(horizontal: 25 * globals.scaleParam),
+                              height: 95 * globals.scaleParam,
                               decoration: BoxDecoration(
-                                color: Colors.black,
                                 borderRadius: BorderRadius.only(
                                   topLeft: Radius.circular(15),
                                   topRight: Radius.circular(15),
+                                ),
+                                color: Colors.black,
+                              ),
+                              child: LayoutBuilder(builder: (context, constraints) {
+                                return Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam, vertical: 10 * globals.scaleParam),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Flexible(
+                                        fit: FlexFit.tight,
+                                        child: Text(
+                                          "№ ${(index + 1).toString()}",
+                                          textAlign: TextAlign.start,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 36 * globals.scaleParam,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ),
+                                      Flexible(
+                                        fit: FlexFit.tight,
+                                        child: Text(
+                                          snapshot.data![index]["log_timestamp"].toString(),
+                                          textAlign: TextAlign.start,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 36 * globals.scaleParam,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                            ),
+                            Container(
+                              height: 120 * globals.scaleParam,
+                              padding: EdgeInsets.symmetric(horizontal: 25 * globals.scaleParam),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.only(
+                                  bottomLeft: Radius.circular(15),
+                                  bottomRight: Radius.circular(15),
                                 ),
                               ),
                               child: LayoutBuilder(builder: (context, constraints) {
@@ -116,7 +161,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                               snapshot.data![index]["b_name"].toString(),
                                               textAlign: TextAlign.start,
                                               style: TextStyle(
-                                                color: Colors.white,
+                                                color: Colors.black,
                                                 fontSize: 36 * globals.scaleParam,
                                                 fontWeight: FontWeight.w900,
                                               ),
@@ -128,7 +173,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                               snapshot.data![index]["b_address"].toString(),
                                               textAlign: TextAlign.start,
                                               style: TextStyle(
-                                                color: Colors.white,
+                                                color: Colors.black,
                                                 fontSize: 36 * globals.scaleParam,
                                                 fontWeight: FontWeight.w900,
                                                 height: 1.1,
@@ -152,7 +197,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                                     textAlign: TextAlign.start,
                                                     style: TextStyle(
                                                       overflow: TextOverflow.ellipsis,
-                                                      color: Colors.white,
+                                                      color: Colors.black,
                                                       fontSize: 36 * globals.scaleParam,
                                                       fontWeight: FontWeight.w900,
                                                     ),
@@ -164,7 +209,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                                     textAlign: TextAlign.start,
                                                     style: TextStyle(
                                                       overflow: TextOverflow.ellipsis,
-                                                      color: Colors.white,
+                                                      color: Colors.black,
                                                       fontSize: 36 * globals.scaleParam,
                                                       fontWeight: FontWeight.w900,
                                                     ),
@@ -178,7 +223,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                                     textAlign: TextAlign.start,
                                                     style: TextStyle(
                                                       overflow: TextOverflow.ellipsis,
-                                                      color: Colors.white,
+                                                      color: Colors.black,
                                                       fontSize: 36 * globals.scaleParam,
                                                       fontWeight: FontWeight.w900,
                                                       height: 1.1,
@@ -190,35 +235,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                       ),
                                     ),
                                   ],
-                                );
-                              }),
-                            ),
-                            Container(
-                              height: 200 * globals.scaleParam,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.all(Radius.circular(15)),
-                                color: Colors.white,
-                              ),
-                              child: LayoutBuilder(builder: (context, constraints) {
-                                return Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam, vertical: 10 * globals.scaleParam),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      // Flexible(
-                                      //   fit: FlexFit.tight,
-                                      //   child: Text(
-                                      //     "ID: ${snapshot.data![index]["order_id"].toString()}",
-                                      //     textAlign: TextAlign.center,
-                                      //     style: TextStyle(
-                                      //       color: Theme.of(context).colorScheme.onSurface,
-                                      //       fontSize: 32 * globals.scaleParam,
-                                      //       fontWeight: FontWeight.w500,
-                                      //     ),
-                                      //   ),
-                                      // ),
-                                    ],
-                                  ),
                                 );
                               }),
                             ),
