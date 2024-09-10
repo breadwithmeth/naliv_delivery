@@ -287,7 +287,6 @@ class _ProductPageState extends State<ProductPage> {
 
   double _startPositionY = 0;
 
-  // TODO: Make long press add and remove without movement
   void _onLongPressStart(LongPressStartDetails details) {
     _startPositionY = details.globalPosition.dy;
     Vibration.vibrate(duration: 100);
@@ -457,7 +456,8 @@ class _ProductPageState extends State<ProductPage> {
             Container(
               // color: Colors.black,
               decoration: BoxDecoration(
-                  borderRadius: BorderRadius.all(Radius.circular(15 * globals.scaleParam)),
+                  borderRadius: BorderRadius.all(
+                      Radius.circular(15 * globals.scaleParam)),
                   gradient: const LinearGradient(
                     begin: Alignment.topRight,
                     end: Alignment.bottomLeft,
@@ -498,7 +498,8 @@ class _ProductPageState extends State<ProductPage> {
                     height: 125 * globals.scaleParam,
                     child: Row(
                       children: [
-                        MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height
+                        MediaQuery.sizeOf(context).width >
+                                MediaQuery.sizeOf(context).height
                             ? const Flexible(
                                 flex: 8,
                                 fit: FlexFit.tight,
@@ -563,7 +564,8 @@ class _ProductPageState extends State<ProductPage> {
                                       Radius.circular(30 * globals.scaleParam)),
                                 ),
                                 child: ClipRRect(
-                                  borderRadius: const BorderRadius.all(Radius.circular(8)),
+                                  borderRadius: const BorderRadius.all(
+                                      Radius.circular(8)),
                                   clipBehavior: Clip.antiAliasWithSaveLayer,
                                   child: GestureDetector(
                                     behavior: HitTestBehavior.opaque,
@@ -585,7 +587,8 @@ class _ProductPageState extends State<ProductPage> {
                                             },
                                             icon: Container(
                                               decoration: BoxDecoration(
-                                                borderRadius: const BorderRadius.all(
+                                                borderRadius:
+                                                    const BorderRadius.all(
                                                   Radius.circular(100),
                                                 ),
                                                 color: Colors.grey.shade400,
@@ -710,7 +713,8 @@ class _ProductPageState extends State<ProductPage> {
                                               padding: EdgeInsets.all(
                                                   5 * globals.scaleParam),
                                               decoration: BoxDecoration(
-                                                borderRadius: const BorderRadius.all(
+                                                borderRadius:
+                                                    const BorderRadius.all(
                                                   Radius.circular(100),
                                                 ),
                                                 color: Colors.grey.shade400,
@@ -815,7 +819,8 @@ class _ProductPageState extends State<ProductPage> {
               color: Colors.grey.shade50,
 
               // color: Colors.amber,
-              borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30))),
+              borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(30), topRight: Radius.circular(30))),
           child: ListView(
             controller: scrollController,
             children: [
@@ -825,9 +830,16 @@ class _ProductPageState extends State<ProductPage> {
                 ),
                 clipBehavior: Clip.none,
                 decoration: BoxDecoration(
-                    boxShadow: [BoxShadow(offset: const Offset(0, 2), blurRadius: 10, color: Colors.blueGrey.shade50)],
+                    boxShadow: [
+                      BoxShadow(
+                          offset: const Offset(0, 2),
+                          blurRadius: 10,
+                          color: Colors.blueGrey.shade50)
+                    ],
                     color: Colors.white,
-                    borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30))),
+                    borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(30),
+                        bottomRight: Radius.circular(30))),
                 padding: EdgeInsets.all(20 * globals.scaleParam),
                 child: Column(
                   children: [
@@ -915,9 +927,7 @@ class _ProductPageState extends State<ProductPage> {
                         builder: (context, constraints) {
                           return Container(
                               width: constraints.maxWidth,
-                              height: MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height
-                                  ? constraints.maxWidth * 0.35
-                                  : constraints.maxWidth,
+                              height: constraints.maxWidth,
                               // margin: EdgeInsets.all(10),
                               decoration: const BoxDecoration(
                                 borderRadius: BorderRadius.all(
@@ -929,7 +939,7 @@ class _ProductPageState extends State<ProductPage> {
                                 children: [
                                   ExtendedImage.network(
                                     item["img"],
-                                    fit: BoxFit.contain,
+                                    fit: BoxFit.cover,
                                     width: double.infinity,
                                     // mode: ExtendedImageMode.gesture,
                                     // initGestureConfigHandler: (state) {
@@ -942,11 +952,9 @@ class _ProductPageState extends State<ProductPage> {
                                     // },
                                   ),
                                 ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
+                              ));
+                        },
+                      )),
                     ),
                     item.isNotEmpty
                         ? Container(
@@ -1116,12 +1124,16 @@ class _ProductPageState extends State<ProductPage> {
                                           children: [
                                             Flexible(
                                                 child: Theme(
-                                              data: ThemeData(canvasColor: Colors.transparent),
+                                              data: ThemeData(
+                                                  canvasColor:
+                                                      Colors.transparent),
                                               child: ChoiceChip(
                                                   showCheckmark: true,
                                                   // side: BorderSide.none,
                                                   shape: const StadiumBorder(
-                                                    side: BorderSide(color: Colors.grey, width: 1),
+                                                    side: BorderSide(
+                                                        color: Colors.grey,
+                                                        width: 1),
                                                   ),
                                                   // avatar: const Icon(
                                                   //     Icons.circle_outlined),
@@ -1131,11 +1143,14 @@ class _ProductPageState extends State<ProductPage> {
                                                   // selectedColor: Colors
                                                   //     .amberAccent.shade200,
 
-                                                  disabledColor: Colors.transparent,
-                                                  backgroundColor: Colors.grey.shade100,
+                                                  disabledColor:
+                                                      Colors.transparent,
+                                                  backgroundColor:
+                                                      Colors.grey.shade100,
                                                   checkmarkColor: Colors.black,
                                                   selectedColor: Colors.white,
-                                                  surfaceTintColor: Colors.white,
+                                                  surfaceTintColor:
+                                                      Colors.white,
                                                   shadowColor: Colors.white,
                                                   color: WidgetStateColor
                                                       .transparent,
