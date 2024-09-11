@@ -138,7 +138,16 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
           //! LOCATE AND CALCULATE PARENT_ITEM_AMOUNT FIRST!!!!!!
           for (Map selectedOption in item["selected_options"]) {
             if (selectedOption["parent_item_amount"] != 1 || item["selected_options"].last == selectedOption) {
-              localSum += double.parse((item["price"] * selectedOption["parent_item_amount"] * item["amount_b"]).toString()).round();
+              localSum += double.parse((item["price"] *
+                          selectedOption["parent_item_amount"] *
+                          (item["amount_b"] -
+                              (item["promotions"] != null
+                                  ? double.parse((item["amount_b"] / (item["promotions"][0]["add_amount"] + item["promotions"][0]["base_amount"]))
+                                          .toString())
+                                      .truncate()
+                                  : 0)))
+                      .toString())
+                  .round();
               break;
             }
           }
@@ -148,7 +157,15 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
           }
           itemsAmount += double.parse(item["amount_b"].toString());
         } else {
-          localSum += double.parse((item["price"] * item["amount"]).toString()).round();
+          localSum += double.parse((item["price"] *
+                      (item["amount"] -
+                          (item["promotions"] != null
+                              ? double.parse(
+                                      (item["amount"] / (item["promotions"][0]["add_amount"] + item["promotions"][0]["base_amount"])).toString())
+                                  .truncate()
+                              : 0)))
+                  .toString())
+              .round();
           itemsAmount += double.parse(item["amount"].toString());
         }
       }

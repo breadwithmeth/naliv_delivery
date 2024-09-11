@@ -1357,13 +1357,37 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                 Flexible(
                   flex: 10,
                   fit: FlexFit.tight,
-                  child: Text(
-                    "Сумма: ${globals.formatCost(((element['price'] * element["amount"]) + (element["selected_options"] != null ? ((element["selected_options"][0]["price"] * element["amount"]) / element["selected_options"][0]["parent_item_amount"]) : 0)).toString())} ₸",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 32 * globals.scaleParam,
-                    ),
+                  child: Row(
+                    children: [
+                      Flexible(
+                        flex: 2,
+                        child: Text(
+                          "Сумма: ${globals.formatCost(((element['price'] * (element["amount"] - (element["promotions"] != null ? double.parse((element["amount"] / (element["promotions"][0]["add_amount"] + element["promotions"][0]["base_amount"])).toString()).truncate() : 0))) + (element["selected_options"] != null ? ((element["selected_options"][0]["price"] * element["amount"]) / element["selected_options"][0]["parent_item_amount"]) : 0)).toString())} ₸",
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 32 * globals.scaleParam,
+                          ),
+                        ),
+                      ),
+                      element["promotions"] != null
+                          ? Flexible(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8 * globals.scaleParam),
+                                child: Text(
+                                  "${globals.formatCost(((element['price'] * element["amount"]) + (element["selected_options"] != null ? ((element["selected_options"][0]["price"] * element["amount"]) / element["selected_options"][0]["parent_item_amount"]) : 0)).toString())} ₸",
+                                  style: TextStyle(
+                                    decoration: TextDecoration.lineThrough,
+                                    decorationColor: Colors.grey,
+                                    color: Colors.grey,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 28 * globals.scaleParam,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : SizedBox(),
+                    ],
                   ),
                 ),
                 Flexible(
