@@ -17,8 +17,6 @@ class BottomBar extends StatefulWidget {
 
 class _BottomBarState extends State<BottomBar>
     with SingleTickerProviderStateMixin {
-class _BottomBarState extends State<BottomBar>
-    with SingleTickerProviderStateMixin {
   bool get _isOnDesktopAndWeb {
     if (kIsWeb) {
       return true;
@@ -157,9 +155,6 @@ class _BottomBarState extends State<BottomBar>
                                       _dsController.animateTo(1,
                                           duration: Duration(microseconds: 10),
                                           curve: Curves.bounceIn);
-                                      _dsController.animateTo(1,
-                                          duration: Duration(microseconds: 10),
-                                          curve: Curves.bounceIn);
                                     },
                                     child: Container(
                                       color: Colors.transparent,
@@ -177,8 +172,6 @@ class _BottomBarState extends State<BottomBar>
                                                   top: 45 * globals.scaleParam,
                                                   bottom:
                                                       45 * globals.scaleParam,
-                                                  bottom:
-                                                      45 * globals.scaleParam,
                                                   left: 60 * globals.scaleParam,
                                                   right:
                                                       60 * globals.scaleParam),
@@ -194,8 +187,10 @@ class _BottomBarState extends State<BottomBar>
                                                     orders.length),
                                                 // orders.length.toString(),
                                                 style: TextStyle(
+                                                    fontFamily:
+                                                        "MontserratAlternates",
                                                     color: Colors.white,
-                                                    fontWeight: FontWeight.w900,
+                                                    fontWeight: FontWeight.w700,
                                                     fontSize: 36 *
                                                         globals.scaleParam),
                                               ),
@@ -230,7 +225,6 @@ class _BottomBarState extends State<BottomBar>
                         SliverToBoxAdapter(
                             child: Container(
                                 height: MediaQuery.of(context).size.height,
-                                width: MediaQuery.of(context).size.width,
                                 color: Colors.black,
                                 padding: EdgeInsets.only(
                                     top: MediaQueryData.fromView(
@@ -265,6 +259,11 @@ class _BottomBarState extends State<BottomBar>
                                                   formatActiveOrderString(
                                                       orders.length),
                                                   style: TextStyle(
+                                                      fontFamily: "Raleway",
+                                                      fontVariations: <FontVariation>[
+                                                        FontVariation(
+                                                            'wght', 600)
+                                                      ],
                                                       color: Colors.black,
                                                       fontWeight:
                                                           FontWeight.w900,
@@ -339,11 +338,8 @@ class _OrderListTileState extends State<OrderListTile> {
         padding: EdgeInsets.all(5 * globals.scaleParam),
         child: Text("Заказ ожидает оплаты",
             style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                fontSize: 36 * globals.scaleParam)),
-        child: Text("Заказ ожидает оплаты",
-            style: TextStyle(
+                fontFamily: "Raleway",
+                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
                 fontSize: 36 * globals.scaleParam)),
@@ -354,11 +350,8 @@ class _OrderListTileState extends State<OrderListTile> {
         padding: EdgeInsets.all(5 * globals.scaleParam),
         child: Text("Заказ отправлен в магазин",
             style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                fontSize: 36 * globals.scaleParam)),
-        child: Text("Заказ отправлен в магазин",
-            style: TextStyle(
+                fontFamily: "Raleway",
+                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
                 fontSize: 36 * globals.scaleParam)),
@@ -369,11 +362,8 @@ class _OrderListTileState extends State<OrderListTile> {
         padding: EdgeInsets.all(5 * globals.scaleParam),
         child: Text("Ожидает сборки",
             style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                fontSize: 36 * globals.scaleParam)),
-        child: Text("Ожидает сборки",
-            style: TextStyle(
+                fontFamily: "Raleway",
+                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
                 fontSize: 36 * globals.scaleParam)),
@@ -384,11 +374,8 @@ class _OrderListTileState extends State<OrderListTile> {
         padding: EdgeInsets.all(5 * globals.scaleParam),
         child: Text("Заказ собран",
             style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                fontSize: 36 * globals.scaleParam)),
-        child: Text("Заказ собран",
-            style: TextStyle(
+                fontFamily: "Raleway",
+                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
                 fontSize: 36 * globals.scaleParam)),
@@ -399,11 +386,8 @@ class _OrderListTileState extends State<OrderListTile> {
         padding: EdgeInsets.all(5 * globals.scaleParam),
         child: Text("Заказ забрал курьер",
             style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                fontSize: 36 * globals.scaleParam)),
-        child: Text("Заказ забрал курьер",
-            style: TextStyle(
+                fontFamily: "Raleway",
+                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
                 fontSize: 36 * globals.scaleParam)),
@@ -416,8 +400,6 @@ class _OrderListTileState extends State<OrderListTile> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: Colors.grey, width: 0.5))),
       decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: Colors.grey, width: 0.5))),
       child: ExpansionTile(
@@ -443,8 +425,6 @@ class _OrderListTileState extends State<OrderListTile> {
                   onPressed: () {
                     getPaymentPageForUnpaidOrder(widget.order["order_id"])
                         .then((v) {
-                    getPaymentPageForUnpaidOrder(widget.order["order_id"])
-                        .then((v) {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -458,14 +438,16 @@ class _OrderListTileState extends State<OrderListTile> {
                   child: Container(
                     padding: EdgeInsets.all(5),
                     decoration: BoxDecoration(
-                        color: Colors.black,
-                        borderRadius: BorderRadius.all(Radius.circular(5))),
-                    decoration: BoxDecoration(
-                        color: Colors.black,
+                        color: Colors.white,
                         borderRadius: BorderRadius.all(Radius.circular(5))),
                     child: Text(
                       "Оплатить",
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(
+                          fontFamily: "Raleway",
+                          fontVariations: <FontVariation>[
+                            FontVariation('wght', 900)
+                          ],
+                          color: Colors.redAccent),
                     ),
                   ))
               : null,
@@ -487,9 +469,26 @@ class _OrderListTileState extends State<OrderListTile> {
                           children: [
                             Flexible(
                               flex: 2,
-                              child: Text(orderItems[index]["name"]),
+                              child: Text(
+                                orderItems[index]["name"],
+                                style: TextStyle(
+                                  fontFamily: "Raleway",
+                                  fontVariations: <FontVariation>[
+                                    FontVariation('wght', 600)
+                                  ],
+                                ),
+                              ),
                             ),
-                            Flexible(child: Text(orderItems[index]["amount"]))
+                            Flexible(
+                                child: Text(
+                              orderItems[index]["amount"],
+                              style: TextStyle(
+                                fontFamily: "Raleway",
+                                fontVariations: <FontVariation>[
+                                  FontVariation('wght', 600)
+                                ],
+                              ),
+                            ))
                           ],
                         ),
                       );
@@ -498,9 +497,15 @@ class _OrderListTileState extends State<OrderListTile> {
             Row(
               children: [
                 Flexible(
-                    child: Text(double.parse(orderDetails["sum"] ?? "99999999")
-                            .toStringAsFixed(2) ??
-                        ""))
+                    child: Text(
+                  double.parse(orderDetails["sum"] ?? "99999999")
+                          .toStringAsFixed(2) ??
+                      "",
+                  style: TextStyle(
+                    fontFamily: "Raleway",
+                    fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                  ),
+                ))
               ],
             )
           ]),

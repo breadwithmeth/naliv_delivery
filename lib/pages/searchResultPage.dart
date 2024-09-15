@@ -28,7 +28,7 @@ class _SearchResultPageState extends State<SearchResultPage> {
   final int _numberOfPostsPerRequest = 30;
   late List<Item> _items;
   final int _nextPageTrigger = 3;
-  List? responseList = [];
+  Map? responseList = {};
 
   Future<void> _getItems() async {
     try {
@@ -40,7 +40,8 @@ class _SearchResultPageState extends State<SearchResultPage> {
             widget.business["business_id"], widget.search, widget.category_id);
       }
       if (responseList != null) {
-        List<Item> itemList = responseList!.map((data) => Item(data)).toList();
+        List<Item> itemList =
+            responseList!["items"].map((data) => Item(data)).toList();
 
         setState(() {
           _isLastPage = itemList.length < _numberOfPostsPerRequest;

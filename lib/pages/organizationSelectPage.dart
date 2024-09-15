@@ -562,11 +562,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                         child: Text(
                           "НАЛИВ/ГРАДУСЫ24",
                           // "закажи",
-                          style: GoogleFonts.sofiaSans(
-                            textStyle: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 72 * globals.scaleParam),
-                          ),
+                          style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 72 * globals.scaleParam),
                         ),
                       ),
                       // Icon(
@@ -752,6 +750,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                             "address"]
                                                         : "Нет адреса",
                                                     TextStyle(
+                                                      fontFamily:
+                                                          "MontserratAlternates",
                                                       fontSize: 32 *
                                                           globals.scaleParam,
                                                       fontWeight:
@@ -800,6 +800,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                                   TextAlign
                                                                       .start,
                                                               style: TextStyle(
+                                                                fontFamily:
+                                                                    "MontserratAlternates",
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .w700,
@@ -832,6 +834,13 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                                       "address"]
                                                                   : "Нет адреса",
                                                               style: TextStyle(
+                                                                fontFamily:
+                                                                    "Raleway",
+                                                                fontVariations: <FontVariation>[
+                                                                  FontVariation(
+                                                                      'wght',
+                                                                      600)
+                                                                ],
                                                                 fontSize: 32 *
                                                                     globals
                                                                         .scaleParam,
@@ -984,6 +993,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                                   TextAlign
                                                                       .start,
                                                               style: TextStyle(
+                                                                fontFamily:
+                                                                    "MontserratAlternates",
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .w700,
@@ -1016,6 +1027,13 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                                       "address"]
                                                                   : "Нет адреса",
                                                               style: TextStyle(
+                                                                fontFamily:
+                                                                    "Raleway",
+                                                                fontVariations: <FontVariation>[
+                                                                  FontVariation(
+                                                                      'wght',
+                                                                      600)
+                                                                ],
                                                                 fontSize: 32 *
                                                                     globals
                                                                         .scaleParam,
@@ -1078,11 +1096,11 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                               fit: FlexFit.tight,
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  padding:
-                                      EdgeInsets.all(5 * globals.scaleParam),
-                                  elevation: 0,
-                                  backgroundColor: Colors.transparent,
-                                ),
+                                    padding:
+                                        EdgeInsets.all(5 * globals.scaleParam),
+                                    elevation: 0,
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent),
                                 onPressed: () {
                                   _key.currentState!.openEndDrawer();
                                 },
@@ -1103,6 +1121,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                             widget.user["name"] ?? "",
                                             textAlign: TextAlign.right,
                                             style: TextStyle(
+                                              fontFamily: "Raleway",
+                                              fontVariations: <FontVariation>[
+                                                FontVariation('wght', 600)
+                                              ],
                                               fontSize: 30 * globals.scaleParam,
                                               color: Colors.black,
                                               fontWeight: FontWeight.w600,
@@ -1139,8 +1161,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                       child: Text(
                         "Бар-Маркеты",
                         style: TextStyle(
+                            fontFamily: "MontserratAlternates",
                             fontSize: 48 * globals.scaleParam,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w700,
                             color: Colors.black),
                       ),
                     ),
@@ -1217,6 +1240,7 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
               child: Text(
                 widget.name,
                 style: TextStyle(
+                  fontFamily: "MontserratAlternates",
                   fontWeight: FontWeight.w700,
                   fontSize: 36 * globals.scaleParam,
                 ),
@@ -1293,7 +1317,8 @@ class BusinessItemState extends State<BusinessItem> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 10 * globals.scaleParam),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade50,
                       ),
@@ -1332,9 +1357,10 @@ class BusinessItemState extends State<BusinessItem> {
                                     child: Text(
                                       widget.business["name"],
                                       style: TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 38 * globals.scaleParam,
-                                      ),
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 38 * globals.scaleParam,
+                                          fontFamily: "MontserratAlternates"
+                                          ),
                                     ),
                                   ),
                                 ],
@@ -1348,7 +1374,13 @@ class BusinessItemState extends State<BusinessItem> {
                                     fit: FlexFit.tight,
                                     child: Text(
                                       widget.business["address"],
-                                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 30 * globals.scaleParam),
+                                      style: TextStyle(
+                                          fontFamily: "Raleway",
+                                          fontVariations: <FontVariation>[
+                                            FontVariation('wght', 600)
+                                          ],
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 30 * globals.scaleParam),
                                     ),
                                   )
                                 ],
@@ -1363,7 +1395,13 @@ class BusinessItemState extends State<BusinessItem> {
                                   Flexible(
                                     child: Text(
                                       "Короткое описание",
-                                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 30 * globals.scaleParam),
+                                      style: TextStyle(
+                                          fontFamily: "Raleway",
+                                          fontVariations: <FontVariation>[
+                                            FontVariation('wght', 600)
+                                          ],
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 30 * globals.scaleParam),
                                     ),
                                   ),
                                 ],

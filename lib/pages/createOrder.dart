@@ -47,7 +47,8 @@ class CreateOrderPage extends StatefulWidget {
   State<CreateOrderPage> createState() => _CreateOrderPageState();
 }
 
-class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProviderStateMixin {
+class _CreateOrderPageState extends State<CreateOrderPage>
+    with SingleTickerProviderStateMixin {
   bool delivery = true;
   String cartInfo = "";
   // Widget? currentAddressWidget;
@@ -102,7 +103,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
         child: ElevatedButton(
             style: ElevatedButton.styleFrom(
                 side: BorderSide(color: Colors.grey.shade200),
-                backgroundColor: element["is_selected"] == "1" ? Colors.grey.shade200 : Colors.white,
+                backgroundColor: element["is_selected"] == "1"
+                    ? Colors.grey.shade200
+                    : Colors.white,
                 padding: EdgeInsets.symmetric(vertical: 20, horizontal: 5)),
             onPressed: () {
               selectAddress(element["address_id"]);
@@ -172,7 +175,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
         child: ElevatedButton(
             style: ElevatedButton.styleFrom(
                 side: BorderSide(color: Colors.grey.shade200),
-                backgroundColor: element["is_selected"] == "1" ? Colors.grey.shade200 : Colors.white,
+                backgroundColor: element["is_selected"] == "1"
+                    ? Colors.grey.shade200
+                    : Colors.white,
                 padding: EdgeInsets.symmetric(vertical: 20, horizontal: 5)),
             onPressed: () {
               selectAddress(element["address_id"]);
@@ -228,23 +233,29 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
     switch (paymentType) {
       case PaymentType.kaspi:
         if (delivery) {
-          paymentDescText = "${globals.formatCost((widget.finalSum + _deliveryInfo["price"]).toString())} ₸   ${widget.user["login"]} ";
+          paymentDescText =
+              "${globals.formatCost((widget.finalSum + _deliveryInfo["price"]).toString())} ₸   ${widget.user["login"]} ";
         } else {
-          paymentDescText = "${globals.formatCost((widget.finalSum).toString())} ₸   ${widget.user["login"]} ";
+          paymentDescText =
+              "${globals.formatCost((widget.finalSum).toString())} ₸   ${widget.user["login"]} ";
         }
         break;
       case PaymentType.card:
         if (delivery) {
-          paymentDescText = "${globals.formatCost((widget.finalSum + _deliveryInfo["price"]).toString())} ₸";
+          paymentDescText =
+              "${globals.formatCost((widget.finalSum + _deliveryInfo["price"]).toString())} ₸";
         } else {
-          paymentDescText = "${globals.formatCost((widget.finalSum).toString())} ₸";
+          paymentDescText =
+              "${globals.formatCost((widget.finalSum).toString())} ₸";
         }
         break;
       case PaymentType.cash:
         if (delivery) {
-          paymentDescText = "${globals.formatCost((widget.finalSum + _deliveryInfo["price"]).toString())} ₸";
+          paymentDescText =
+              "${globals.formatCost((widget.finalSum + _deliveryInfo["price"]).toString())} ₸";
         } else {
-          paymentDescText = "${globals.formatCost((widget.finalSum).toString())} ₸";
+          paymentDescText =
+              "${globals.formatCost((widget.finalSum).toString())} ₸";
         }
         break;
     }
@@ -341,10 +352,17 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                               business: widget.business,
                               user: widget.user,
                               finalSum: delivery
-                                  ? double.parse(((widget.finalSum - 0) + _deliveryInfo["price"] + _deliveryInfo["taxes"]).toString()).round()
-                                  : double.parse(((widget.finalSum - 0)).toString()).round(),
-                              paymentType:
-                                  paymentType == PaymentType.kaspi ? "${paymentType.description}: ${widget.user["login"]}" : paymentType.description,
+                                  ? double.parse(((widget.finalSum - 0) +
+                                              _deliveryInfo["price"] +
+                                              _deliveryInfo["taxes"])
+                                          .toString())
+                                      .round()
+                                  : double.parse(
+                                          ((widget.finalSum - 0)).toString())
+                                      .round(),
+                              paymentType: paymentType == PaymentType.kaspi
+                                  ? "${paymentType.description}: ${widget.user["login"]}"
+                                  : paymentType.description,
                             ),
                           ),
                         );
@@ -406,68 +424,61 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
       //     ],
       //   ),
       // ),
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        titleSpacing: 0,
-        title: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.max,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Flexible(
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      icon: Icon(Icons.arrow_back_rounded),
-                    ),
-                  ),
-                  Flexible(
-                    flex: 7,
-                    fit: FlexFit.tight,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                "Заказ",
-                                style: TextStyle(fontSize: 40 * globals.scaleParam),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                "${widget.business["name"]} ${widget.business["address"]}",
-                                maxLines: 1,
-                                style: TextStyle(fontSize: 32 * globals.scaleParam),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  )
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+
       body: LayoutBuilder(
         builder: (context, constraints) {
           return ListView(
             children: [
+              Padding(
+                  padding: EdgeInsets.only(
+                      left: 1 * globals.scaleParam,
+                      top: 15 * globals.scaleParam),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        icon: Icon(Icons.arrow_back_rounded),
+                      ),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Заказ",
+                                style: TextStyle(
+                                    fontFamily: "MontserratAlternates",
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 64 * globals.scaleParam),
+                              )
+                            ],
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Text(
+                                "${widget.business["name"]} ${widget.business["address"]}",
+                                style: TextStyle(
+                                    fontFamily: "Raleway",
+                                    fontVariations: <FontVariation>[
+                                      FontVariation('wght', 600)
+                                    ],
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 30 * globals.scaleParam),
+                              )
+                            ],
+                          ),
+                        ],
+                      )
+                    ],
+                  )),
               Container(
                 padding: EdgeInsets.only(top: 15 * globals.scaleParam),
                 alignment: Alignment.topCenter,
@@ -515,7 +526,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                     child: Container(
                                       alignment: Alignment.center,
                                       height: double.infinity,
-                                      padding: EdgeInsets.all(15 * globals.scaleParam),
+                                      padding: EdgeInsets.all(
+                                          15 * globals.scaleParam),
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.all(
                                           Radius.circular(10),
@@ -587,13 +599,15 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                     position: _deliveryChooseAnim,
                                     child: GestureDetector(
                                       onPanUpdate: (details) {
-                                        if (details.delta.dx > 0 && !_controller.isAnimating) {
+                                        if (details.delta.dx > 0 &&
+                                            !_controller.isAnimating) {
                                           // print("Dragging in +X direction");
                                           _controller.forward();
                                           setState(() {
                                             delivery = false;
                                           });
-                                        } else if (details.delta.dx < 0 && !_controller.isAnimating) {
+                                        } else if (details.delta.dx < 0 &&
+                                            !_controller.isAnimating) {
                                           // print("Dragging in -X direction");
                                           _controller.reverse();
                                           setState(() {
@@ -613,7 +627,8 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Color.fromARGB(255, 94, 94, 94),
+                                              color: Color.fromARGB(
+                                                  255, 94, 94, 94),
                                               blurRadius: 10,
                                               spreadRadius: -6,
                                             ),
@@ -621,19 +636,24 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                           color: Colors.black,
                                         ),
                                         child: AnimatedSwitcher(
-                                            duration: Duration(milliseconds: 300),
-                                            transitionBuilder: (child, animation) {
+                                            duration:
+                                                Duration(milliseconds: 300),
+                                            transitionBuilder:
+                                                (child, animation) {
                                               return FadeTransition(
                                                 opacity: animation,
                                                 child: child,
                                               );
                                             },
                                             child: Text(
-                                              delivery ? "Доставка" : "Самовывоз",
+                                              delivery
+                                                  ? "Доставка"
+                                                  : "Самовывоз",
                                               key: ValueKey<bool>(delivery),
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
-                                                fontSize: 38 * globals.scaleParam,
+                                                fontSize:
+                                                    38 * globals.scaleParam,
                                                 fontWeight: FontWeight.w600,
                                                 // shadows: [
                                                 //   Shadow(
@@ -641,7 +661,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                                 //     blurRadius: 5,
                                                 //   ),
                                                 // ],
-                                                color: Theme.of(context).colorScheme.onPrimary,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onPrimary,
                                               ),
                                             )),
                                       ),
@@ -679,7 +701,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                       style: TextStyle(
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w600,
-                                        color: Theme.of(context).colorScheme.primary,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
                                       ),
                                     ),
                                   ),
@@ -720,19 +744,25 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                             },
                                           );
                                           // Check if name hasn't changed, only for visual consistence
-                                          String beforeCallAddress = currentAddress["address"];
+                                          String beforeCallAddress =
+                                              currentAddress["address"];
                                           _getClientAddresses().whenComplete(
                                             () {
                                               // Call again if previous address was the same
-                                              if (currentAddress["address"] == beforeCallAddress) {
+                                              if (currentAddress["address"] ==
+                                                  beforeCallAddress) {
                                                 _getClientAddresses();
                                               }
-                                              getCart(widget.business["business_id"]).then(
+                                              getCart(widget
+                                                      .business["business_id"])
+                                                  .then(
                                                 (value) {
                                                   if (value.isNotEmpty) {
                                                     setState(() {
-                                                      _deliveryInfo["price"] = value["delivery"];
-                                                      _deliveryInfo["taxes"] = value["taxes"];
+                                                      _deliveryInfo["price"] =
+                                                          value["delivery"];
+                                                      _deliveryInfo["taxes"] =
+                                                          value["taxes"];
                                                     });
                                                     // _deliveryInfo[""] = value[""]
                                                   }
@@ -747,17 +777,22 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                         });
                                       },
                                       child: Row(
-                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
                                         children: [
                                           Flexible(
                                             flex: 7,
                                             fit: FlexFit.tight,
                                             child: Text(
-                                              currentAddress["address"] ?? "Загружаю...",
+                                              currentAddress["address"] ??
+                                                  "Загружаю...",
                                               style: TextStyle(
-                                                fontSize: 32 * globals.scaleParam,
+                                                fontSize:
+                                                    32 * globals.scaleParam,
                                                 fontWeight: FontWeight.w600,
-                                                color: Theme.of(context).colorScheme.primary,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary,
                                               ),
                                             ),
                                           ),
@@ -784,7 +819,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                       style: TextStyle(
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w600,
-                                        color: Theme.of(context).colorScheme.primary,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
                                       ),
                                     ),
                                   ),
@@ -818,17 +855,22 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                         // });
                                       },
                                       child: Row(
-                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
                                         children: [
                                           Flexible(
                                             flex: 7,
                                             fit: FlexFit.tight,
                                             child: Text(
-                                              widget.business["address"] ?? "Загружаю...",
+                                              widget.business["address"] ??
+                                                  "Загружаю...",
                                               style: TextStyle(
-                                                fontSize: 32 * globals.scaleParam,
+                                                fontSize:
+                                                    32 * globals.scaleParam,
                                                 fontWeight: FontWeight.w600,
-                                                color: Theme.of(context).colorScheme.primary,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary,
                                               ),
                                             ),
                                           ),
@@ -947,7 +989,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                         style: TextStyle(
                                           fontSize: 32 * globals.scaleParam,
                                           fontWeight: FontWeight.w600,
-                                          color: Theme.of(context).colorScheme.primary,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
                                         ),
                                       ),
                                     ),
@@ -990,7 +1034,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                       style: TextStyle(
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w500,
-                                        color: Theme.of(context).colorScheme.primary,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
                                       ),
                                     ),
                                   ),
@@ -1078,7 +1124,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                             Flexible(
                               fit: FlexFit.tight,
                               child: Text(
-                                delivery ? "${globals.formatCost(_deliveryInfo["price"].toString())} ₸" : "0 ₸",
+                                delivery
+                                    ? "${globals.formatCost(_deliveryInfo["price"].toString())} ₸"
+                                    : "0 ₸",
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w600,
@@ -1107,7 +1155,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                             Flexible(
                               fit: FlexFit.tight,
                               child: Text(
-                                delivery ? "${globals.formatCost(_deliveryInfo["taxes"].toString())} ₸" : "0 ₸",
+                                delivery
+                                    ? "${globals.formatCost(_deliveryInfo["taxes"].toString())} ₸"
+                                    : "0 ₸",
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w600,
@@ -1197,8 +1247,10 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                 child: Container(
                   width: constraints.maxWidth * 0.955,
                   // height: 130 * globals.scaleParam,
-                  margin: EdgeInsets.symmetric(vertical: 20 * globals.scaleParam),
-                  padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
+                  margin:
+                      EdgeInsets.symmetric(vertical: 20 * globals.scaleParam),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.all(Radius.circular(15)),
                     // color: Color.fromARGB(255, 245, 245, 245),

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
@@ -17,7 +18,8 @@ class CartPage extends StatefulWidget {
   State<CartPage> createState() => _CartPageState();
 }
 
-class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin {
+class _CartPageState extends State<CartPage>
+    with SingleTickerProviderStateMixin {
   late List items = [];
   double itemsAmount = 0;
   late Map<String, dynamic> cartInfo = {};
@@ -137,12 +139,17 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
         if (item["selected_options"] != null) {
           //! LOCATE AND CALCULATE PARENT_ITEM_AMOUNT FIRST!!!!!!
           for (Map selectedOption in item["selected_options"]) {
-            if (selectedOption["parent_item_amount"] != 1 || item["selected_options"].last == selectedOption) {
+            if (selectedOption["parent_item_amount"] != 1 ||
+                item["selected_options"].last == selectedOption) {
               localSum += double.parse((item["price"] *
                           selectedOption["parent_item_amount"] *
                           (item["amount_b"] -
                               (item["promotions"] != null
-                                  ? double.parse((item["amount_b"] / (item["promotions"][0]["add_amount"] + item["promotions"][0]["base_amount"]))
+                                  ? double.parse((item["amount_b"] /
+                                              (item["promotions"][0]
+                                                      ["add_amount"] +
+                                                  item["promotions"][0]
+                                                      ["base_amount"]))
                                           .toString())
                                       .truncate()
                                   : 0)))
@@ -153,15 +160,20 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
           }
           //! ONLY THEN CALCULATE ADDITIONAL COST OF THE BOTTLES AND ETC. WITHOUT PARENT_ITEM_AMOUNT
           for (Map selectedOption in item["selected_options"]) {
-            localSum += double.parse(((selectedOption["price"] * item["amount_b"])).toString()).round();
+            localSum += double.parse(
+                    ((selectedOption["price"] * item["amount_b"])).toString())
+                .round();
           }
           itemsAmount += double.parse(item["amount_b"].toString());
         } else {
           localSum += double.parse((item["price"] *
                       (item["amount"] -
                           (item["promotions"] != null
-                              ? double.parse(
-                                      (item["amount"] / (item["promotions"][0]["add_amount"] + item["promotions"][0]["base_amount"])).toString())
+                              ? double.parse((item["amount"] /
+                                          (item["promotions"][0]["add_amount"] +
+                                              item["promotions"][0]
+                                                  ["base_amount"]))
+                                      .toString())
                                   .truncate()
                               : 0)))
                   .toString())
@@ -182,9 +194,10 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
 
   Future<void> _getRecommendedSectionsItems() async {
     try {
-      List? responseList = await getItemsMain(0, widget.business["business_id"], "", "20");
+      Map? responseList =
+          await getItemsMain(0, widget.business["business_id"], "", "20");
       if (responseList != null) {
-        List<dynamic> itemList = responseList;
+        List<dynamic> itemList = responseList["items"];
         // List<dynamic> itemList = responseList.map((data) => Item(data)).toList();
 
         if (mounted) {
@@ -246,71 +259,77 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
       },
       child: Scaffold(
         backgroundColor: Colors.grey.shade100,
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          titleSpacing: 0,
-          title: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        onPressed: () {
-                          Navigator.pop(context, true);
-                        },
-                        icon: Icon(Icons.arrow_back_rounded),
-                      ),
-                    ),
-                    Flexible(
-                      flex: 7,
-                      fit: FlexFit.tight,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  "Корзина",
-                                  style: TextStyle(fontSize: 40 * globals.scaleParam),
-                                ),
-                              ),
-                            ],
-                          ),
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  "${widget.business["name"]} ${widget.business["address"]}",
-                                  maxLines: 1,
-                                  style: TextStyle(fontSize: 32 * globals.scaleParam),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    )
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
+        // appBar: AppBar(
+        //   automaticallyImplyLeading: false,
+        //   titleSpacing: 0,
+        //   title: Padding(
+        //     padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
+        //     child: Column(
+        //       mainAxisAlignment: MainAxisAlignment.start,
+        //       crossAxisAlignment: CrossAxisAlignment.center,
+        //       children: [
+        //         Row(
+        //           mainAxisSize: MainAxisSize.max,
+        //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        //           children: [
+        //             Flexible(
+        //               child: IconButton(
+        //                 padding: EdgeInsets.zero,
+        //                 onPressed: () {
+        //                   Navigator.pop(context, true);
+        //                 },
+        //                 icon: Icon(Icons.arrow_back_rounded),
+        //               ),
+        //             ),
+        //             Flexible(
+        //               flex: 7,
+        //               fit: FlexFit.tight,
+        //               child: Column(
+        //                 crossAxisAlignment: CrossAxisAlignment.center,
+        //                 mainAxisAlignment: MainAxisAlignment.center,
+        //                 children: [
+        //                   Row(
+        //                     mainAxisAlignment: MainAxisAlignment.center,
+        //                     children: [
+        //                       Flexible(
+        //                         child: Text(
+        //                           "Корзина",
+        //                           style: TextStyle(
+        //                               fontSize: 40 * globals.scaleParam),
+        //                         ),
+        //                       ),
+        //                     ],
+        //                   ),
+        //                   // Row(
+        //                   //   children: [
+        //                   //     Flexible(
+        //                   //       child: Text(
+        //                   //         "${widget.business["name"]} ${widget.business["address"]}",
+        //                   //         maxLines: 1,
+        //                   //         style: TextStyle(fontSize: 32 * globals.scaleParam),
+        //                   //       ),
+        //                   //     ),
+        //                   //   ],
+        //                   // ),
+        //                 ],
+        //               ),
+        //             ),
+        //             Spacer()
+        //           ],
+        //         ),
+        //       ],
+        //     ),
+        //   ),
+        // ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton: items.isNotEmpty || isCartLoading
             ? Padding(
-                padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
+                padding:
+                    EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
                 child: Row(
                   children: [
-                    MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height
+                    MediaQuery.sizeOf(context).width >
+                            MediaQuery.sizeOf(context).height
                         ? Flexible(
                             flex: 2,
                             fit: FlexFit.tight,
@@ -334,7 +353,11 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                         // itemsAmount: itemsAmount,
                                         user: widget.user,
                                         deliveryInfo: Map.from(
-                                          {"distance": distance, "price": price, "taxes": taxes},
+                                          {
+                                            "distance": distance,
+                                            "price": price,
+                                            "taxes": taxes
+                                          },
                                         ),
                                       );
                                     },
@@ -354,7 +377,8 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                 style: TextStyle(
                                   fontWeight: FontWeight.w900,
                                   fontSize: 42 * globals.scaleParam,
-                                  color: Theme.of(context).colorScheme.onPrimary,
+                                  color:
+                                      Theme.of(context).colorScheme.onPrimary,
                                 ),
                               ),
                             ),
@@ -366,7 +390,8 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                 style: TextStyle(
                                   fontWeight: FontWeight.w900,
                                   fontSize: 44 * globals.scaleParam,
-                                  color: Theme.of(context).colorScheme.onPrimary,
+                                  color:
+                                      Theme.of(context).colorScheme.onPrimary,
                                 ),
                               ),
                             ),
@@ -378,10 +403,12 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                 ),
               )
             : Padding(
-                padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
+                padding:
+                    EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
                 child: Row(
                   children: [
-                    MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height
+                    MediaQuery.sizeOf(context).width >
+                            MediaQuery.sizeOf(context).height
                         ? Flexible(
                             flex: 2,
                             fit: FlexFit.tight,
@@ -406,7 +433,8 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                 style: TextStyle(
                                   fontWeight: FontWeight.w900,
                                   fontSize: 42 * globals.scaleParam,
-                                  color: Theme.of(context).colorScheme.onPrimary,
+                                  color:
+                                      Theme.of(context).colorScheme.onPrimary,
                                 ),
                               ),
                             ),
@@ -417,6 +445,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                   ],
                 ),
               ),
+
         body: isCartLoading == false
             ? items.isEmpty
                 ? Center(
@@ -431,6 +460,52 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                   )
                 : ListView(
                     children: [
+                      Padding(
+                          padding: EdgeInsets.only(
+                              left: 1 * globals.scaleParam,
+                              top: 15 * globals.scaleParam),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              IconButton(
+                                padding: EdgeInsets.zero,
+                                onPressed: () {
+                                  Navigator.pop(context, true);
+                                },
+                                icon: Icon(Icons.arrow_back_rounded),
+                              ),
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    children: [
+                                      Text("Ваша корзина",
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .displayLarge)
+                                    ],
+                                  ),
+                                  Row( 
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "${widget.business["name"]} ${widget.business["address"]}",
+                                        style: TextStyle(
+                                            fontFamily: "Raleway",
+                                            fontVariations: <FontVariation>[
+                                              FontVariation('wght', 600)
+                                            ],
+                                            fontSize: 30 * globals.scaleParam),
+                                      )
+                                    ],
+                                  ),
+                                ],
+                              )
+                            ],
+                          )),
                       ListView.builder(
                         primary: false,
                         shrinkWrap: true,
@@ -447,7 +522,8 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                   setState(() {
                                     dismissingItem = true;
                                   });
-                                  bool result = await _deleteFromCart(items[index]["item_id"].toString());
+                                  bool result = await _deleteFromCart(
+                                      items[index]["item_id"].toString());
 
                                   if (result) {
                                     updatePrices(index);
@@ -459,7 +535,8 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                   return result;
                                 },
                                 onDismissed: ((direction) {
-                                  print(MediaQuery.of(context).size.height * ((4 - items.length) / 10));
+                                  print(MediaQuery.of(context).size.height *
+                                      ((4 - items.length) / 10));
                                 }),
                                 // Provide a function that tells the app
                                 // what to do after an item has been swiped away.
@@ -469,23 +546,34 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                   width: 200 * globals.scaleParam,
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.end,
-                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Container(
-                                        width: MediaQuery.of(context).size.width * 0.7,
+                                        width:
+                                            MediaQuery.of(context).size.width *
+                                                0.7,
                                         alignment: Alignment.center,
                                         padding: EdgeInsets.only(right: 10),
-                                        color: Color.fromARGB(255, 228, 209, 209),
+                                        color:
+                                            Color.fromARGB(255, 228, 209, 209),
                                       ),
                                       Container(
-                                        width: MediaQuery.of(context).size.width * 0.3,
+                                        width:
+                                            MediaQuery.of(context).size.width *
+                                                0.3,
                                         alignment: Alignment.center,
                                         padding: EdgeInsets.only(right: 10),
-                                        color: Color.fromARGB(255, 228, 209, 209),
+                                        color:
+                                            Color.fromARGB(255, 228, 209, 209),
                                         child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [Icon(Icons.delete), Text("Удалить")],
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.delete),
+                                            Text("Удалить")
+                                          ],
                                         ),
                                       )
                                     ],
@@ -519,7 +607,10 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                         children: [
                           SizedBox(
                             width: MediaQuery.of(context).size.width,
-                            height: items.length < 4 ? (165 * globals.scaleParam) * (4 - items.length) : 0,
+                            height: items.length < 4
+                                ? (165 * globals.scaleParam) *
+                                    (4 - items.length)
+                                : 0,
                           ),
                           Divider(
                             color: Colors.transparent,

@@ -123,12 +123,17 @@ class _HomePageState extends State<HomePage>
                                       widget.business["name"],
                                       maxLines: 1,
                                       style: TextStyle(
-                                          fontSize: 40 * globals.scaleParam),
+                                          fontSize: 40 * globals.scaleParam,
+                                          fontFamily: "MontserratAlternates"),
                                     ),
                                     Text(
                                       widget.business["address"],
                                       maxLines: 1,
                                       style: TextStyle(
+                                          fontFamily: "Raleway",
+                                          fontVariations: <FontVariation>[
+                                            FontVariation('wght', 600)
+                                          ],
                                           fontSize: 32 * globals.scaleParam),
                                     ),
                                   ],
@@ -175,6 +180,10 @@ class _HomePageState extends State<HomePage>
                                             fontWeight: FontWeight.w500,
                                             fontSize: 30 * globals.scaleParam,
                                             color: Colors.black,
+                                            fontFamily: "Raleway",
+                                            fontVariations: <FontVariation>[
+                                              FontVariation('wght', 600)
+                                            ],
                                           ),
                                         ),
                                         Container(

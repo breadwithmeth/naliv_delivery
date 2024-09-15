@@ -117,6 +117,10 @@ class _ParentCategoryPageState extends State<ParentCategoryPage>
             widget.categories[i]["name"],
             textAlign: TextAlign.center,
             overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: "Raleway",
+              fontVariations: <FontVariation>[FontVariation('wght', 700)],
+            ),
           ),
         ),
         "category_id": widget.categories[i]["category_id"]
@@ -131,7 +135,7 @@ class _ParentCategoryPageState extends State<ParentCategoryPage>
       vsync: this,
       length: widget.categories.length,
       initialIndex: widget.categories.indexWhere(
-        (element) => element["category_id"] == widget.categoryId,
+        (element) => element["category_id"].toString() == widget.categoryId,
       ),
     );
     getCategoriesWidgetList(widget.size.width);
@@ -248,12 +252,20 @@ class _ParentCategoryPageState extends State<ParentCategoryPage>
                         Text(
                           widget.business["name"],
                           maxLines: 1,
-                          style: TextStyle(fontSize: 40 * globals.scaleParam),
+                          style: TextStyle(
+                              fontSize: 40 * globals.scaleParam,
+                              fontFamily: "MontserratAlternates"),
                         ),
                         Text(
                           widget.business["address"],
                           maxLines: 1,
-                          style: TextStyle(fontSize: 32 * globals.scaleParam),
+                          style: TextStyle(
+                            fontSize: 32 * globals.scaleParam,
+                            fontFamily: "Raleway",
+                            fontVariations: <FontVariation>[
+                              FontVariation('wght', 600)
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -325,9 +337,10 @@ class _ParentCategoryPageState extends State<ParentCategoryPage>
         children: [
           for (int j = 0; j < widget.categories.length; j++)
             CategoryPageList(
-              categoryId: categoriesWidgetList[j]["category_id"],
+              categoryId: categoriesWidgetList[j]["category_id"].toString(),
               business: widget.business,
               index: j,
+              user: widget.user,
             )
         ],
       ),
@@ -364,11 +377,13 @@ class CategoryPageList extends StatefulWidget {
     required this.categoryId,
     required this.business,
     required this.index,
+    required this.user,
   });
 
   final String categoryId;
   final Map<dynamic, dynamic> business;
   final int index;
+  final Map user;
 
   @override
   State<CategoryPageList> createState() => _CategoryPageListState();
@@ -383,20 +398,22 @@ class _CategoryPageListState extends State<CategoryPageList>
   final int _numberOfPostsPerRequest = 30;
   late List<Map<String, dynamic>> _items;
   final int _nextPageTrigger = 3;
-
+  List children_categories = [];
   void updateDataAmount(List newCart, int index) {
     _items[index]["cart"] = newCart;
   }
 
   Future<void> _getItems() async {
     try {
-      List? responseList = await getItemsMain(
+      Map? responseList = await getItemsMain(
           _pageNumber, widget.business["business_id"], "", widget.categoryId);
       if (responseList != null) {
-        List<dynamic> itemList = responseList;
+        List<dynamic> itemList = responseList["items"];
         // List<dynamic> itemList = responseList.map((data) => Item(data)).toList();
 
         setState(() {
+          children_categories = responseList["c_children"] ?? [];
+
           _isLastPage = itemList.length < _numberOfPostsPerRequest;
           _loading = false;
           _pageNumber = _pageNumber + 1;
@@ -502,6 +519,95 @@ class _CategoryPageListState extends State<CategoryPageList>
             ),
             CustomScrollView(
               slivers: [
+                children_categories.isNotEmpty
+                    ? SliverAppBar(
+                        shadowColor: Colors.transparent,
+                        backgroundColor: Colors.transparent,
+                        surfaceTintColor: Colors.transparent,
+                        floating: true,
+                        toolbarHeight: globals.scaleParam * 130,
+                        automaticallyImplyLeading: false,
+                        titleSpacing: 0,
+                        // actions: [
+                        //   IconButton(onPressed: () {}, icon: Icon(Icons.sort))
+                        // ],
+                        title: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return Container(
+                              decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.only(
+                                      bottomLeft: Radius.circular(
+                                          30 * globals.scaleParam),
+                                      bottomRight: Radius.circular(
+                                          30 * globals.scaleParam))),
+                              alignment: Alignment.bottomLeft,
+                              height: globals.scaleParam * 130,
+                              padding: EdgeInsets.symmetric(
+                                  vertical: 15 * globals.scaleParam),
+                              width: constraints.maxWidth,
+                              child: ListView.builder(
+                                primary: false,
+                                shrinkWrap: true,
+                                itemCount: children_categories.length,
+                                scrollDirection: Axis.horizontal,
+                                itemBuilder: (context, index) {
+                                  return GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => CategoryPage(
+                                            categoryId:
+                                                children_categories[index]
+                                                        ["category_id"]
+                                                    .toString(),
+                                            categoryName:
+                                                children_categories[index]
+                                                    ["name"],
+                                            categories: children_categories,
+                                            business: widget.business,
+                                            user: widget.user,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: Container(
+                                      height: globals.scaleParam * 20,
+                                      decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          boxShadow: [
+                                            BoxShadow(
+                                                color: Colors.grey.shade200,
+                                                blurRadius: 3)
+                                          ],
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(
+                                                  45 * globals.scaleParam))),
+                                      alignment: Alignment.center,
+                                      padding: EdgeInsets.symmetric(
+                                          vertical: 5 * globals.scaleParam,
+                                          horizontal: 25 * globals.scaleParam),
+                                      margin: EdgeInsets.all(
+                                          10 * globals.scaleParam),
+                                      child: Text(
+                                        children_categories[index]["name"],
+                                        style: TextStyle(
+                                          fontFamily: "Raleway",
+                                          fontVariations: <FontVariation>[
+                                            FontVariation('wght', 600)
+                                          ],
+                                          fontSize: globals.scaleParam * 30,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        ))
+                    : SliverToBoxAdapter(),
                 _items.length > 1
                     ? SliverList.builder(
                         addAutomaticKeepAlives: false,

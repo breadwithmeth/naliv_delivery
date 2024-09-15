@@ -5,6 +5,8 @@
     "html.format.wrapLineLength": 160,
     "git.mergeEditor": true,
     "java.configuration.updateBuildConfiguration": "interactive",
-    "dart.previewLsp": true,
+    "dart.useLsp ": true,
+    "dart.useLegacyAnalyzerProtocol": true
+
 
 }
