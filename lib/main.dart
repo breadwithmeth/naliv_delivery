@@ -120,6 +120,8 @@ class _MainState extends State<Main> {
         const Locale('en'),
       ],
       theme: ThemeData(
+        fontFamily: "Raleway",
+        typography: Typography.material2021(),
         bottomSheetTheme:
             BottomSheetThemeData(backgroundColor: Colors.transparent),
         colorScheme: ColorScheme.fromSeed(

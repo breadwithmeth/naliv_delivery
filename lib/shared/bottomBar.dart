@@ -126,7 +126,7 @@ class _BottomBarState extends State<BottomBar>
             : Container(
                 clipBehavior: Clip.antiAliasWithSaveLayer,
                 decoration: BoxDecoration(
-                  color: isExpanded ? Colors.black : Colors.transparent,
+                  color: isExpanded ? Colors.transparent : Colors.transparent,
                 ),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -225,7 +225,7 @@ class _BottomBarState extends State<BottomBar>
                         SliverToBoxAdapter(
                             child: Container(
                                 height: MediaQuery.of(context).size.height,
-                                color: Colors.black,
+                                color: Colors.transparent,
                                 padding: EdgeInsets.only(
                                     top: MediaQueryData.fromView(
                                             View.of(context))
@@ -234,64 +234,70 @@ class _BottomBarState extends State<BottomBar>
                                     bottom: 20),
                                 child: LayoutBuilder(
                                   builder: (context, constraints) {
-                                    return SingleChildScrollView(
-                                      child: Container(
-                                        height: constraints.maxHeight,
-                                        // margin:
-                                        //     EdgeInsets.only(top: 60 * globals.scaleParam),
-                                        padding: EdgeInsets.all(
-                                            45 * globals.scaleParam),
-                                        width: double.infinity,
-                                        // height: 1000,
-                                        decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius: BorderRadius.all(
-                                                Radius.circular(
-                                                    90 * globals.scaleParam))),
-                                        child: Column(
-                                          children: [
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Text(
-                                                  formatActiveOrderString(
-                                                      orders.length),
-                                                  style: TextStyle(
-                                                      fontFamily: "Raleway",
-                                                      fontVariations: <FontVariation>[
-                                                        FontVariation(
-                                                            'wght', 600)
-                                                      ],
-                                                      color: Colors.black,
-                                                      fontWeight:
-                                                          FontWeight.w900,
-                                                      fontSize: 48 *
-                                                          globals.scaleParam),
-                                                ),
-                                                IconButton(
-                                                    onPressed: () {
-                                                      _dsController.animateTo(
-                                                          _sheetPosition,
-                                                          duration:
-                                                              Durations.short1,
-                                                          curve:
-                                                              Curves.bounceOut);
-                                                    },
-                                                    icon: Icon(Icons.close))
-                                              ],
-                                            ),
-                                            ListView.builder(
-                                              primary: false,
-                                              shrinkWrap: true,
-                                              itemCount: orders.length,
-                                              itemBuilder: (context, index) {
-                                                return OrderListTile(
-                                                    order: orders[index]);
-                                              },
-                                            )
-                                          ],
+                                    return Container(
+                                      height: constraints.maxHeight,
+                                      child: SingleChildScrollView(
+                                        primary: false,
+                                        child: Container(
+                                          height: constraints.maxHeight,
+                                          // margin:
+                                          //     EdgeInsets.only(top: 60 * globals.scaleParam),
+                                          padding: EdgeInsets.all(
+                                              45 * globals.scaleParam),
+                                          width: double.infinity,
+                                          // height: 1000,
+                                          decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.all(
+                                                  Radius.circular(90 *
+                                                      globals.scaleParam))),
+                                          child: ListView(
+                                            primary: false,
+                                            shrinkWrap: true,
+                                            children: [
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    formatActiveOrderString(
+                                                        orders.length),
+                                                    style: TextStyle(
+                                                        fontFamily: "Raleway",
+                                                        fontVariations: <FontVariation>[
+                                                          FontVariation(
+                                                              'wght', 600)
+                                                        ],
+                                                        color: Colors.black,
+                                                        fontWeight:
+                                                            FontWeight.w900,
+                                                        fontSize: 48 *
+                                                            globals.scaleParam),
+                                                  ),
+                                                  IconButton(
+                                                      onPressed: () {
+                                                        _dsController.animateTo(
+                                                            _sheetPosition,
+                                                            duration: Durations
+                                                                .short1,
+                                                            curve: Curves
+                                                                .bounceOut);
+                                                      },
+                                                      icon: Icon(Icons.close))
+                                                ],
+                                              ),
+                                              ListView.builder(
+                                                primary: false,
+                                                shrinkWrap: true,
+                                                itemCount: orders.length,
+                                                itemBuilder: (context, index) {
+                                                  return OrderListTile(
+                                                      order: orders[index]);
+                                                },
+                                              )
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     );
