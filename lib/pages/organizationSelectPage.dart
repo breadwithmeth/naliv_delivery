@@ -563,6 +563,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                           "НАЛИВ/ГРАДУСЫ24",
                           // "закажи",
                           style: TextStyle(
+                              fontVariations: <FontVariation>[
+                                FontVariation('wght', 600)
+                              ],
                               fontWeight: FontWeight.w700,
                               fontSize: 72 * globals.scaleParam),
                         ),
@@ -1359,8 +1362,7 @@ class BusinessItemState extends State<BusinessItem> {
                                       style: TextStyle(
                                           fontWeight: FontWeight.w700,
                                           fontSize: 38 * globals.scaleParam,
-                                          fontFamily: "MontserratAlternates"
-                                          ),
+                                          fontFamily: "MontserratAlternates"),
                                     ),
                                   ),
                                 ],

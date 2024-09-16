@@ -62,3 +62,9 @@ String formatCost(String costString) {
   double cost = double.parse(costString);
   return NumberFormat("###,###", "en_US").format(cost);
 }
+
+String currentToken = "";
+
+setToken(String t) {
+  currentToken = t;
+}

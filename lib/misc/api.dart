@@ -5,6 +5,7 @@ import 'package:naliv_delivery/pages/permissionPage.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import '../globals.dart' as globals;
 
 //var URL_API = '10.8.0.3';
 
@@ -65,6 +66,7 @@ Future<String?> getToken() async {
   if (token == "000") {
     return null;
   }
+  globals.setToken(token!);
   print(token);
   return token;
 }
@@ -134,7 +136,9 @@ Future<bool> login(String login, String password) async {
 }
 
 Future<bool> setCityAuto(double lat, double lon) async {
-  String? token = await getToken();
+  //   String? token = globals.currentToken;
+
+  String? token = globals.currentToken;
   if (token == null) {
     return false;
   }
@@ -154,7 +158,8 @@ Future<bool> setCityAuto(double lat, double lon) async {
 }
 
 Future<Map<String, dynamic>?> getLastSelectedBusiness() async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return {};
   }
@@ -170,7 +175,8 @@ Future<Map<String, dynamic>?> getLastSelectedBusiness() async {
 }
 
 Future<List<Map>?> getBusinesses() async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return [];
   }
@@ -187,7 +193,8 @@ Future<List<Map>?> getBusinesses() async {
 }
 
 Future<bool> setCurrentStore(String businessId) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return false;
   }
@@ -208,7 +215,8 @@ Future<bool> setCurrentStore(String businessId) async {
 
 Future<List> getCategories(String business_id,
     [bool parent_category = false]) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return [];
   }
@@ -227,7 +235,8 @@ Future<List> getCategories(String business_id,
 
 Future<Map?> getItemsMain(int page, String business_id,
     [String? search, String? categoryId]) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return {};
   }
@@ -275,7 +284,8 @@ Future<Map?> getItemsMain(int page, String business_id,
 }
 
 Future<List> getItems(String categoryId, int page, {Map? filters}) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return [];
   }
@@ -298,7 +308,8 @@ Future<List> getItems(String categoryId, int page, {Map? filters}) async {
 }
 
 Future<Map> getFilters(String categoryId) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return {};
   }
@@ -316,7 +327,8 @@ Future<Map> getFilters(String categoryId) async {
 
 Future<Map<String, dynamic>> getItem(dynamic itemId, String business_id,
     {List? filter}) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return {};
   }
@@ -339,7 +351,8 @@ Future<Map<String, dynamic>> getItem(dynamic itemId, String business_id,
 
 Future<List?> changeCartItem(dynamic itemId, double amount, String businessId,
     {List options = const []}) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   print("ADD TO CARD");
   if (token == null) {
     return null;
@@ -404,7 +417,8 @@ Future<List?> changeCartItem(dynamic itemId, double amount, String businessId,
 }
 
 Future<String?> removeFromCart(String itemId) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return null;
   }
@@ -425,7 +439,8 @@ Future<String?> removeFromCart(String itemId) async {
 }
 
 Future<Map<String, dynamic>> getCart(String businessId) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return {};
   }
@@ -445,7 +460,8 @@ Future<Map<String, dynamic>> getCart(String businessId) async {
 }
 
 Future<Map<String, dynamic>?> getCartInfo() async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return {};
   }
@@ -462,7 +478,8 @@ Future<Map<String, dynamic>?> getCartInfo() async {
 }
 
 Future<String?> dislikeItem(String itemId) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return null;
   }
@@ -483,7 +500,8 @@ Future<String?> dislikeItem(String itemId) async {
 }
 
 Future<String?> likeItem(String itemId) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return null;
   }
@@ -504,7 +522,8 @@ Future<String?> likeItem(String itemId) async {
 }
 
 Future<List> getLiked() async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return [];
   }
@@ -522,7 +541,8 @@ Future<List> getLiked() async {
 }
 
 Future<Map<String, dynamic>?> getUser() async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return {};
   }
@@ -539,7 +559,8 @@ Future<Map<String, dynamic>?> getUser() async {
 }
 
 Future<List> getAddresses() async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return [];
   }
@@ -556,7 +577,8 @@ Future<List> getAddresses() async {
 }
 
 Future<List> createAddress(Map address) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return [];
   }
@@ -575,7 +597,8 @@ Future<List> createAddress(Map address) async {
 }
 
 Future<bool> selectAddress(String addressId) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return false;
   }
@@ -598,7 +621,8 @@ Future<bool> selectAddress(String addressId) async {
 }
 
 Future<Map<String, dynamic>?> getCity() async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return {};
   }
@@ -618,7 +642,8 @@ Future<Map<String, dynamic>> createOrder(
     String businessId, String? addressId, int? delivery,
     [String user_id = ""]) async {
   // Returns null in two situations, token is null or wrong order (406)
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return {"status": null};
   }
@@ -659,7 +684,8 @@ Future<Map<String, dynamic>> createOrder(
 }
 
 Future<List<dynamic>> getOrders([String orderId = ""]) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return [];
   }
@@ -693,7 +719,8 @@ Future<List<dynamic>> getOrders([String orderId = ""]) async {
 }
 
 Future<bool?> deleteFromCart(String itemId) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return null;
   }
@@ -717,7 +744,8 @@ Future<bool> logout() async {
 }
 
 Future<bool?> deleteAccount() async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return null;
   }
@@ -733,7 +761,8 @@ Future<bool?> deleteAccount() async {
 }
 
 Future<bool> getOneTimeCode(String phoneNumber) async {
-  // String? token = await getToken();
+  //   String? token = globals.currentToken;
+
   // if (token == null) {
   //   return false;
   // }
@@ -757,7 +786,8 @@ Future<bool> getOneTimeCode(String phoneNumber) async {
 }
 
 Future<bool> verify(String phoneNumber, String code) async {
-  // String? token = await getToken();
+  //   String? token = globals.currentToken;
+
   // if (token == null) {
   //   return false;
   // }
@@ -780,7 +810,8 @@ Future<bool> verify(String phoneNumber, String code) async {
 }
 
 Future<List> getGeoData(String search) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return [];
   }
@@ -807,7 +838,8 @@ Future<List> getGeoData(String search) async {
 }
 
 Future<List> getGeoDataByCoord(double lat, double lon) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return [];
   }
@@ -824,7 +856,8 @@ Future<List> getGeoDataByCoord(double lat, double lon) async {
 }
 
 Future<List?> getActiveOrders() async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return null;
   }
@@ -844,7 +877,8 @@ Future<List?> getActiveOrders() async {
 }
 
 Future<Map<String, dynamic>> getCreateUser(String phoneNumber) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return {};
   }
@@ -865,7 +899,8 @@ Future<Map<String, dynamic>> getCreateUser(String phoneNumber) async {
 }
 
 Future<List<dynamic>> getUserAddresses(String userID) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return [];
   }
@@ -886,7 +921,8 @@ Future<List<dynamic>> getUserAddresses(String userID) async {
 }
 
 Future<bool> selectAddressClient(String addressId, String user_id) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return false;
   }
@@ -909,7 +945,8 @@ Future<bool> selectAddressClient(String addressId, String user_id) async {
 }
 
 Future<List<dynamic>> getCities() async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return [];
   }
@@ -930,7 +967,8 @@ Future<List<dynamic>> getCities() async {
 }
 
 Future<bool> changeName(String name) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return false;
   }
@@ -950,7 +988,8 @@ Future<bool> changeName(String name) async {
 }
 
 Future<String> getPaymentHTML() async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return "";
   }
@@ -966,7 +1005,8 @@ Future<String> getPaymentHTML() async {
 }
 
 Future<Map> getBonuses() async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return {};
   }
@@ -987,7 +1027,8 @@ Future<Map> getBonuses() async {
 }
 
 Future<Map> getOrderDetails(String order_id) async {
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return {};
   }
@@ -1010,7 +1051,8 @@ Future<Map> getOrderDetails(String order_id) async {
 Future<Map<String, dynamic>> getPaymentPageForUnpaidOrder(
     String order_id) async {
   // Returns null in two situations, token is null or wrong order (406)
-  String? token = await getToken();
+    String? token = globals.currentToken;
+
   if (token == null) {
     return {"status": null};
   }
