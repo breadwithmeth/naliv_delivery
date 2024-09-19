@@ -116,10 +116,18 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     shape: const RoundedRectangleBorder(
                       borderRadius: BorderRadius.all(Radius.circular(10)),
                     ),
-                    title: const Row(
+                    title: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text("Остатки изменились"),
+                        Text(
+                          "Остатки изменились",
+                          style: TextStyle(
+                            fontFamily: "MontserratAlternates",
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 28 * globals.scaleParam,
+                          ),
+                        ),
                       ],
                     ),
                     titleTextStyle: TextStyle(
@@ -145,9 +153,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                         child: Text(
                                           wrongItems[index]["name"].toString(),
                                           style: TextStyle(
+                                            fontFamily: "MontserratAlternates",
+                                            color: Theme.of(context).colorScheme.onSecondary,
                                             fontWeight: FontWeight.w700,
                                             fontSize: 28 * globals.scaleParam,
-                                            color: Theme.of(context).colorScheme.onSecondary,
                                           ),
                                         ),
                                       ),
@@ -160,9 +169,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                         child: Text(
                                           "В корзине: ${wrongItems[index]['amount'].toString()}",
                                           style: TextStyle(
+                                            fontFamily: "MontserratAlternates",
+                                            color: Theme.of(context).colorScheme.secondary,
                                             fontWeight: FontWeight.w500,
                                             fontSize: 28 * globals.scaleParam,
-                                            color: Theme.of(context).colorScheme.secondary,
                                           ),
                                         ),
                                       ),
@@ -170,9 +180,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                         child: Text(
                                           "В наличии: ${double.parse(wrongItems[index]['in_stock'].toString()).toStringAsFixed(0)}",
                                           style: TextStyle(
+                                            fontFamily: "MontserratAlternates",
+                                            color: Theme.of(context).colorScheme.secondary,
                                             fontWeight: FontWeight.w500,
                                             fontSize: 28 * globals.scaleParam,
-                                            color: Theme.of(context).colorScheme.secondary,
                                           ),
                                         ),
                                       ),
@@ -201,8 +212,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                             Text(
                               "Применить изменения",
                               style: TextStyle(
-                                fontSize: 28 * globals.scaleParam,
+                                fontFamily: "MontserratAlternates",
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontWeight: FontWeight.w700,
+                                fontSize: 28 * globals.scaleParam,
                               ),
                             ),
                           ],
@@ -222,8 +235,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                             Text(
                               "Изменить самостоятельно",
                               style: TextStyle(
-                                fontSize: 28 * globals.scaleParam,
+                                fontFamily: "MontserratAlternates",
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontWeight: FontWeight.w700,
+                                fontSize: 28 * globals.scaleParam,
                               ),
                             ),
                           ],
@@ -236,16 +251,25 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     shape: const RoundedRectangleBorder(
                       borderRadius: BorderRadius.all(Radius.circular(10)),
                     ),
-                    title: const Row(
+                    title: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text("Произошла ошибка"),
+                        Text(
+                          "Произошла ошибка",
+                          style: TextStyle(
+                            fontFamily: "MontserratAlternates",
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 30 * globals.scaleParam,
+                          ),
+                        ),
                       ],
                     ),
                     titleTextStyle: TextStyle(
-                      fontSize: 32 * globals.scaleParam,
-                      fontWeight: FontWeight.w700,
+                      fontFamily: "MontserratAlternates",
                       color: Theme.of(context).colorScheme.onSecondary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 32 * globals.scaleParam,
                     ),
                     content: Padding(
                       padding: EdgeInsets.symmetric(vertical: 20 * globals.scaleParam),
@@ -260,9 +284,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                 "Повторите попытку позже, пожалуйста",
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  fontSize: 28 * globals.scaleParam,
+                                  fontFamily: "MontserratAlternates",
+                                  color: Theme.of(context).colorScheme.onSurface,
                                   fontWeight: FontWeight.w700,
-                                  color: Colors.black,
+                                  fontSize: 28 * globals.scaleParam,
                                 ),
                               ),
                             )
@@ -286,8 +311,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                             Text(
                               "Принять",
                               style: TextStyle(
+                                fontFamily: "MontserratAlternates",
+                                color: Theme.of(context).colorScheme.onSurface,
+                                fontWeight: FontWeight.w800,
                                 fontSize: 28 * globals.scaleParam,
-                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ],
@@ -353,9 +380,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         "Отменить",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 42 * globals.scaleParam,
+                          fontFamily: "MontserratAlternates",
                           color: Theme.of(context).colorScheme.onPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 42 * globals.scaleParam,
                         ),
                       ),
                     ),
@@ -387,10 +415,11 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         child: Text(
                           "Убедитесь в правильности заказа",
                           style: TextStyle(
-                            fontSize: 42 * globals.scaleParam,
+                            fontFamily: "MontserratAlternates",
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontWeight: FontWeight.w700,
                             height: 2,
-                            color: Theme.of(context).colorScheme.onSurface,
+                            fontSize: 42 * globals.scaleParam,
                           ),
                         ),
                       ),
@@ -468,9 +497,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                               child: Text(
                                 widget.delivery ? "Доставка по адресу: " : "Самовывоз из магазина: ",
                                 style: TextStyle(
-                                  fontSize: 32 * globals.scaleParam,
-                                  fontWeight: FontWeight.w700,
+                                  fontFamily: "MontserratAlternates",
                                   color: Theme.of(context).colorScheme.onSurface,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 32 * globals.scaleParam,
                                 ),
                               ),
                             ),
@@ -488,9 +518,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                 child: Text(
                                   widget.delivery ? widget.address!["address"] ?? "" : widget.business["address"],
                                   style: TextStyle(
-                                    fontSize: 32 * globals.scaleParam,
-                                    fontWeight: FontWeight.w700,
+                                    fontFamily: "MontserratAlternates",
                                     color: Theme.of(context).colorScheme.onSurface,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 32 * globals.scaleParam,
                                   ),
                                 ),
                               ),
@@ -527,9 +558,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                               child: Text(
                                 "Оплата ${widget.paymentType}:",
                                 style: TextStyle(
+                                  fontFamily: "MontserratAlternates",
+                                  color: Theme.of(context).colorScheme.onSurface,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 32 * globals.scaleParam,
-                                  color: Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
                             )
@@ -547,9 +579,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                 "Сумма к оплате: ${globals.formatCost(widget.finalSum.toString()).toString()} ₸",
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
+                                  fontFamily: "MontserratAlternates",
+                                  color: Theme.of(context).colorScheme.onSurface,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 32 * globals.scaleParam,
-                                  color: Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
                             ),
@@ -632,10 +665,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                 " * курьер выдаст заказ 21+ только при подтверждении возраста.",
                                 textAlign: TextAlign.left,
                                 style: TextStyle(
-                                  // fontFamily: "montserrat",
-                                  fontSize: 26 * globals.scaleParam,
-                                  fontWeight: FontWeight.w500,
+                                  fontFamily: "MontserratAlternates",
                                   color: Color.fromARGB(255, 190, 190, 190),
+                                  fontWeight: FontWeight.w300,
+                                  fontSize: 26 * globals.scaleParam,
                                 ),
                               ),
                             ),
@@ -648,10 +681,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                 " ** продолжая заказ вы подтверждаете, что ознакомлены с условиями возврата.",
                                 textAlign: TextAlign.left,
                                 style: TextStyle(
-                                  // fontFamily: "montserrat",
-                                  fontSize: 26 * globals.scaleParam,
-                                  fontWeight: FontWeight.w500,
+                                  fontFamily: "MontserratAlternates",
                                   color: Color.fromARGB(255, 190, 190, 190),
+                                  fontWeight: FontWeight.w300,
+                                  fontSize: 26 * globals.scaleParam,
                                 ),
                               ),
                             ),

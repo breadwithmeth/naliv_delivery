@@ -130,14 +130,13 @@ flutter:
     - assets/s/s1.jpg
     - assets/s/s2.jpg
     - assets/s/s3.jpg
-    - assets/vectors/wine.png
-    - assets/vectors/beer.png
     - assets/vectors/vodka.png
-    - assets/vectors/whiskey.png
-    - assets/vectors/shampane.png
-    - assets/vectors/brandy.png
-    - assets/vectors/drinks.png
-    - assets/vectors/snacks.png
+    - assets/vectors/fruit.png
+    - assets/vectors/cocktail.png
+    - assets/vectors/cigarette.png
+    - assets/vectors/mineral-water.png
+    - assets/vectors/chocolate.png
+    - assets/vectors/other.png
     - assets/naliv_logo.png
     - assets/s/mc.png
     - assets/s/visa.png

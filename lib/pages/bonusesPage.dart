@@ -208,9 +208,10 @@ class _BonusQRModalPageState extends State<BonusQRModalPage> {
                         "Обратно",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 42 * globals.scaleParam,
+                          fontFamily: "MontserratAlternates",
                           color: Theme.of(context).colorScheme.onPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 42 * globals.scaleParam,
                         ),
                       ),
                     ),
