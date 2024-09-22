@@ -75,9 +75,9 @@ class _BonusesPageState extends State<BonusesPage> {
                         "Использовать бонусы",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 42 * globals.scaleParam,
                           color: Theme.of(context).colorScheme.onPrimary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 42 * globals.scaleParam,
                         ),
                       ),
                     ),
@@ -89,7 +89,9 @@ class _BonusesPageState extends State<BonusesPage> {
         ),
       ),
       appBar: AppBar(
-        title: Text("Бонусы"),
+        title: Text(
+          "Бонусы",
+        ),
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
@@ -125,7 +127,7 @@ class _BonusesPageState extends State<BonusesPage> {
                             "${globals.formatCost(_bonus["amount"] ?? "0")} баллов", //! TODO: REMOVE HARDCODED BONUS POINTS VALUE!!!!!!!
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: Colors.black,
+                              color: Theme.of(context).colorScheme.onSurface,
                               fontWeight: FontWeight.w600,
                               fontSize: 52 * globals.scaleParam,
                               height: 1.8,
@@ -208,9 +210,9 @@ class _BonusQRModalPageState extends State<BonusQRModalPage> {
                         "Обратно",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 42 * globals.scaleParam,
                           color: Theme.of(context).colorScheme.onPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 42 * globals.scaleParam,
                         ),
                       ),
                     ),
@@ -257,9 +259,9 @@ class _BonusQRModalPageState extends State<BonusQRModalPage> {
                           "Что-то пошло не так, попробуйте позже",
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 46 * globals.scaleParam,
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontWeight: FontWeight.w600,
-                            color: Colors.grey,
+                            fontSize: 42 * globals.scaleParam,
                           ),
                         ),
                       ),
@@ -270,9 +272,9 @@ class _BonusQRModalPageState extends State<BonusQRModalPage> {
                           "Покажите штрих код продавцу для использования бонусов",
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 46 * globals.scaleParam,
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontWeight: FontWeight.w600,
-                            color: Colors.black,
+                            fontSize: 42 * globals.scaleParam,
                           ),
                         ),
                       )

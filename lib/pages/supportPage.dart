@@ -14,7 +14,9 @@ class _SupportPageState extends State<SupportPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: Text("Поддержка"),
+        title: Text(
+          "Поддержка",
+        ),
         automaticallyImplyLeading: false,
         actions: [
           IconButton(

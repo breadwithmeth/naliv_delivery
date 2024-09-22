@@ -79,7 +79,9 @@ class _WebViewCardPayPageState extends State<WebViewCardPayPage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Оплата картой'),
+        title: Text(
+          'Оплата картой',
+        ),
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {

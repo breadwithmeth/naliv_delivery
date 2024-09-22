@@ -21,7 +21,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: Text("История заказов"),
+        title: Text(
+          "История заказов",
+        ),
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
@@ -50,18 +52,18 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                             "История заказов пуста",
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: Theme.of(context).colorScheme.secondary,
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontVariations: <FontVariation>[FontVariation('wght', 700)],
                               fontSize: 42 * globals.scaleParam,
-                              fontWeight: FontWeight.w600,
                             ),
                           ),
                           Text(
                             "Самое время её пополнить!",
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: Theme.of(context).colorScheme.secondary,
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontVariations: <FontVariation>[FontVariation('wght', 700)],
                               fontSize: 42 * globals.scaleParam,
-                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
@@ -112,9 +114,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                           "№ ${(index + 1).toString()}",
                                           textAlign: TextAlign.start,
                                           style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 36 * globals.scaleParam,
-                                            fontWeight: FontWeight.w900,
+                                            color: Theme.of(context).colorScheme.onPrimary,
+                                            fontVariations: <FontVariation>[FontVariation('wght', 700)],
+                                            fontSize: 39 * globals.scaleParam,
                                           ),
                                         ),
                                       ),
@@ -124,9 +126,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                           snapshot.data![index]["log_timestamp"].toString(),
                                           textAlign: TextAlign.start,
                                           style: TextStyle(
-                                            color: Colors.white,
+                                            color: Theme.of(context).colorScheme.onPrimary,
+                                            fontVariations: <FontVariation>[FontVariation('wght', 700)],
                                             fontSize: 36 * globals.scaleParam,
-                                            fontWeight: FontWeight.w900,
                                           ),
                                         ),
                                       ),
@@ -161,9 +163,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                               snapshot.data![index]["b_name"].toString(),
                                               textAlign: TextAlign.start,
                                               style: TextStyle(
-                                                color: Colors.black,
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                 fontSize: 36 * globals.scaleParam,
-                                                fontWeight: FontWeight.w900,
                                               ),
                                             ),
                                           ),
@@ -173,10 +175,10 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                               snapshot.data![index]["b_address"].toString(),
                                               textAlign: TextAlign.start,
                                               style: TextStyle(
-                                                color: Colors.black,
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                 fontSize: 36 * globals.scaleParam,
-                                                fontWeight: FontWeight.w900,
-                                                height: 1.1,
+                                                height: 2 * globals.scaleParam,
                                               ),
                                             ),
                                           ),
@@ -197,9 +199,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                                     textAlign: TextAlign.start,
                                                     style: TextStyle(
                                                       overflow: TextOverflow.ellipsis,
-                                                      color: Colors.black,
+                                                      color: Theme.of(context).colorScheme.onSurface,
+                                                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                       fontSize: 36 * globals.scaleParam,
-                                                      fontWeight: FontWeight.w900,
                                                     ),
                                                   ),
                                                 )
@@ -209,9 +211,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                                     textAlign: TextAlign.start,
                                                     style: TextStyle(
                                                       overflow: TextOverflow.ellipsis,
-                                                      color: Colors.black,
+                                                      color: Theme.of(context).colorScheme.onSurface,
+                                                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                       fontSize: 36 * globals.scaleParam,
-                                                      fontWeight: FontWeight.w900,
                                                     ),
                                                   ),
                                                 ),
@@ -223,10 +225,10 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                                     textAlign: TextAlign.start,
                                                     style: TextStyle(
                                                       overflow: TextOverflow.ellipsis,
-                                                      color: Colors.black,
+                                                      color: Theme.of(context).colorScheme.onSurface,
+                                                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                       fontSize: 36 * globals.scaleParam,
-                                                      fontWeight: FontWeight.w900,
-                                                      height: 1.1,
+                                                      height: 2 * globals.scaleParam,
                                                     ),
                                                   ),
                                                 )

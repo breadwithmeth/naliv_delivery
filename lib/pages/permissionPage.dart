@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/main.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../globals.dart' as globals;
 
 class PermissionPage extends StatefulWidget {
-  const PermissionPage({super.key});
+  PermissionPage({super.key});
 
   @override
   State<PermissionPage> createState() => _PermissionPageState();
@@ -53,96 +54,153 @@ class _PermissionPageState extends State<PermissionPage> with WidgetsBindingObse
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text(
+        title: Text(
           "Сбор данных",
         ),
       ),
       body: Container(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               "Разрешите приложению доступ к:",
-              style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black, fontSize: 18),
+              style: TextStyle(
+                fontFamily: "Raleway",
+                fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                color: Colors.black,
+                fontWeight: FontWeight.w700,
+                fontSize: 38 * globals.scaleParam,
+              ),
               softWrap: true,
             ),
-            const SizedBox(
+            SizedBox(
               height: 10,
             ),
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.pin_drop_outlined,
                   size: 32,
                 ),
-                const SizedBox(
+                SizedBox(
                   width: 5,
                 ),
                 Flexible(
                   child: RichText(
-                    text: const TextSpan(
-                      style: TextStyle(color: Colors.black, fontSize: 16),
+                    text: TextSpan(
                       children: [
-                        TextSpan(text: 'Геолокации:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        TextSpan(text: ' для оперделения адреса доставки и поиска оптимального маршрута доставки!'),
+                        TextSpan(
+                          text: 'Геолокации:',
+                          style: TextStyle(
+                            fontFamily: "Raleway",
+                            fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                            color: Colors.black,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 28 * globals.scaleParam,
+                          ),
+                        ),
+                        TextSpan(
+                          text: ' для оперделения адреса доставки и поиска оптимального маршрута доставки!',
+                          style: TextStyle(
+                            fontFamily: "Raleway",
+                            fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                            color: Colors.black,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 28 * globals.scaleParam,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 )
               ],
             ),
-            const SizedBox(
+            SizedBox(
               height: 10,
             ),
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.camera_outlined,
                   size: 32,
                 ),
-                const SizedBox(
+                SizedBox(
                   width: 5,
                 ),
                 Flexible(
                   child: RichText(
-                    text: const TextSpan(
-                      style: TextStyle(color: Colors.black, fontSize: 16),
+                    text: TextSpan(
                       children: [
-                        TextSpan(text: 'Камере:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        TextSpan(text: '  для сканирования QR-кодов.'),
+                        TextSpan(
+                          text: 'Камере:',
+                          style: TextStyle(
+                            fontFamily: "Raleway",
+                            fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                            color: Colors.black,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 28 * globals.scaleParam,
+                          ),
+                        ),
+                        TextSpan(
+                          text: '  для сканирования QR-кодов.',
+                          style: TextStyle(
+                            fontFamily: "Raleway",
+                            fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                            color: Colors.black,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 28 * globals.scaleParam,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 )
               ],
             ),
-            const SizedBox(
+            SizedBox(
               height: 10,
             ),
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.file_open_outlined,
                   size: 32,
                 ),
-                const SizedBox(
+                SizedBox(
                   width: 5,
                 ),
                 Flexible(
                   child: RichText(
-                    text: const TextSpan(
-                      style: TextStyle(color: Colors.black, fontSize: 16),
+                    text: TextSpan(
                       children: [
-                        TextSpan(text: 'Хранилищу:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        TextSpan(text: ' для кэширования данных - более быстрой загрузки и бесперебойной работы!'),
+                        TextSpan(
+                          text: 'Хранилищу:',
+                          style: TextStyle(
+                            fontFamily: "Raleway",
+                            fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                            color: Colors.black,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 28 * globals.scaleParam,
+                          ),
+                        ),
+                        TextSpan(
+                          text: ' для кэширования данных - более быстрой загрузки и бесперебойной работы!',
+                          style: TextStyle(
+                            fontFamily: "Raleway",
+                            fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                            color: Colors.black,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 28 * globals.scaleParam,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 )
               ],
             ),
-            const SizedBox(
+            SizedBox(
               height: 20,
             ),
             ElevatedButton(
@@ -154,7 +212,7 @@ class _PermissionPageState extends State<PermissionPage> with WidgetsBindingObse
                   await openAppSettings().then((value) {
                     Navigator.pushReplacement(context, MaterialPageRoute(
                       builder: (context) {
-                        return const Main();
+                        return Main();
                       },
                     ));
                   });
@@ -162,7 +220,7 @@ class _PermissionPageState extends State<PermissionPage> with WidgetsBindingObse
                   await openAppSettings().then((value) {
                     Navigator.pushReplacement(context, MaterialPageRoute(
                       builder: (context) {
-                        return const Main();
+                        return Main();
                       },
                     ));
                   });
@@ -170,7 +228,7 @@ class _PermissionPageState extends State<PermissionPage> with WidgetsBindingObse
                   await openAppSettings().then((value) {
                     Navigator.pushReplacement(context, MaterialPageRoute(
                       builder: (context) {
-                        return const Main();
+                        return Main();
                       },
                     ));
                   });
@@ -180,7 +238,7 @@ class _PermissionPageState extends State<PermissionPage> with WidgetsBindingObse
                   () {
                     Navigator.pushReplacement(context, MaterialPageRoute(
                       builder: (context) {
-                        return const Main();
+                        return Main();
                       },
                     ));
                   },
@@ -189,7 +247,15 @@ class _PermissionPageState extends State<PermissionPage> with WidgetsBindingObse
               child: Row(
                 children: [
                   Container(
-                    child: const Text("Перейти в настройки"),
+                    child: Text(
+                      "Перейти в настройки",
+                      style: TextStyle(
+                        fontFamily: "Raleway",
+                        fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                        color: Colors.white,
+                        fontSize: 42 * globals.scaleParam,
+                      ),
+                    ),
                   )
                 ],
               ),

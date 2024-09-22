@@ -91,10 +91,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.isFirstTime &&
-        _location != null &&
-        _cities.isNotEmpty &&
-        !alreadyOpenedMap) {
+    if (widget.isFirstTime && _location != null && _cities.isNotEmpty && !alreadyOpenedMap) {
       alreadyOpenedMap = true;
       Future.delayed(
         Duration.zero,
@@ -124,7 +121,9 @@ class _PickAddressPageState extends State<PickAddressPage> {
       backgroundColor: Colors.grey.shade100,
       appBar: widget.fromDrawer
           ? AppBar(
-              title: Text("Адреса"),
+              title: Text(
+                "Адреса",
+              ),
               automaticallyImplyLeading: false,
               actions: [
                 IconButton(
@@ -136,15 +135,19 @@ class _PickAddressPageState extends State<PickAddressPage> {
               ],
             )
           : AppBar(
-              title: Text("Адреса"),
+              title: Text(
+                "Адреса",
+                style: TextStyle(
+                  overflow: TextOverflow.ellipsis,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
             ),
       floatingActionButton: SizedBox(
         width: 200 * globals.scaleParam,
         height: 165 * globals.scaleParam,
         child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(15)))),
+          style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(15)))),
           onPressed: () {
             if (_location == null) {
               print("LOCATION WAS NULL, SO GETGEOLOCATION IS STARTED");
@@ -240,14 +243,12 @@ class _PickAddressPageState extends State<PickAddressPage> {
                       return GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () {
-                          selectAddressClient(_addresses[index]["address_id"],
-                              widget.client["user_id"]);
+                          selectAddressClient(_addresses[index]["address_id"], widget.client["user_id"]);
                           widget.isFromCreateOrder
                               ? Navigator.pop(
                                   context,
                                 )
-                              : Navigator.pushAndRemoveUntil(context,
-                                  MaterialPageRoute(
+                              : Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
                                   builder: (context) {
                                     return Main(
                                         // business: widget.business,
@@ -258,19 +259,14 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                 ), (Route<dynamic> route) => false);
                         },
                         child: Container(
-                          margin: EdgeInsets.only(
-                              right: 20 * globals.scaleParam,
-                              top: 20 * globals.scaleParam,
-                              bottom: 20 * globals.scaleParam),
+                          margin: EdgeInsets.only(right: 20 * globals.scaleParam, top: 20 * globals.scaleParam, bottom: 20 * globals.scaleParam),
                           decoration: BoxDecoration(
                             border: _addresses[index]["is_selected"] == "1"
                                 ? Border(
-                                    left: BorderSide(
-                                        color: globals.mainColor, width: 10),
+                                    left: BorderSide(color: globals.mainColor, width: 10),
                                   )
                                 : Border(
-                                    left: BorderSide(
-                                        color: Colors.grey.shade300, width: 10),
+                                    left: BorderSide(color: Colors.grey.shade300, width: 10),
                                   ),
                             color: Colors.white,
                             borderRadius: BorderRadius.only(
@@ -278,29 +274,23 @@ class _PickAddressPageState extends State<PickAddressPage> {
                               bottomRight: Radius.circular(16),
                             ), //? If set 15 and 15 strange graphic artifact appear on the smoothed corners
                           ),
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 50 * globals.scaleParam,
-                              vertical: 30 * globals.scaleParam),
+                          padding: EdgeInsets.symmetric(horizontal: 50 * globals.scaleParam, vertical: 30 * globals.scaleParam),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Flexible(
                                     flex: 2,
                                     fit: FlexFit.tight,
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           _addresses[index]["city_name"] ?? "",
                                           style: TextStyle(
-                                            fontVariations: <FontVariation>[
-                                              FontVariation('wght', 600)
-                                            ],
+                                            fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                             fontWeight: FontWeight.w700,
                                             fontSize: 44 * globals.scaleParam,
                                             height: 3.2 * globals.scaleParam,
@@ -309,9 +299,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                         Text(
                                           _addresses[index]["address"],
                                           style: TextStyle(
-                                            fontVariations: <FontVariation>[
-                                              FontVariation('wght', 400)
-                                            ],
+                                            fontVariations: <FontVariation>[FontVariation('wght', 400)],
                                             fontSize: 42 * globals.scaleParam,
                                             height: 3.2 * globals.scaleParam,
                                           ),
@@ -329,12 +317,9 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                             _addresses[index]["name"],
                                             textAlign: TextAlign.end,
                                             style: TextStyle(
-                                                fontVariations: <FontVariation>[
-                                                  FontVariation('wght', 600)
-                                                ],
+                                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                 fontWeight: FontWeight.w500,
-                                                fontSize:
-                                                    32 * globals.scaleParam),
+                                                fontSize: 32 * globals.scaleParam),
                                           ),
                                         ),
                                       ],
@@ -350,9 +335,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                     child: Text(
                                       "Подъезд/Вход: ",
                                       style: TextStyle(
-                                          fontVariations: <FontVariation>[
-                                            FontVariation('wght', 200)
-                                          ],
+                                          fontVariations: <FontVariation>[FontVariation('wght', 200)],
                                           fontWeight: FontWeight.w500,
                                           fontSize: 32 * globals.scaleParam),
                                     ),
@@ -361,9 +344,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                     child: Text(
                                       _addresses[index]["entrance"] ?? "-",
                                       style: TextStyle(
-                                          fontVariations: <FontVariation>[
-                                            FontVariation('wght', 400)
-                                          ],
+                                          fontVariations: <FontVariation>[FontVariation('wght', 400)],
                                           fontWeight: FontWeight.w500,
                                           fontSize: 32 * globals.scaleParam),
                                     ),
@@ -378,9 +359,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                     child: Text(
                                       "Этаж: ",
                                       style: TextStyle(
-                                        fontVariations: <FontVariation>[
-                                          FontVariation('wght', 200)
-                                        ],
+                                        fontVariations: <FontVariation>[FontVariation('wght', 200)],
                                         fontWeight: FontWeight.w500,
                                         fontSize: 32 * globals.scaleParam,
                                       ),
@@ -390,9 +369,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                     child: Text(
                                       _addresses[index]["floor"] ?? "-",
                                       style: TextStyle(
-                                        fontVariations: <FontVariation>[
-                                          FontVariation('wght', 400)
-                                        ],
+                                        fontVariations: <FontVariation>[FontVariation('wght', 400)],
                                         fontWeight: FontWeight.w500,
                                         fontSize: 32 * globals.scaleParam,
                                       ),
@@ -408,9 +385,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                     child: Text(
                                       "Квартира/Офис: ",
                                       style: TextStyle(
-                                        fontVariations: <FontVariation>[
-                                          FontVariation('wght', 200)
-                                        ],
+                                        fontVariations: <FontVariation>[FontVariation('wght', 200)],
                                         fontWeight: FontWeight.w500,
                                         fontSize: 32 * globals.scaleParam,
                                       ),
@@ -420,9 +395,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                     child: Text(
                                       _addresses[index]["apartment"] ?? "-",
                                       style: TextStyle(
-                                        fontVariations: <FontVariation>[
-                                          FontVariation('wght', 400)
-                                        ],
+                                        fontVariations: <FontVariation>[FontVariation('wght', 400)],
                                         fontWeight: FontWeight.w500,
                                         fontSize: 32 * globals.scaleParam,
                                       ),
@@ -431,17 +404,14 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                 ],
                               ),
                               Padding(
-                                padding: EdgeInsets.only(
-                                    left: 50 * globals.scaleParam),
+                                padding: EdgeInsets.only(left: 50 * globals.scaleParam),
                                 child: Row(
                                   children: [
                                     Flexible(
                                       child: Text(
                                         _addresses[index]["other"] ?? "-",
                                         style: TextStyle(
-                                          fontVariations: <FontVariation>[
-                                            FontVariation('wght', 400)
-                                          ],
+                                          fontVariations: <FontVariation>[FontVariation('wght', 400)],
                                           fontWeight: FontWeight.w500,
                                           fontSize: 32 * globals.scaleParam,
                                         ),

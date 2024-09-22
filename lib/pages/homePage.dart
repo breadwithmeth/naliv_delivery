@@ -124,7 +124,7 @@ class _HomePageState extends State<HomePage>
                                       maxLines: 1,
                                       style: TextStyle(
                                           fontSize: 40 * globals.scaleParam,
-                                          fontFamily: "MontserratAlternates"),
+                                          fontFamily: "Raleway"),
                                     ),
                                     Text(
                                       widget.business["address"],

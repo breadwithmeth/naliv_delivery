@@ -3,8 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:naliv_delivery/misc/api.dart';
 
 class CreateAddressName extends StatefulWidget {
-  const CreateAddressName(
-      {super.key, required this.street, required this.lat, required this.lon});
+  const CreateAddressName({super.key, required this.street, required this.lat, required this.lon});
   final String street;
   final double lat;
   final double lon;
@@ -42,7 +41,9 @@ class _CreateAddressNameState extends State<CreateAddressName> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Создание адреса"),
+        title: Text(
+          "Создание адреса",
+        ),
       ),
       body: Container(
           padding: const EdgeInsets.all(20),
@@ -56,10 +57,7 @@ class _CreateAddressNameState extends State<CreateAddressName> {
                     flex: 7,
                     child: TextField(
                       maxLength: 250,
-                      buildCounter: (context,
-                          {required currentLength,
-                          required isFocused,
-                          required maxLength}) {
+                      buildCounter: (context, {required currentLength, required isFocused, required maxLength}) {
                         return null;
                       },
                       decoration: InputDecoration(
@@ -67,12 +65,8 @@ class _CreateAddressNameState extends State<CreateAddressName> {
                           filled: true,
                           fillColor: Colors.grey.shade100,
                           border: const OutlineInputBorder(
-                              borderSide:
-                                  BorderSide(color: Colors.black, width: 10),
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(10)))),
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700, fontSize: 20),
+                              borderSide: BorderSide(color: Colors.black, width: 10), borderRadius: BorderRadius.all(Radius.circular(10)))),
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
                       controller: name,
                     ),
                   ),
@@ -90,13 +84,9 @@ class _CreateAddressNameState extends State<CreateAddressName> {
                           filled: true,
                           fillColor: Colors.grey.shade200,
                           border: const OutlineInputBorder(
-                              borderSide:
-                                  BorderSide(color: Colors.black, width: 10),
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(10)))),
+                              borderSide: BorderSide(color: Colors.black, width: 10), borderRadius: BorderRadius.all(Radius.circular(10)))),
                       readOnly: true,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700, fontSize: 20),
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
                       controller: TextEditingController(text: widget.street),
                     ),
                   ),
@@ -121,8 +111,7 @@ class _CreateAddressNameState extends State<CreateAddressName> {
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.black, width: 10),
+                          borderSide: BorderSide(color: Colors.black, width: 10),
                           borderRadius: BorderRadius.all(Radius.circular(10)),
                         ),
                       ),
@@ -139,8 +128,7 @@ class _CreateAddressNameState extends State<CreateAddressName> {
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.black, width: 10),
+                          borderSide: BorderSide(color: Colors.black, width: 10),
                           borderRadius: BorderRadius.all(Radius.circular(10)),
                         ),
                       ),
@@ -157,8 +145,7 @@ class _CreateAddressNameState extends State<CreateAddressName> {
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.black, width: 10),
+                          borderSide: BorderSide(color: Colors.black, width: 10),
                           borderRadius: BorderRadius.all(Radius.circular(10)),
                         ),
                       ),
@@ -174,10 +161,7 @@ class _CreateAddressNameState extends State<CreateAddressName> {
                   Flexible(
                       child: TextField(
                     maxLength: 500,
-                    buildCounter: (context,
-                        {required currentLength,
-                        required isFocused,
-                        required maxLength}) {
+                    buildCounter: (context, {required currentLength, required isFocused, required maxLength}) {
                       if (isFocused) {
                         return Text(
                           '$currentLength/$maxLength',
