@@ -360,7 +360,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.w700,
+                          fontVariations: <FontVariation>[FontVariation('wght', 800)],
                           fontSize: 42 * globals.scaleParam,
                         ),
                       ),
@@ -436,7 +436,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                   child: Text(
                                     "Заказ",
                                     style: TextStyle(
-                                      fontWeight: FontWeight.w700,
+                                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                       fontSize: 64 * globals.scaleParam,
                                       height: 3 * globals.scaleParam,
                                     ),
@@ -525,7 +525,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                           fontSize: 38 * globals.scaleParam,
-                                          fontWeight: FontWeight.w700,
+                                          fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                           color: Colors.grey.shade700,
                                         ),
                                       ),
@@ -560,7 +560,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                           fontSize: 38 * globals.scaleParam,
-                                          fontWeight: FontWeight.w700,
+                                          fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                           color: Colors.grey.shade700,
                                         ),
                                       ),
@@ -632,7 +632,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
                                                 fontSize: 38 * globals.scaleParam,
-                                                fontWeight: FontWeight.w700,
+                                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
 
                                                 // shadows: [
                                                 //   Shadow(
@@ -677,7 +677,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                       "Ваш адрес ",
                                       style: TextStyle(
                                         fontSize: 32 * globals.scaleParam,
-                                        fontWeight: FontWeight.w700,
+                                        fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                         color: Theme.of(context).colorScheme.primary,
                                       ),
                                     ),
@@ -755,7 +755,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                               currentAddress["address"] ?? "Загружаю...",
                                               style: TextStyle(
                                                 fontSize: 32 * globals.scaleParam,
-                                                fontWeight: FontWeight.w700,
+                                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                 color: Theme.of(context).colorScheme.primary,
                                               ),
                                             ),
@@ -782,7 +782,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                       "Адрес магазина ",
                                       style: TextStyle(
                                         fontSize: 32 * globals.scaleParam,
-                                        fontWeight: FontWeight.w700,
+                                        fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                         color: Theme.of(context).colorScheme.primary,
                                       ),
                                     ),
@@ -826,7 +826,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                               widget.business["address"] ?? "Загружаю...",
                                               style: TextStyle(
                                                 fontSize: 32 * globals.scaleParam,
-                                                fontWeight: FontWeight.w700,
+                                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                 color: Theme.of(context).colorScheme.primary,
                                               ),
                                             ),
@@ -916,7 +916,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 "Оплата ",
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
-                                  fontWeight: FontWeight.w700,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
@@ -945,7 +945,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                         paymentType.description,
                                         style: TextStyle(
                                           fontSize: 32 * globals.scaleParam,
-                                          fontWeight: FontWeight.w700,
+                                          fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                           color: Theme.of(context).colorScheme.primary,
                                         ),
                                       ),
@@ -1040,7 +1040,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 "Корзина",
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
-                                  fontWeight: FontWeight.w700,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
@@ -1051,7 +1051,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 "${globals.formatCost(widget.finalSum.toString())} ₸",
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
-                                  fontWeight: FontWeight.w700,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
@@ -1069,7 +1069,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 "Доставка",
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
-                                  fontWeight: FontWeight.w700,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
@@ -1080,7 +1080,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 delivery ? "${globals.formatCost(_deliveryInfo["price"].toString())} ₸" : "0 ₸",
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
-                                  fontWeight: FontWeight.w700,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
@@ -1098,7 +1098,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 "Тариф за сервис",
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
-                                  fontWeight: FontWeight.w700,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
@@ -1109,7 +1109,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 delivery ? "${globals.formatCost(_deliveryInfo["taxes"].toString())} ₸" : "0 ₸",
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
-                                  fontWeight: FontWeight.w700,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
@@ -1127,7 +1127,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                       //           "Бонусы",
                       //           style: TextStyle(
                       //             fontSize: 32 * globals.scaleParam,
-                      //             fontWeight: FontWeight.w700,
+                      //             fontVariations: <FontVariation>[
+                      //   FontVariation('wght', 600)
+                      // ],
                       //             color: Theme.of(context).colorScheme.primary,
                       //           ),
                       //         ),
@@ -1138,7 +1140,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                       //           "0 ₸",
                       //           style: TextStyle(
                       //             fontSize: 32 * globals.scaleParam,
-                      //             fontWeight: FontWeight.w700,
+                      //             fontVariations: <FontVariation>[
+                      //   FontVariation('wght', 600)
+                      // ],
                       //             color: Theme.of(context).colorScheme.primary,
                       //           ),
                       //         ),
@@ -1164,7 +1168,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 "Итого",
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
-                                  fontWeight: FontWeight.w700,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
@@ -1178,7 +1182,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                     : "${globals.formatCost(((widget.finalSum - 0)).toString())} ₸",
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
-                                  fontWeight: FontWeight.w700,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),

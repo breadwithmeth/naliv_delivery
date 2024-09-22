@@ -1163,7 +1163,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                                   TextSpan(
                                                     text: element["name"],
                                                     style: TextStyle(
-                                                      fontWeight: FontWeight.w500,
+                                                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                       fontSize: 32 * globals.scaleParam,
                                                     ),
                                                   ),
@@ -1182,7 +1182,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                                               element["country"] ?? "",
                                                               style: TextStyle(
                                                                 color: Colors.black,
-                                                                fontWeight: FontWeight.w600,
+                                                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                                 fontSize: 28 * globals.scaleParam,
                                                               ),
                                                             ),
@@ -1203,7 +1203,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                                   "${globals.formatCost(element["price"].toString())} ₸ за 1 ${element["unit"]}",
                                                   style: TextStyle(
                                                     color: Colors.grey,
-                                                    fontWeight: FontWeight.w600,
+                                                    fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                     fontSize: 24 * globals.scaleParam,
                                                   ),
                                                 ),
@@ -1280,7 +1280,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                                   textAlign: TextAlign.start,
                                                   style: TextStyle(
                                                     fontSize: 32 * globals.scaleParam,
-                                                    fontWeight: FontWeight.w900,
+                                                    fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                     height: 2.5 * globals.scaleParam,
                                                   ),
                                                 ),
@@ -1303,7 +1303,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                                   "${element["selected_options"][index]["name"]}",
                                                   style: TextStyle(
                                                     fontSize: 32 * globals.scaleParam,
-                                                    fontWeight: FontWeight.w500,
+                                                    fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                     height: 3 * globals.scaleParam,
                                                   ),
                                                 ),
@@ -1365,7 +1365,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                           "Сумма: ${globals.formatCost(((element['price'] * (element["amount"] - (element["promotions"] != null ? double.parse((element["amount"] / (element["promotions"][0]["add_amount"] + element["promotions"][0]["base_amount"])).toString()).truncate() : 0))) + (element["selected_options"] != null ? ((element["selected_options"][0]["price"] * element["amount"]) / element["selected_options"][0]["parent_item_amount"]) : 0)).toString())} ₸",
                           style: TextStyle(
                             color: Colors.black,
-                            fontWeight: FontWeight.w600,
+                            fontVariations: <FontVariation>[FontVariation('wght', 600)],
                             fontSize: 32 * globals.scaleParam,
                           ),
                         ),
@@ -1380,7 +1380,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                     decoration: TextDecoration.lineThrough,
                                     decorationColor: Colors.grey,
                                     color: Colors.grey,
-                                    fontWeight: FontWeight.w700,
+                                    fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                     fontSize: 28 * globals.scaleParam,
                                   ),
                                 ),
@@ -1399,7 +1399,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                       "${element["amount"]} ${element["unit"]}",
                       style: TextStyle(
                         color: Colors.black,
-                        fontWeight: FontWeight.w700,
+                        fontVariations: <FontVariation>[FontVariation('wght', 600)],
                         fontSize: 32 * globals.scaleParam,
                       ),
                     ),
@@ -1519,7 +1519,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                         text: "x ${element["amount"]}",
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface,
-                          fontWeight: FontWeight.w600,
+                          fontVariations: <FontVariation>[FontVariation('wght', 600)],
                           fontSize: 32 * globals.scaleParam,
                         ),
                       ),
@@ -1557,7 +1557,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                             text: element["name"],
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.onSurface,
-                              fontWeight: FontWeight.w500,
+                              fontVariations: <FontVariation>[FontVariation('wght', 600)],
                               fontSize: 30 * globals.scaleParam,
                             ),
                           ),
@@ -1597,7 +1597,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                           "${globals.formatCost(element["price"].toString())} ₸ за ${element["unit"]}",
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.secondary,
-                            fontWeight: FontWeight.w600,
+                            fontVariations: <FontVariation>[FontVariation('wght', 600)],
                             fontSize: 28 * globals.scaleParam,
                           ),
                         ),
@@ -2915,6 +2915,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                               color: Colors.black,
                                               fontWeight: FontWeight.w700,
                                               fontSize: 40 * globals.scaleParam,
+                                              fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                             ),
                                           ),
                                         ),
@@ -2926,6 +2927,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                               color: Colors.grey.shade600,
                                               fontWeight: FontWeight.w900,
                                               fontSize: 40 * globals.scaleParam,
+                                              fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                             ),
                                           ),
                                         ),
@@ -3087,7 +3089,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                                 ),
                                                 textAlign: TextAlign.center,
                                                 style: TextStyle(
-                                                  fontWeight: FontWeight.w600,
+                                                  fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                   fontSize: 36 * globals.scaleParam,
                                                   color: amountInCart != 0 ? Theme.of(context).colorScheme.onSurface : Colors.grey.shade600,
                                                 ),
@@ -3229,7 +3231,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                       textAlign: TextAlign.right,
                                       style: TextStyle(
                                         color: Theme.of(context).colorScheme.onSurface,
-                                        fontWeight: FontWeight.w600,
+                                        fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                         fontSize: 42 * globals.scaleParam,
                                       ),
                                     ),
@@ -3276,7 +3278,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                                               textAlign: TextAlign.center,
                                                               style: TextStyle(
                                                                 color: Theme.of(context).colorScheme.onSurface,
-                                                                fontWeight: FontWeight.w700,
+                                                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                                 fontSize: 52 * globals.scaleParam,
                                                               ),
                                                             ),
@@ -3340,7 +3342,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                                                         "Подтвердить",
                                                                         style: TextStyle(
                                                                           color: Theme.of(context).colorScheme.onPrimary,
-                                                                          fontWeight: FontWeight.w600,
+                                                                          fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                                           fontSize: 42 * globals.scaleParam,
                                                                         ),
                                                                       ),

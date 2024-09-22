@@ -358,7 +358,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                 "Оформить заказ",
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontWeight: FontWeight.w700,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 800)],
                                   fontSize: 42 * globals.scaleParam,
                                 ),
                               ),
@@ -370,7 +370,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                 textAlign: TextAlign.justify,
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontWeight: FontWeight.w700,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 800)],
                                   fontSize: 44 * globals.scaleParam,
                                 ),
                               ),

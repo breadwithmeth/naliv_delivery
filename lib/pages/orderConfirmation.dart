@@ -123,7 +123,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                           "Остатки изменились",
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
-                            fontWeight: FontWeight.w700,
+                            fontVariations: <FontVariation>[FontVariation('wght', 600)],
                             fontSize: 28 * globals.scaleParam,
                           ),
                         ),
@@ -131,7 +131,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     ),
                     titleTextStyle: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.w700,
+                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
                       color: Theme.of(context).colorScheme.onSecondary,
                     ),
                     content: Padding(
@@ -153,7 +153,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                           wrongItems[index]["name"].toString(),
                                           style: TextStyle(
                                             color: Theme.of(context).colorScheme.onSecondary,
-                                            fontWeight: FontWeight.w700,
+                                            fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                             fontSize: 28 * globals.scaleParam,
                                           ),
                                         ),
@@ -209,7 +209,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                               "Применить изменения",
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.onSurface,
-                                fontWeight: FontWeight.w700,
+                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                 fontSize: 28 * globals.scaleParam,
                               ),
                             ),
@@ -231,7 +231,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                               "Изменить самостоятельно",
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.onSurface,
-                                fontWeight: FontWeight.w700,
+                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                 fontSize: 28 * globals.scaleParam,
                               ),
                             ),
@@ -260,7 +260,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     ),
                     titleTextStyle: TextStyle(
                       color: Theme.of(context).colorScheme.onSecondary,
-                      fontWeight: FontWeight.w700,
+                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
                       fontSize: 32 * globals.scaleParam,
                     ),
                     content: Padding(
@@ -277,7 +277,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: Theme.of(context).colorScheme.onSurface,
-                                  fontWeight: FontWeight.w700,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                   fontSize: 28 * globals.scaleParam,
                                 ),
                               ),
@@ -371,7 +371,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: FontWeight.w700,
+                          fontVariations: <FontVariation>[FontVariation('wght', 600)],
                           fontSize: 42 * globals.scaleParam,
                         ),
                       ),
@@ -405,7 +405,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                           "Убедитесь в правильности заказа",
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
-                            fontWeight: FontWeight.w700,
+                            fontVariations: <FontVariation>[FontVariation('wght', 600)],
                             height: 2,
                             fontSize: 42 * globals.scaleParam,
                           ),
@@ -486,7 +486,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                 widget.delivery ? "Доставка по адресу: " : "Самовывоз из магазина: ",
                                 style: TextStyle(
                                   color: Theme.of(context).colorScheme.onSurface,
-                                  fontWeight: FontWeight.w700,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                   fontSize: 32 * globals.scaleParam,
                                 ),
                               ),
@@ -506,7 +506,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                   widget.delivery ? widget.address!["address"] ?? "" : widget.business["address"],
                                   style: TextStyle(
                                     color: Theme.of(context).colorScheme.onSurface,
-                                    fontWeight: FontWeight.w700,
+                                    fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                     fontSize: 32 * globals.scaleParam,
                                   ),
                                 ),
@@ -545,7 +545,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                 "Оплата ${widget.paymentType}:",
                                 style: TextStyle(
                                   color: Theme.of(context).colorScheme.onSurface,
-                                  fontWeight: FontWeight.w700,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                   fontSize: 32 * globals.scaleParam,
                                 ),
                               ),
@@ -565,7 +565,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: Theme.of(context).colorScheme.onSurface,
-                                  fontWeight: FontWeight.w700,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                   fontSize: 32 * globals.scaleParam,
                                 ),
                               ),
