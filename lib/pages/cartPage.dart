@@ -357,7 +357,6 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                               child: Text(
                                 "Оформить заказ",
                                 style: TextStyle(
-                                  fontFamily: "MontserratAlternates",
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 42 * globals.scaleParam,
@@ -370,7 +369,6 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                 "${globals.formatCost(localSum.toString())} ₸",
                                 textAlign: TextAlign.justify,
                                 style: TextStyle(
-                                  fontFamily: "MontserratAlternates",
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 44 * globals.scaleParam,
@@ -411,9 +409,9 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                 "За покупками!",
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 42 * globals.scaleParam,
                                   color: Theme.of(context).colorScheme.onPrimary,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 42 * globals.scaleParam,
                                 ),
                               ),
                             ),

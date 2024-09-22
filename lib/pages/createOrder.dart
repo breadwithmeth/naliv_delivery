@@ -359,7 +359,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                         "Подтвердить заказ",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontFamily: "MontserratAlternates",
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
                           fontSize: 42 * globals.scaleParam,
@@ -437,7 +436,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                   child: Text(
                                     "Заказ",
                                     style: TextStyle(
-                                      fontFamily: "MontserratAlternates",
                                       fontWeight: FontWeight.w700,
                                       fontSize: 64 * globals.scaleParam,
                                       height: 3 * globals.scaleParam,
@@ -528,7 +526,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                         style: TextStyle(
                                           fontSize: 38 * globals.scaleParam,
                                           fontWeight: FontWeight.w700,
-                                          fontFamily: "MontserratAlternates",
                                           color: Colors.grey.shade700,
                                         ),
                                       ),
@@ -564,7 +561,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                         style: TextStyle(
                                           fontSize: 38 * globals.scaleParam,
                                           fontWeight: FontWeight.w700,
-                                          fontFamily: "MontserratAlternates",
                                           color: Colors.grey.shade700,
                                         ),
                                       ),
@@ -637,7 +633,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                               style: TextStyle(
                                                 fontSize: 38 * globals.scaleParam,
                                                 fontWeight: FontWeight.w700,
-                                                fontFamily: "MontserratAlternates",
+
                                                 // shadows: [
                                                 //   Shadow(
                                                 //     color: Colors.grey.shade200,
@@ -682,7 +678,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                       style: TextStyle(
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w700,
-                                        fontFamily: "MontserratAlternates",
                                         color: Theme.of(context).colorScheme.primary,
                                       ),
                                     ),
@@ -761,7 +756,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                               style: TextStyle(
                                                 fontSize: 32 * globals.scaleParam,
                                                 fontWeight: FontWeight.w700,
-                                                fontFamily: "MontserratAlternates",
                                                 color: Theme.of(context).colorScheme.primary,
                                               ),
                                             ),
@@ -789,7 +783,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                       style: TextStyle(
                                         fontSize: 32 * globals.scaleParam,
                                         fontWeight: FontWeight.w700,
-                                        fontFamily: "MontserratAlternates",
                                         color: Theme.of(context).colorScheme.primary,
                                       ),
                                     ),
@@ -834,7 +827,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                               style: TextStyle(
                                                 fontSize: 32 * globals.scaleParam,
                                                 fontWeight: FontWeight.w700,
-                                                fontFamily: "MontserratAlternates",
                                                 color: Theme.of(context).colorScheme.primary,
                                               ),
                                             ),
@@ -925,7 +917,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w700,
-                                  fontFamily: "MontserratAlternates",
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
@@ -955,7 +946,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                         style: TextStyle(
                                           fontSize: 32 * globals.scaleParam,
                                           fontWeight: FontWeight.w700,
-                                          fontFamily: "MontserratAlternates",
                                           color: Theme.of(context).colorScheme.primary,
                                         ),
                                       ),
@@ -997,7 +987,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                     child: Text(
                                       paymentDescText,
                                       style: TextStyle(
-                                        fontFamily: "MontserratAlternates",
                                         color: Theme.of(context).colorScheme.primary,
                                         fontWeight: FontWeight.w300,
                                         fontSize: 28 * globals.scaleParam,
@@ -1052,7 +1041,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w700,
-                                  fontFamily: "MontserratAlternates",
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
@@ -1064,7 +1052,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w700,
-                                  fontFamily: "MontserratAlternates",
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
@@ -1083,7 +1070,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w700,
-                                  fontFamily: "MontserratAlternates",
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
@@ -1095,7 +1081,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w700,
-                                  fontFamily: "MontserratAlternates",
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
@@ -1114,7 +1099,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w700,
-                                  fontFamily: "MontserratAlternates",
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
@@ -1126,7 +1110,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w700,
-                                  fontFamily: "MontserratAlternates",
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
@@ -1182,7 +1165,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w700,
-                                  fontFamily: "MontserratAlternates",
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
@@ -1197,7 +1179,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                 style: TextStyle(
                                   fontSize: 32 * globals.scaleParam,
                                   fontWeight: FontWeight.w700,
-                                  fontFamily: "MontserratAlternates",
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
@@ -1231,7 +1212,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                               " * курьер выдаст заказ 21+ только при подтверждении возраста.",
                               textAlign: TextAlign.left,
                               style: TextStyle(
-                                fontFamily: "MontserratAlternates",
                                 color: Color.fromARGB(255, 190, 190, 190),
                                 fontWeight: FontWeight.w300,
                                 fontSize: 26 * globals.scaleParam,
@@ -1247,7 +1227,6 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                               " ** продолжая заказ вы подтверждаете, что ознакомлены с условиями возврата.",
                               textAlign: TextAlign.left,
                               style: TextStyle(
-                                fontFamily: "MontserratAlternates",
                                 color: Color.fromARGB(255, 190, 190, 190),
                                 fontWeight: FontWeight.w300,
                                 fontSize: 26 * globals.scaleParam,

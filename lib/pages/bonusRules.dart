@@ -13,7 +13,9 @@ class _BonusRulesPageState extends State<BonusRulesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Бонусная система"),
+        title: Text(
+          "Бонусная система",
+        ),
         automaticallyImplyLeading: false,
         actions: [
           IconButton(

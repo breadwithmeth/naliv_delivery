@@ -15,7 +15,9 @@ class _OfferPageState extends State<OfferPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: Text("Офёрта"),
+        title: Text(
+          "Офёрта",
+        ),
         automaticallyImplyLeading: false,
         actions: [
           IconButton(

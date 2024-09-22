@@ -53,7 +53,9 @@ class _OrderPageState extends State<OrderPage> {
         ),
       ),
       appBar: AppBar(
-        title: Text("Ваш заказ"),
+        title: Text(
+          "Ваш заказ",
+        ),
       ),
       body: Center(
         child: Column(

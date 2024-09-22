@@ -47,7 +47,9 @@ class _ActiveOrdersPageState extends State<ActiveOrdersPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: Text("Активные заказы"),
+        title: Text(
+          "Активные заказы",
+        ),
         automaticallyImplyLeading: false,
         actions: [
           IconButton(

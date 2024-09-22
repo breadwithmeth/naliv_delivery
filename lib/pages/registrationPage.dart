@@ -54,12 +54,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   MaterialPageRoute(builder: (context) => const LoginPage()),
                 );
               },
-              child: const Text(
+              child: Text(
                 "Войти",
-                style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16),
               ),
             ),
           )
@@ -76,10 +72,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 children: [
                   Text(
                     "Регистрация",
-                    style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.w400,
-                        fontSize: 24),
+                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.w400, fontSize: 24),
                   )
                 ],
               ),
@@ -109,12 +102,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             ),
                             focusColor: Colors.black,
                             enabledBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                    width: 0.5, color: Color(0xFFD8DADC)),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(10))),
-                            focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(color: Colors.black))),
+                                borderSide: BorderSide(width: 0.5, color: Color(0xFFD8DADC)), borderRadius: BorderRadius.all(Radius.circular(10))),
+                            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.black))),
                       ),
                       const SizedBox(
                         height: 10,
@@ -138,12 +127,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             ),
                             focusColor: Colors.black,
                             enabledBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                    width: 0.5, color: Color(0xFFD8DADC)),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(10))),
-                            focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(color: Colors.black))),
+                                borderSide: BorderSide(width: 0.5, color: Color(0xFFD8DADC)), borderRadius: BorderRadius.all(Radius.circular(10))),
+                            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.black))),
                       ),
                       const SizedBox(
                         height: 10,
@@ -168,19 +153,14 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             ),
                             focusColor: Colors.black,
                             enabledBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                    width: 0.5, color: Color(0xFFD8DADC)),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(10))),
-                            focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(color: Colors.black))),
+                                borderSide: BorderSide(width: 0.5, color: Color(0xFFD8DADC)), borderRadius: BorderRadius.all(Radius.circular(10))),
+                            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.black))),
                       ),
                       const SizedBox(
                         height: 50,
                       ),
                       ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.all(18)),
+                        style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(18)),
                         onPressed: () {
                           _register();
                         },

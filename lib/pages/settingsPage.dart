@@ -30,7 +30,9 @@ class _SettingsPageState extends State<SettingsPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: Text("Настройки"),
+        title: Text(
+          "Настройки",
+        ),
         automaticallyImplyLeading: false,
         actions: [
           IconButton(

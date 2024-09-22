@@ -1518,7 +1518,6 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                       text: TextSpan(
                         text: "x ${element["amount"]}",
                         style: TextStyle(
-                          fontFamily: "MontserratAlternates",
                           color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w600,
                           fontSize: 32 * globals.scaleParam,
@@ -1557,7 +1556,6 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                           TextSpan(
                             text: element["name"],
                             style: TextStyle(
-                              fontFamily: "MontserratAlternates",
                               color: Theme.of(context).colorScheme.onSurface,
                               fontWeight: FontWeight.w500,
                               fontSize: 30 * globals.scaleParam,
@@ -1576,7 +1574,6 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                                     child: Text(
                                       element["country"] ?? "",
                                       style: TextStyle(
-                                        fontFamily: "MontserratAlternates",
                                         color: Theme.of(context).colorScheme.onSurface,
                                         fontWeight: FontWeight.w500,
                                         fontSize: 28 * globals.scaleParam,
@@ -1599,7 +1596,6 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                         child: Text(
                           "${globals.formatCost(element["price"].toString())} ₸ за ${element["unit"]}",
                           style: TextStyle(
-                            fontFamily: "MontserratAlternates",
                             color: Theme.of(context).colorScheme.secondary,
                             fontWeight: FontWeight.w600,
                             fontSize: 28 * globals.scaleParam,
@@ -2563,7 +2559,12 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
       if (itemOption["name"] != null) {
         selectedOptions.add(Text(
           itemOption["name"],
-          style: TextStyle(fontSize: 24 * globals.scaleParam, fontWeight: FontWeight.w800),
+          style: TextStyle(
+            fontFamily: "Raleway",
+            color: Theme.of(context).colorScheme.onSurface,
+            fontVariations: <FontVariation>[FontVariation('wght', 600)],
+            fontSize: 28 * globals.scaleParam,
+          ),
         ));
       }
     }
@@ -2893,10 +2894,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                                     margin: EdgeInsets.all(3 * globals.scaleParam),
                                                     child: Text(promotions[index]["name"],
                                                         style: TextStyle(
-                                                            fontFamily: "MontserratAlternates",
-                                                            fontWeight: FontWeight.w700,
-                                                            color: Colors.white,
-                                                            fontSize: 24 * globals.scaleParam)),
+                                                            fontWeight: FontWeight.w700, color: Colors.white, fontSize: 24 * globals.scaleParam)),
                                                   )
                                                 ],
                                               );
@@ -2914,7 +2912,6 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                           child: Text(
                                             globals.formatCost((element['price'] ?? "").toString()),
                                             style: TextStyle(
-                                              fontFamily: "MontserratAlternates",
                                               color: Colors.black,
                                               fontWeight: FontWeight.w700,
                                               fontSize: 40 * globals.scaleParam,
@@ -2926,7 +2923,6 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                             "₸",
                                             textAlign: TextAlign.start,
                                             style: TextStyle(
-                                              fontFamily: "MontserratAlternates",
                                               color: Colors.grey.shade600,
                                               fontWeight: FontWeight.w900,
                                               fontSize: 40 * globals.scaleParam,
@@ -3091,7 +3087,7 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                                 ),
                                                 textAlign: TextAlign.center,
                                                 style: TextStyle(
-                                                  fontWeight: FontWeight.w700,
+                                                  fontWeight: FontWeight.w600,
                                                   fontSize: 36 * globals.scaleParam,
                                                   color: amountInCart != 0 ? Theme.of(context).colorScheme.onSurface : Colors.grey.shade600,
                                                 ),
@@ -3231,7 +3227,11 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                     child: Text(
                                       "${cart[index]["amount"].ceil() > cart[index]["amount"] ? cart[index]["amount"] : cart[index]["amount"].round()} x",
                                       textAlign: TextAlign.right,
-                                      style: TextStyle(fontWeight: FontWeight.w900),
+                                      style: TextStyle(
+                                        color: Theme.of(context).colorScheme.onSurface,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 42 * globals.scaleParam,
+                                      ),
                                     ),
                                   ),
                                   Spacer(),
@@ -3267,15 +3267,22 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                                   children: [
                                                     Flexible(
                                                       fit: FlexFit.tight,
-                                                      child: Center(
-                                                        child: Text(
-                                                          "Убрать товар из корзины?",
-                                                          style: TextStyle(
-                                                            fontSize: 52 * globals.scaleParam,
-                                                            fontWeight: FontWeight.w900,
+                                                      child: LayoutBuilder(builder: (context, constraints) {
+                                                        return SizedBox(
+                                                          width: constraints.maxWidth * 0.85,
+                                                          child: Center(
+                                                            child: Text(
+                                                              "Убрать товар из корзины?",
+                                                              textAlign: TextAlign.center,
+                                                              style: TextStyle(
+                                                                color: Theme.of(context).colorScheme.onSurface,
+                                                                fontWeight: FontWeight.w700,
+                                                                fontSize: 52 * globals.scaleParam,
+                                                              ),
+                                                            ),
                                                           ),
-                                                        ),
-                                                      ),
+                                                        );
+                                                      }),
                                                     ),
                                                     Flexible(
                                                       flex: 2,
@@ -3284,58 +3291,65 @@ class _ItemCardListTileState extends State<ItemCardListTile> with SingleTickerPr
                                                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                                                         children: [
                                                           Flexible(
-                                                              fit: FlexFit.tight,
-                                                              child: Padding(
-                                                                padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
-                                                                child: Row(
-                                                                  children: [
-                                                                    MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height
-                                                                        ? Flexible(
-                                                                            flex: 2,
-                                                                            fit: FlexFit.tight,
-                                                                            child: SizedBox(),
-                                                                          )
-                                                                        : SizedBox(),
-                                                                    Flexible(
-                                                                      fit: FlexFit.tight,
-                                                                      child: ElevatedButton(
-                                                                          onPressed: () async {
-                                                                            await changeCartItem(
-                                                                                    element["item_id"], 0, widget.business["business_id"],
-                                                                                    options:
-                                                                                        _getElementWithSelectedItemsByIndex(index)["options"] ?? [])
-                                                                                .then(
-                                                                              (value) {
-                                                                                List newCart = [];
-                                                                                if (value != null) {
-                                                                                  if (options.isEmpty) {
-                                                                                    setState(() {
-                                                                                      newCart = [
-                                                                                        value.firstWhere(
-                                                                                          (el) => el["item_id"] == element["item_id"],
-                                                                                          orElse: () => [],
-                                                                                        )
-                                                                                      ];
-                                                                                    });
-                                                                                  } else {
-                                                                                    setState(() {
-                                                                                      newCart = value
-                                                                                          .where((el) => el["item_id"] == element["item_id"])
-                                                                                          .toList();
-                                                                                    });
-                                                                                    print("asdasd");
-                                                                                  }
-                                                                                  updateCurrentItem(newCart);
-                                                                                }
-                                                                                Navigator.pop(context);
-                                                                              },
-                                                                            );
+                                                            fit: FlexFit.tight,
+                                                            child: Padding(
+                                                              padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
+                                                              child: Row(
+                                                                children: [
+                                                                  MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height
+                                                                      ? Flexible(
+                                                                          flex: 2,
+                                                                          fit: FlexFit.tight,
+                                                                          child: SizedBox(),
+                                                                        )
+                                                                      : SizedBox(),
+                                                                  Flexible(
+                                                                    fit: FlexFit.tight,
+                                                                    child: ElevatedButton(
+                                                                      onPressed: () async {
+                                                                        await changeCartItem(element["item_id"], 0, widget.business["business_id"],
+                                                                                options: _getElementWithSelectedItemsByIndex(index)["options"] ?? [])
+                                                                            .then(
+                                                                          (value) {
+                                                                            List newCart = [];
+                                                                            if (value != null) {
+                                                                              if (options.isEmpty) {
+                                                                                setState(() {
+                                                                                  newCart = [
+                                                                                    value.firstWhere(
+                                                                                      (el) => el["item_id"] == element["item_id"],
+                                                                                      orElse: () => [],
+                                                                                    )
+                                                                                  ];
+                                                                                });
+                                                                              } else {
+                                                                                setState(() {
+                                                                                  newCart = value
+                                                                                      .where((el) => el["item_id"] == element["item_id"])
+                                                                                      .toList();
+                                                                                });
+                                                                                print("asdasd");
+                                                                              }
+                                                                              updateCurrentItem(newCart);
+                                                                            }
+                                                                            Navigator.pop(context);
                                                                           },
-                                                                          child: Text("Подтвердить")),
+                                                                        );
+                                                                      },
+                                                                      child: Text(
+                                                                        "Подтвердить",
+                                                                        style: TextStyle(
+                                                                          color: Theme.of(context).colorScheme.onPrimary,
+                                                                          fontWeight: FontWeight.w600,
+                                                                          fontSize: 42 * globals.scaleParam,
+                                                                        ),
+                                                                      ),
                                                                     ),
-                                                                  ],
-                                                                ),
-                                                              )),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ),
                                                         ],
                                                       ),
                                                     ),

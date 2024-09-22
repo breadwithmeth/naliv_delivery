@@ -1,13 +1,9 @@
-import 'dart:io';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter/services.dart';
 import 'package:naliv_delivery/agreements/offer.dart';
-import 'package:naliv_delivery/main.dart';
-import 'package:naliv_delivery/pages/activeOrdersPage.dart';
 import 'package:naliv_delivery/pages/bonusesPage.dart';
 import 'package:naliv_delivery/pages/createProfilePage.dart';
 import 'package:naliv_delivery/pages/pickOnMap.dart';
@@ -19,8 +15,6 @@ import 'package:naliv_delivery/pages/homePage.dart';
 import 'package:naliv_delivery/pages/orderHistoryPage.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
-import 'package:naliv_delivery/pages/supportPage.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 //сервис геолокации
 
@@ -159,7 +153,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                 Flexible(
                                     child: Text(
                                   "Изменить адрес доставки?",
-                                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 76 * globals.scaleParam, color: Colors.black),
+                                  style: TextStyle(
+                                      fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                      fontSize: 76 * globals.scaleParam,
+                                      color: Colors.black),
                                 )),
                                 SizedBox(
                                   height: 10 * globals.scaleParam,
@@ -167,7 +164,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                 Flexible(
                                     child: Text(
                                   _currentAddressName!,
-                                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 48 * globals.scaleParam, color: Colors.black),
+                                  style: TextStyle(
+                                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                      fontSize: 48 * globals.scaleParam,
+                                      color: Colors.black),
                                 )),
                                 SizedBox(
                                   height: 10 * globals.scaleParam,
@@ -179,13 +179,15 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                     Flexible(
                                       child: Text(
                                         "Подъезд/Вход: ",
-                                        style: TextStyle(fontWeight: FontWeight.w500, fontSize: 32 * globals.scaleParam),
+                                        style:
+                                            TextStyle(fontVariations: <FontVariation>[FontVariation('wght', 600)], fontSize: 32 * globals.scaleParam),
                                       ),
                                     ),
                                     Flexible(
                                       child: Text(
                                         address["entrance"] ?? "-",
-                                        style: TextStyle(fontWeight: FontWeight.w500, fontSize: 32 * globals.scaleParam),
+                                        style:
+                                            TextStyle(fontVariations: <FontVariation>[FontVariation('wght', 600)], fontSize: 32 * globals.scaleParam),
                                       ),
                                     )
                                   ],
@@ -198,7 +200,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                       child: Text(
                                         "Этаж: ",
                                         style: TextStyle(
-                                          fontWeight: FontWeight.w500,
+                                          fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                           fontSize: 32 * globals.scaleParam,
                                         ),
                                       ),
@@ -207,7 +209,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                       child: Text(
                                         address["floor"] ?? "-",
                                         style: TextStyle(
-                                          fontWeight: FontWeight.w500,
+                                          fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                           fontSize: 32 * globals.scaleParam,
                                         ),
                                       ),
@@ -222,7 +224,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                       child: Text(
                                         "Квартира/Офис: ",
                                         style: TextStyle(
-                                          fontWeight: FontWeight.w500,
+                                          fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                           fontSize: 32 * globals.scaleParam,
                                         ),
                                       ),
@@ -231,7 +233,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                       child: Text(
                                         address["apartment"] ?? "-",
                                         style: TextStyle(
-                                          fontWeight: FontWeight.w500,
+                                          fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                           fontSize: 32 * globals.scaleParam,
                                         ),
                                       ),
@@ -244,7 +246,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                       child: Text(
                                         address["other"] ?? "-",
                                         style: TextStyle(
-                                          fontWeight: FontWeight.w500,
+                                          fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                           fontSize: 32 * globals.scaleParam,
                                         ),
                                       ),
@@ -321,7 +323,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                               Flexible(
                                   child: Text(
                                 "Изменить адрес доставки?",
-                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 76 * globals.scaleParam, color: Colors.black),
+                                style: TextStyle(
+                                    fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                    fontSize: 76 * globals.scaleParam,
+                                    color: Colors.black),
                               )),
                               SizedBox(
                                 height: 10 * globals.scaleParam,
@@ -329,7 +334,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                               Flexible(
                                   child: Text(
                                 _currentAddressName!,
-                                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 48 * globals.scaleParam, color: Colors.black),
+                                style: TextStyle(
+                                    fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                    fontSize: 48 * globals.scaleParam,
+                                    color: Colors.black),
                               )),
                             ],
                           ),
@@ -443,13 +451,13 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
 
     // TextStyle titleStyle = TextStyle(
     //   fontSize: 50 * globals.scaleParam,
-    //   fontWeight: FontWeight.w500,
+    //   fontVariations: <FontVariation>[FontVariation('wght', 600)],
     //   color: Theme.of(context).colorScheme.onSurface,
     // );
 
     // TextStyle plainStyle = TextStyle(
     //   fontSize: 32 * globals.scaleParam,
-    //   fontWeight: FontWeight.w500,
+    //   fontVariations: <FontVariation>[FontVariation('wght', 600)],
     //   color: Theme.of(context).colorScheme.onSurface,
     // );
 
@@ -502,10 +510,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                         child: Text(
                           "НАЛИВ/ГРАДУСЫ24",
                           // "закажи",
-                          style: TextStyle(
-                              fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                              fontWeight: FontWeight.w700,
-                              fontSize: 72 * globals.scaleParam),
+                          style: TextStyle(fontVariations: <FontVariation>[FontVariation('wght', 800)], fontSize: 72 * globals.scaleParam),
                         ),
                       ),
                       // Icon(
@@ -672,9 +677,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                                 if (hasSecondLine(
                                                     widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
                                                     TextStyle(
-                                                      fontFamily: "MontserratAlternates",
                                                       fontSize: 32 * globals.scaleParam,
-                                                      fontWeight: FontWeight.w500,
+                                                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                       color: isCollapsed ? Colors.white : Colors.transparent,
                                                       height: 1.1,
                                                     ),
@@ -703,8 +707,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                                               widget.currentAddress["city_name"] ?? "",
                                                               textAlign: TextAlign.start,
                                                               style: TextStyle(
-                                                                fontFamily: "MontserratAlternates",
-                                                                fontWeight: FontWeight.w700,
+                                                                fontVariations: <FontVariation>[FontVariation('wght', 700)],
                                                                 fontSize: 36 * globals.scaleParam,
                                                                 color: Colors.white,
                                                                 height: 1.1,
@@ -725,9 +728,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                                               widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
                                                               style: TextStyle(
                                                                 fontFamily: "Raleway",
-                                                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                                 fontSize: 32 * globals.scaleParam,
-                                                                fontWeight: FontWeight.w500,
+                                                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                                 color: isCollapsed ? Colors.white : Colors.transparent,
                                                                 height: 1.1,
                                                               ),
@@ -813,7 +815,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                                     widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
                                                     TextStyle(
                                                       fontSize: 32 * globals.scaleParam,
-                                                      fontWeight: FontWeight.w500,
+                                                      fontVariations: <FontVariation>[FontVariation('wght', 700)],
                                                       color: isCollapsed ? Colors.white : Colors.transparent,
                                                       height: 1.1,
                                                     ),
@@ -842,8 +844,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                                               widget.currentAddress["city_name"] ?? "",
                                                               textAlign: TextAlign.start,
                                                               style: TextStyle(
-                                                                fontFamily: "MontserratAlternates",
-                                                                fontWeight: FontWeight.w700,
+                                                                fontVariations: <FontVariation>[FontVariation('wght', 700)],
                                                                 fontSize: 36 * globals.scaleParam,
                                                                 color: Colors.black,
                                                                 height: 1.1,
@@ -864,9 +865,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                                                               widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
                                                               style: TextStyle(
                                                                 fontFamily: "Raleway",
-                                                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                                 fontSize: 32 * globals.scaleParam,
-                                                                fontWeight: FontWeight.w500,
+                                                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                                 color: !isCollapsed ? Colors.black : Colors.transparent,
                                                                 height: 1.1,
                                                               ),
@@ -978,7 +978,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage> with Au
                       child: Text(
                         "Бар-Маркеты",
                         style: TextStyle(
-                            fontFamily: "MontserratAlternates", fontSize: 48 * globals.scaleParam, fontWeight: FontWeight.w700, color: Colors.black),
+                            fontSize: 48 * globals.scaleParam, fontVariations: <FontVariation>[FontVariation('wght', 700)], color: Colors.black),
                       ),
                     ),
                   ],
@@ -1050,8 +1050,7 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
               child: Text(
                 widget.name,
                 style: TextStyle(
-                  fontFamily: "MontserratAlternates",
-                  fontWeight: FontWeight.w700,
+                  fontVariations: <FontVariation>[FontVariation('wght', 800)],
                   fontSize: 36 * globals.scaleParam,
                 ),
               ),
@@ -1165,7 +1164,9 @@ class BusinessItemState extends State<BusinessItem> {
                                     child: Text(
                                       widget.business["name"],
                                       style: TextStyle(
-                                          fontWeight: FontWeight.w700, fontSize: 38 * globals.scaleParam, fontFamily: "MontserratAlternates"),
+                                          fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                          fontSize: 38 * globals.scaleParam,
+                                          fontFamily: "MontserratAlternates"),
                                     ),
                                   ),
                                 ],
@@ -1182,7 +1183,6 @@ class BusinessItemState extends State<BusinessItem> {
                                       style: TextStyle(
                                           fontFamily: "Raleway",
                                           fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                                          fontWeight: FontWeight.w500,
                                           fontSize: 30 * globals.scaleParam),
                                     ),
                                   )
@@ -1201,7 +1201,6 @@ class BusinessItemState extends State<BusinessItem> {
                                       style: TextStyle(
                                           fontFamily: "Raleway",
                                           fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                                          fontWeight: FontWeight.w500,
                                           fontSize: 30 * globals.scaleParam),
                                     ),
                                   ),

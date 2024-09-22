@@ -20,8 +20,7 @@ class _DealPageState extends State<DealPage> {
         children: [
           const Text(
             "-",
-            style: TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w400, color: Colors.black),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: Colors.black),
           ),
           Container(
               alignment: Alignment.centerLeft,
@@ -29,10 +28,7 @@ class _DealPageState extends State<DealPage> {
               child: TextButton(
                 child: Text(
                   text,
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.blue.shade600),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: Colors.blue.shade600),
                 ),
                 onPressed: () {
                   Navigator.push(context, MaterialPageRoute(
@@ -62,12 +58,12 @@ class _DealPageState extends State<DealPage> {
             children: [
               SizedBox(
                 width: MediaQuery.of(context).size.width * 0.9,
-                child: const Text(
+                child: Text(
                   "Уважаемый пользователь",
                   style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black),
+                    overflow: TextOverflow.ellipsis,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
               ),
               const Divider(),
@@ -75,10 +71,7 @@ class _DealPageState extends State<DealPage> {
                 width: MediaQuery.of(context).size.width * 0.9,
                 child: const Text(
                   "Продолжение использования нашего веб-ресурса/приложения/сервиса подразумевает ваше добровольное согласие на сбор, обработку и использование ваших персональных данных, а также подтверждение ознакомления и согласия с следующим:",
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.black),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: Colors.black),
                 ),
               ),
               const SizedBox(
@@ -118,10 +111,7 @@ class _DealPageState extends State<DealPage> {
                   Flexible(
                     child: Text(
                       "Я, при входе на данный ресурс, подтверждаю, что мне исполнился 21 год. Я подтверждаю, что прочитал и полностью ознакомился с вышеперечисленными документами, включая все правила, условия и политики, действующие на данном ресурсе.",
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.black),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: Colors.black),
                     ),
                   ),
                   Container(
@@ -153,8 +143,7 @@ class _DealPageState extends State<DealPage> {
                       }
                     : null,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 4, horizontal: 20),
+                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 20),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
