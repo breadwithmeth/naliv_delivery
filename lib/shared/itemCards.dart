@@ -1117,10 +1117,12 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
               Flexible(
                 flex: MediaQuery.of(context).size.aspectRatio > 1 ? 2 : 3,
                 fit: FlexFit.tight,
-                child: ExtendedImage.network(
-                  element["thumb"],
-                  fit: BoxFit.contain,
-                ),
+                child: element["thumb"] != null
+                    ? ExtendedImage.network(
+                        element["thumb"],
+                        fit: BoxFit.contain,
+                      )
+                    : SizedBox(),
               ),
               Expanded(
                 flex: 17,
@@ -1166,6 +1168,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                                       fontFamily: "Raleway",
                                                       fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                       fontSize: 32 * globals.scaleParam,
+                                                      height: 3 * globals.scaleParam,
                                                     ),
                                                   ),
                                                   element["country"] != null

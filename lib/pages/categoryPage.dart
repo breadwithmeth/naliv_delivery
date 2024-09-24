@@ -384,6 +384,13 @@ class _CategoryPageListState extends State<CategoryPageList> with SingleTickerPr
     try {
       Map? responseList = await getItemsMain(_pageNumber, widget.business["business_id"], "", widget.categoryId);
       if (responseList != null) {
+        if (responseList["items"] == null) {
+          setState(() {
+            _loading = false;
+            _isLastPage = true;
+          });
+          return;
+        }
         List<dynamic> itemList = responseList["items"];
         // List<dynamic> itemList = responseList.map((data) => Item(data)).toList();
 
@@ -552,7 +559,7 @@ class _CategoryPageListState extends State<CategoryPageList> with SingleTickerPr
                                         children_categories[index]["name"],
                                         style: TextStyle(
                                           fontFamily: "Raleway",
-                                          fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                          fontVariations: <FontVariation>[FontVariation('wght', 650)],
                                           fontSize: globals.scaleParam * 30,
                                         ),
                                       ),
@@ -605,9 +612,9 @@ class _CategoryPageListState extends State<CategoryPageList> with SingleTickerPr
                             "Категория пуста",
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontSize: 52 * globals.scaleParam,
-                              fontWeight: FontWeight.w600,
                               color: Colors.grey.shade400,
+                              fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                              fontSize: 52 * globals.scaleParam,
                             ),
                           ),
                         ),
