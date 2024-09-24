@@ -370,8 +370,8 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         "Отменить",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                          color: Colors.white,
+                          fontVariations: <FontVariation>[FontVariation('wght', 800)],
                           fontSize: 42 * globals.scaleParam,
                         ),
                       ),
@@ -650,7 +650,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                 textAlign: TextAlign.left,
                                 style: TextStyle(
                                   color: Color.fromARGB(255, 190, 190, 190),
-                                  fontWeight: FontWeight.w300,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 500)],
                                   fontSize: 26 * globals.scaleParam,
                                 ),
                               ),
@@ -665,7 +665,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                 textAlign: TextAlign.left,
                                 style: TextStyle(
                                   color: Color.fromARGB(255, 190, 190, 190),
-                                  fontWeight: FontWeight.w300,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 500)],
                                   fontSize: 26 * globals.scaleParam,
                                 ),
                               ),

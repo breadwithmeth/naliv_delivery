@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../misc/api.dart';
 import 'DealPage.dart';
+import '../globals.dart' as globals;
 
 class StartPage extends StatefulWidget {
   const StartPage({super.key});
@@ -103,7 +104,11 @@ class _StartPageState extends State<StartPage> {
                 children: [
                   Text(
                     "Войти",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onPrimary),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                      fontSize: 42 * globals.scaleParam,
+                    ),
                   )
                 ],
               ),

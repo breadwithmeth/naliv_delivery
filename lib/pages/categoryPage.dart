@@ -189,9 +189,9 @@ class _ParentCategoryPageState extends State<ParentCategoryPage> with SingleTick
         ),
       ),
       appBar: AppBar(
-        toolbarHeight: 105 * globals.scaleParam,
+        toolbarHeight: 130 * globals.scaleParam,
         bottom: PreferredSize(
-          preferredSize: Size(MediaQuery.sizeOf(context).width, 85 * globals.scaleParam),
+          preferredSize: Size(MediaQuery.sizeOf(context).width, 75 * globals.scaleParam),
           child: TabBar(
             controller: _tabController,
             tabAlignment: TabAlignment.start,
@@ -288,6 +288,8 @@ class _ParentCategoryPageState extends State<ParentCategoryPage> with SingleTick
                                 fontWeight: FontWeight.w500,
                                 fontSize: 30 * globals.scaleParam,
                                 color: Colors.black,
+                                fontFamily: "Raleway",
+                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                               ),
                             ),
                             Container(
