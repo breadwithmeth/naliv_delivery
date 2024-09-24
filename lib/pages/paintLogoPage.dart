@@ -41,8 +41,10 @@ class _PaintLogoPageState extends State<PaintLogoPage> with SingleTickerProvider
                             child: Text(
                               "НАЛИВ/ГРАДУСЫ24",
                               // "закажи",
-                              style: GoogleFonts.comfortaa(
-                                textStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 140 * globals.scaleParam),
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                fontSize: 140 * globals.scaleParam,
                               ),
                             ),
                           ),

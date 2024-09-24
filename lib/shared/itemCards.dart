@@ -1117,10 +1117,12 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
               Flexible(
                 flex: MediaQuery.of(context).size.aspectRatio > 1 ? 2 : 3,
                 fit: FlexFit.tight,
-                child: ExtendedImage.network(
-                  element["thumb"],
-                  fit: BoxFit.contain,
-                ),
+                child: element["thumb"] != null
+                    ? ExtendedImage.network(
+                        element["thumb"],
+                        fit: BoxFit.contain,
+                      )
+                    : SizedBox(),
               ),
               Expanded(
                 flex: 17,
@@ -1163,8 +1165,10 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                                   TextSpan(
                                                     text: element["name"],
                                                     style: TextStyle(
+                                                      fontFamily: "Raleway",
                                                       fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                       fontSize: 32 * globals.scaleParam,
+                                                      height: 3 * globals.scaleParam,
                                                     ),
                                                   ),
                                                   element["country"] != null
@@ -1181,7 +1185,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                                             child: Text(
                                                               element["country"] ?? "",
                                                               style: TextStyle(
-                                                                color: Colors.black,
+                                                                fontFamily: "Raleway",
                                                                 fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                                                 fontSize: 28 * globals.scaleParam,
                                                               ),
@@ -1202,9 +1206,10 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                                 child: Text(
                                                   "${globals.formatCost(element["price"].toString())} ₸ за 1 ${element["unit"]}",
                                                   style: TextStyle(
+                                                    fontFamily: "Raleway",
                                                     color: Colors.grey,
                                                     fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                                                    fontSize: 24 * globals.scaleParam,
+                                                    fontSize: 28 * globals.scaleParam,
                                                   ),
                                                 ),
                                               ),
@@ -1364,8 +1369,8 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                         child: Text(
                           "Сумма: ${globals.formatCost(((element['price'] * (element["amount"] - (element["promotions"] != null ? double.parse((element["amount"] / (element["promotions"][0]["add_amount"] + element["promotions"][0]["base_amount"])).toString()).truncate() : 0))) + (element["selected_options"] != null ? ((element["selected_options"][0]["price"] * element["amount"]) / element["selected_options"][0]["parent_item_amount"]) : 0)).toString())} ₸",
                           style: TextStyle(
-                            color: Colors.black,
-                            fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                            fontFamily: "Raleway",
+                            fontVariations: <FontVariation>[FontVariation('wght', 700)],
                             fontSize: 32 * globals.scaleParam,
                           ),
                         ),
@@ -1379,6 +1384,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                   style: TextStyle(
                                     decoration: TextDecoration.lineThrough,
                                     decorationColor: Colors.grey,
+                                    fontFamily: "Raleway",
                                     color: Colors.grey,
                                     fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                     fontSize: 28 * globals.scaleParam,

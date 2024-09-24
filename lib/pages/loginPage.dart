@@ -3,6 +3,7 @@ import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
+import '../globals.dart' as globals;
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, this.login = "", this.password = ""});
@@ -85,7 +86,7 @@ class _LoginPageState extends State<LoginPage> {
               children: [
                 Flexible(
                   fit: FlexFit.tight,
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Flexible(
@@ -94,9 +95,9 @@ class _LoginPageState extends State<LoginPage> {
                           "Вход",
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 24,
+                            color: Colors.white,
+                            fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                            fontSize: 42 * globals.scaleParam,
                           ),
                         ),
                       )
@@ -123,10 +124,50 @@ class _LoginPageState extends State<LoginPage> {
                                   enabled: !isCodeSend,
                                   dropdownIconPosition: IconPosition.trailing,
                                   showCountryFlag: true,
-                                  decoration: const InputDecoration(
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                    fontSize: 42 * globals.scaleParam,
+                                  ),
+                                  dropdownTextStyle: TextStyle(
+                                    color: Colors.black,
+                                    fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                    fontSize: 42 * globals.scaleParam,
+                                  ),
+                                  decoration: InputDecoration(
                                     labelText: 'Номер телефона',
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.all(Radius.circular(10)),
+                                    ),
+                                    hintStyle: TextStyle(
+                                      color: Colors.grey,
+                                      fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                      fontSize: 42 * globals.scaleParam,
+                                    ),
+                                    labelStyle: TextStyle(
+                                      color: Colors.grey,
+                                      fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                      fontSize: 42 * globals.scaleParam,
+                                    ),
+                                    errorStyle: TextStyle(
+                                      color: Colors.red,
+                                      fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                      fontSize: 28 * globals.scaleParam,
+                                    ),
+                                    prefixStyle: TextStyle(
+                                      color: Colors.black,
+                                      fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                      fontSize: 42 * globals.scaleParam,
+                                    ),
+                                    helperStyle: TextStyle(
+                                      color: Colors.black,
+                                      fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                      fontSize: 38 * globals.scaleParam,
+                                    ),
+                                    floatingLabelStyle: TextStyle(
+                                      color: Colors.black,
+                                      fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                      fontSize: 42 * globals.scaleParam,
                                     ),
                                   ),
                                   initialCountryCode: 'KZ',
@@ -159,10 +200,45 @@ class _LoginPageState extends State<LoginPage> {
                                           keyboardType: TextInputType.number,
                                           maxLength: 6,
                                           textAlign: TextAlign.center,
-                                          decoration: const InputDecoration(
-                                            labelText: "Введите одноразовый код из СМС",
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                            fontSize: 42 * globals.scaleParam,
+                                          ),
+                                          decoration: InputDecoration(
+                                            labelText: "Введите код из СМС",
                                             border: OutlineInputBorder(
                                               borderRadius: BorderRadius.all(Radius.circular(10)),
+                                            ),
+                                            hintStyle: TextStyle(
+                                              color: Colors.grey,
+                                              fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                              fontSize: 42 * globals.scaleParam,
+                                            ),
+                                            labelStyle: TextStyle(
+                                              color: Colors.grey,
+                                              fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                              fontSize: 42 * globals.scaleParam,
+                                            ),
+                                            errorStyle: TextStyle(
+                                              color: Colors.red,
+                                              fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                              fontSize: 28 * globals.scaleParam,
+                                            ),
+                                            prefixStyle: TextStyle(
+                                              color: Colors.black,
+                                              fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                              fontSize: 42 * globals.scaleParam,
+                                            ),
+                                            helperStyle: TextStyle(
+                                              color: Colors.black,
+                                              fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                              fontSize: 38 * globals.scaleParam,
+                                            ),
+                                            floatingLabelStyle: TextStyle(
+                                              color: Colors.black,
+                                              fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                              fontSize: 42 * globals.scaleParam,
                                             ),
                                           ),
                                         )
@@ -248,8 +324,15 @@ class _LoginPageState extends State<LoginPage> {
                                     _getOneTimeCode();
                                   } else {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text("Проверьте правильность номера"),
+                                      SnackBar(
+                                        content: Text(
+                                          "Проверьте правильность номера",
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                            fontSize: 32 * globals.scaleParam,
+                                          ),
+                                        ),
                                       ),
                                     );
                                   }
@@ -275,9 +358,9 @@ class _LoginPageState extends State<LoginPage> {
                                         "Получить код подтверждения",
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
-                                          color: Theme.of(context).colorScheme.onPrimary,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                          fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                          fontSize: 42 * globals.scaleParam,
                                         ),
                                       ),
                                     ),
@@ -301,7 +384,7 @@ class _LoginPageState extends State<LoginPage> {
                                     },
                                   );
                                 },
-                                child: const Row(
+                                child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   mainAxisSize: MainAxisSize.max,
                                   children: [
@@ -311,8 +394,9 @@ class _LoginPageState extends State<LoginPage> {
                                         "Отправить код",
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                          fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                          fontSize: 42 * globals.scaleParam,
                                         ),
                                       ),
                                     )

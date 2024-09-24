@@ -432,14 +432,12 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                             Row(
                               mainAxisAlignment: MainAxisAlignment.start,
                               children: [
-                                Flexible(
-                                  child: Text(
-                                    "Заказ",
-                                    style: TextStyle(
-                                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                                      fontSize: 64 * globals.scaleParam,
-                                      height: 3 * globals.scaleParam,
-                                    ),
+                                Text(
+                                  "Заказ",
+                                  style: TextStyle(
+                                    fontVariations: <FontVariation>[FontVariation('wght', 700)],
+                                    fontSize: 58 * globals.scaleParam,
+                                    height: 2.5 * globals.scaleParam,
                                   ),
                                 )
                               ],
@@ -447,16 +445,11 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                             Row(
                               mainAxisAlignment: MainAxisAlignment.start,
                               children: [
-                                Flexible(
-                                  child: Text(
-                                    "${widget.business["name"]} ${widget.business["address"]}",
-                                    style: TextStyle(
-                                      fontFamily: "Raleway",
-                                      height: 2 * globals.scaleParam,
-                                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 30 * globals.scaleParam,
-                                    ),
+                                Text(
+                                  "${widget.business["name"]} ${widget.business["address"]}",
+                                  style: TextStyle(
+                                    fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                    fontSize: 32 * globals.scaleParam,
                                   ),
                                 )
                               ],
@@ -987,9 +980,9 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                                     child: Text(
                                       paymentDescText,
                                       style: TextStyle(
-                                        color: Theme.of(context).colorScheme.primary,
-                                        fontWeight: FontWeight.w300,
-                                        fontSize: 28 * globals.scaleParam,
+                                        color: Colors.grey.shade600,
+                                        fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                        fontSize: 32 * globals.scaleParam,
                                       ),
                                     ),
                                   ),
@@ -1217,7 +1210,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                               textAlign: TextAlign.left,
                               style: TextStyle(
                                 color: Color.fromARGB(255, 190, 190, 190),
-                                fontWeight: FontWeight.w300,
+                                fontVariations: <FontVariation>[FontVariation('wght', 500)],
                                 fontSize: 26 * globals.scaleParam,
                               ),
                             ),
@@ -1232,7 +1225,7 @@ class _CreateOrderPageState extends State<CreateOrderPage> with SingleTickerProv
                               textAlign: TextAlign.left,
                               style: TextStyle(
                                 color: Color.fromARGB(255, 190, 190, 190),
-                                fontWeight: FontWeight.w300,
+                                fontVariations: <FontVariation>[FontVariation('wght', 500)],
                                 fontSize: 26 * globals.scaleParam,
                               ),
                             ),

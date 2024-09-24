@@ -291,7 +291,6 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                           _addresses[index]["city_name"] ?? "",
                                           style: TextStyle(
                                             fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                                            fontWeight: FontWeight.w700,
                                             fontSize: 44 * globals.scaleParam,
                                             height: 3.2 * globals.scaleParam,
                                           ),
@@ -335,7 +334,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                     child: Text(
                                       "Подъезд/Вход: ",
                                       style: TextStyle(
-                                          fontVariations: <FontVariation>[FontVariation('wght', 200)],
+                                          fontVariations: <FontVariation>[FontVariation('wght', 400)],
                                           fontWeight: FontWeight.w500,
                                           fontSize: 32 * globals.scaleParam),
                                     ),
@@ -359,7 +358,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                     child: Text(
                                       "Этаж: ",
                                       style: TextStyle(
-                                        fontVariations: <FontVariation>[FontVariation('wght', 200)],
+                                        fontVariations: <FontVariation>[FontVariation('wght', 400)],
                                         fontWeight: FontWeight.w500,
                                         fontSize: 32 * globals.scaleParam,
                                       ),
@@ -385,7 +384,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                     child: Text(
                                       "Квартира/Офис: ",
                                       style: TextStyle(
-                                        fontVariations: <FontVariation>[FontVariation('wght', 200)],
+                                        fontVariations: <FontVariation>[FontVariation('wght', 400)],
                                         fontWeight: FontWeight.w500,
                                         fontSize: 32 * globals.scaleParam,
                                       ),

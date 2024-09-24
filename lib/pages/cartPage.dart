@@ -409,8 +409,8 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                 "За покупками!",
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onPrimary,
-                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 800)],
                                   fontSize: 42 * globals.scaleParam,
                                 ),
                               ),
@@ -429,9 +429,9 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                     child: Text(
                       "Ваша корзина пуста",
                       style: TextStyle(
-                        fontWeight: FontWeight.w900,
+                        color: Colors.black,
+                        fontVariations: <FontVariation>[FontVariation('wght', 800)],
                         fontSize: 44 * globals.scaleParam,
-                        color: Colors.black38,
                       ),
                     ),
                   )
@@ -456,7 +456,16 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                 children: [
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [Text("Ваша корзина", style: Theme.of(context).textTheme.displayLarge)],
+                                    children: [
+                                      Text(
+                                        "Ваша корзина",
+                                        style: TextStyle(
+                                          fontVariations: <FontVariation>[FontVariation('wght', 700)],
+                                          fontSize: 58 * globals.scaleParam,
+                                          height: 2.5 * globals.scaleParam,
+                                        ),
+                                      )
+                                    ],
                                   ),
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.start,
@@ -464,9 +473,9 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                       Text(
                                         "${widget.business["name"]} ${widget.business["address"]}",
                                         style: TextStyle(
-                                            fontFamily: "Raleway",
-                                            fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                                            fontSize: 30 * globals.scaleParam),
+                                          fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                          fontSize: 32 * globals.scaleParam,
+                                        ),
                                       )
                                     ],
                                   ),
@@ -692,7 +701,14 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                       ),
                     ],
                   )
-            : LinearProgressIndicator(),
+            : Column(
+                children: [
+                  SizedBox(
+                    height: 140 * globals.scaleParam,
+                  ),
+                  LinearProgressIndicator(),
+                ],
+              ),
       ),
     );
   }

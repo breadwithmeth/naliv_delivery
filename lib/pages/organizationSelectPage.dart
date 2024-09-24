@@ -1158,15 +1158,16 @@ class BusinessItemState extends State<BusinessItem> {
                               fit: FlexFit.tight,
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Flexible(
                                     child: Text(
                                       widget.business["name"],
                                       style: TextStyle(
-                                          fontVariations: <FontVariation>[FontVariation('wght', 800)],
-                                          fontSize: 38 * globals.scaleParam,
-                                          fontFamily: "MontserratAlternates"),
+                                        fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                        fontSize: 38 * globals.scaleParam,
+                                        color: Colors.black,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -1175,6 +1176,7 @@ class BusinessItemState extends State<BusinessItem> {
                             Flexible(
                               fit: FlexFit.tight,
                               child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Flexible(
                                     fit: FlexFit.tight,

@@ -88,8 +88,9 @@ class _SettingsPageState extends State<SettingsPage> {
                             title: Text(
                               "Удалить аккаунт?",
                               style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
+                                fontVariations: <FontVariation>[FontVariation('wght', 800)],
                                 fontSize: 42 * globals.scaleParam,
-                                fontWeight: FontWeight.w600,
                               ),
                             ),
                             content: Padding(
@@ -98,9 +99,9 @@ class _SettingsPageState extends State<SettingsPage> {
                                 "Удаление приведёт к потере всех данных.\nЭто безвозвратное действие!",
                                 textAlign: TextAlign.start,
                                 style: TextStyle(
-                                  fontSize: 38 * globals.scaleParam,
-                                  fontWeight: FontWeight.w500,
                                   color: Colors.red,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                  fontSize: 38 * globals.scaleParam,
                                 ),
                               ),
                             ),
@@ -135,9 +136,9 @@ class _SettingsPageState extends State<SettingsPage> {
                                         child: Text(
                                           seconds > 0 ? "Да (${seconds.toString()})" : "Да",
                                           style: TextStyle(
-                                            fontSize: 48 * globals.scaleParam,
-                                            fontWeight: FontWeight.w600,
                                             color: seconds > 0 ? Colors.grey : Colors.red,
+                                            fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                            fontSize: 48 * globals.scaleParam,
                                           ),
                                         )),
                                   ),
@@ -150,8 +151,9 @@ class _SettingsPageState extends State<SettingsPage> {
                                       child: Text(
                                         "Нет",
                                         style: TextStyle(
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                          fontVariations: <FontVariation>[FontVariation('wght', 800)],
                                           fontSize: 48 * globals.scaleParam,
-                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                     ),
@@ -171,8 +173,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     Text(
                       "Удалить аккаунт",
                       style: TextStyle(
-                        fontSize: 38 * globals.scaleParam,
-                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                        fontSize: 42 * globals.scaleParam,
                       ),
                     ),
                   ],
@@ -201,8 +204,8 @@ class _SettingsPageState extends State<SettingsPage> {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
+                            fontVariations: <FontVariation>[FontVariation('wght', 800)],
                             fontSize: 42 * globals.scaleParam,
-                            fontWeight: FontWeight.w700,
                           ),
                         ),
                         actionsAlignment: MainAxisAlignment.center,
@@ -229,9 +232,9 @@ class _SettingsPageState extends State<SettingsPage> {
                                   child: Text(
                                     "Да",
                                     style: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                      fontVariations: <FontVariation>[FontVariation('wght', 800)],
                                       fontSize: 48 * globals.scaleParam,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.black,
                                     ),
                                   ),
                                 ),
@@ -245,8 +248,9 @@ class _SettingsPageState extends State<SettingsPage> {
                                   child: Text(
                                     "Нет",
                                     style: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                      fontVariations: <FontVariation>[FontVariation('wght', 800)],
                                       fontSize: 48 * globals.scaleParam,
-                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ),
@@ -272,8 +276,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     Text(
                       "Выйти",
                       style: TextStyle(
-                        fontSize: 38 * globals.scaleParam,
-                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                        fontSize: 42 * globals.scaleParam,
                       ),
                     ),
                   ],

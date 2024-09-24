@@ -27,6 +27,47 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
       firstDate: DateTime(initialDate.year - 100),
       lastDate: initialDate,
       locale: Locale('ru', 'RU'),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            dialogBackgroundColor: Colors.yellow, // days/years gridview
+            textTheme: TextTheme(
+              bodyMedium: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 48 * globals.scaleParam,
+                color: Colors.black,
+              ),
+            ),
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  // Title, selected date and day selection background (dark and light mode)
+                  surface: Colors.grey.shade200,
+                  primary: Colors.black,
+                  // Title, selected date and month/year picker color (dark and light mode)
+                  onSurface: Colors.black,
+                  onPrimary: Colors.white,
+                ),
+            // Buttons
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                textStyle: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 48 * globals.scaleParam,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            // Input
+            inputDecorationTheme: InputDecorationTheme(
+              labelStyle: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 24 * globals.scaleParam,
+                color: Colors.white,
+              ), // Input label
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null && picked != selectedDate) {
       setStateObj(() {
@@ -101,14 +142,23 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                 fit: FlexFit.tight,
                                 child: TextField(
                                   controller: _name,
-                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 50 * globals.scaleParam, color: Colors.black),
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                    fontSize: 46 * globals.scaleParam,
+                                  ),
                                   minLines: 1,
                                   autofocus: true,
-                                  decoration: const InputDecoration.collapsed(
+                                  decoration: InputDecoration.collapsed(
                                     border: UnderlineInputBorder(),
                                     filled: true,
                                     fillColor: Colors.white,
                                     hintText: "Ваше имя ",
+                                    hintStyle: TextStyle(
+                                      color: Colors.grey,
+                                      fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                      fontSize: 42 * globals.scaleParam,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -116,14 +166,23 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                 fit: FlexFit.tight,
                                 child: TextField(
                                   controller: _lastName,
-                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 50 * globals.scaleParam, color: Colors.black),
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                    fontSize: 46 * globals.scaleParam,
+                                  ),
                                   minLines: 1,
                                   autofocus: true,
-                                  decoration: const InputDecoration.collapsed(
+                                  decoration: InputDecoration.collapsed(
                                     border: UnderlineInputBorder(),
                                     filled: true,
                                     fillColor: Colors.white,
                                     hintText: "Фамилия ",
+                                    hintStyle: TextStyle(
+                                      color: Colors.grey,
+                                      fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                      fontSize: 42 * globals.scaleParam,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -157,7 +216,11 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                     title: Text(
                                       "Дата рождения",
                                       textAlign: TextAlign.center,
-                                      style: TextStyle(fontSize: 48 * globals.scaleParam, fontWeight: FontWeight.w700),
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                        fontSize: 46 * globals.scaleParam,
+                                      ),
                                     ),
                                     content: Row(
                                       mainAxisAlignment: MainAxisAlignment.center,
@@ -169,7 +232,10 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                           child: Text(
                                             "${selectedDate.day}.${selectedDate.month}.${selectedDate.year}",
                                             style: TextStyle(
-                                                fontSize: 36 * globals.scaleParam, color: Colors.grey.shade700, fontWeight: FontWeight.w700),
+                                              color: Colors.black,
+                                              fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                              fontSize: 46 * globals.scaleParam,
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -192,7 +258,11 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                               },
                                               child: Text(
                                                 "Продолжить",
-                                                style: TextStyle(fontSize: 36 * globals.scaleParam, color: Colors.black, fontWeight: FontWeight.w700),
+                                                style: TextStyle(
+                                                  color: Colors.black,
+                                                  fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                                  fontSize: 42 * globals.scaleParam,
+                                                ),
                                               ),
                                             ),
                                           ],
@@ -218,8 +288,9 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                         Text(
                           "продолжить",
                           style: TextStyle(
-                            fontSize: 32,
                             color: _name.text.isNotEmpty && _lastName.text.isNotEmpty ? Colors.white : Colors.white54,
+                            fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                            fontSize: 62 * globals.scaleParam,
                           ),
                         ),
                       ],
