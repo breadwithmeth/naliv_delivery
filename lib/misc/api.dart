@@ -63,10 +63,10 @@ Future<Position> determinePosition(BuildContext ctx) async {
 Future<String?> getToken() async {
   final prefs = await SharedPreferences.getInstance();
   String? token = prefs.getString('token');
-  if (token == "000") {
+  if (token == "000" || token == null) {
     return null;
   }
-  globals.setToken(token!);
+  globals.setToken(token);
   print(token);
   return token;
 }
