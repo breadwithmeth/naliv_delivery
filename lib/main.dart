@@ -2,18 +2,15 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:naliv_delivery/pages/paintLogoPage.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/preLoadDataPage.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'dart:async';
-import 'dart:ui';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 
 Future<void> main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +38,14 @@ class _MainState extends State<Main> {
   @override
   void initState() {
     super.initState();
+
+    //Remove this method to stop OneSignal Debugging
+    OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
+
+    OneSignal.initialize("f9a3bf44-4a96-4859-99a9-37aa2b579577");
+
+    // The promptForPushNotificationsWithUserResponse function will show the iOS or Android push notification prompt. We recommend removing the following code and instead using an In-App Message to prompt for notification permission
+    OneSignal.Notifications.requestPermission(true);
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       print(MediaQuery.of(context).size.aspectRatio);
@@ -202,9 +207,3 @@ class _MainState extends State<Main> {
 //                 fontWeight: FontWeight.w700,
 //                 color: Colors.black,
 //               ),
-
-
-
-
-
-

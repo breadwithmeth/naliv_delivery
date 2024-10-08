@@ -199,6 +199,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
           ? isAddressesLoading
               ? Center(
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Flexible(
                         child: Text(
@@ -206,8 +207,8 @@ class _PickAddressPageState extends State<PickAddressPage> {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.grey,
-                            fontSize: 42 * globals.scaleParam,
-                            fontWeight: FontWeight.w600,
+                            fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                            fontSize: 44 * globals.scaleParam,
                           ),
                         ),
                       ),
@@ -216,6 +217,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                 )
               : Center(
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Flexible(
                         child: Text(
@@ -223,8 +225,8 @@ class _PickAddressPageState extends State<PickAddressPage> {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.grey,
-                            fontSize: 42 * globals.scaleParam,
-                            fontWeight: FontWeight.w600,
+                            fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                            fontSize: 44 * globals.scaleParam,
                           ),
                         ),
                       ),
