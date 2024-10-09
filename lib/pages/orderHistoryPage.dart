@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/orderInfoPage.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
+import 'package:intl/intl.dart';
 
 class OrderHistoryPage extends StatefulWidget {
   const OrderHistoryPage({super.key});
@@ -14,6 +15,14 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
   Future<List<dynamic>> _getOrders() async {
     List<dynamic> orders = await getOrders();
     return orders;
+  }
+
+  String getLocalTime(String dateTime) {
+    DateFormat format = DateFormat("yyyy-MM-dd HH:mm:ss");
+
+    DateTime parsedData = format.parse(dateTime);
+
+    return format.format(parsedData);
   }
 
   @override
@@ -73,18 +82,19 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                 ),
               );
             } else {
+              List data = snapshot.data!.reversed.toList();
               children = Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam, vertical: 20 * globals.scaleParam),
                 child: ListView.builder(
-                  itemCount: snapshot.data!.length,
+                  itemCount: data.length,
                   itemBuilder: (context, index) {
                     return GestureDetector(
                       onTap: () {
                         Navigator.push(context, MaterialPageRoute(
                           builder: (context) {
                             return OrderInfoPage(
-                              orderId: snapshot.data![index]["order_id"].toString(),
-                              clientDeliveryInfo: {"a_name": snapshot.data![index]["a_name"], "a_address": snapshot.data![index]["a_address"]},
+                              orderId: data[index]["order_id"].toString(),
+                              clientDeliveryInfo: {"a_name": data[index]["a_name"], "a_address": data[index]["a_address"]},
                             );
                           },
                         ));
@@ -111,7 +121,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                       Flexible(
                                         fit: FlexFit.tight,
                                         child: Text(
-                                          "№ ${(index + 1).toString()}",
+                                          "№ ${(data.length - index).toString()}",
                                           textAlign: TextAlign.start,
                                           style: TextStyle(
                                             color: Theme.of(context).colorScheme.onPrimary,
@@ -123,7 +133,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                       Flexible(
                                         fit: FlexFit.tight,
                                         child: Text(
-                                          snapshot.data![index]["log_timestamp"].toString(),
+                                          getLocalTime(data[index]["log_timestamp"].toString()),
                                           textAlign: TextAlign.start,
                                           style: TextStyle(
                                             color: Theme.of(context).colorScheme.onPrimary,
@@ -160,7 +170,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                           Flexible(
                                             fit: FlexFit.tight,
                                             child: Text(
-                                              snapshot.data![index]["b_name"].toString(),
+                                              data[index]["b_name"].toString(),
                                               textAlign: TextAlign.start,
                                               style: TextStyle(
                                                 color: Theme.of(context).colorScheme.onSurface,
@@ -172,7 +182,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                           Flexible(
                                             fit: FlexFit.tight,
                                             child: Text(
-                                              snapshot.data![index]["b_address"].toString(),
+                                              data[index]["b_address"].toString(),
                                               textAlign: TextAlign.start,
                                               style: TextStyle(
                                                 color: Theme.of(context).colorScheme.onSurface,
@@ -191,11 +201,11 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          snapshot.data![index]["a_name"] != null
+                                          data[index]["a_name"] != null
                                               ? Flexible(
                                                   fit: FlexFit.tight,
                                                   child: Text(
-                                                    snapshot.data![index]["a_name"].toString(),
+                                                    data[index]["a_name"].toString(),
                                                     textAlign: TextAlign.start,
                                                     style: TextStyle(
                                                       overflow: TextOverflow.ellipsis,
@@ -217,11 +227,11 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                                     ),
                                                   ),
                                                 ),
-                                          snapshot.data![index]["a_address"] != null
+                                          data[index]["a_address"] != null
                                               ? Flexible(
                                                   fit: FlexFit.tight,
                                                   child: Text(
-                                                    snapshot.data![index]["a_address"].toString(),
+                                                    data[index]["a_address"].toString(),
                                                     textAlign: TextAlign.start,
                                                     style: TextStyle(
                                                       overflow: TextOverflow.ellipsis,

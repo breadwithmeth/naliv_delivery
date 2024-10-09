@@ -53,6 +53,8 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
     }
   }
 
+  bool isOrderLoaded = false;
+
   @override
   void initState() {
     super.initState();
@@ -61,6 +63,7 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
       (value) {
         setState(() {
           order = value[0];
+          isOrderLoaded = true;
         });
       },
     );
@@ -273,46 +276,46 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                         },
                       ),
                     ),
-                    Container(
-                      width: constraints.maxWidth,
-                      height: 120 * globals.scaleParam,
-                      margin: EdgeInsets.only(bottom: 15 * globals.scaleParam, left: 15 * globals.scaleParam, right: 15 * globals.scaleParam),
-                      padding: EdgeInsets.symmetric(vertical: 10 * globals.scaleParam, horizontal: 35 * globals.scaleParam),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.all(Radius.circular(15)),
-                        color: Colors.white,
-                      ),
-                      child: Row(
-                        children: [
-                          Flexible(
-                            fit: FlexFit.tight,
-                            child: Text(
-                              "Получено бонусов",
-                              style: TextStyle(
-                                overflow: TextOverflow.ellipsis,
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                                fontSize: 34 * globals.scaleParam,
-                              ),
-                            ),
-                          ),
-                          Flexible(
-                            fit: FlexFit.tight,
-                            child: Center(
-                              child: Text(
-                                globals.formatCost(double.parse(order["bonus"].toString()).toString()),
-                                style: TextStyle(
-                                  overflow: TextOverflow.ellipsis,
-                                  color: Theme.of(context).colorScheme.onSurface,
-                                  fontVariations: <FontVariation>[FontVariation('wght', 700)],
-                                  fontSize: 34 * globals.scaleParam,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    // Container(
+                    //   width: constraints.maxWidth,
+                    //   height: 120 * globals.scaleParam,
+                    //   margin: EdgeInsets.only(bottom: 15 * globals.scaleParam, left: 15 * globals.scaleParam, right: 15 * globals.scaleParam),
+                    //   padding: EdgeInsets.symmetric(vertical: 10 * globals.scaleParam, horizontal: 35 * globals.scaleParam),
+                    //   decoration: BoxDecoration(
+                    //     borderRadius: BorderRadius.all(Radius.circular(15)),
+                    //     color: Colors.white,
+                    //   ),
+                    //   child: Row(
+                    //     children: [
+                    //       Flexible(
+                    //         fit: FlexFit.tight,
+                    //         child: Text(
+                    //           "Получено бонусов",
+                    //           style: TextStyle(
+                    //             overflow: TextOverflow.ellipsis,
+                    //             color: Theme.of(context).colorScheme.onSurface,
+                    //             fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                    //             fontSize: 34 * globals.scaleParam,
+                    //           ),
+                    //         ),
+                    //       ),
+                    //       Flexible(
+                    //         fit: FlexFit.tight,
+                    //         child: Center(
+                    //           child: Text(
+                    //             globals.formatCost(double.parse(order["bonus"].toString()).toString()),
+                    //             style: TextStyle(
+                    //               overflow: TextOverflow.ellipsis,
+                    //               color: Theme.of(context).colorScheme.onSurface,
+                    //               fontVariations: <FontVariation>[FontVariation('wght', 700)],
+                    //               fontSize: 34 * globals.scaleParam,
+                    //             ),
+                    //           ),
+                    //         ),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
                     Container(
                       width: constraints.maxWidth,
                       height: 350 * globals.scaleParam,
@@ -343,7 +346,7 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                                   fit: FlexFit.tight,
                                   child: Center(
                                     child: Text(
-                                      "${globals.formatCost(double.parse(order["sum"].toString()).round().toString())} ₸",
+                                      "${globals.formatCost((double.parse(order["sum"].toString()) - (double.parse(order["delivery_price"].toString()))).round().toString())} ₸",
                                       style: TextStyle(
                                         overflow: TextOverflow.ellipsis,
                                         color: Theme.of(context).colorScheme.onSurface,
@@ -375,7 +378,7 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                                   fit: FlexFit.tight,
                                   child: Center(
                                     child: Text(
-                                      "${globals.formatCost(double.parse(order["delivery_price"].toString()).round().toString())} ₸",
+                                      "${globals.formatCost((double.parse(order["sum"].toString()) - (double.parse(order["sum"].toString()) - (double.parse(order["delivery_price"].toString())))).toString())} ₸",
                                       style: TextStyle(
                                         overflow: TextOverflow.ellipsis,
                                         color: Theme.of(context).colorScheme.onSurface,
@@ -410,7 +413,7 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                                   fit: FlexFit.tight,
                                   child: Center(
                                     child: Text(
-                                      "${globals.formatCost((double.parse(order["delivery_price"].toString()) + double.parse(order["sum"].toString())).round().toString())} ₸",
+                                      "${globals.formatCost(double.parse(order["sum"].toString()).round().toString())} ₸",
                                       style: TextStyle(
                                         overflow: TextOverflow.ellipsis,
                                         color: Theme.of(context).colorScheme.onSurface,
@@ -433,7 +436,18 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                 ),
               );
             })
-          : LinearProgressIndicator(),
+          : !isOrderLoaded
+              ? LinearProgressIndicator()
+              : Center(
+                  child: Text(
+                    "Ваша корзина пуста",
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                      fontSize: 44 * globals.scaleParam,
+                    ),
+                  ),
+                ),
     );
   }
 }

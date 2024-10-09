@@ -2,18 +2,15 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:naliv_delivery/pages/paintLogoPage.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/preLoadDataPage.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'dart:async';
-import 'dart:ui';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 
 Future<void> main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +38,9 @@ class _MainState extends State<Main> {
   @override
   void initState() {
     super.initState();
+
+    //Remove this method to stop OneSignal Debugging
+    initPlatformState();
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       print(MediaQuery.of(context).size.aspectRatio);
@@ -84,6 +84,158 @@ class _MainState extends State<Main> {
     // _timer.cancel();
   }
 
+  String _debugLabelString = "";
+  String? _emailAddress;
+  String? _smsNumber;
+  String? _externalUserId;
+  String? _language;
+  String? _liveActivityId;
+  bool _enableConsentButton = false;
+  bool _requireConsent = true;
+
+  Future<void> initPlatformState() async {
+    if (!mounted) return;
+
+    OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
+
+    OneSignal.Debug.setAlertLevel(OSLogLevel.none);
+    OneSignal.consentRequired(_requireConsent);
+
+    OneSignal.initialize("f9a3bf44-4a96-4859-99a9-37aa2b579577");
+
+    OneSignal.LiveActivities.setupDefault();
+
+    OneSignal.Notifications.clearAll();
+
+    OneSignal.User.pushSubscription.addObserver((state) {
+      print(OneSignal.User.pushSubscription.optedIn);
+      print(OneSignal.User.pushSubscription.id);
+      print(OneSignal.User.pushSubscription.token);
+      print(state.current.jsonRepresentation());
+    });
+
+    OneSignal.User.addObserver((state) {
+      var userState = state.jsonRepresentation();
+      print('OneSignal user changed: $userState');
+    });
+
+    OneSignal.Notifications.addPermissionObserver((state) {
+      print("Has permission " + state.toString());
+    });
+
+    OneSignal.Notifications.addClickListener((event) {
+      print('NOTIFICATION CLICK LISTENER CALLED WITH EVENT: $event');
+      this.setState(() {
+        _debugLabelString =
+            "Clicked notification: \n${event.notification.jsonRepresentation().replaceAll("\\n", "\n")}";
+      });
+    });
+
+    OneSignal.Notifications.addForegroundWillDisplayListener((event) {
+      print(
+          'NOTIFICATION WILL DISPLAY LISTENER CALLED WITH: ${event.notification.jsonRepresentation()}');
+
+      /// Display Notification, preventDefault to not display
+      event.preventDefault();
+
+      /// Do async work
+
+      /// notification.display() to display after preventing default
+      event.notification.display();
+
+      this.setState(() {
+        _debugLabelString =
+            "Notification received in foreground notification: \n${event.notification.jsonRepresentation().replaceAll("\\n", "\n")}";
+      });
+    });
+
+    OneSignal.InAppMessages.addClickListener((event) {
+      this.setState(() {
+        _debugLabelString =
+            "In App Message Clicked: \n${event.result.jsonRepresentation().replaceAll("\\n", "\n")}";
+      });
+    });
+    OneSignal.InAppMessages.addWillDisplayListener((event) {
+      print("ON WILL DISPLAY IN APP MESSAGE ${event.message.messageId}");
+    });
+    OneSignal.InAppMessages.addDidDisplayListener((event) {
+      print("ON DID DISPLAY IN APP MESSAGE ${event.message.messageId}");
+    });
+    OneSignal.InAppMessages.addWillDismissListener((event) {
+      print("ON WILL DISMISS IN APP MESSAGE ${event.message.messageId}");
+    });
+    OneSignal.InAppMessages.addDidDismissListener((event) {
+      print("ON DID DISMISS IN APP MESSAGE ${event.message.messageId}");
+    });
+
+    this.setState(() {
+      _enableConsentButton = _requireConsent;
+    });
+
+
+
+    OneSignal.InAppMessages.paused(false);
+  }
+
+  void _handlePromptForPushPermission() {
+    print("Prompting for Permission");
+    OneSignal.Notifications.requestPermission(true);
+  }
+
+  void _handleSetLanguage() {
+    if (_language == null) return;
+    print("Setting language");
+    OneSignal.User.setLanguage(_language!);
+  }
+
+
+  void _handleConsent() {
+    print("Setting consent to true");
+    OneSignal.consentGiven(true);
+
+    print("Setting state");
+    this.setState(() {
+      _enableConsentButton = false;
+    });
+  }
+
+  void _handleSetLocationShared() {
+    print("Setting location shared to true");
+    OneSignal.Location.setShared(true);
+  }
+
+  void _handleGetExternalId() async {
+    var externalId = await OneSignal.User.getExternalId();
+    print('External ID: $externalId');
+  }
+
+  void _handleLogin() {
+    print("Setting external user ID");
+    if (_externalUserId == null) return;
+    OneSignal.login(_externalUserId!);
+    OneSignal.User.addAlias("fb_id", "1341524");
+  }
+
+  void _handleLogout() {
+    OneSignal.logout();
+    OneSignal.User.removeAlias("fb_id");
+  }
+
+  void _handleGetOnesignalId() async {
+    var onesignalId = await OneSignal.User.getOnesignalId();
+    print('OneSignal ID: $onesignalId');
+  }
+
+
+  void _handleOptIn() {
+    OneSignal.User.pushSubscription.optIn();
+  }
+
+  void _handleOptOut() {
+    OneSignal.User.pushSubscription.optOut();
+  }
+
+
   @override
   Widget build(BuildContext context) {
     //! UNCOMMENT IN PRODUCTION
@@ -93,13 +245,16 @@ class _MainState extends State<Main> {
     // ]);
     // First get the FlutterView.
     FlutterView view = WidgetsBinding.instance.platformDispatcher.views.first;
-    print("SCREEN WIDTH IS: ${view.display.size.width}; SCREEN HEIGHT IS: ${view.display.size.height}");
+    print(
+        "SCREEN WIDTH IS: ${view.display.size.width}; SCREEN HEIGHT IS: ${view.display.size.height}");
     // 1560 + 720
     if (view.display.size.width + view.display.size.height >= 2560 + 1600) {
       globals.scaleParam = (view.display.size.shortestSide / 720) * 0.3;
-    } else if (view.display.size.width + view.display.size.height >= 1920 + 1080) {
+    } else if (view.display.size.width + view.display.size.height >=
+        1920 + 1080) {
       globals.scaleParam = (view.display.size.shortestSide / 720) * 0.3;
-    } else if (view.display.size.width + view.display.size.height >= (1560 + 720)) {
+    } else if (view.display.size.width + view.display.size.height >=
+        (1560 + 720)) {
       globals.scaleParam = (view.display.size.shortestSide / 720) * 0.4;
     } else {
       globals.scaleParam = 0.5;
@@ -119,7 +274,8 @@ class _MainState extends State<Main> {
       theme: ThemeData(
         fontFamily: "Raleway",
         typography: Typography.material2021(),
-        bottomSheetTheme: BottomSheetThemeData(backgroundColor: Colors.transparent),
+        bottomSheetTheme:
+            BottomSheetThemeData(backgroundColor: Colors.transparent),
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.amber,
           surface: Colors.white,
@@ -128,13 +284,16 @@ class _MainState extends State<Main> {
           primary: Colors.black,
           onPrimary: Colors.white,
           onError: Colors.white,
-          secondary: Colors.black38, // TODO: Change this later? To make more sense with black/white style
+          secondary: Colors
+              .black38, // TODO: Change this later? To make more sense with black/white style
           onSecondary: Colors.black,
         ),
         useMaterial3: true,
         brightness: Brightness.light,
-        pageTransitionsTheme: const PageTransitionsTheme(
-            builders: {TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(), TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder()}),
+        pageTransitionsTheme: const PageTransitionsTheme(builders: {
+          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder()
+        }),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(),
         scaffoldBackgroundColor: Colors.white,
         appBarTheme: AppBarTheme(
@@ -157,7 +316,8 @@ class _MainState extends State<Main> {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(15))),
+            shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(15))),
             backgroundColor: Colors.black,
             // backgroundColor: Color(0xFFFFCA3C),
             foregroundColor: Colors.white,
@@ -202,9 +362,3 @@ class _MainState extends State<Main> {
 //                 fontWeight: FontWeight.w700,
 //                 color: Colors.black,
 //               ),
-
-
-
-
-
-
