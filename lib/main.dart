@@ -11,6 +11,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 Future<void> main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -38,7 +39,12 @@ class _MainState extends State<Main> {
   @override
   void initState() {
     super.initState();
+    Permission.notification.request();
+    _handlePromptForPushPermission();
+    _handleOptIn();
+    OneSignal.initialize("f9a3bf44-4a96-4859-99a9-37aa2b579577");
 
+    OneSignal.Notifications.requestPermission(true);
     //Remove this method to stop OneSignal Debugging
     initPlatformState();
 
@@ -91,18 +97,17 @@ class _MainState extends State<Main> {
   String? _language;
   String? _liveActivityId;
   bool _enableConsentButton = false;
-  bool _requireConsent = true;
+  bool _requireConsent = false;
 
   Future<void> initPlatformState() async {
     if (!mounted) return;
-
     OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
 
     OneSignal.Debug.setAlertLevel(OSLogLevel.none);
     OneSignal.consentRequired(_requireConsent);
 
     OneSignal.initialize("f9a3bf44-4a96-4859-99a9-37aa2b579577");
-
+// f9a3bf44-4a96-4859-99a9-37aa2b579577
     OneSignal.LiveActivities.setupDefault();
 
     OneSignal.Notifications.clearAll();
@@ -172,8 +177,6 @@ class _MainState extends State<Main> {
       _enableConsentButton = _requireConsent;
     });
 
-
-
     OneSignal.InAppMessages.paused(false);
   }
 
@@ -187,7 +190,6 @@ class _MainState extends State<Main> {
     print("Setting language");
     OneSignal.User.setLanguage(_language!);
   }
-
 
   void _handleConsent() {
     print("Setting consent to true");
@@ -226,7 +228,6 @@ class _MainState extends State<Main> {
     print('OneSignal ID: $onesignalId');
   }
 
-
   void _handleOptIn() {
     OneSignal.User.pushSubscription.optIn();
   }
@@ -234,7 +235,6 @@ class _MainState extends State<Main> {
   void _handleOptOut() {
     OneSignal.User.pushSubscription.optOut();
   }
-
 
   @override
   Widget build(BuildContext context) {

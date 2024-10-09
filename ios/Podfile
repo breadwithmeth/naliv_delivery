@@ -1,3 +1,5 @@
+use_frameworks!
+
 # Uncomment this line to define a global platform for your project
 platform :ios, '15.2'
 
@@ -45,4 +47,10 @@ post_install do |installer|
       config.build_settings['ENABLE_BITCODE'] = 'NO'
     end
   end
+end
+
+
+target 'OneSignalNotificationServiceExtension' do
+  use_frameworks!
+  pod 'OneSignalXCFramework', '>= 5.0.0', '< 6.0'
 end
