@@ -81,7 +81,17 @@ class _PickAddressPageState extends State<PickAddressPage> {
     // _getAddresses();
     _getGeolocation();
     _getCities();
-    _getAddresses();
+    _getAddresses().whenComplete(
+      () {
+        if (_addresses.isEmpty && !isAddressesLoading) {
+          Navigator.pushReplacement(context, MaterialPageRoute(
+            builder: (context) {
+              return PickOnMapPage(currentPosition: _location, cities: _cities);
+            },
+          ));
+        }
+      },
+    );
   }
 
   @override
