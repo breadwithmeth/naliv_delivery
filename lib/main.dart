@@ -47,6 +47,7 @@ class _MainState extends State<Main> {
     OneSignal.Notifications.requestPermission(true);
     //Remove this method to stop OneSignal Debugging
     initPlatformState();
+    OneSignal.consentRequired(true);
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       print(MediaQuery.of(context).size.aspectRatio);

@@ -651,6 +651,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
         ), (route) => false);
       }
     });
+    initExternalId();
     // _initData();
   }
 
@@ -658,6 +659,14 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
   void dispose() {
     // Remove a callback to receive data sent from the TaskHandler.
     super.dispose();
+  }
+
+  initExternalId() async {
+    await OneSignal.User.getOnesignalId().then(
+      (value) {
+        setIdOneSignal(value!);
+      },
+    );
   }
 
   ScrollController _sc = ScrollController();
