@@ -488,17 +488,23 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
   String? _liveActivityId;
   bool _enableConsentButton = false;
   bool _requireConsent = true;
-
   Future<void> initPlatformState() async {
     if (!mounted) return;
+
     OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
 
     OneSignal.Debug.setAlertLevel(OSLogLevel.none);
     OneSignal.consentRequired(_requireConsent);
 
+    // NOTE: Replace with your own app ID from https://www.onesignal.com
     OneSignal.initialize("f9a3bf44-4a96-4859-99a9-37aa2b579577");
-// f9a3bf44-4a96-4859-99a9-37aa2b579577
+
     OneSignal.LiveActivities.setupDefault();
+    // OneSignal.LiveActivities.setupDefault(options: new LiveActivitySetupOptions(enablePushToStart: false, enablePushToUpdate: true));
+
+    // AndroidOnly stat only
+    // OneSignal.Notifications.removeNotification(1);
+    // OneSignal.Notifications.removeGroupedNotifications("group5");
 
     OneSignal.Notifications.clearAll();
 
@@ -506,6 +512,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
       print(OneSignal.User.pushSubscription.optedIn);
       print(OneSignal.User.pushSubscription.id);
       print(OneSignal.User.pushSubscription.token);
+
       print(state.current.jsonRepresentation());
     });
 
@@ -567,7 +574,37 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
       _enableConsentButton = _requireConsent;
     });
 
-    OneSignal.InAppMessages.paused(false);
+    // Some examples of how to use In App Messaging public methods with OneSignal SDK
+    oneSignalInAppMessagingTriggerExamples();
+
+    // Some examples of how to use Outcome Events public methods with OneSignal SDK
+    oneSignalOutcomeExamples();
+
+    OneSignal.InAppMessages.paused(true);
+  }
+
+  void _handleSendTags() {
+    print("Sending tags");
+    OneSignal.User.addTagWithKey("test2", "val2");
+
+    print("Sending tags array");
+    var sendTags = {'test': 'value', 'test2': 'value2'};
+    OneSignal.User.addTags(sendTags);
+  }
+
+  void _handleRemoveTag() {
+    print("Deleting tag");
+    OneSignal.User.removeTag("test2");
+
+    print("Deleting tags array");
+    OneSignal.User.removeTags(['test']);
+  }
+
+  void _handleGetTags() async {
+    print("Get tags");
+
+    var tags = await OneSignal.User.getTags();
+    print(tags);
   }
 
   void _handlePromptForPushPermission() {
@@ -579,6 +616,34 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     if (_language == null) return;
     print("Setting language");
     OneSignal.User.setLanguage(_language!);
+  }
+
+  void _handleSetEmail() {
+    if (_emailAddress == null) return;
+    print("Setting email");
+
+    OneSignal.User.addEmail(_emailAddress!);
+  }
+
+  void _handleRemoveEmail() {
+    if (_emailAddress == null) return;
+    print("Remove email");
+
+    OneSignal.User.removeEmail(_emailAddress!);
+  }
+
+  void _handleSetSMSNumber() {
+    if (_smsNumber == null) return;
+    print("Setting SMS Number");
+
+    OneSignal.User.addSms(_smsNumber!);
+  }
+
+  void _handleRemoveSMSNumber() {
+    if (_smsNumber == null) return;
+    print("Remove smsNumber");
+
+    OneSignal.User.removeSms(_smsNumber!);
   }
 
   void _handleConsent() {
@@ -605,7 +670,6 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     print("Setting external user ID");
     if (_externalUserId == null) return;
     OneSignal.login(_externalUserId!);
-    OneSignal.User.addAlias("fb_id", "1341524");
   }
 
   void _handleLogout() {
@@ -613,9 +677,49 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     OneSignal.User.removeAlias("fb_id");
   }
 
-  void _handleGetOnesignalId() async {
-    var onesignalId = await OneSignal.User.getOnesignalId();
+  Future<String?> _handleGetOnesignalId() async {
+    String? onesignalId = await OneSignal.User.getOnesignalId();
     print('OneSignal ID: $onesignalId');
+    return onesignalId;
+  }
+
+  oneSignalInAppMessagingTriggerExamples() async {
+    /// Example addTrigger call for IAM
+    /// This will add 1 trigger so if there are any IAM satisfying it, it
+    /// will be shown to the user
+    OneSignal.InAppMessages.addTrigger("trigger_1", "one");
+
+    /// Example addTriggers call for IAM
+    /// This will add 2 triggers so if there are any IAM satisfying these, they
+    /// will be shown to the user
+    Map<String, String> triggers = new Map<String, String>();
+    triggers["trigger_2"] = "two";
+    triggers["trigger_3"] = "three";
+    OneSignal.InAppMessages.addTriggers(triggers);
+
+    // Removes a trigger by its key so if any future IAM are pulled with
+    // these triggers they will not be shown until the trigger is added back
+    OneSignal.InAppMessages.removeTrigger("trigger_2");
+
+    // Create a list and bulk remove triggers based on keys supplied
+    List<String> keys = ["trigger_1", "trigger_3"];
+    OneSignal.InAppMessages.removeTriggers(keys);
+
+    // Toggle pausing (displaying or not) of IAMs
+    OneSignal.InAppMessages.paused(true);
+    var arePaused = await OneSignal.InAppMessages.arePaused();
+    print('Notifications paused $arePaused');
+  }
+
+  oneSignalOutcomeExamples() async {
+    OneSignal.Session.addOutcome("normal_1");
+    OneSignal.Session.addOutcome("normal_2");
+
+    OneSignal.Session.addUniqueOutcome("unique_1");
+    OneSignal.Session.addUniqueOutcome("unique_2");
+
+    OneSignal.Session.addOutcomeWithValue("value_1", 3.2);
+    OneSignal.Session.addOutcomeWithValue("value_2", 3.9);
   }
 
   void _handleOptIn() {
@@ -626,19 +730,92 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     OneSignal.User.pushSubscription.optOut();
   }
 
+  void _handleStartDefaultLiveActivity() {
+    if (_liveActivityId == null) return;
+    print("Starting default live activity");
+    OneSignal.LiveActivities.startDefault(_liveActivityId!, {
+      "title": "Welcome!"
+    }, {
+      "message": {"en": "Hello World!"},
+      "intValue": 3,
+      "doubleValue": 3.14,
+      "boolValue": true
+    });
+  }
+
+  void _handleEnterLiveActivity() {
+    if (_liveActivityId == null) return;
+    print("Entering live activity");
+    OneSignal.LiveActivities.enterLiveActivity(_liveActivityId!, "FAKE_TOKEN");
+  }
+
+  void _handleExitLiveActivity() {
+    if (_liveActivityId == null) return;
+    print("Exiting live activity");
+    OneSignal.LiveActivities.exitLiveActivity(_liveActivityId!);
+  }
+
+  void _handleSetPushToStartLiveActivity() {
+    if (_liveActivityId == null) return;
+    print("Setting Push-To-Start live activity");
+    OneSignal.LiveActivities.setPushToStartToken(
+        _liveActivityId!, "FAKE_TOKEN");
+  }
+
+  void _handleRemovePushToStartLiveActivity() {
+    if (_liveActivityId == null) return;
+    print("Setting Push-To-Start live activity");
+    OneSignal.LiveActivities.removePushToStartToken(_liveActivityId!);
+  }
+
+  Future<void> startDialogWelcome() async {
+    await Future.delayed(const Duration(seconds: 15), () async {
+      _handleConsent();
+      _handlePromptForPushPermission();
+      _handleGetOnesignalId();
+      _handleOptIn();
+      _handleLogin();
+      initPlatformState();
+      OneSignal.User.pushSubscription.optIn();
+
+      await Future.delayed(const Duration(seconds: 15), () async {
+        await _handleGetOnesignalId().then((v) {
+          setEID();
+          initExternalId();
+        });
+      });
+    });
+  }
+
+  setEID() async {
+    setState(() async {
+      _externalUserId = await getToken();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
-    Permission.notification.request();
+    // Permission.notification.request();
+    startDialogWelcome();
 
+    initPlatformState();
+    _handleGetOnesignalId();
     _sc.addListener(_scrollListener);
     _getPosition();
-    initPlatformState();
+    // setEID();
+    // initPlatformState();
 
-    OneSignal.initialize("f9a3bf44-4a96-4859-99a9-37aa2b579577");
+    // OneSignal.initialize("f9a3bf44-4a96-4859-99a9-37aa2b579577");
 
-    OneSignal.Notifications.requestPermission(true);
-
+    // OneSignal.Notifications.requestPermission(true);
+    // OneSignal.User.getOnesignalId().then(
+    //       (value) {
+    //         print("=========================");
+    //         print(value);
+    //         setIdOneSignal(value!);
+    //       },
+    //     );
     // Future.delayed(Duration.zero).then((value) async {
     //   _getUser();
     // });
@@ -651,7 +828,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
         ), (route) => false);
       }
     });
-    initExternalId();
+    // initExternalId();
     // _initData();
   }
 
@@ -664,6 +841,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
   initExternalId() async {
     await OneSignal.User.getOnesignalId().then(
       (value) {
+        print("=========================");
+        print(value);
         setIdOneSignal(value!);
       },
     );

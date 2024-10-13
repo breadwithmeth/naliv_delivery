@@ -39,15 +39,22 @@ class _MainState extends State<Main> {
   @override
   void initState() {
     super.initState();
-    Permission.notification.request();
-    _handlePromptForPushPermission();
-    _handleOptIn();
-    OneSignal.initialize("f9a3bf44-4a96-4859-99a9-37aa2b579577");
+    // Permission.notification.request();
+    // _handlePromptForPushPermission();
+    // _handleOptIn();
+    // OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
 
-    OneSignal.Notifications.requestPermission(true);
-    //Remove this method to stop OneSignal Debugging
-    initPlatformState();
-    OneSignal.consentRequired(true);
+    // OneSignal.initialize("f9a3bf44-4a96-4859-99a9-37aa2b579577");
+    // OneSignal.Notifications.requestPermission(true).then((v) {
+    //   OneSignal.User.getOnesignalId().then((v) {
+    //     print("onesignalid" + v!);
+    //   });
+    // });
+
+    // OneSignal.Notifications.requestPermission(true);
+    // //Remove this method to stop OneSignal Debugging
+    // initPlatformState();
+    // OneSignal.consentRequired(true);
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       print(MediaQuery.of(context).size.aspectRatio);
