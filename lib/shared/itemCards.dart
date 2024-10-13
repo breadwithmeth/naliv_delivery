@@ -175,9 +175,10 @@ class _ItemCardState extends State<ItemCard> {
                       overflow: TextOverflow.ellipsis,
                       text: TextSpan(
                         style: TextStyle(
-                          textBaseline: TextBaseline.alphabetic,
-                          fontSize: 40 * globals.scaleParam,
+                          fontFamily: "Raleway",
+                          fontVariations: <FontVariation>[FontVariation('wght', 500)],
                           color: Colors.black,
+                          fontSize: 40 * globals.scaleParam,
                         ),
                         children: [
                           TextSpan(text: element["name"]),
@@ -214,17 +215,17 @@ class _ItemCardState extends State<ItemCard> {
                             Text(
                               globals.formatCost((element['price'] ?? "0").toString()),
                               style: TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 56 * (MediaQuery.sizeOf(context).width / 720),
+                                fontFamily: "Raleway",
+                                fontVariations: <FontVariation>[FontVariation('wght', 700)],
+                                fontSize: 50 * globals.scaleParam,
                               ),
                             ),
                             Text(
                               "₸",
                               style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 56 * (MediaQuery.sizeOf(context).width / 720),
+                                fontFamily: "Raleway",
+                                fontVariations: <FontVariation>[FontVariation('wght', 700)],
+                                fontSize: 50 * globals.scaleParam,
                               ),
                             )
                           ],
@@ -286,12 +287,6 @@ class _ItemCardState extends State<ItemCard> {
                         //     ),
                         //   ),
                         // ),
-                        Flexible(
-                          child: LikeButton(
-                            is_liked: element["is_liked"],
-                            item_id: element["item_id"],
-                          ),
-                        ),
                       ],
                     ),
                   ),
