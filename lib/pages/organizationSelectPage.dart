@@ -992,9 +992,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
           ),
         ),
       ),
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: Colors.white,
       // !isCollapsed ?      globals.mainColor : Colors.white,
       body: SafeArea(
+        bottom: false,
         child: CustomScrollView(
           controller: _sc,
           slivers: <Widget>[
@@ -1638,17 +1639,18 @@ class BusinessItemState extends State<BusinessItem> {
         );
       },
       child: Container(
+        alignment: Alignment.topLeft,
         margin: EdgeInsets.all(10 * globals.scaleParam),
         // width: 650 * globals.scaleParam,
         // height: 600 * globals.scaleParam,
 
         clipBehavior: Clip.antiAlias,
         decoration: const BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-                offset: Offset(2, 2), blurRadius: 2, color: Colors.black12),
-          ],
+          // color: Colors.white,
+          // boxShadow: [
+          //   BoxShadow(
+          //       offset: Offset(2, 2), blurRadius: 2, color: Colors.black12),
+          // ],
           borderRadius: BorderRadius.all(
             Radius.circular(10),
           ),
@@ -1656,8 +1658,15 @@ class BusinessItemState extends State<BusinessItem> {
         child: Column(
           children: [
             Expanded(
-              child: Stack(children: [
-                CachedNetworkImage(
+              flex: 2,
+              child: Container(
+                clipBehavior: Clip.antiAliasWithSaveLayer,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(10),
+                  ),
+                ),
+                child: CachedNetworkImage(
                   imageUrl: widget.business["img"],
                   height: double.infinity,
                   width: double.infinity,
@@ -1666,43 +1675,23 @@ class BusinessItemState extends State<BusinessItem> {
                     return const SizedBox();
                   },
                 ),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.max,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 10 * globals.scaleParam),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.delivery_dining_rounded,
-                            size: 48 * globals.scaleParam,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ]),
+              ),
             ),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   return Row(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(
-                        width: constraints.maxWidth * 0.9,
-                        height: constraints.maxHeight * 0.9,
+                        width: constraints.maxWidth * 0.95,
+                        height: constraints.maxHeight * 0.7,
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Flexible(
+                              flex: 1,
                               fit: FlexFit.tight,
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.start,
@@ -1713,7 +1702,7 @@ class BusinessItemState extends State<BusinessItem> {
                                       widget.business["name"],
                                       style: TextStyle(
                                         fontVariations: <FontVariation>[
-                                          FontVariation('wght', 800)
+                                          FontVariation('wght', 700)
                                         ],
                                         fontSize: 38 * globals.scaleParam,
                                         color: Colors.black,
@@ -1735,7 +1724,7 @@ class BusinessItemState extends State<BusinessItem> {
                                       style: TextStyle(
                                           fontFamily: "Raleway",
                                           fontVariations: <FontVariation>[
-                                            FontVariation('wght', 600)
+                                            FontVariation('wght', 400)
                                           ],
                                           fontSize: 30 * globals.scaleParam),
                                     ),
@@ -1743,26 +1732,26 @@ class BusinessItemState extends State<BusinessItem> {
                                 ],
                               ),
                             ),
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      "Короткое описание",
-                                      style: TextStyle(
-                                          fontFamily: "Raleway",
-                                          fontVariations: <FontVariation>[
-                                            FontVariation('wght', 600)
-                                          ],
-                                          fontSize: 30 * globals.scaleParam),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            // Flexible(
+                            //   fit: FlexFit.tight,
+                            //   child: Row(
+                            //     mainAxisAlignment: MainAxisAlignment.start,
+                            //     crossAxisAlignment: CrossAxisAlignment.center,
+                            //     children: [
+                            //       Flexible(
+                            //         child: Text(
+                            //           "Короткое описание",
+                            //           style: TextStyle(
+                            //               fontFamily: "Raleway",
+                            //               fontVariations: <FontVariation>[
+                            //                 FontVariation('wght', 600)
+                            //               ],
+                            //               fontSize: 30 * globals.scaleParam),
+                            //         ),
+                            //       ),
+                            //     ],
+                            //   ),
+                            // ),
                           ],
                         ),
                       ),
@@ -1801,11 +1790,9 @@ class _BusinessSelectCarouselState extends State<BusinessSelectCarousel> {
   @override
   Widget build(BuildContext context) {
     return SliverGrid.builder(
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        mainAxisSpacing: 5 * globals.scaleParam,
-        crossAxisSpacing: 5 * globals.scaleParam,
-        maxCrossAxisExtent: MediaQuery.sizeOf(context).shortestSide / 2,
-        mainAxisExtent: MediaQuery.sizeOf(context).shortestSide / 2,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 1,
+        childAspectRatio: 1.5
       ),
       itemCount: widget.businesses.length,
       itemBuilder: (context, index) {
