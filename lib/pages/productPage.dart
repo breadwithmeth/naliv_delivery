@@ -891,6 +891,7 @@ class _ProductPageState extends State<ProductPage> {
                                               .size
                                               .height,
                                           child: InteractiveViewer(
+                                            alignment: Alignment.center,
                                             // constrained: false,
                                             panEnabled: true,
                                             boundaryMargin: EdgeInsets.all(
@@ -899,6 +900,7 @@ class _ProductPageState extends State<ProductPage> {
                                             maxScale: 5,
                                             child: ExtendedImage.network(
                                               item["img"],
+                                              alignment: Alignment.center,
                                               width: double.infinity,
                                               height: constraints.maxHeight,
                                               // mode: ExtendedImageMode.gesture,
@@ -946,6 +948,7 @@ class _ProductPageState extends State<ProductPage> {
                         }, child: LayoutBuilder(
                           builder: (context, constraints) {
                             return Container(
+                              alignment: Alignment.center,
                                 width: constraints.maxWidth,
                                 height: constraints.maxWidth,
                                 // margin: EdgeInsets.all(10),
@@ -961,6 +964,7 @@ class _ProductPageState extends State<ProductPage> {
                                       item["img"] ?? "/",
                                       fit: BoxFit.cover,
                                       width: double.infinity,
+                                      
                                       // mode: ExtendedImageMode.gesture,
                                       // initGestureConfigHandler: (state) {
                                       //   return GestureConfig(
@@ -1003,18 +1007,18 @@ class _ProductPageState extends State<ProductPage> {
                                         color: Colors.black,
                                         letterSpacing: 0),
                                   ),
-                                  Text(
-                                    item["code"] ?? "",
-                                    style: TextStyle(
-                                        fontFamily: "MontserratAlternates",
-                                        fontVariations: <FontVariation>[
-                                          FontVariation('wght', 600)
-                                        ],
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 52 * globals.scaleParam,
-                                        color: Colors.blue,
-                                        letterSpacing: 0),
-                                  ),
+                                  // Text(
+                                  //   item["code"] ?? "",
+                                  //   style: TextStyle(
+                                  //       fontFamily: "MontserratAlternates",
+                                  //       fontVariations: <FontVariation>[
+                                  //         FontVariation('wght', 600)
+                                  //       ],
+                                  //       fontWeight: FontWeight.w700,
+                                  //       fontSize: 52 * globals.scaleParam,
+                                  //       color: Colors.blue,
+                                  //       letterSpacing: 0),
+                                  // ),
                                   SizedBox(
                                     height: 5 * globals.scaleParam,
                                   ),
