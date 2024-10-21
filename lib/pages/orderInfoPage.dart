@@ -22,7 +22,7 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
       case 0:
         return "Обрабатывается";
       case 1:
-        return "Получен";
+        return "Принят в обработку";
       case 2:
         return "Собирается";
       case 3:

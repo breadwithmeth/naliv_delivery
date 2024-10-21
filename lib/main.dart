@@ -139,14 +139,12 @@ class _MainState extends State<Main> {
     OneSignal.Notifications.addClickListener((event) {
       print('NOTIFICATION CLICK LISTENER CALLED WITH EVENT: $event');
       this.setState(() {
-        _debugLabelString =
-            "Clicked notification: \n${event.notification.jsonRepresentation().replaceAll("\\n", "\n")}";
+        _debugLabelString = "Clicked notification: \n${event.notification.jsonRepresentation().replaceAll("\\n", "\n")}";
       });
     });
 
     OneSignal.Notifications.addForegroundWillDisplayListener((event) {
-      print(
-          'NOTIFICATION WILL DISPLAY LISTENER CALLED WITH: ${event.notification.jsonRepresentation()}');
+      print('NOTIFICATION WILL DISPLAY LISTENER CALLED WITH: ${event.notification.jsonRepresentation()}');
 
       /// Display Notification, preventDefault to not display
       event.preventDefault();
@@ -157,15 +155,13 @@ class _MainState extends State<Main> {
       event.notification.display();
 
       this.setState(() {
-        _debugLabelString =
-            "Notification received in foreground notification: \n${event.notification.jsonRepresentation().replaceAll("\\n", "\n")}";
+        _debugLabelString = "Notification received in foreground notification: \n${event.notification.jsonRepresentation().replaceAll("\\n", "\n")}";
       });
     });
 
     OneSignal.InAppMessages.addClickListener((event) {
       this.setState(() {
-        _debugLabelString =
-            "In App Message Clicked: \n${event.result.jsonRepresentation().replaceAll("\\n", "\n")}";
+        _debugLabelString = "In App Message Clicked: \n${event.result.jsonRepresentation().replaceAll("\\n", "\n")}";
       });
     });
     OneSignal.InAppMessages.addWillDisplayListener((event) {
@@ -253,16 +249,13 @@ class _MainState extends State<Main> {
     // ]);
     // First get the FlutterView.
     FlutterView view = WidgetsBinding.instance.platformDispatcher.views.first;
-    print(
-        "SCREEN WIDTH IS: ${view.display.size.width}; SCREEN HEIGHT IS: ${view.display.size.height}");
+    print("SCREEN WIDTH IS: ${view.display.size.width}; SCREEN HEIGHT IS: ${view.display.size.height}");
     // 1560 + 720
     if (view.display.size.width + view.display.size.height >= 2560 + 1600) {
       globals.scaleParam = (view.display.size.shortestSide / 720) * 0.3;
-    } else if (view.display.size.width + view.display.size.height >=
-        1920 + 1080) {
+    } else if (view.display.size.width + view.display.size.height >= 1920 + 1080) {
       globals.scaleParam = (view.display.size.shortestSide / 720) * 0.3;
-    } else if (view.display.size.width + view.display.size.height >=
-        (1560 + 720)) {
+    } else if (view.display.size.width + view.display.size.height >= (1560 + 720)) {
       globals.scaleParam = (view.display.size.shortestSide / 720) * 0.4;
     } else {
       globals.scaleParam = 0.5;
@@ -282,8 +275,7 @@ class _MainState extends State<Main> {
       theme: ThemeData(
         fontFamily: "Raleway",
         typography: Typography.material2021(),
-        bottomSheetTheme:
-            BottomSheetThemeData(backgroundColor: Colors.transparent),
+        bottomSheetTheme: BottomSheetThemeData(backgroundColor: Colors.transparent),
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.amber,
           surface: Colors.white,
@@ -292,16 +284,13 @@ class _MainState extends State<Main> {
           primary: Colors.black,
           onPrimary: Colors.white,
           onError: Colors.white,
-          secondary: Colors
-              .black38, // TODO: Change this later? To make more sense with black/white style
+          secondary: Colors.black38, // TODO: Change this later? To make more sense with black/white style
           onSecondary: Colors.black,
         ),
         useMaterial3: true,
         brightness: Brightness.light,
-        pageTransitionsTheme: const PageTransitionsTheme(builders: {
-          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-          TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder()
-        }),
+        pageTransitionsTheme: const PageTransitionsTheme(
+            builders: {TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(), TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder()}),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(),
         scaffoldBackgroundColor: Colors.white,
         appBarTheme: AppBarTheme(
@@ -324,8 +313,7 @@ class _MainState extends State<Main> {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(15))),
+            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(15))),
             backgroundColor: Colors.black,
             // backgroundColor: Color(0xFFFFCA3C),
             foregroundColor: Colors.white,
