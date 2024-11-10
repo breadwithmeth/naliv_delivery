@@ -22,12 +22,7 @@ import 'package:permission_handler/permission_handler.dart';
 //сервис геолокации
 
 class OrganizationSelectPage extends StatefulWidget {
-  const OrganizationSelectPage(
-      {super.key,
-      required this.addresses,
-      required this.currentAddress,
-      required this.user,
-      required this.businesses});
+  const OrganizationSelectPage({super.key, required this.addresses, required this.currentAddress, required this.user, required this.businesses});
   final List addresses;
   final Map currentAddress;
   final Map<String, dynamic> user;
@@ -36,8 +31,7 @@ class OrganizationSelectPage extends StatefulWidget {
   State<OrganizationSelectPage> createState() => _OrganizationSelectPageState();
 }
 
-class _OrganizationSelectPageState extends State<OrganizationSelectPage>
-    with AutomaticKeepAliveClientMixin {
+class _OrganizationSelectPageState extends State<OrganizationSelectPage> with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -57,36 +51,12 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
 
   // ! TODO: TAKE THIS DATA FROM BACKEND
   List<Map> _carouselItems = [
-    {
-      "name": "Алкоголь",
-      "image":
-          "https://status-k.ru/wp-content/uploads/2021/06/alkogol-440x440.png"
-    },
-    {
-      "name": "Восточная кухня",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
-    {
-      "name": "Какая-то еще кухня",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
-    {
-      "name": "Надо будет написать бэк для этого",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
-    {
-      "name": "Потому что здесь",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
-    {
-      "name": "просто массив",
-      "image":
-          "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
-    },
+    {"name": "Алкоголь", "image": "https://status-k.ru/wp-content/uploads/2021/06/alkogol-440x440.png"},
+    {"name": "Восточная кухня", "image": "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"},
+    {"name": "Какая-то еще кухня", "image": "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"},
+    {"name": "Надо будет написать бэк для этого", "image": "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"},
+    {"name": "Потому что здесь", "image": "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"},
+    {"name": "просто массив", "image": "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"},
   ];
 
   void _initData() {
@@ -187,9 +157,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                     child: Text(
                                   "Изменить адрес доставки?",
                                   style: TextStyle(
-                                      fontVariations: <FontVariation>[
-                                        FontVariation('wght', 800)
-                                      ],
+                                      fontVariations: <FontVariation>[FontVariation('wght', 800)],
                                       fontSize: 76 * globals.scaleParam,
                                       color: Colors.black),
                                 )),
@@ -200,9 +168,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                     child: Text(
                                   _currentAddressName!,
                                   style: TextStyle(
-                                      fontVariations: <FontVariation>[
-                                        FontVariation('wght', 600)
-                                      ],
+                                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                       fontSize: 48 * globals.scaleParam,
                                       color: Colors.black),
                                 )),
@@ -216,21 +182,15 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                     Flexible(
                                       child: Text(
                                         "Подъезд/Вход: ",
-                                        style: TextStyle(
-                                            fontVariations: <FontVariation>[
-                                              FontVariation('wght', 600)
-                                            ],
-                                            fontSize: 32 * globals.scaleParam),
+                                        style:
+                                            TextStyle(fontVariations: <FontVariation>[FontVariation('wght', 600)], fontSize: 32 * globals.scaleParam),
                                       ),
                                     ),
                                     Flexible(
                                       child: Text(
                                         address["entrance"] ?? "-",
-                                        style: TextStyle(
-                                            fontVariations: <FontVariation>[
-                                              FontVariation('wght', 600)
-                                            ],
-                                            fontSize: 32 * globals.scaleParam),
+                                        style:
+                                            TextStyle(fontVariations: <FontVariation>[FontVariation('wght', 600)], fontSize: 32 * globals.scaleParam),
                                       ),
                                     )
                                   ],
@@ -243,9 +203,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                       child: Text(
                                         "Этаж: ",
                                         style: TextStyle(
-                                          fontVariations: <FontVariation>[
-                                            FontVariation('wght', 600)
-                                          ],
+                                          fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                           fontSize: 32 * globals.scaleParam,
                                         ),
                                       ),
@@ -254,9 +212,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                       child: Text(
                                         address["floor"] ?? "-",
                                         style: TextStyle(
-                                          fontVariations: <FontVariation>[
-                                            FontVariation('wght', 600)
-                                          ],
+                                          fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                           fontSize: 32 * globals.scaleParam,
                                         ),
                                       ),
@@ -271,9 +227,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                       child: Text(
                                         "Квартира/Офис: ",
                                         style: TextStyle(
-                                          fontVariations: <FontVariation>[
-                                            FontVariation('wght', 600)
-                                          ],
+                                          fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                           fontSize: 32 * globals.scaleParam,
                                         ),
                                       ),
@@ -282,9 +236,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                       child: Text(
                                         address["apartment"] ?? "-",
                                         style: TextStyle(
-                                          fontVariations: <FontVariation>[
-                                            FontVariation('wght', 600)
-                                          ],
+                                          fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                           fontSize: 32 * globals.scaleParam,
                                         ),
                                       ),
@@ -297,9 +249,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                       child: Text(
                                         address["other"] ?? "-",
                                         style: TextStyle(
-                                          fontVariations: <FontVariation>[
-                                            FontVariation('wght', 600)
-                                          ],
+                                          fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                           fontSize: 32 * globals.scaleParam,
                                         ),
                                       ),
@@ -314,16 +264,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                             children: [
                               IconButton(
                                   style: IconButton.styleFrom(
-                                      backgroundColor:
-                                          Colors.tealAccent.shade700,
-                                      padding: EdgeInsets.all(
-                                          20 * globals.scaleParam)),
+                                      backgroundColor: Colors.tealAccent.shade700, padding: EdgeInsets.all(20 * globals.scaleParam)),
                                   onPressed: () {
-                                    selectAddressClient(address["address_id"],
-                                            widget.user["user_id"])
-                                        .then((q) {
-                                      Navigator.pushAndRemoveUntil(context,
-                                          MaterialPageRoute(
+                                    selectAddressClient(address["address_id"], widget.user["user_id"]).then((q) {
+                                      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
                                         builder: (context) {
                                           return PreLoadDataPage(
                                               // business: widget.business,
@@ -344,10 +288,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                               ),
                               IconButton(
                                   style: IconButton.styleFrom(
-                                      backgroundColor:
-                                          Colors.redAccent.shade700,
-                                      padding: EdgeInsets.all(
-                                          20 * globals.scaleParam)),
+                                      backgroundColor: Colors.redAccent.shade700, padding: EdgeInsets.all(20 * globals.scaleParam)),
                                   onPressed: () {
                                     Navigator.pop(context);
                                   },
@@ -386,9 +327,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                   child: Text(
                                 "Изменить адрес доставки?",
                                 style: TextStyle(
-                                    fontVariations: <FontVariation>[
-                                      FontVariation('wght', 800)
-                                    ],
+                                    fontVariations: <FontVariation>[FontVariation('wght', 800)],
                                     fontSize: 76 * globals.scaleParam,
                                     color: Colors.black),
                               )),
@@ -399,9 +338,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                   child: Text(
                                 _currentAddressName!,
                                 style: TextStyle(
-                                    fontVariations: <FontVariation>[
-                                      FontVariation('wght', 600)
-                                    ],
+                                    fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                     fontSize: 48 * globals.scaleParam,
                                     color: Colors.black),
                               )),
@@ -413,9 +350,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                           children: [
                             IconButton(
                                 style: IconButton.styleFrom(
-                                    backgroundColor: Colors.tealAccent.shade700,
-                                    padding: EdgeInsets.all(
-                                        20 * globals.scaleParam)),
+                                    backgroundColor: Colors.tealAccent.shade700, padding: EdgeInsets.all(20 * globals.scaleParam)),
                                 onPressed: () {
                                   globals.addressSelectPopUpDone = true;
 
@@ -445,9 +380,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                             ),
                             IconButton(
                                 style: IconButton.styleFrom(
-                                    backgroundColor: Colors.redAccent.shade700,
-                                    padding: EdgeInsets.all(
-                                        20 * globals.scaleParam)),
+                                    backgroundColor: Colors.redAccent.shade700, padding: EdgeInsets.all(20 * globals.scaleParam)),
                                 onPressed: () {
                                   globals.addressSelectPopUpDone = true;
                                   Navigator.pop(context);
@@ -529,14 +462,12 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     OneSignal.Notifications.addClickListener((event) {
       print('NOTIFICATION CLICK LISTENER CALLED WITH EVENT: $event');
       this.setState(() {
-        _debugLabelString =
-            "Clicked notification: \n${event.notification.jsonRepresentation().replaceAll("\\n", "\n")}";
+        _debugLabelString = "Clicked notification: \n${event.notification.jsonRepresentation().replaceAll("\\n", "\n")}";
       });
     });
 
     OneSignal.Notifications.addForegroundWillDisplayListener((event) {
-      print(
-          'NOTIFICATION WILL DISPLAY LISTENER CALLED WITH: ${event.notification.jsonRepresentation()}');
+      print('NOTIFICATION WILL DISPLAY LISTENER CALLED WITH: ${event.notification.jsonRepresentation()}');
 
       /// Display Notification, preventDefault to not display
       event.preventDefault();
@@ -547,15 +478,13 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
       event.notification.display();
 
       this.setState(() {
-        _debugLabelString =
-            "Notification received in foreground notification: \n${event.notification.jsonRepresentation().replaceAll("\\n", "\n")}";
+        _debugLabelString = "Notification received in foreground notification: \n${event.notification.jsonRepresentation().replaceAll("\\n", "\n")}";
       });
     });
 
     OneSignal.InAppMessages.addClickListener((event) {
       this.setState(() {
-        _debugLabelString =
-            "In App Message Clicked: \n${event.result.jsonRepresentation().replaceAll("\\n", "\n")}";
+        _debugLabelString = "In App Message Clicked: \n${event.result.jsonRepresentation().replaceAll("\\n", "\n")}";
       });
     });
     OneSignal.InAppMessages.addWillDisplayListener((event) {
@@ -759,8 +688,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
   void _handleSetPushToStartLiveActivity() {
     if (_liveActivityId == null) return;
     print("Setting Push-To-Start live activity");
-    OneSignal.LiveActivities.setPushToStartToken(
-        _liveActivityId!, "FAKE_TOKEN");
+    OneSignal.LiveActivities.setPushToStartToken(_liveActivityId!, "FAKE_TOKEN");
   }
 
   void _handleRemovePushToStartLiveActivity() {
@@ -804,6 +732,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     _handleGetOnesignalId();
     _sc.addListener(_scrollListener);
     _getPosition();
+
     // setEID();
     // initPlatformState();
 
@@ -821,6 +750,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     //   _getUser();
     // });
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      OneSignal.InAppMessages.paused(false);
+      // OneSignal.InAppMessages.removeTrigger("regbonus");
+      OneSignal.InAppMessages.addTrigger("regbonus", "true");
       if (widget.user["name"].toString().isEmpty) {
         Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
           builder: (context) {
@@ -855,9 +787,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
   bool isStartingToCollapse = false;
   double scrollExtent = 0;
   bool isMenuOpen = false;
-  final GlobalKey<ScaffoldState> _key = GlobalKey(
-      debugLabel:
-          "вот это ключ, всем ключам ключ, надеюсь он тут не потеряется"); // lol, за что он отвечает?
+  final GlobalKey<ScaffoldState> _key =
+      GlobalKey(debugLabel: "вот это ключ, всем ключам ключ, надеюсь он тут не потеряется"); // lol, за что он отвечает?
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -923,9 +854,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                         child: Text(
                           "НАЛИВ/ГРАДУСЫ24",
                           // "закажи",
-                          style: TextStyle(fontVariations: <FontVariation>[
-                            FontVariation('wght', 800)
-                          ], fontSize: 72 * globals.scaleParam),
+                          style: TextStyle(fontVariations: <FontVariation>[FontVariation('wght', 800)], fontSize: 72 * globals.scaleParam),
                         ),
                       ),
                       // Icon(
@@ -941,15 +870,11 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                 flex: 8,
                 fit: FlexFit.tight,
                 child: GridView.count(
-                  padding: EdgeInsets.all(
-                      MediaQuery.of(context).size.aspectRatio > 1
-                          ? 50
-                          : 20 * globals.scaleParam),
+                  padding: EdgeInsets.all(MediaQuery.of(context).size.aspectRatio > 1 ? 50 : 20 * globals.scaleParam),
                   mainAxisSpacing: 10,
                   crossAxisSpacing: 10,
                   childAspectRatio: 2 / 1,
-                  crossAxisCount:
-                      MediaQuery.of(context).size.aspectRatio > 1 ? 4 : 2,
+                  crossAxisCount: MediaQuery.of(context).size.aspectRatio > 1 ? 4 : 2,
                   children: [
                     const DrawerMenuItem(
                       name: "История заказов",
@@ -1029,10 +954,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
               title: AnimatedSwitcher(
                 transitionBuilder: (child, animation) {
                   return SlideTransition(
-                    position: Tween<Offset>(
-                            begin: const Offset(0, -1),
-                            end: const Offset(0, -0.1))
-                        .animate(animation),
+                    position: Tween<Offset>(begin: const Offset(0, -1), end: const Offset(0, -0.1)).animate(animation),
                     child: child,
                   );
                 },
@@ -1041,12 +963,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                     ? Container(
                         key: ValueKey(isCollapsed),
                         height: 160 * globals.scaleParam,
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 20 * globals.scaleParam),
+                        padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
                         alignment: Alignment.centerLeft,
                         decoration: BoxDecoration(
-                          borderRadius:
-                              const BorderRadius.all(Radius.circular(20)),
+                          borderRadius: const BorderRadius.all(Radius.circular(20)),
                           // color: Colors.amber,
                         ),
                         child: Row(
@@ -1068,12 +988,10 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                   ));
                                 },
                                 child: Container(
-                                  margin: EdgeInsets.only(
-                                      top: 10 * globals.scaleParam),
+                                  margin: EdgeInsets.only(top: 10 * globals.scaleParam),
                                   decoration: BoxDecoration(
                                     color: Colors.black,
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(15)),
+                                    borderRadius: BorderRadius.all(Radius.circular(15)),
                                     boxShadow: [
                                       BoxShadow(
                                         color: Colors.black38,
@@ -1085,10 +1003,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                   child: LayoutBuilder(
                                     builder: (context, constraints) {
                                       return Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.start,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
+                                        mainAxisAlignment: MainAxisAlignment.start,
+                                        crossAxisAlignment: CrossAxisAlignment.center,
                                         children: [
                                           SizedBox(
                                             width: constraints.maxWidth * 0.15,
@@ -1102,36 +1018,19 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                             width: constraints.maxWidth * 0.7,
                                             child: LayoutBuilder(
                                               builder: (context, constraints2) {
-                                                double cityNameHeight =
-                                                    constraints.maxHeight * 0.5;
-                                                double addressNameHeight =
-                                                    constraints.maxHeight * 0.5;
+                                                double cityNameHeight = constraints.maxHeight * 0.5;
+                                                double addressNameHeight = constraints.maxHeight * 0.5;
                                                 if (hasSecondLine(
-                                                    widget.currentAddress
-                                                            .isNotEmpty
-                                                        ? widget.currentAddress[
-                                                            "address"]
-                                                        : "Нет адреса",
+                                                    widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
                                                     TextStyle(
-                                                      fontSize: 32 *
-                                                          globals.scaleParam,
-                                                      fontVariations: <FontVariation>[
-                                                        FontVariation(
-                                                            'wght', 600)
-                                                      ],
-                                                      color: isCollapsed
-                                                          ? Colors.white
-                                                          : Colors.transparent,
+                                                      fontSize: 32 * globals.scaleParam,
+                                                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                                      color: isCollapsed ? Colors.white : Colors.transparent,
                                                       height: 1.1,
                                                     ),
-                                                    constraints.maxWidth *
-                                                        0.7)) {
-                                                  cityNameHeight =
-                                                      constraints.maxHeight *
-                                                          0.42;
-                                                  addressNameHeight =
-                                                      constraints.maxHeight *
-                                                          0.58;
+                                                    constraints.maxWidth * 0.7)) {
+                                                  cityNameHeight = constraints.maxHeight * 0.42;
+                                                  addressNameHeight = constraints.maxHeight * 0.58;
                                                 }
 
                                                 // return Container(
@@ -1140,39 +1039,23 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                 // );
 
                                                 return Column(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.end,
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.center,
+                                                  mainAxisAlignment: MainAxisAlignment.end,
+                                                  crossAxisAlignment: CrossAxisAlignment.center,
                                                   children: [
                                                     Container(
                                                       height: cityNameHeight,
-                                                      alignment:
-                                                          Alignment.bottomLeft,
+                                                      alignment: Alignment.bottomLeft,
                                                       child: Row(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .end,
+                                                        crossAxisAlignment: CrossAxisAlignment.end,
                                                         children: [
                                                           Flexible(
                                                             child: Text(
-                                                              widget.currentAddress[
-                                                                      "city_name"] ??
-                                                                  "",
-                                                              textAlign:
-                                                                  TextAlign
-                                                                      .start,
+                                                              widget.currentAddress["city_name"] ?? "",
+                                                              textAlign: TextAlign.start,
                                                               style: TextStyle(
-                                                                fontVariations: <FontVariation>[
-                                                                  FontVariation(
-                                                                      'wght',
-                                                                      700)
-                                                                ],
-                                                                fontSize: 36 *
-                                                                    globals
-                                                                        .scaleParam,
-                                                                color: Colors
-                                                                    .white,
+                                                                fontVariations: <FontVariation>[FontVariation('wght', 700)],
+                                                                fontSize: 36 * globals.scaleParam,
+                                                                color: Colors.white,
                                                                 height: 1.1,
                                                               ),
                                                             ),
@@ -1182,36 +1065,18 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                     ),
                                                     Container(
                                                       height: addressNameHeight,
-                                                      alignment:
-                                                          Alignment.topLeft,
+                                                      alignment: Alignment.topLeft,
                                                       child: Row(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
                                                         children: [
                                                           Flexible(
                                                             child: Text(
-                                                              widget.currentAddress
-                                                                      .isNotEmpty
-                                                                  ? widget.currentAddress[
-                                                                      "address"]
-                                                                  : "Нет адреса",
+                                                              widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
                                                               style: TextStyle(
-                                                                fontFamily:
-                                                                    "Raleway",
-                                                                fontSize: 32 *
-                                                                    globals
-                                                                        .scaleParam,
-                                                                fontVariations: <FontVariation>[
-                                                                  FontVariation(
-                                                                      'wght',
-                                                                      600)
-                                                                ],
-                                                                color: isCollapsed
-                                                                    ? Colors
-                                                                        .white
-                                                                    : Colors
-                                                                        .transparent,
+                                                                fontFamily: "Raleway",
+                                                                fontSize: 32 * globals.scaleParam,
+                                                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                                                color: isCollapsed ? Colors.white : Colors.transparent,
                                                                 height: 1.1,
                                                               ),
                                                             ),
@@ -1246,8 +1111,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                       )
                     : Container(
                         height: 160 * globals.scaleParam,
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 20 * globals.scaleParam),
+                        padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
                         alignment: Alignment.centerLeft,
                         child: Row(
                           children: [
@@ -1258,8 +1122,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                   padding: EdgeInsets.zero,
                                   // backgroundColor: Colors.white,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(15)),
+                                    borderRadius: BorderRadius.all(Radius.circular(15)),
                                   ),
                                 ),
                                 onPressed: () {
@@ -1277,10 +1140,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                     return SizedBox(
                                       height: 160 * globals.scaleParam,
                                       child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.start,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
+                                        mainAxisAlignment: MainAxisAlignment.start,
+                                        crossAxisAlignment: CrossAxisAlignment.center,
                                         children: [
                                           SizedBox(
                                             width: constraints.maxWidth * 0.15,
@@ -1294,36 +1155,19 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                             width: constraints.maxWidth * 0.7,
                                             child: LayoutBuilder(
                                               builder: (context, constraints2) {
-                                                double cityNameHeight =
-                                                    constraints.maxHeight * 0.5;
-                                                double addressNameHeight =
-                                                    constraints.maxHeight * 0.5;
+                                                double cityNameHeight = constraints.maxHeight * 0.5;
+                                                double addressNameHeight = constraints.maxHeight * 0.5;
                                                 if (hasSecondLine(
-                                                    widget.currentAddress
-                                                            .isNotEmpty
-                                                        ? widget.currentAddress[
-                                                            "address"]
-                                                        : "Нет адреса",
+                                                    widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
                                                     TextStyle(
-                                                      fontSize: 32 *
-                                                          globals.scaleParam,
-                                                      fontVariations: <FontVariation>[
-                                                        FontVariation(
-                                                            'wght', 700)
-                                                      ],
-                                                      color: isCollapsed
-                                                          ? Colors.white
-                                                          : Colors.transparent,
+                                                      fontSize: 32 * globals.scaleParam,
+                                                      fontVariations: <FontVariation>[FontVariation('wght', 700)],
+                                                      color: isCollapsed ? Colors.white : Colors.transparent,
                                                       height: 1.1,
                                                     ),
-                                                    constraints.maxWidth *
-                                                        0.7)) {
-                                                  cityNameHeight =
-                                                      constraints.maxHeight *
-                                                          0.42;
-                                                  addressNameHeight =
-                                                      constraints.maxHeight *
-                                                          0.58;
+                                                    constraints.maxWidth * 0.7)) {
+                                                  cityNameHeight = constraints.maxHeight * 0.42;
+                                                  addressNameHeight = constraints.maxHeight * 0.58;
                                                 }
 
                                                 // return Container(
@@ -1332,39 +1176,23 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                 // );
 
                                                 return Column(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.end,
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.center,
+                                                  mainAxisAlignment: MainAxisAlignment.end,
+                                                  crossAxisAlignment: CrossAxisAlignment.center,
                                                   children: [
                                                     Container(
                                                       height: cityNameHeight,
-                                                      alignment:
-                                                          Alignment.bottomLeft,
+                                                      alignment: Alignment.bottomLeft,
                                                       child: Row(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .end,
+                                                        crossAxisAlignment: CrossAxisAlignment.end,
                                                         children: [
                                                           Flexible(
                                                             child: Text(
-                                                              widget.currentAddress[
-                                                                      "city_name"] ??
-                                                                  "",
-                                                              textAlign:
-                                                                  TextAlign
-                                                                      .start,
+                                                              widget.currentAddress["city_name"] ?? "",
+                                                              textAlign: TextAlign.start,
                                                               style: TextStyle(
-                                                                fontVariations: <FontVariation>[
-                                                                  FontVariation(
-                                                                      'wght',
-                                                                      700)
-                                                                ],
-                                                                fontSize: 36 *
-                                                                    globals
-                                                                        .scaleParam,
-                                                                color: Colors
-                                                                    .black,
+                                                                fontVariations: <FontVariation>[FontVariation('wght', 700)],
+                                                                fontSize: 36 * globals.scaleParam,
+                                                                color: Colors.black,
                                                                 height: 1.1,
                                                               ),
                                                             ),
@@ -1374,36 +1202,18 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                                     ),
                                                     Container(
                                                       height: addressNameHeight,
-                                                      alignment:
-                                                          Alignment.topLeft,
+                                                      alignment: Alignment.topLeft,
                                                       child: Row(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
                                                         children: [
                                                           Flexible(
                                                             child: Text(
-                                                              widget.currentAddress
-                                                                      .isNotEmpty
-                                                                  ? widget.currentAddress[
-                                                                      "address"]
-                                                                  : "Нет адреса",
+                                                              widget.currentAddress.isNotEmpty ? widget.currentAddress["address"] : "Нет адреса",
                                                               style: TextStyle(
-                                                                fontFamily:
-                                                                    "Raleway",
-                                                                fontSize: 32 *
-                                                                    globals
-                                                                        .scaleParam,
-                                                                fontVariations: <FontVariation>[
-                                                                  FontVariation(
-                                                                      'wght',
-                                                                      600)
-                                                                ],
-                                                                color: !isCollapsed
-                                                                    ? Colors
-                                                                        .black
-                                                                    : Colors
-                                                                        .transparent,
+                                                                fontFamily: "Raleway",
+                                                                fontSize: 32 * globals.scaleParam,
+                                                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                                                color: !isCollapsed ? Colors.black : Colors.transparent,
                                                                 height: 1.1,
                                                               ),
                                                             ),
@@ -1455,8 +1265,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                               fit: FlexFit.tight,
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                    padding:
-                                        EdgeInsets.all(5 * globals.scaleParam),
+                                    padding: EdgeInsets.all(5 * globals.scaleParam),
                                     elevation: 0,
                                     backgroundColor: Colors.transparent,
                                     shadowColor: Colors.transparent),
@@ -1464,8 +1273,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                   _key.currentState!.openEndDrawer();
                                 },
                                 child: Padding(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 10 * globals.scaleParam),
+                                  padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam),
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.end,
                                     children: [
@@ -1481,9 +1289,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                             textAlign: TextAlign.right,
                                             style: TextStyle(
                                               fontFamily: "Raleway",
-                                              fontVariations: <FontVariation>[
-                                                FontVariation('wght', 600)
-                                              ],
+                                              fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                               fontSize: 30 * globals.scaleParam,
                                               color: Colors.black,
                                               fontWeight: FontWeight.w600,
@@ -1511,20 +1317,14 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
             ),
             SliverToBoxAdapter(
               child: Container(
-                padding: EdgeInsets.symmetric(
-                    horizontal: 50 * globals.scaleParam,
-                    vertical: 20 * globals.scaleParam),
+                padding: EdgeInsets.symmetric(horizontal: 50 * globals.scaleParam, vertical: 20 * globals.scaleParam),
                 child: Row(
                   children: [
                     Flexible(
                       child: Text(
                         "Бар-Маркеты",
                         style: TextStyle(
-                            fontSize: 48 * globals.scaleParam,
-                            fontVariations: <FontVariation>[
-                              FontVariation('wght', 700)
-                            ],
-                            color: Colors.black),
+                            fontSize: 48 * globals.scaleParam, fontVariations: <FontVariation>[FontVariation('wght', 700)], color: Colors.black),
                       ),
                     ),
                   ],
@@ -1554,8 +1354,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
 }
 
 class DrawerMenuItem extends StatefulWidget {
-  const DrawerMenuItem(
-      {super.key, required this.name, required this.icon, required this.route});
+  const DrawerMenuItem({super.key, required this.name, required this.icon, required this.route});
   final String name;
   final IconData icon;
   final Widget route;
@@ -1578,10 +1377,7 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
         decoration: const BoxDecoration(
           borderRadius: BorderRadius.only(bottomRight: Radius.circular(15)),
           color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-                offset: Offset(5, 3), blurRadius: 5, color: Colors.black12)
-          ],
+          boxShadow: [BoxShadow(offset: Offset(5, 3), blurRadius: 5, color: Colors.black12)],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.start,
@@ -1704,9 +1500,7 @@ class BusinessItemState extends State<BusinessItem> {
                                     child: Text(
                                       widget.business["name"],
                                       style: TextStyle(
-                                        fontVariations: <FontVariation>[
-                                          FontVariation('wght', 700)
-                                        ],
+                                        fontVariations: <FontVariation>[FontVariation('wght', 700)],
                                         fontSize: 38 * globals.scaleParam,
                                         color: Colors.black,
                                       ),
@@ -1726,9 +1520,7 @@ class BusinessItemState extends State<BusinessItem> {
                                       widget.business["address"],
                                       style: TextStyle(
                                           fontFamily: "Raleway",
-                                          fontVariations: <FontVariation>[
-                                            FontVariation('wght', 400)
-                                          ],
+                                          fontVariations: <FontVariation>[FontVariation('wght', 400)],
                                           fontSize: 30 * globals.scaleParam),
                                     ),
                                   )
@@ -1771,11 +1563,7 @@ class BusinessItemState extends State<BusinessItem> {
 }
 
 class BusinessSelectCarousel extends StatefulWidget {
-  const BusinessSelectCarousel(
-      {super.key,
-      required this.businesses,
-      required this.user,
-      required this.currentAddress});
+  const BusinessSelectCarousel({super.key, required this.businesses, required this.user, required this.currentAddress});
   final List<Map> businesses;
   final Map user;
   final Map currentAddress;
