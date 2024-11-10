@@ -48,7 +48,8 @@ class _StartPageState extends State<StartPage> {
             currentPage = currentPage + 1;
           }
         });
-        p_controller.animateToPage(currentPage, duration: const Duration(seconds: 1), curve: Curves.decelerate);
+        p_controller.animateToPage(currentPage,
+            duration: const Duration(seconds: 1), curve: Curves.decelerate);
       });
     });
   }
@@ -63,80 +64,113 @@ class _StartPageState extends State<StartPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 0,
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      // floatingActionButton:
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          Flexible(
-            flex: 14,
-            fit: FlexFit.tight,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: MediaQuery.of(context).size.width * 0.2,
-                  height: MediaQuery.of(context).size.height * 0.2,
-                  alignment: Alignment.center,
-                  child: Image.asset("assets/naliv_logo.png"),
+        appBar: AppBar(
+          toolbarHeight: 0,
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        // floatingActionButton:
+        body: SafeArea(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Spacer(),
+              Container(
+                padding:
+                    EdgeInsets.all(MediaQuery.of(context).size.width * 0.05),
+                decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                        colors: [Colors.deepOrangeAccent, Colors.orange])),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Flexible(
+                        child: Text(
+                      "НАЛИВ/",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontVariations: <FontVariation>[
+                            FontVariation('wght', 700)
+                          ],
+                          fontSize: 48),
+                    )),
+                    Flexible(
+                        child: Text(
+                      "ГРАДУСЫ",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontVariations: <FontVariation>[
+                            FontVariation('wght', 700)
+                          ],
+                          fontSize: 48),
+                    )),
+                    Flexible(
+                        child: Text(
+                      "24",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontVariations: <FontVariation>[
+                            FontVariation('wght', 700)
+                          ],
+                          fontSize: 48),
+                    )),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 30),
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) {
-                      return const DealPage();
-                    },
+              ),
+              Spacer(),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) {
+                          return const DealPage();
+                        },
+                      ),
+                    );
+                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Войти",
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontVariations: <FontVariation>[
+                            FontVariation('wght', 700)
+                          ],
+                          fontSize: 72 * globals.scaleParam,
+                        ),
+                      )
+                    ],
                   ),
-                );
-              },
-              child: Row(
+                ),
+              ),
+              Center(
+                  child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    "Войти",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontVariations: <FontVariation>[FontVariation('wght', 800)],
-                      fontSize: 42 * globals.scaleParam,
-                    ),
-                  )
+                  Container(
+                    width: MediaQuery.of(context).size.width * 0.08,
+                    height: MediaQuery.of(context).size.height * 0.08,
+                    alignment: Alignment.center,
+                    child: Image.asset("assets/s/visa.png"),
+                  ),
+                  SizedBox(
+                    width: 20,
+                  ),
+                  Container(
+                    width: MediaQuery.of(context).size.width * 0.08,
+                    height: MediaQuery.of(context).size.height * 0.08,
+                    alignment: Alignment.center,
+                    child: Image.asset("assets/s/mc.png"),
+                  ),
                 ],
-              ),
-            ),
-          ),
-          Center(
-              child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: MediaQuery.of(context).size.width * 0.1,
-                height: MediaQuery.of(context).size.height * 0.1,
-                alignment: Alignment.center,
-                child: Image.asset("assets/s/visa.png"),
-              ),
-              SizedBox(
-                width: 20,
-              ),
-              Container(
-                width: MediaQuery.of(context).size.width * 0.1,
-                height: MediaQuery.of(context).size.height * 0.1,
-                alignment: Alignment.center,
-                child: Image.asset("assets/s/mc.png"),
-              ),
+              )),
             ],
-          )),
-        ],
-      ),
-    );
+          ),
+        ));
   }
 }

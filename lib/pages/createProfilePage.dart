@@ -6,8 +6,8 @@ import 'package:naliv_delivery/pages/preLoadDataPage.dart';
 import '../globals.dart' as globals;
 
 class ProfileCreatePage extends StatefulWidget {
-  const ProfileCreatePage({super.key});
-
+  const ProfileCreatePage({super.key, required this.user});
+  final Map<String, dynamic>  user;
   @override
   State<ProfileCreatePage> createState() => _ProfileCreatePageState();
 }
@@ -16,8 +16,10 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
   TextEditingController _name = TextEditingController();
   TextEditingController _lastName = TextEditingController();
 
-  DateTime selectedDate = DateTime(DateTime.now().year - 18, DateTime.now().month, DateTime.now().day);
-  DateTime initialDate = DateTime(DateTime.now().year - 18, DateTime.now().month, DateTime.now().day);
+  DateTime selectedDate = DateTime(
+      DateTime.now().year - 18, DateTime.now().month, DateTime.now().day);
+  DateTime initialDate = DateTime(
+      DateTime.now().year - 18, DateTime.now().month, DateTime.now().day);
 
   Future<void> _selectDate(BuildContext context, Function setStateObj) async {
     final DateTime? picked = await showDatePicker(
@@ -144,7 +146,9 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                   controller: _name,
                                   style: TextStyle(
                                     color: Colors.black,
-                                    fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                    fontVariations: <FontVariation>[
+                                      FontVariation('wght', 600)
+                                    ],
                                     fontSize: 46 * globals.scaleParam,
                                   ),
                                   minLines: 1,
@@ -156,7 +160,9 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                     hintText: "Ваше имя ",
                                     hintStyle: TextStyle(
                                       color: Colors.grey,
-                                      fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                      fontVariations: <FontVariation>[
+                                        FontVariation('wght', 500)
+                                      ],
                                       fontSize: 42 * globals.scaleParam,
                                     ),
                                   ),
@@ -168,7 +174,9 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                   controller: _lastName,
                                   style: TextStyle(
                                     color: Colors.black,
-                                    fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                    fontVariations: <FontVariation>[
+                                      FontVariation('wght', 600)
+                                    ],
                                     fontSize: 46 * globals.scaleParam,
                                   ),
                                   minLines: 1,
@@ -180,7 +188,9 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                     hintText: "Фамилия ",
                                     hintStyle: TextStyle(
                                       color: Colors.grey,
-                                      fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                      fontVariations: <FontVariation>[
+                                        FontVariation('wght', 500)
+                                      ],
                                       fontSize: 42 * globals.scaleParam,
                                     ),
                                   ),
@@ -211,19 +221,26 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                     contentPadding: EdgeInsets.symmetric(
                                       horizontal: 30 * globals.scaleParam,
                                     ),
-                                    titlePadding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam, vertical: 30 * globals.scaleParam),
-                                    actionsPadding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam, vertical: 15 * globals.scaleParam),
+                                    titlePadding: EdgeInsets.symmetric(
+                                        horizontal: 30 * globals.scaleParam,
+                                        vertical: 30 * globals.scaleParam),
+                                    actionsPadding: EdgeInsets.symmetric(
+                                        horizontal: 30 * globals.scaleParam,
+                                        vertical: 15 * globals.scaleParam),
                                     title: Text(
                                       "Дата рождения",
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: Colors.black,
-                                        fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                        fontVariations: <FontVariation>[
+                                          FontVariation('wght', 600)
+                                        ],
                                         fontSize: 46 * globals.scaleParam,
                                       ),
                                     ),
                                     content: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         TextButton(
                                           onPressed: () {
@@ -233,7 +250,9 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                             "${selectedDate.day}.${selectedDate.month}.${selectedDate.year}",
                                             style: TextStyle(
                                               color: Colors.black,
-                                              fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                              fontVariations: <FontVariation>[
+                                                FontVariation('wght', 500)
+                                              ],
                                               fontSize: 46 * globals.scaleParam,
                                             ),
                                           ),
@@ -242,14 +261,19 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                     ),
                                     actions: [
                                       Padding(
-                                        padding: EdgeInsets.only(top: 5 * globals.scaleParam),
+                                        padding: EdgeInsets.only(
+                                            top: 5 * globals.scaleParam),
                                         child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
                                             TextButton(
                                               onPressed: () async {
-                                                await changeName(_name.text).then((v) {
-                                                  Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+                                                await changeName(_name.text)
+                                                    .then((v) {
+                                                  Navigator.pushAndRemoveUntil(
+                                                      context,
+                                                      MaterialPageRoute(
                                                     builder: (context) {
                                                       return PreLoadDataPage();
                                                     },
@@ -260,8 +284,11 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                                 "Продолжить",
                                                 style: TextStyle(
                                                   color: Colors.black,
-                                                  fontVariations: <FontVariation>[FontVariation('wght', 800)],
-                                                  fontSize: 42 * globals.scaleParam,
+                                                  fontVariations: <FontVariation>[
+                                                    FontVariation('wght', 800)
+                                                  ],
+                                                  fontSize:
+                                                      42 * globals.scaleParam,
                                                 ),
                                               ),
                                             ),
@@ -288,8 +315,13 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                         Text(
                           "продолжить",
                           style: TextStyle(
-                            color: _name.text.isNotEmpty && _lastName.text.isNotEmpty ? Colors.white : Colors.white54,
-                            fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                            color: _name.text.isNotEmpty &&
+                                    _lastName.text.isNotEmpty
+                                ? Colors.white
+                                : Colors.white54,
+                            fontVariations: <FontVariation>[
+                              FontVariation('wght', 800)
+                            ],
                             fontSize: 62 * globals.scaleParam,
                           ),
                         ),

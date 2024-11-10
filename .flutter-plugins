@@ -1,10 +1,6 @@
 # This is a generated file; do not edit or check into version control.
 background_location=/Users/shrvse/.pub-cache/hosted/pub.dev/background_location-0.13.0/
 device_info_plus=/Users/shrvse/.pub-cache/hosted/pub.dev/device_info_plus-10.1.2/
-flutter_background_service=/Users/shrvse/.pub-cache/hosted/pub.dev/flutter_background_service-5.0.7/
-flutter_background_service_android=/Users/shrvse/.pub-cache/hosted/pub.dev/flutter_background_service_android-6.2.4/
-flutter_background_service_ios=/Users/shrvse/.pub-cache/hosted/pub.dev/flutter_background_service_ios-5.0.2/
-flutter_foreground_task=/Users/shrvse/.pub-cache/hosted/pub.dev/flutter_foreground_task-8.5.0/
 flutter_inappwebview=/Users/shrvse/.pub-cache/hosted/pub.dev/flutter_inappwebview-6.0.0/
 flutter_inappwebview_android=/Users/shrvse/.pub-cache/hosted/pub.dev/flutter_inappwebview_android-1.0.13/
 flutter_inappwebview_ios=/Users/shrvse/.pub-cache/hosted/pub.dev/flutter_inappwebview_ios-1.0.13/

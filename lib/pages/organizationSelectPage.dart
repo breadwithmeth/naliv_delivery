@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:naliv_delivery/agreements/offer.dart';
 import 'package:naliv_delivery/pages/bonusesPage.dart';
 import 'package:naliv_delivery/pages/createProfilePage.dart';
+import 'package:naliv_delivery/pages/finishProfilePage.dart';
 import 'package:naliv_delivery/pages/pickOnMap.dart';
 import 'package:naliv_delivery/pages/preLoadDataPage.dart';
 import 'package:naliv_delivery/shared/bottomBar.dart';
@@ -823,7 +824,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
       if (widget.user["name"].toString().isEmpty) {
         Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
           builder: (context) {
-            return const ProfileCreatePage();
+            Map<String, dynamic> user = widget.user;
+            return  Finishprofilepage(user: user);
           },
         ), (route) => false);
       }
@@ -995,6 +997,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
       backgroundColor: Colors.white,
       // !isCollapsed ?      globals.mainColor : Colors.white,
       body: SafeArea(
+        maintainBottomViewPadding: false,
         bottom: false,
         child: CustomScrollView(
           controller: _sc,
@@ -1791,9 +1794,7 @@ class _BusinessSelectCarouselState extends State<BusinessSelectCarousel> {
   Widget build(BuildContext context) {
     return SliverGrid.builder(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 1,
-        childAspectRatio: 1.5
-      ),
+          crossAxisCount: 1, childAspectRatio: 1.5),
       itemCount: widget.businesses.length,
       itemBuilder: (context, index) {
         return BusinessItem(

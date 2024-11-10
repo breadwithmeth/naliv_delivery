@@ -1103,3 +1103,52 @@ Future<bool> setIdOneSignal(String id) async {
     return false;
   }
 }
+
+Future<Map<String, dynamic>> getItems2(String business_id) async {
+  String? token = globals.currentToken;
+
+  if (token == null) {
+    return {};
+  }
+  var url = Uri.https(URL_API, 'api/item/geti2');
+  var response = await client.post(
+    url,
+    headers: {"Content-Type": "application/json", "AUTH": token},
+    body: json.encode({'business_id': business_id}),
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(response.bodyBytes);
+  Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+  print(
+      "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
+  return data;
+}
+
+Future<bool> finishProfile(String name, String date, String first_name,
+    String last_name, String sex) async {
+  String? token = globals.currentToken;
+
+  if (token == null) {
+    return false;
+  }
+  var url = Uri.https(URL_API, 'api/user/finishProfile');
+  var response = await client.post(
+    url,
+    body: json.encode({
+      'name': name,
+      'first_name': first_name,
+      'last_name': last_name,
+      'sex': sex,
+      'date_of_birth': date
+    }),
+    headers: {"Content-Type": "application/json", "AUTH": token},
+  );
+  var data = jsonDecode(response.body);
+  print(response.statusCode);
+  if (data["result"] == true) {
+    return true;
+  } else {
+    return false;
+  }
+}

@@ -3,7 +3,8 @@ import 'package:naliv_delivery/misc/api.dart';
 import '../globals.dart' as globals;
 
 class OrderInfoPage extends StatefulWidget {
-  const OrderInfoPage({super.key, required this.orderId, required this.clientDeliveryInfo});
+  const OrderInfoPage(
+      {super.key, required this.orderId, required this.clientDeliveryInfo});
 
   final String orderId;
   final Map clientDeliveryInfo;
@@ -96,7 +97,9 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                       width: constraints.maxWidth,
                       height: 150 * globals.scaleParam,
                       margin: EdgeInsets.all(15 * globals.scaleParam),
-                      padding: EdgeInsets.symmetric(vertical: 10 * globals.scaleParam, horizontal: 35 * globals.scaleParam),
+                      padding: EdgeInsets.symmetric(
+                          vertical: 10 * globals.scaleParam,
+                          horizontal: 35 * globals.scaleParam),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.all(Radius.circular(15)),
                         color: Colors.white,
@@ -117,8 +120,12 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                                       order["b_name"].toString(),
                                       textAlign: TextAlign.start,
                                       style: TextStyle(
-                                        color: Theme.of(context).colorScheme.onSurface,
-                                        fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
+                                        fontVariations: <FontVariation>[
+                                          FontVariation('wght', 600)
+                                        ],
                                         fontSize: 36 * globals.scaleParam,
                                       ),
                                     ),
@@ -129,8 +136,12 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                                       order["b_address"].toString(),
                                       textAlign: TextAlign.start,
                                       style: TextStyle(
-                                        color: Theme.of(context).colorScheme.onSurface,
-                                        fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
+                                        fontVariations: <FontVariation>[
+                                          FontVariation('wght', 600)
+                                        ],
                                         fontSize: 36 * globals.scaleParam,
                                         height: 3 * globals.scaleParam,
                                       ),
@@ -148,13 +159,19 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                                   widget.clientDeliveryInfo["a_address"] != null
                                       ? Flexible(
                                           child: Text(
-                                            widget.clientDeliveryInfo["a_address"].toString(),
+                                            widget
+                                                .clientDeliveryInfo["a_address"]
+                                                .toString(),
                                             textAlign: TextAlign.start,
                                             maxLines: 3,
                                             style: TextStyle(
                                               overflow: TextOverflow.ellipsis,
-                                              color: Theme.of(context).colorScheme.onSurface,
-                                              fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface,
+                                              fontVariations: <FontVariation>[
+                                                FontVariation('wght', 600)
+                                              ],
                                               fontSize: 36 * globals.scaleParam,
                                               height: 3 * globals.scaleParam,
                                             ),
@@ -166,8 +183,12 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                                             textAlign: TextAlign.start,
                                             style: TextStyle(
                                               overflow: TextOverflow.ellipsis,
-                                              color: Theme.of(context).colorScheme.onSurface,
-                                              fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface,
+                                              fontVariations: <FontVariation>[
+                                                FontVariation('wght', 600)
+                                              ],
                                               fontSize: 36 * globals.scaleParam,
                                             ),
                                           ),
@@ -182,8 +203,13 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                     Container(
                       width: constraints.maxWidth,
                       height: 120 * globals.scaleParam,
-                      margin: EdgeInsets.only(bottom: 0, left: 15 * globals.scaleParam, right: 15 * globals.scaleParam),
-                      padding: EdgeInsets.symmetric(vertical: 10 * globals.scaleParam, horizontal: 35 * globals.scaleParam),
+                      margin: EdgeInsets.only(
+                          bottom: 0,
+                          left: 15 * globals.scaleParam,
+                          right: 15 * globals.scaleParam),
+                      padding: EdgeInsets.symmetric(
+                          vertical: 10 * globals.scaleParam,
+                          horizontal: 35 * globals.scaleParam),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.all(Radius.circular(15)),
                         color: Colors.white,
@@ -197,7 +223,9 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                               style: TextStyle(
                                 overflow: TextOverflow.ellipsis,
                                 color: Theme.of(context).colorScheme.onSurface,
-                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                fontVariations: <FontVariation>[
+                                  FontVariation('wght', 600)
+                                ],
                                 fontSize: 34 * globals.scaleParam,
                               ),
                             ),
@@ -206,11 +234,15 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                             fit: FlexFit.tight,
                             child: Center(
                               child: Text(
-                                getOrderStatusText(int.parse(order["order_status"])),
+                                getOrderStatusText(
+                                    int.parse(order["order_status"])),
                                 style: TextStyle(
-                                  fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                  fontVariations: <FontVariation>[
+                                    FontVariation('wght', 600)
+                                  ],
                                   overflow: TextOverflow.ellipsis,
-                                  color: getOrderStatusColor(int.parse(order["order_status"])),
+                                  color: getOrderStatusColor(
+                                      int.parse(order["order_status"])),
                                   fontSize: 34 * globals.scaleParam,
                                 ),
                               ),
@@ -223,7 +255,9 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                       width: constraints.maxWidth,
                       height: 650 * globals.scaleParam,
                       margin: EdgeInsets.all(15 * globals.scaleParam),
-                      padding: EdgeInsets.symmetric(vertical: 10 * globals.scaleParam, horizontal: 35 * globals.scaleParam),
+                      padding: EdgeInsets.symmetric(
+                          vertical: 10 * globals.scaleParam,
+                          horizontal: 35 * globals.scaleParam),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.all(Radius.circular(15)),
                         color: Colors.white,
@@ -243,12 +277,18 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                                         flex: 5,
                                         fit: FlexFit.tight,
                                         child: Text(
-                                          order["order_item"]["items"][index]["name"].toString(),
+                                          order["order_item"]["items"][index]
+                                                  ["name"]
+                                              .toString(),
                                           maxLines: 2,
                                           style: TextStyle(
                                             overflow: TextOverflow.ellipsis,
-                                            color: Theme.of(context).colorScheme.onSurface,
-                                            fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface,
+                                            fontVariations: <FontVariation>[
+                                              FontVariation('wght', 600)
+                                            ],
                                             fontSize: 32 * globals.scaleParam,
                                           ),
                                         ),
@@ -256,12 +296,16 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                                       Flexible(
                                         fit: FlexFit.tight,
                                         child: Text(
-                                          "х ${double.parse(order["order_item"]["items"][index]["amount"].toString()).round().toString()}",
+                                          "х ${double.parse(order["order_item"]["items"][index]["amount"].toString()).toString()}",
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             overflow: TextOverflow.ellipsis,
-                                            color: Theme.of(context).colorScheme.onSurface,
-                                            fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface,
+                                            fontVariations: <FontVariation>[
+                                              FontVariation('wght', 600)
+                                            ],
                                             fontSize: 36 * globals.scaleParam,
                                           ),
                                         ),
@@ -319,8 +363,12 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                     Container(
                       width: constraints.maxWidth,
                       height: 350 * globals.scaleParam,
-                      margin: EdgeInsets.symmetric(vertical: 2 * globals.scaleParam, horizontal: 15 * globals.scaleParam),
-                      padding: EdgeInsets.symmetric(vertical: 10 * globals.scaleParam, horizontal: 35 * globals.scaleParam),
+                      margin: EdgeInsets.symmetric(
+                          vertical: 2 * globals.scaleParam,
+                          horizontal: 15 * globals.scaleParam),
+                      padding: EdgeInsets.symmetric(
+                          vertical: 10 * globals.scaleParam,
+                          horizontal: 35 * globals.scaleParam),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.all(Radius.circular(15)),
                         color: Colors.white,
@@ -336,8 +384,12 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                                     "Корзина",
                                     style: TextStyle(
                                       overflow: TextOverflow.ellipsis,
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
+                                      fontVariations: <FontVariation>[
+                                        FontVariation('wght', 600)
+                                      ],
                                       fontSize: 34 * globals.scaleParam,
                                     ),
                                   ),
@@ -349,8 +401,12 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                                       "${globals.formatCost((double.parse(order["sum"].toString()) - (double.parse(order["delivery_price"].toString()))).round().toString())} ₸",
                                       style: TextStyle(
                                         overflow: TextOverflow.ellipsis,
-                                        color: Theme.of(context).colorScheme.onSurface,
-                                        fontVariations: <FontVariation>[FontVariation('wght', 700)],
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
+                                        fontVariations: <FontVariation>[
+                                          FontVariation('wght', 700)
+                                        ],
                                         fontSize: 34 * globals.scaleParam,
                                       ),
                                     ),
@@ -368,8 +424,12 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                                     "Доставка",
                                     style: TextStyle(
                                       overflow: TextOverflow.ellipsis,
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
+                                      fontVariations: <FontVariation>[
+                                        FontVariation('wght', 600)
+                                      ],
                                       fontSize: 34 * globals.scaleParam,
                                     ),
                                   ),
@@ -381,8 +441,12 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                                       "${globals.formatCost((double.parse(order["sum"].toString()) - (double.parse(order["sum"].toString()) - (double.parse(order["delivery_price"].toString())))).toString())} ₸",
                                       style: TextStyle(
                                         overflow: TextOverflow.ellipsis,
-                                        color: Theme.of(context).colorScheme.onSurface,
-                                        fontVariations: <FontVariation>[FontVariation('wght', 700)],
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
+                                        fontVariations: <FontVariation>[
+                                          FontVariation('wght', 700)
+                                        ],
                                         fontSize: 34 * globals.scaleParam,
                                       ),
                                     ),
@@ -403,8 +467,12 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                                     "Итого",
                                     style: TextStyle(
                                       overflow: TextOverflow.ellipsis,
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
+                                      fontVariations: <FontVariation>[
+                                        FontVariation('wght', 600)
+                                      ],
                                       fontSize: 34 * globals.scaleParam,
                                     ),
                                   ),
@@ -416,8 +484,12 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                                       "${globals.formatCost(double.parse(order["sum"].toString()).round().toString())} ₸",
                                       style: TextStyle(
                                         overflow: TextOverflow.ellipsis,
-                                        color: Theme.of(context).colorScheme.onSurface,
-                                        fontVariations: <FontVariation>[FontVariation('wght', 700)],
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
+                                        fontVariations: <FontVariation>[
+                                          FontVariation('wght', 700)
+                                        ],
                                         fontSize: 34 * globals.scaleParam,
                                       ),
                                     ),
@@ -443,7 +515,9 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
                     "Ваша корзина пуста",
                     style: TextStyle(
                       color: Colors.black,
-                      fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                      fontVariations: <FontVariation>[
+                        FontVariation('wght', 800)
+                      ],
                       fontSize: 44 * globals.scaleParam,
                     ),
                   ),

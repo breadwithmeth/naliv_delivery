@@ -11,7 +11,11 @@ import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 
 class PickOnMapPage extends StatefulWidget {
-  const PickOnMapPage({super.key, required this.currentPosition, required this.cities, this.isFromCreateOrder = false});
+  const PickOnMapPage(
+      {super.key,
+      required this.currentPosition,
+      required this.cities,
+      this.isFromCreateOrder = false});
   final Position? currentPosition;
   final List cities;
   final bool isFromCreateOrder;
@@ -24,7 +28,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
   MapController _mapController = MapController();
   String? _currentAddressName;
   bool isMapSetteled = false;
-  String styleUrl = "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png";
+  String styleUrl =
+      "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png";
   String apiKey = "YOUR-API-KEY";
   String _currentCity = "";
   FocusNode addressFocus = FocusNode();
@@ -54,52 +59,49 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
     }
     if (_currentCity.isEmpty) {
       showDialog(
-        barrierColor: Colors.white70,
         context: context,
         builder: (context) {
           return Dialog(
-            backgroundColor: Colors.transparent,
+            backgroundColor: Colors.white,
             shape: const RoundedRectangleBorder(),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-              child: Container(
-                alignment: Alignment.center,
-                color: Colors.transparent,
-                padding: EdgeInsets.all(20 * globals.scaleParam),
-                child: ListView.builder(
-                  primary: false,
-                  itemCount: widget.cities.length,
-                  itemBuilder: (context, index) {
-                    return TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _currentCity = widget.cities[index]["name"];
-                        });
-                        _mapController.move(
-                            LatLng((double.parse(widget.cities[index]["x1"]) + double.parse(widget.cities[index]["x2"])) / 2,
-                                (double.parse(widget.cities[index]["y1"]) + double.parse(widget.cities[index]["y1"])) / 2),
-                            10);
-                        Navigator.pop(context);
-                      },
-                      child: Container(
-                        padding: EdgeInsets.all(10 * globals.scaleParam),
-                        child: Row(
-                          children: [
-                            Text(
-                              widget.cities[index]["name"],
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontVariations: <FontVariation>[FontVariation('wght', 800)],
-                                fontSize: 42 * globals.scaleParam,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
+            child: ListView.builder(
+              shrinkWrap: true,
+              primary: false,
+              itemCount: widget.cities.length,
+              itemBuilder: (context, index) {
+                print(index);
+                return TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _currentCity = widget.cities[index]["name"];
+                    });
+                    _mapController.move(
+                        LatLng(
+                            (double.parse(widget.cities[index]["x1"]) +
+                                    double.parse(widget.cities[index]["x2"])) /
+                                2,
+                            (double.parse(widget.cities[index]["y1"]) +
+                                    double.parse(widget.cities[index]["y1"])) /
+                                2),
+                        10);
+                    Navigator.pop(context);
                   },
-                ),
-              ),
+                  child: Container(
+                    color: Colors.white,
+                    child: Row(
+                      children: [
+                        Text(
+                          widget.cities[index]["name"],
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 72 * globals.scaleParam,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
           );
         },
@@ -166,8 +168,13 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
       Durations.extralong4,
     ).then((v) {
       if (widget.currentPosition != null) {
-        _mapController.move(LatLng(widget.currentPosition!.latitude, widget.currentPosition!.longitude), 15);
-        searchGeoData(widget.currentPosition!.longitude, widget.currentPosition!.latitude).then((v) {
+        _mapController.move(
+            LatLng(widget.currentPosition!.latitude,
+                widget.currentPosition!.longitude),
+            15);
+        searchGeoData(widget.currentPosition!.longitude,
+                widget.currentPosition!.latitude)
+            .then((v) {
           setState(() {
             _searchAddress.text = _currentAddressName ?? "";
             isMapSetteled = true;
@@ -198,7 +205,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                 fit: FlexFit.tight,
                 child: _currentAddressName == _searchAddress.text
                     ? ElevatedButton(
-                        onPressed: _searchAddress.text.isEmpty || _searchAddress.text == "Нет адреса"
+                        onPressed: _searchAddress.text.isEmpty ||
+                                _searchAddress.text == "Нет адреса"
                             ? null
                             : () {
                                 showModalBottomSheet(
@@ -228,7 +236,9 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                  fontVariations: <FontVariation>[
+                                    FontVariation('wght', 800)
+                                  ],
                                   fontSize: 42 * globals.scaleParam,
                                 ),
                               ),
@@ -237,7 +247,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                         ),
                       )
                     : ElevatedButton(
-                        onPressed: _searchAddress.text.isEmpty || _searchAddress.text == "Нет адреса"
+                        onPressed: _searchAddress.text.isEmpty ||
+                                _searchAddress.text == "Нет адреса"
                             ? null
                             : () {
                                 searchGeoDataByString(_searchAddress.text).then(
@@ -250,45 +261,90 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                           backgroundColor: Colors.white,
                                           title: const Text("Выберите адрес"),
                                           content: Container(
-                                            width: MediaQuery.of(context).size.width * 0.8,
-                                            height: MediaQuery.of(context).size.height * 0.4,
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.8,
+                                            height: MediaQuery.of(context)
+                                                    .size
+                                                    .height *
+                                                0.4,
                                             child: SingleChildScrollView(
                                               child: Column(
                                                 children: [
                                                   ListView.builder(
-                                                    itemCount: foundAddresses.length,
+                                                    itemCount:
+                                                        foundAddresses.length,
                                                     primary: false,
                                                     shrinkWrap: true,
-                                                    itemBuilder: (context, index) {
+                                                    itemBuilder:
+                                                        (context, index) {
                                                       return Material(
                                                         color: Colors.white,
-                                                        shadowColor: Colors.black12,
-                                                        borderRadius: BorderRadius.all(Radius.circular(15)),
+                                                        shadowColor:
+                                                            Colors.black12,
+                                                        borderRadius:
+                                                            BorderRadius.all(
+                                                                Radius.circular(
+                                                                    15)),
                                                         elevation: 10,
                                                         child: ListTile(
-                                                          tileColor: Colors.white,
+                                                          tileColor:
+                                                              Colors.white,
                                                           onTap: () {
                                                             showModalBottomSheet(
-                                                              backgroundColor: Colors.white,
-                                                              barrierColor: Colors.black45,
-                                                              isScrollControlled: true,
+                                                              backgroundColor:
+                                                                  Colors.white,
+                                                              barrierColor:
+                                                                  Colors
+                                                                      .black45,
+                                                              isScrollControlled:
+                                                                  true,
                                                               context: context,
                                                               useSafeArea: true,
-                                                              builder: (context) {
+                                                              builder:
+                                                                  (context) {
                                                                 return CreateAddressPage(
-                                                                  lat: foundAddresses[index]["point"]["lat"],
-                                                                  lon: foundAddresses[index]["point"]["lon"],
-                                                                  addressName: foundAddresses[index]["name"]!,
-                                                                  isFromCreateOrder: true,
+                                                                  lat: foundAddresses[
+                                                                          index]
+                                                                      [
+                                                                      "point"]["lat"],
+                                                                  lon: foundAddresses[
+                                                                          index]
+                                                                      [
+                                                                      "point"]["lon"],
+                                                                  addressName:
+                                                                      foundAddresses[
+                                                                              index]
+                                                                          [
+                                                                          "name"]!,
+                                                                  isFromCreateOrder:
+                                                                      true,
                                                                 );
                                                               },
                                                             );
                                                           },
-                                                          title: Text(foundAddresses[index]["name"]),
-                                                          titleTextStyle: TextStyle(fontWeight: FontWeight.w700, color: Colors.black),
+                                                          title: Text(
+                                                              foundAddresses[
+                                                                      index]
+                                                                  ["name"]),
+                                                          titleTextStyle:
+                                                              TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w700,
+                                                                  color: Colors
+                                                                      .black),
                                                           subtitle: Wrap(
                                                             spacing: 5,
-                                                            children: [for (var v in foundAddresses[index]["adm_div"]) Text(v["name"])],
+                                                            children: [
+                                                              for (var v
+                                                                  in foundAddresses[
+                                                                          index]
+                                                                      [
+                                                                      "adm_div"])
+                                                                Text(v["name"])
+                                                            ],
                                                           ),
                                                         ),
                                                       );
@@ -315,7 +371,9 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                  fontVariations: <FontVariation>[
+                                    FontVariation('wght', 800)
+                                  ],
                                   fontSize: 42 * globals.scaleParam,
                                 ),
                               ),
@@ -343,7 +401,9 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                           "Помощь",
                           style: TextStyle(
                             color: Colors.black,
-                            fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                            fontVariations: <FontVariation>[
+                              FontVariation('wght', 800)
+                            ],
                             fontSize: 50 * globals.scaleParam,
                           ),
                         ),
@@ -363,16 +423,22 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                           "Не выбирается адрес",
                           style: TextStyle(
                             color: Colors.black,
-                            fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                            fontVariations: <FontVariation>[
+                              FontVariation('wght', 800)
+                            ],
                             fontSize: 38 * globals.scaleParam,
                           ),
                         ),
                         Padding(
-                          padding: EdgeInsets.only(left: 20 * globals.scaleParam),
-                          child: Text("Если у вас не получается выбрать адрес, пропробуйте навести кружок на основание дома, на тёмную часть дома.",
+                          padding:
+                              EdgeInsets.only(left: 20 * globals.scaleParam),
+                          child: Text(
+                              "Если у вас не получается выбрать адрес, пропробуйте навести кружок на основание дома, на тёмную часть дома.",
                               style: TextStyle(
                                 color: Colors.black,
-                                fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                                fontVariations: <FontVariation>[
+                                  FontVariation('wght', 500)
+                                ],
                                 fontSize: 38 * globals.scaleParam,
                               )),
                         ),
@@ -382,18 +448,23 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                         Text("Не могу найти на карте",
                             style: TextStyle(
                               color: Colors.black,
-                              fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                              fontVariations: <FontVariation>[
+                                FontVariation('wght', 800)
+                              ],
                               fontSize: 38 * globals.scaleParam,
                             )),
                         Padding(
-                          padding: EdgeInsets.only(left: 20 * globals.scaleParam),
-                          child:
-                              Text("Вы можете вручную написать желаемый адрес в поисковую строку и нажать кнопку подтверждения на вашей клавиатуре.",
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontVariations: <FontVariation>[FontVariation('wght', 500)],
-                                    fontSize: 38 * globals.scaleParam,
-                                  )),
+                          padding:
+                              EdgeInsets.only(left: 20 * globals.scaleParam),
+                          child: Text(
+                              "Вы можете вручную написать желаемый адрес в поисковую строку и нажать кнопку подтверждения на вашей клавиатуре.",
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontVariations: <FontVariation>[
+                                  FontVariation('wght', 500)
+                                ],
+                                fontSize: 38 * globals.scaleParam,
+                              )),
                         )
                       ],
                     ),
@@ -433,55 +504,63 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                 shape: const RoundedRectangleBorder(
                   borderRadius: BorderRadius.all(Radius.circular(15)),
                 ),
-                padding: EdgeInsets.symmetric(horizontal: 15 * globals.scaleParam, vertical: 15 * globals.scaleParam),
+                padding: EdgeInsets.symmetric(
+                    horizontal: 15 * globals.scaleParam,
+                    vertical: 15 * globals.scaleParam),
               ),
               onPressed: () {
                 showDialog(
-                  barrierColor: Colors.white70,
                   context: context,
                   builder: (context) {
                     return Dialog(
-                      backgroundColor: Colors.transparent,
                       shape: const RoundedRectangleBorder(),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                        child: Container(
-                          alignment: Alignment.center,
-                          color: Colors.transparent,
-                          padding: EdgeInsets.all(20 * globals.scaleParam),
-                          child: ListView.builder(
-                            primary: false,
-                            itemCount: widget.cities.length,
-                            itemBuilder: (context, index) {
-                              return TextButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _currentCity = widget.cities[index]["name"];
-                                  });
-                                  _mapController.move(
-                                      LatLng((double.parse(widget.cities[index]["x1"]) + double.parse(widget.cities[index]["x2"])) / 2,
-                                          (double.parse(widget.cities[index]["y1"]) + double.parse(widget.cities[index]["y1"])) / 2),
-                                      10);
-                                  Navigator.pop(context);
-                                },
-                                child: Container(
-                                  padding: EdgeInsets.all(10 * globals.scaleParam),
-                                  child: Row(
-                                    children: [
-                                      Text(
-                                        widget.cities[index]["name"],
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                          fontVariations: <FontVariation>[FontVariation('wght', 800)],
-                                          fontSize: 48 * globals.scaleParam,
-                                        ),
+                      child: Container(
+                        alignment: Alignment.center,
+                        padding: EdgeInsets.all(20 * globals.scaleParam),
+                        child: ListView.builder(
+                          primary: false,
+                          itemCount: widget.cities.length,
+                          itemBuilder: (context, index) {
+                            return TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  _currentCity = widget.cities[index]["name"];
+                                });
+                                _mapController.move(
+                                    LatLng(
+                                        (double.parse(widget.cities[index]
+                                                    ["x1"]) +
+                                                double.parse(widget
+                                                    .cities[index]["x2"])) /
+                                            2,
+                                        (double.parse(widget.cities[index]
+                                                    ["y1"]) +
+                                                double.parse(widget
+                                                    .cities[index]["y1"])) /
+                                            2),
+                                    10);
+                                Navigator.pop(context);
+                              },
+                              child: Container(
+                                padding:
+                                    EdgeInsets.all(10 * globals.scaleParam),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      widget.cities[index]["name"],
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontVariations: <FontVariation>[
+                                          FontVariation('wght', 800)
+                                        ],
+                                        fontSize: 48 * globals.scaleParam,
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                              );
-                            },
-                          ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     );
@@ -494,7 +573,9 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                   Text(_currentCity.isEmpty ? "Выберите город" : _currentCity,
                       style: TextStyle(
                         color: Colors.black,
-                        fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                        fontVariations: <FontVariation>[
+                          FontVariation('wght', 800)
+                        ],
                         fontSize: 48 * globals.scaleParam,
                       )),
                   Icon(
@@ -517,7 +598,9 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                 maxZoom: 17,
                 onPointerUp: (event, point) {
                   if (event.down == false) {
-                    searchGeoData(_mapController.camera.center.longitude, _mapController.camera.center.latitude).then(
+                    searchGeoData(_mapController.camera.center.longitude,
+                            _mapController.camera.center.latitude)
+                        .then(
                       (value) {
                         setState(() {
                           isMapSetteled = true;
@@ -531,14 +614,16 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                     isMapSetteled = false;
                   });
                 },
-                interactionOptions: const InteractionOptions(enableMultiFingerGestureRace: true),
+                interactionOptions: const InteractionOptions(
+                    enableMultiFingerGestureRace: true),
                 initialCenter: const LatLng(0, 0),
                 initialZoom: 9.2,
               ),
               children: [
                 TileLayer(
                   // tileBuilder: _darkModeTileBuilder,
-                  urlTemplate: 'https://tile3.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
+                  urlTemplate:
+                      'https://tile3.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
                   subdomains: ['tile0', 'tile1', 'tile2', 'tile3'],
 
                   // urlTemplate:
@@ -553,7 +638,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                 // MarkerLayer(markers: _markers),
                 MarkerLayer(markers: [
                   Marker(
-                    point: LatLng(widget.currentPosition?.latitude ?? 0, widget.currentPosition?.longitude ?? 0),
+                    point: LatLng(widget.currentPosition?.latitude ?? 0,
+                        widget.currentPosition?.longitude ?? 0),
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
@@ -561,7 +647,12 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                         Icon(
                           Icons.circle,
                           color: globals.mainColor,
-                          shadows: [BoxShadow(color: Colors.orange, blurRadius: 10, spreadRadius: 200 * globals.scaleParam)],
+                          shadows: [
+                            BoxShadow(
+                                color: Colors.orange,
+                                blurRadius: 10,
+                                spreadRadius: 200 * globals.scaleParam)
+                          ],
                         ),
                       ],
                     ),
@@ -598,9 +689,13 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
               alignment: Alignment.bottomCenter,
               child: Container(
                 height: MediaQuery.sizeOf(context).height * 0.265,
-                padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam, vertical: 20 * globals.scaleParam),
+                padding: EdgeInsets.symmetric(
+                    horizontal: 30 * globals.scaleParam,
+                    vertical: 20 * globals.scaleParam),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.only(topLeft: Radius.circular(15), topRight: Radius.circular(15)),
+                  borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(15),
+                      topRight: Radius.circular(15)),
                   color: Colors.white,
                 ),
                 child: Column(
@@ -614,7 +709,9 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                           "Наведите кружок на ваш адрес",
                           style: TextStyle(
                             color: Colors.black,
-                            fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                            fontVariations: <FontVariation>[
+                              FontVariation('wght', 800)
+                            ],
                             fontSize: 42 * globals.scaleParam,
                           ),
                         ),
@@ -642,12 +739,17 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                     titleTextStyle: TextStyle(
                                       color: Colors.black,
                                       fontFamily: "Raleway",
-                                      fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                      fontVariations: <FontVariation>[
+                                        FontVariation('wght', 800)
+                                      ],
                                       fontSize: 42 * globals.scaleParam,
                                     ),
                                     content: Container(
-                                      width: MediaQuery.of(context).size.width * 0.8,
-                                      height: MediaQuery.of(context).size.height * 0.4,
+                                      width: MediaQuery.of(context).size.width *
+                                          0.8,
+                                      height:
+                                          MediaQuery.of(context).size.height *
+                                              0.4,
                                       child: SingleChildScrollView(
                                         child: Column(
                                           children: [
@@ -659,44 +761,76 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                                 return Material(
                                                   color: Colors.white,
                                                   shadowColor: Colors.black12,
-                                                  borderRadius: BorderRadius.all(Radius.circular(15)),
+                                                  borderRadius:
+                                                      BorderRadius.all(
+                                                          Radius.circular(15)),
                                                   elevation: 10,
                                                   child: ListTile(
                                                     tileColor: Colors.white,
                                                     onTap: () {
                                                       showModalBottomSheet(
-                                                        backgroundColor: Colors.white,
-                                                        barrierColor: Colors.black45,
-                                                        isScrollControlled: true,
+                                                        backgroundColor:
+                                                            Colors.white,
+                                                        barrierColor:
+                                                            Colors.black45,
+                                                        isScrollControlled:
+                                                            true,
                                                         context: context,
                                                         useSafeArea: true,
                                                         builder: (context) {
                                                           return CreateAddressPage(
-                                                            lat: foundAddresses[index]["point"]["lat"],
-                                                            lon: foundAddresses[index]["point"]["lon"],
-                                                            addressName: foundAddresses[index]["name"]!,
-                                                            isFromCreateOrder: true,
+                                                            lat: foundAddresses[
+                                                                        index]
+                                                                    ["point"]
+                                                                ["lat"],
+                                                            lon: foundAddresses[
+                                                                        index]
+                                                                    ["point"]
+                                                                ["lon"],
+                                                            addressName:
+                                                                foundAddresses[
+                                                                        index]
+                                                                    ["name"]!,
+                                                            isFromCreateOrder:
+                                                                true,
                                                           );
                                                         },
                                                       );
                                                     },
-                                                    title: Text(foundAddresses[index]["name"]),
+                                                    title: Text(
+                                                        foundAddresses[index]
+                                                            ["name"]),
                                                     titleTextStyle: TextStyle(
                                                       color: Colors.white,
-                                                      fontVariations: <FontVariation>[FontVariation('wght', 800)],
-                                                      fontSize: 42 * globals.scaleParam,
+                                                      fontVariations: <FontVariation>[
+                                                        FontVariation(
+                                                            'wght', 800)
+                                                      ],
+                                                      fontSize: 42 *
+                                                          globals.scaleParam,
                                                     ),
                                                     subtitle: Wrap(
                                                       spacing: 5,
                                                       children: [
-                                                        for (var v in foundAddresses[index]["adm_div"])
+                                                        for (var v
+                                                            in foundAddresses[
+                                                                    index]
+                                                                ["adm_div"])
                                                           Text(
                                                             v["name"],
                                                             style: TextStyle(
-                                                              color: Colors.white,
-                                                              fontVariations: <FontVariation>[FontVariation('wght', 800)],
-                                                              fontSize: 42 * globals.scaleParam,
-                                                              fontWeight: FontWeight.w700,
+                                                              color:
+                                                                  Colors.white,
+                                                              fontVariations: <FontVariation>[
+                                                                FontVariation(
+                                                                    'wght', 800)
+                                                              ],
+                                                              fontSize: 42 *
+                                                                  globals
+                                                                      .scaleParam,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
                                                             ),
                                                           )
                                                       ],
@@ -720,7 +854,9 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                         textAlignVertical: TextAlignVertical.center,
                         style: TextStyle(
                           color: Colors.black,
-                          fontVariations: <FontVariation>[FontVariation('wght', 700)],
+                          fontVariations: <FontVariation>[
+                            FontVariation('wght', 700)
+                          ],
                           fontSize: 42 * globals.scaleParam,
                         ),
                         decoration: InputDecoration(
@@ -735,12 +871,16 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                           disabledBorder: InputBorder.none,
                           labelStyle: TextStyle(
                             color: Colors.black,
-                            fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                            fontVariations: <FontVariation>[
+                              FontVariation('wght', 800)
+                            ],
                             fontSize: 42 * globals.scaleParam,
                           ),
                           hintStyle: TextStyle(
                             color: Colors.grey,
-                            fontVariations: <FontVariation>[FontVariation('wght', 700)],
+                            fontVariations: <FontVariation>[
+                              FontVariation('wght', 700)
+                            ],
                             fontSize: 42 * globals.scaleParam,
                           ),
                         ),
@@ -778,10 +918,12 @@ class AnimatedCurrentPosition extends StatefulWidget {
   final bool isFromCreateOrder;
 
   @override
-  State<AnimatedCurrentPosition> createState() => _AnimatedCurrentPositionState();
+  State<AnimatedCurrentPosition> createState() =>
+      _AnimatedCurrentPositionState();
 }
 
-class _AnimatedCurrentPositionState extends State<AnimatedCurrentPosition> with SingleTickerProviderStateMixin {
+class _AnimatedCurrentPositionState extends State<AnimatedCurrentPosition>
+    with SingleTickerProviderStateMixin {
   late AnimationController controller;
 
   @override
@@ -845,7 +987,12 @@ class _AnimatedCurrentPositionState extends State<AnimatedCurrentPosition> with 
 }
 
 class CreateAddressPage extends StatefulWidget {
-  const CreateAddressPage({super.key, required this.lat, required this.lon, required this.addressName, required this.isFromCreateOrder});
+  const CreateAddressPage(
+      {super.key,
+      required this.lat,
+      required this.lon,
+      required this.addressName,
+      required this.isFromCreateOrder});
   final double lat;
   final double lon;
   final String addressName;
@@ -900,12 +1047,14 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
       builder: (context, scrollController) {
         return Scaffold(
           resizeToAvoidBottomInset: false,
-          floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerFloat,
           floatingActionButton: Padding(
             padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
             child: Row(
               children: [
-                MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height
+                MediaQuery.sizeOf(context).width >
+                        MediaQuery.sizeOf(context).height
                     ? Flexible(
                         flex: 2,
                         fit: FlexFit.tight,
@@ -931,7 +1080,9 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Colors.white,
-                              fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                              fontVariations: <FontVariation>[
+                                FontVariation('wght', 800)
+                              ],
                               fontSize: 42 * globals.scaleParam,
                             ),
                           ),
@@ -957,7 +1108,9 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                           widget.addressName,
                           style: TextStyle(
                             color: Colors.black,
-                            fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                            fontVariations: <FontVariation>[
+                              FontVariation('wght', 800)
+                            ],
                             fontSize: 48 * globals.scaleParam,
                           ),
                         ),
@@ -970,7 +1123,10 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                   Flexible(
                     child: TextField(
                       maxLength: 100,
-                      buildCounter: (context, {required currentLength, required isFocused, required maxLength}) {
+                      buildCounter: (context,
+                          {required currentLength,
+                          required isFocused,
+                          required maxLength}) {
                         return null;
                       },
                       decoration: InputDecoration(
@@ -980,18 +1136,24 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                         border: const UnderlineInputBorder(),
                         labelStyle: TextStyle(
                           color: Colors.grey,
-                          fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                          fontVariations: <FontVariation>[
+                            FontVariation('wght', 500)
+                          ],
                           fontSize: 42 * globals.scaleParam,
                         ),
                         hintStyle: TextStyle(
                           color: Colors.grey,
-                          fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                          fontVariations: <FontVariation>[
+                            FontVariation('wght', 500)
+                          ],
                           fontSize: 42 * globals.scaleParam,
                         ),
                       ),
                       style: TextStyle(
                         color: Colors.black,
-                        fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                        fontVariations: <FontVariation>[
+                          FontVariation('wght', 600)
+                        ],
                         fontSize: 46 * globals.scaleParam,
                       ),
                       controller: name,
@@ -1005,7 +1167,9 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                           maxLength: 20,
                           keyboardType: TextInputType.text,
                           controller: house,
-                          inputFormatters: [FilteringTextInputFormatter.singleLineFormatter],
+                          inputFormatters: [
+                            FilteringTextInputFormatter.singleLineFormatter
+                          ],
                           decoration: InputDecoration(
                             labelText: "Квартира/Офис",
                             filled: true,
@@ -1013,13 +1177,17 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                             border: const UnderlineInputBorder(),
                             labelStyle: TextStyle(
                               color: Colors.grey,
-                              fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                              fontVariations: <FontVariation>[
+                                FontVariation('wght', 500)
+                              ],
                               fontSize: 42 * globals.scaleParam,
                             ),
                           ),
                           style: TextStyle(
                             color: Colors.black,
-                            fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                            fontVariations: <FontVariation>[
+                              FontVariation('wght', 600)
+                            ],
                             fontSize: 46 * globals.scaleParam,
                           ),
                         ),
@@ -1029,7 +1197,9 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                           maxLength: 20,
                           keyboardType: TextInputType.text,
                           controller: entrance,
-                          inputFormatters: [FilteringTextInputFormatter.singleLineFormatter],
+                          inputFormatters: [
+                            FilteringTextInputFormatter.singleLineFormatter
+                          ],
                           decoration: InputDecoration(
                             labelText: "Подъезд/Вход",
                             filled: true,
@@ -1037,13 +1207,17 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                             border: const UnderlineInputBorder(),
                             labelStyle: TextStyle(
                               color: Colors.grey,
-                              fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                              fontVariations: <FontVariation>[
+                                FontVariation('wght', 500)
+                              ],
                               fontSize: 42 * globals.scaleParam,
                             ),
                           ),
                           style: TextStyle(
                             color: Colors.black,
-                            fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                            fontVariations: <FontVariation>[
+                              FontVariation('wght', 600)
+                            ],
                             fontSize: 46 * globals.scaleParam,
                           ),
                         ),
@@ -1053,7 +1227,9 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                           maxLength: 20,
                           keyboardType: TextInputType.text,
                           controller: floor,
-                          inputFormatters: [FilteringTextInputFormatter.singleLineFormatter],
+                          inputFormatters: [
+                            FilteringTextInputFormatter.singleLineFormatter
+                          ],
                           decoration: InputDecoration(
                             labelText: "Этаж",
                             filled: true,
@@ -1061,13 +1237,17 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                             border: const UnderlineInputBorder(),
                             labelStyle: TextStyle(
                               color: Colors.grey,
-                              fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                              fontVariations: <FontVariation>[
+                                FontVariation('wght', 500)
+                              ],
                               fontSize: 42 * globals.scaleParam,
                             ),
                           ),
                           style: TextStyle(
                             color: Colors.black,
-                            fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                            fontVariations: <FontVariation>[
+                              FontVariation('wght', 600)
+                            ],
                             fontSize: 46 * globals.scaleParam,
                           ),
                         ),
@@ -1076,7 +1256,10 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                   ),
                   TextField(
                     maxLength: 200,
-                    buildCounter: (context, {required currentLength, required isFocused, required maxLength}) {
+                    buildCounter: (context,
+                        {required currentLength,
+                        required isFocused,
+                        required maxLength}) {
                       if (isFocused) {
                         return Text(
                           '$currentLength/$maxLength',
@@ -1094,13 +1277,17 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                       border: const UnderlineInputBorder(),
                       labelStyle: TextStyle(
                         color: Colors.grey,
-                        fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                        fontVariations: <FontVariation>[
+                          FontVariation('wght', 500)
+                        ],
                         fontSize: 42 * globals.scaleParam,
                       ),
                     ),
                     style: TextStyle(
                       color: Colors.black,
-                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                      fontVariations: <FontVariation>[
+                        FontVariation('wght', 600)
+                      ],
                       fontSize: 46 * globals.scaleParam,
                     ),
                     controller: other,
@@ -1109,14 +1296,18 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                     children: [
                       Text(
                         widget.lat.toString(),
-                        style: TextStyle(fontSize: 28 * globals.scaleParam, color: Colors.grey),
+                        style: TextStyle(
+                            fontSize: 28 * globals.scaleParam,
+                            color: Colors.grey),
                       ),
                       SizedBox(
                         width: 20 * globals.scaleParam,
                       ),
                       Text(
                         widget.lon.toString(),
-                        style: TextStyle(fontSize: 28 * globals.scaleParam, color: Colors.grey),
+                        style: TextStyle(
+                            fontSize: 28 * globals.scaleParam,
+                            color: Colors.grey),
                       )
                     ],
                   ),

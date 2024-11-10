@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/pages/createProfilePage.dart';
+import 'package:naliv_delivery/pages/finishProfilePage.dart';
 import 'package:naliv_delivery/pages/paintLogoPage.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/organizationSelectPage.dart';
@@ -88,10 +89,15 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
         _getUser().then((vv) {
           user["city_name"] = _currentAddress["city_name"];
           _getBusinesses().then((b) {
-            if (user["name"] == null) {
+            if (user.values.where((v) {
+                  return v == null;
+                }).length >
+                0) {
               Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
                 builder: (context) {
-                  return const ProfileCreatePage();
+                  return Finishprofilepage(
+                    user: user,
+                  );
                 },
               ), (route) => false);
             } else {
@@ -109,7 +115,8 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
                   : () {
                       Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
                         builder: (context) {
-                          return PickAddressPage(client: user, isFirstTime: true);
+                          return PickAddressPage(
+                              client: user, isFirstTime: true);
                         },
                       ), (Route<dynamic> route) => false);
                       // Navigator.push(context, MaterialPageRoute(builder: (context) {
