@@ -80,7 +80,15 @@ dependencies:
   super_sliver_list: ^0.4.1
   datepicker_dropdown: ^0.1.5
   # drawing_animation: ^1.0.0
+  chatwoot_sdk:
+    git:
+        url: https://github.com/hungryemon/chatwoot-flutter-sdk.git
+        ref: develop
 
+dependency_overrides:
+  intl: '0.19.0'
+  dio: ^5.4.0
+  http: ^1.0.0
 
 
 dev_dependencies:

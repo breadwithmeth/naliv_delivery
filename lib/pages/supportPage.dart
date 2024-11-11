@@ -1,63 +1,54 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../globals.dart' as globals;
+import 'package:chatwoot_sdk/chatwoot_sdk.dart';
+import 'package:flutter/services.dart';
 
 class SupportPage extends StatefulWidget {
-  const SupportPage({super.key});
-
+  const SupportPage({super.key, required this.user});
+  final Map user;
   @override
   State<SupportPage> createState() => _SupportPageState();
 }
 
 class _SupportPageState extends State<SupportPage> {
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: Text(
-          "Поддержка",
-        ),
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: const Icon(Icons.close),
-          )
-        ],
+        title: Text("Naliv.Support"),
       ),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: MediaQuery.of(context).size.width * 0.8,
-              child: Column(
-                children: [
-                  Text(
-                    "Временно доступно только по номеру call-центра",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 42 * globals.scaleParam,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  // Text(
-                  //   "",
-                  //   textAlign: TextAlign.center,
-                  //   style: TextStyle(
-                  //     color: Theme.of(context).colorScheme.secondary,
-                  //     fontSize: 16,
-                  //     fontWeight: FontWeight.w500,
-                  //   ),
-                  // ),
-                ],
-              ),
-            ),
-          ],
+      body: ChatwootWidget(
+        websiteToken: "gfHGUpGQdGbmCscyuZB8dZiE",
+        baseUrl: "https://chatwoot.naliv.kz",
+        user: ChatwootUser(
+          identifier: widget.user["user_id"],
+          name: widget.user["name"],
         ),
+        locale: "ru",
+        closeWidget: () {
+          if (Platform.isAndroid) {
+            SystemNavigator.pop();
+          } else if (Platform.isIOS) {
+            exit(0);
+          }
+        },
+        //attachment only works on android for now
+        onLoadStarted: () {
+          print("loading widget");
+        },
+        onLoadProgress: (int progress) {
+          print("loading... ${progress}");
+        },
+        onLoadCompleted: () {
+          print("widget loaded");
+        },
       ),
     );
   }
