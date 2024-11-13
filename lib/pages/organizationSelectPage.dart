@@ -974,7 +974,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                     DrawerMenuItem(
                       name: "Поддержка",
                       icon: Icons.support_agent_rounded,
-                      route: SupportPage(user: widget.user,),
+                      route: SupportPage(
+                        user: widget.user,
+                      ),
                     ),
                     const DrawerMenuItem(
                       name: "Бонусы",
