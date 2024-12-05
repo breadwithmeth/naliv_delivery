@@ -55,6 +55,7 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
 
   Future<List<Map>> _getBusinesses() async {
     List<Map>? businesses = await getBusinesses();
+    print(businesses);
     if (businesses == null) {
       return [];
     } else {

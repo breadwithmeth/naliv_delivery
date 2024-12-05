@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:naliv_delivery/misc/api.dart';
+import 'package:naliv_delivery/pages/checkCourierPage.dart';
 import 'package:naliv_delivery/pages/webViewCardPayPage.dart';
 import '../globals.dart' as globals;
 
@@ -15,7 +16,8 @@ class BottomBar extends StatefulWidget {
   State<BottomBar> createState() => _BottomBarState();
 }
 
-class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMixin {
+class _BottomBarState extends State<BottomBar>
+    with SingleTickerProviderStateMixin {
   bool get _isOnDesktopAndWeb {
     if (kIsWeb) {
       return true;
@@ -54,7 +56,8 @@ class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMix
   }
 
   late Timer periodicTimer;
-  final DraggableScrollableController _dsController = DraggableScrollableController();
+  final DraggableScrollableController _dsController =
+      DraggableScrollableController();
 
   double _sheetPosition = 0.1;
   final double _dragSensitivity = 600;
@@ -109,6 +112,72 @@ class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMix
     super.dispose();
   }
 
+  Widget getOrderStatusFormat(String string) {
+    if (string == "66") {
+      return Container(
+        // color: Colors.red,
+        padding: EdgeInsets.all(5 * globals.scaleParam),
+        child: Text("Заказ ожидает оплаты",
+            style: TextStyle(
+                fontFamily: "Raleway",
+                fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                fontSize: 36 * globals.scaleParam)),
+      );
+    } else if (string == "0") {
+      return Container(
+        // color: Colors.yellow.shade800,
+        padding: EdgeInsets.all(5 * globals.scaleParam),
+        child: Text("Заказ отправлен в магазин",
+            style: TextStyle(
+                fontFamily: "Raleway",
+                fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                fontSize: 36 * globals.scaleParam)),
+      );
+    } else if (string == "1") {
+      return Container(
+        // color: Colors.yellow.shade800,
+        padding: EdgeInsets.all(5 * globals.scaleParam),
+        child: Text("Заказ ожидает сборки",
+            style: TextStyle(
+                fontFamily: "Raleway",
+                fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                fontSize: 36 * globals.scaleParam)),
+      );
+    } else if (string == "2") {
+      return Container(
+        // color: Colors.teal.shade700,
+        padding: EdgeInsets.all(5 * globals.scaleParam),
+        child: Text("Заказ собран",
+            style: TextStyle(
+                fontFamily: "Raleway",
+                fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                fontSize: 36 * globals.scaleParam)),
+      );
+    } else if (string == "3") {
+      return Container(
+        // color: Colors.greenAccent.shade700,
+        padding: EdgeInsets.all(5 * globals.scaleParam),
+        child: Text("Заказ забрал курьер",
+            style: TextStyle(
+                fontFamily: "Raleway",
+                fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                fontSize: 36 * globals.scaleParam)),
+      );
+    } else {
+      return Container();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
@@ -141,37 +210,72 @@ class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMix
                               children: [
                                 AnimatedContainer(
                                   duration: Durations.short1,
-                                  decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.all(Radius.circular(30))),
+                                  decoration: BoxDecoration(
+                                      color: Colors.transparent,
+                                      borderRadius: BorderRadius.all(
+                                          Radius.circular(30))),
                                   // width: isExpanded
                                   //     ? MediaQuery.of(context).size.width * 1
                                   //     : MediaQuery.of(context).size.width * 0.7,
                                   child: GestureDetector(
                                     onTap: () {
-                                      _dsController.animateTo(1, duration: Duration(microseconds: 10), curve: Curves.bounceIn);
+                                      if (orders.length == 1 &&
+                                          orders.first["order_status"] == "3") {
+                                        Navigator.push(context,
+                                            MaterialPageRoute(
+                                          builder: (context) {
+                                            return CheckCourierPage(
+                                                order: orders.first);
+                                          },
+                                        ));
+                                      }
+                                      _dsController.animateTo(1,
+                                          duration: Duration(microseconds: 10),
+                                          curve: Curves.bounceIn);
                                     },
                                     child: Container(
                                       color: Colors.transparent,
-                                      alignment: isExpanded ? Alignment.topLeft : Alignment.bottomLeft,
-                                      height: isExpanded ? constraints.smallest.height : constraints.minHeight,
+                                      alignment: isExpanded
+                                          ? Alignment.topLeft
+                                          : Alignment.bottomLeft,
+                                      height: isExpanded
+                                          ? constraints.smallest.height
+                                          : constraints.minHeight,
                                       child: orders.length >= 1
                                           ? Container(
-                                              margin: EdgeInsets.only(top: 15 * globals.scaleParam),
+                                              margin: EdgeInsets.only(
+                                                  top: 15 * globals.scaleParam),
                                               padding: EdgeInsets.only(
                                                   top: 45 * globals.scaleParam,
-                                                  bottom: 45 * globals.scaleParam,
+                                                  bottom:
+                                                      45 * globals.scaleParam,
                                                   left: 60 * globals.scaleParam,
-                                                  right: 60 * globals.scaleParam),
-                                              decoration:
-                                                  BoxDecoration(color: Colors.black, borderRadius: BorderRadius.only(topRight: Radius.circular(500))),
-                                              child: Text(
-                                                formatActiveOrderString(orders.length),
-                                                // orders.length.toString(),
-                                                style: TextStyle(
-                                                    fontFamily: "MontserratAlternates",
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.w700,
-                                                    fontSize: 36 * globals.scaleParam),
-                                              ),
+                                                  right:
+                                                      60 * globals.scaleParam),
+                                              decoration: BoxDecoration(
+                                                  color: Colors.black,
+                                                  borderRadius:
+                                                      BorderRadius.only(
+                                                          topRight:
+                                                              Radius.circular(
+                                                                  500))),
+                                              child: orders.length > 1
+                                                  ? Text(
+                                                      formatActiveOrderString(
+                                                          orders.length),
+                                                      // orders.length.toString(),
+                                                      style: TextStyle(
+                                                          fontFamily:
+                                                              "MontserratAlternates",
+                                                          color: Colors.white,
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                          fontSize: 36 *
+                                                              globals
+                                                                  .scaleParam),
+                                                    )
+                                                  : getOrderStatusFormat(orders
+                                                      .first["order_status"]),
                                             )
                                           : Container(),
                                     ),
@@ -204,7 +308,12 @@ class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMix
                             child: Container(
                                 height: MediaQuery.of(context).size.height,
                                 color: Colors.transparent,
-                                padding: EdgeInsets.only(top: MediaQueryData.fromView(View.of(context)).padding.top, bottom: 20),
+                                padding: EdgeInsets.only(
+                                    top: MediaQueryData.fromView(
+                                            View.of(context))
+                                        .padding
+                                        .top,
+                                    bottom: 20),
                                 child: LayoutBuilder(
                                   builder: (context, constraints) {
                                     return Container(
@@ -215,30 +324,47 @@ class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMix
                                           height: constraints.maxHeight,
                                           // margin:
                                           //     EdgeInsets.only(top: 60 * globals.scaleParam),
-                                          padding: EdgeInsets.all(45 * globals.scaleParam),
+                                          padding: EdgeInsets.all(
+                                              45 * globals.scaleParam),
                                           width: double.infinity,
                                           // height: 1000,
                                           decoration: BoxDecoration(
-                                              color: Colors.white, borderRadius: BorderRadius.all(Radius.circular(90 * globals.scaleParam))),
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.all(
+                                                  Radius.circular(90 *
+                                                      globals.scaleParam))),
                                           child: ListView(
                                             primary: false,
                                             shrinkWrap: true,
                                             children: [
                                               Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
                                                 children: [
                                                   Text(
-                                                    formatActiveOrderString(orders.length),
+                                                    formatActiveOrderString(
+                                                        orders.length),
                                                     style: TextStyle(
                                                         fontFamily: "Raleway",
-                                                        fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                                        fontVariations: <FontVariation>[
+                                                          FontVariation(
+                                                              'wght', 600)
+                                                        ],
                                                         color: Colors.black,
-                                                        fontWeight: FontWeight.w900,
-                                                        fontSize: 48 * globals.scaleParam),
+                                                        fontWeight:
+                                                            FontWeight.w900,
+                                                        fontSize: 48 *
+                                                            globals.scaleParam),
                                                   ),
                                                   IconButton(
                                                       onPressed: () {
-                                                        _dsController.animateTo(_sheetPosition, duration: Durations.short1, curve: Curves.bounceOut);
+                                                        _dsController.animateTo(
+                                                            _sheetPosition,
+                                                            duration: Durations
+                                                                .short1,
+                                                            curve: Curves
+                                                                .bounceOut);
                                                       },
                                                       icon: Icon(Icons.close))
                                                 ],
@@ -248,7 +374,8 @@ class _BottomBarState extends State<BottomBar> with SingleTickerProviderStateMix
                                                 shrinkWrap: true,
                                                 itemCount: orders.length,
                                                 itemBuilder: (context, index) {
-                                                  return OrderListTile(order: orders[index]);
+                                                  return OrderListTile(
+                                                      order: orders[index]);
                                                 },
                                               )
                                             ],
@@ -361,7 +488,8 @@ class _OrderListTileState extends State<OrderListTile> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey, width: 0.5))),
+      decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: Colors.grey, width: 0.5))),
       child: ExpansionTile(
           childrenPadding: EdgeInsets.all(20),
           onExpansionChanged: (value) {
@@ -371,17 +499,22 @@ class _OrderListTileState extends State<OrderListTile> {
           },
           title: Text(
             '#${widget.order["order_uuid"]}',
-            style: TextStyle(fontVariations: <FontVariation>[FontVariation('wght', 700)], color: Colors.black),
+            style: TextStyle(
+                fontVariations: <FontVariation>[FontVariation('wght', 700)],
+                color: Colors.black),
           ),
           subtitle: Row(
             children: [
-              Flexible(child: getOrderStatusFormat(widget.order["order_status"] ?? "99")),
+              Flexible(
+                  child: getOrderStatusFormat(
+                      widget.order["order_status"] ?? "99")),
             ],
           ),
           trailing: widget.order["order_status"] == "66"
               ? TextButton(
                   onPressed: () {
-                    getPaymentPageForUnpaidOrder(widget.order["order_id"]).then((v) {
+                    getPaymentPageForUnpaidOrder(widget.order["order_id"])
+                        .then((v) {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -394,10 +527,17 @@ class _OrderListTileState extends State<OrderListTile> {
                   },
                   child: Container(
                     padding: EdgeInsets.all(5),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.all(Radius.circular(5))),
+                    decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.all(Radius.circular(5))),
                     child: Text(
                       "Оплатить",
-                      style: TextStyle(fontFamily: "Raleway", fontVariations: <FontVariation>[FontVariation('wght', 900)], color: Colors.redAccent),
+                      style: TextStyle(
+                          fontFamily: "Raleway",
+                          fontVariations: <FontVariation>[
+                            FontVariation('wght', 900)
+                          ],
+                          color: Colors.redAccent),
                     ),
                   ))
               : null,
@@ -410,7 +550,10 @@ class _OrderListTileState extends State<OrderListTile> {
                     itemCount: orderItems.length,
                     itemBuilder: (context, index) {
                       return Container(
-                        decoration: BoxDecoration(border: Border(bottom: BorderSide(width: 1, color: Colors.grey))),
+                        decoration: BoxDecoration(
+                            border: Border(
+                                bottom:
+                                    BorderSide(width: 1, color: Colors.grey))),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -420,7 +563,9 @@ class _OrderListTileState extends State<OrderListTile> {
                                 orderItems[index]["name"],
                                 style: TextStyle(
                                   fontFamily: "Raleway",
-                                  fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                  fontVariations: <FontVariation>[
+                                    FontVariation('wght', 600)
+                                  ],
                                 ),
                               ),
                             ),
@@ -430,12 +575,21 @@ class _OrderListTileState extends State<OrderListTile> {
                               children: [
                                 Flexible(
                                   child: Text(
-                                    double.tryParse(orderItems[index]["amount"].toString()) != null
-                                        ? double.tryParse(orderItems[index]["amount"].toString())!.round().toString()
-                                        : orderItems[index]["amount"].toString(),
+                                    double.tryParse(orderItems[index]["amount"]
+                                                .toString()) !=
+                                            null
+                                        ? double.tryParse(orderItems[index]
+                                                    ["amount"]
+                                                .toString())!
+                                            .round()
+                                            .toString()
+                                        : orderItems[index]["amount"]
+                                            .toString(),
                                     style: TextStyle(
                                       fontFamily: "Raleway",
-                                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                      fontVariations: <FontVariation>[
+                                        FontVariation('wght', 600)
+                                      ],
                                     ),
                                   ),
                                 ),

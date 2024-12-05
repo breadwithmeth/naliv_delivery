@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mesh_gradient/mesh_gradient.dart';
 import '../misc/api.dart';
 import 'DealPage.dart';
 import '../globals.dart' as globals;
@@ -73,51 +74,66 @@ class _StartPageState extends State<StartPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Spacer(),
+              const Spacer(),
               Container(
-                padding:
-                    EdgeInsets.all(MediaQuery.of(context).size.width * 0.05),
-                decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                        colors: [Colors.deepOrangeAccent, Colors.orange])),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Flexible(
-                        child: Text(
-                      "НАЛИВ/",
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontVariations: <FontVariation>[
-                            FontVariation('wght', 700)
-                          ],
-                          fontSize: 48),
-                    )),
-                    Flexible(
-                        child: Text(
-                      "ГРАДУСЫ",
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontVariations: <FontVariation>[
-                            FontVariation('wght', 700)
-                          ],
-                          fontSize: 48),
-                    )),
-                    Flexible(
-                        child: Text(
-                      "24",
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontVariations: <FontVariation>[
-                            FontVariation('wght', 700)
-                          ],
-                          fontSize: 48),
-                    )),
-                  ],
-                ),
-              ),
-              Spacer(),
+                  padding:
+                      EdgeInsets.all(MediaQuery.of(context).size.width * 0.05),
+                  // decoration: const BoxDecoration(
+                  //     gradient: LinearGradient(
+                  //         colors: [Colors.deepOrangeAccent, Colors.orange])),
+                  child: AnimatedMeshGradient(
+                      colors: [
+                        Colors.white,
+                        Colors.white,
+                        Colors.white,
+                        Colors.grey.shade100
+                      ],
+                      options: AnimatedMeshGradientOptions(
+                          frequency: 10, amplitude: 1),
+                      child: Container(
+                        color: Colors.white10,
+                        width: MediaQuery.of(context).size.width * 0.9,
+                        height: MediaQuery.of(context).size.width * 0.9,
+                        child: FittedBox(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Flexible(
+                                  child: Text(
+                                "НАЛИВ/",
+                                style: TextStyle(
+                                    color: Colors.black,
+                                    fontVariations: <FontVariation>[
+                                      FontVariation('wght', 900)
+                                    ],
+                                    fontSize: 48),
+                              )),
+                              Flexible(
+                                  child: Text(
+                                "ГРАДУСЫ",
+                                style: TextStyle(
+                                    color: Colors.black,
+                                    fontVariations: <FontVariation>[
+                                      FontVariation('wght', 900)
+                                    ],
+                                    fontSize: 48),
+                              )),
+                              Flexible(
+                                  child: Text(
+                                "24",
+                                style: TextStyle(
+                                    color: Colors.black,
+                                    fontVariations: <FontVariation>[
+                                      FontVariation('wght', 900)
+                                    ],
+                                    fontSize: 48),
+                              )),
+                            ],
+                          ),
+                        ),
+                      ))),
+              const Spacer(),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: TextButton(
@@ -139,7 +155,7 @@ class _StartPageState extends State<StartPage> {
                         style: TextStyle(
                           color: Colors.black,
                           fontVariations: <FontVariation>[
-                            FontVariation('wght', 700)
+                            const FontVariation('wght', 700)
                           ],
                           fontSize: 72 * globals.scaleParam,
                         ),
@@ -158,7 +174,7 @@ class _StartPageState extends State<StartPage> {
                     alignment: Alignment.center,
                     child: Image.asset("assets/s/visa.png"),
                   ),
-                  SizedBox(
+                  const SizedBox(
                     width: 20,
                   ),
                   Container(

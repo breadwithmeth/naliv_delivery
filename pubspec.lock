@@ -484,6 +484,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.2"
+  flutter_shaders:
+    dependency: transitive
+    description:
+      name: flutter_shaders
+      sha256: "34794acadd8275d971e02df03afee3dee0f98dbfb8c4837082ad0034f612a3e2"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.3"
   flutter_staggered_grid_view:
     dependency: "direct main"
     description:
@@ -750,6 +758,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.1"
+  loading_animation_widget:
+    dependency: "direct main"
+    description:
+      name: loading_animation_widget
+      sha256: "9fe23381f3096e902f39e87e487648ff7f74925e86234353fa885bb9f6c98004"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.3.0"
   location:
     dependency: "direct main"
     description:
@@ -814,6 +830,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.11.1"
+  mesh_gradient:
+    dependency: "direct main"
+    description:
+      name: mesh_gradient
+      sha256: "3dc7a7195d90f164e69aa805f4dea876eee54aed6b271ee22ae792d7b9c1fedb"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.3.8"
   meta:
     dependency: transitive
     description:
@@ -990,6 +1014,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.1"
+  persistent_header_adaptive:
+    dependency: "direct main"
+    description:
+      name: persistent_header_adaptive
+      sha256: "4a3acd21ba264ad4bf764c184ad65835bf03df265dd13bc1150da29d4de2c59e"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.0"
   petitparser:
     dependency: transitive
     description:

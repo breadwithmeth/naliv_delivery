@@ -180,7 +180,7 @@ Future<List<Map>?> getBusinesses() async {
   if (token == null) {
     return [];
   }
-  var url = Uri.https(URL_API, 'api/business/get');
+  var url = Uri.https(URL_API, 'api/business/get2');
   var response = await client.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -639,7 +639,7 @@ Future<Map<String, dynamic>?> getCity() async {
 }
 
 Future<Map<String, dynamic>> createOrder(
-    String businessId, String? addressId, int? delivery,
+    String businessId, String? addressId, int? delivery, int? card_id,
     [String user_id = ""]) async {
   // Returns null in two situations, token is null or wrong order (406)
   String? token = globals.currentToken;
@@ -649,6 +649,7 @@ Future<Map<String, dynamic>> createOrder(
   }
   Map body = {
     'business_id': businessId,
+    'card_id': card_id,
   };
   if (user_id.isNotEmpty) {
     body.addAll({"user_id": user_id});
@@ -1151,4 +1152,46 @@ Future<bool> finishProfile(String name, String date, String first_name,
   } else {
     return false;
   }
+}
+
+Future<Map<String, dynamic>?> getCourierLocation(String order_id) async {
+  String? token = globals.currentToken;
+
+  if (token == null) {
+    return {};
+  }
+  var url = Uri.https(URL_API, 'api/item/getCourierLocation');
+  var response = await client.post(
+    url,
+    headers: {"Content-Type": "application/json", "AUTH": token},
+    body: json.encode({'order_id': order_id}),
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(response.bodyBytes);
+  Map<String, dynamic>? data = json.decode(utf8.decode(response.bodyBytes));
+
+  return data;
+}
+
+Future<List<dynamic>> getSavedCards() async {
+  String? token = globals.currentToken;
+
+  if (token == null) {
+    return [];
+  }
+  var url = Uri.https(URL_API, 'api/item/getSavedCards');
+  var response = await client.post(
+    url,
+    headers: {
+      "Content-Type": "application/json",
+      "AUTH": token,
+    },
+    // body: json.encode({"user_id": userID}),
+  );
+
+  List<dynamic> result = json.decode(response.body);
+  print(json.encode(response.statusCode));
+  print(response.body);
+  return result;
 }

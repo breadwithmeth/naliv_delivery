@@ -40,6 +40,10 @@
 	<string>Приложение использует данные глобальной системы позиционирования (GPS) для вычисления стоимости доставки и ближайших к вам магазинов.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Приложение использует данные глобальной системы позиционирования (GPS) для вычисления стоимости доставки и ближайших к вам магазинов.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+	<string>tel</string>
+	</array>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>

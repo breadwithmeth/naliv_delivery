@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:naliv_delivery/agreements/offer.dart';
+import 'package:naliv_delivery/misc/activeOrdersButton.dart';
+import 'package:naliv_delivery/misc/header.dart';
 import 'package:naliv_delivery/pages/bonusesPage.dart';
 import 'package:naliv_delivery/pages/createProfilePage.dart';
 import 'package:naliv_delivery/pages/finishProfilePage.dart';
@@ -20,6 +23,8 @@ import 'package:naliv_delivery/pages/pickAddressPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:mesh_gradient/mesh_gradient.dart';
+import 'package:persistent_header_adaptive/persistent_header_adaptive.dart';
 
 //сервис геолокации
 
@@ -39,7 +44,7 @@ class OrganizationSelectPage extends StatefulWidget {
 }
 
 class _OrganizationSelectPageState extends State<OrganizationSelectPage>
-    with AutomaticKeepAliveClientMixin {
+    with AutomaticKeepAliveClientMixin, TickerProviderStateMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -56,6 +61,19 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
       _scaffoldKey.currentState!.openDrawer();
     }
   }
+
+  List orders = [];
+
+  Future<void> _getActiveOrders() async {
+    List? _orders = await getActiveOrders();
+    setState(() {
+      orders = _orders!;
+    });
+  }
+
+  late Timer periodicTimer;
+
+  bool isExpanded = false;
 
   // ! TODO: TAKE THIS DATA FROM BACKEND
   List<Map> _carouselItems = [
@@ -90,6 +108,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
           "https://hameleone.ru/wp-content/uploads/b/d/8/bd82d2a87e536da74b742da3ee8cc058.jpeg"
     },
   ];
+  late final _controller;
 
   void _initData() {
     setState(() {
@@ -491,6 +510,9 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
   String? _liveActivityId;
   bool _enableConsentButton = false;
   bool _requireConsent = true;
+
+  double newAppBarHeight = 0;
+
   Future<void> initPlatformState() async {
     if (!mounted) return;
 
@@ -801,28 +823,18 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
     super.initState();
     // Permission.notification.request();
     startDialogWelcome();
-
+    print(widget.businesses);
     initPlatformState();
     _handleGetOnesignalId();
     _sc.addListener(_scrollListener);
-    _getPosition();
+    // periodicTimer = Timer.periodic(
+    //   const Duration(seconds: 10),
+    //   (timer) {
+    //     _getActiveOrders();
+    //   },
+    // );
+    // _getPosition();
 
-    // setEID();
-    // initPlatformState();
-
-    // OneSignal.initialize("f9a3bf44-4a96-4859-99a9-37aa2b579577");
-
-    // OneSignal.Notifications.requestPermission(true);
-    // OneSignal.User.getOnesignalId().then(
-    //       (value) {
-    //         print("=========================");
-    //         print(value);
-    //         setIdOneSignal(value!);
-    //       },
-    //     );
-    // Future.delayed(Duration.zero).then((value) async {
-    //   _getUser();
-    // });
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       OneSignal.InAppMessages.paused(false);
       // OneSignal.InAppMessages.removeTrigger("regbonus");
@@ -854,6 +866,12 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
         setIdOneSignal(value!);
       },
     );
+  }
+
+  setHeight(double height) {
+    setState(() {
+      newAppBarHeight = height;
+    });
   }
 
   ScrollController _sc = ScrollController();
@@ -1005,558 +1023,713 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
       backgroundColor: Colors.white,
       // !isCollapsed ?      globals.mainColor : Colors.white,
       body: SafeArea(
-        maintainBottomViewPadding: false,
-        bottom: false,
-        child: CustomScrollView(
-          controller: _sc,
-          slivers: <Widget>[
-            SliverAppBar(
-              actions: [Container()],
-              automaticallyImplyLeading: false,
-              elevation: 0,
-              forceElevated: true,
-              shape: const LinearBorder(bottom: LinearBorderEdge(size: 1)),
-              shadowColor: Colors.transparent,
-              backgroundColor: Colors.transparent,
-              surfaceTintColor: Colors.transparent,
-              foregroundColor: Colors.transparent,
-              // scrolledUnderElevation: collapsedBarHeight,
-              toolbarHeight: collapsedBarHeight,
-              snap: true,
-              centerTitle: false,
-              titleSpacing: 0,
-              // stretch: true,
-              // Provide a standard title.
-              // title: ,
-              pinned: true,
-              // Allows the user to reveal the app bar if they begin scrolling
-              // back up the list of items.
-              floating: true,
-              expandedHeight: 0,
-              // flexibleSpace: Container(),
-              title: AnimatedSwitcher(
-                transitionBuilder: (child, animation) {
-                  return SlideTransition(
-                    position: Tween<Offset>(
-                            begin: const Offset(0, -1),
-                            end: const Offset(0, -0.1))
-                        .animate(animation),
-                    child: child,
-                  );
-                },
-                duration: Durations.medium1,
-                child: isCollapsed
-                    ? Container(
-                        key: ValueKey(isCollapsed),
-                        height: 160 * globals.scaleParam,
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 20 * globals.scaleParam),
-                        alignment: Alignment.centerLeft,
-                        decoration: BoxDecoration(
-                          borderRadius:
-                              const BorderRadius.all(Radius.circular(20)),
-                          // color: Colors.amber,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              flex: 5,
-                              child: TextButton(
-                                style: TextButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                ),
-                                onPressed: () {
-                                  Navigator.push(context, MaterialPageRoute(
-                                    builder: (context) {
-                                      return PickAddressPage(
-                                        client: widget.user,
-                                        addresses: widget.addresses,
-                                      );
+          maintainBottomViewPadding: false,
+          bottom: false,
+          top: true,
+          child: CustomScrollView(
+            controller: _sc,
+            slivers: <Widget>[
+              // AdaptiveHeightSliverPersistentHeader(
+              //     needRepaint: true,
+              //     floating: true,
+              //     pinned: true,
+              //     child: Stack(
+              //       clipBehavior: Clip.none,
+              //       children: [
+              //         GestureDetector(
+              //           onTap: () {},
+              //           child: Container(
+              //             clipBehavior: Clip.antiAlias,
+              //             decoration: BoxDecoration(
+              //               color: Colors.black,
+              //               borderRadius: BorderRadius.only(
+              //                 bottomLeft: Radius.circular(15),
+              //                 bottomRight: Radius.circular(15),
+              //               ),
+              //             ),
+              //             child: Container(
+              //                 child: Container(
+              //               padding: EdgeInsets.only(
+              //                   top: MediaQuery.of(context).viewPadding.top,
+              //                   bottom: 10 * globals.scaleParam),
+              //               child: Row(
+              //                 mainAxisAlignment: MainAxisAlignment.center,
+              //                 children: [
+              //                   Flexible(
+              //                     child: Container(),
+              //                   ),
+              //                   Flexible(
+              //                       flex: 3,
+              //                       child: Column(
+              //                         mainAxisAlignment:
+              //                             MainAxisAlignment.center,
+              //                         crossAxisAlignment:
+              //                             CrossAxisAlignment.center,
+              //                         children: [
+              //                           Text(
+              //                             widget.currentAddress["city_name"] ??
+              //                                 "",
+              //                             textAlign: TextAlign.start,
+              //                             style: TextStyle(
+              //                               fontVariations: <FontVariation>[
+              //                                 FontVariation('wght', 700)
+              //                               ],
+              //                               fontSize: 36 * globals.scaleParam,
+              //                               color: Colors.white,
+              //                               height: 1.1,
+              //                             ),
+              //                           ),
+              //                           Text(
+              //                             widget.currentAddress.isNotEmpty
+              //                                 ? widget.currentAddress["address"]
+              //                                 : "Нет адреса",
+              //                             style: TextStyle(
+              //                               color: Colors.white,
+              //                               fontVariations: <FontVariation>[
+              //                                 FontVariation('wght', 600)
+              //                               ],
+              //                             ),
+              //                           )
+              //                         ],
+              //                       )),
+              //                   Flexible(
+              //                       fit: FlexFit.tight,
+              //                       child: LayoutBuilder(
+              //                           builder: (context, constraints) {
+              //                         WidgetsBinding.instance
+              //                             .addPostFrameCallback((_) {
+              //                           setHeight(context.size?.height ?? 0);
+              //                         });
+              //                         return Row(
+              //                           mainAxisAlignment:
+              //                               MainAxisAlignment.end,
+              //                           children: [
+              //                             IconButton(
+              //                               onPressed: () {
+              //                                 print(newAppBarHeight);
+              //                                 // _key.currentState!.openEndDrawer();
+              //                               },
+              //                               icon: Icon(
+              //                                 Icons.menu,
+              //                                 size: 48 * globals.scaleParam,
+              //                                 color: Colors.white,
+              //                               ),
+              //                             )
+              //                           ],
+              //                         );
+              //                       })),
+              //                 ],
+              //               ),
+              //             )),
+              //           ),
+              //         ),
+              //         // Positioned(
+              //         //     top: newAppBarHeight + 0,
+              //         //     width: MediaQuery.of(context).size.width * 0.7,
+              //         //     child: ActiveOrdersButton()),
+              //       ],
+              //     )),
+              SliverAppBar(
+                actions: [Container()],
+                automaticallyImplyLeading: false,
+                elevation: 0,
+                forceElevated: true,
+                shape: const LinearBorder(bottom: LinearBorderEdge(size: 1)),
+                shadowColor: Colors.transparent,
+                backgroundColor: Colors.transparent,
+                surfaceTintColor: Colors.transparent,
+                foregroundColor: Colors.transparent,
+                // scrolledUnderElevation: collapsedBarHeight,
+                toolbarHeight: collapsedBarHeight,
+                snap: true,
+                centerTitle: false,
+                titleSpacing: 0,
+                // stretch: true,
+                // Provide a standard title.
+                // title: ,
+                pinned: true,
+                // Allows the user to reveal the app bar if they begin scrolling
+                // back up the list of items.
+                floating: true,
+                expandedHeight: 0,
+                // flexibleSpace: Container(),
+                title: AnimatedSwitcher(
+                    transitionBuilder: (child, animation) {
+                      return SlideTransition(
+                        position: Tween<Offset>(
+                                begin: const Offset(0, -1),
+                                end: const Offset(0, -0.1))
+                            .animate(animation),
+                        child: child,
+                      );
+                    },
+                    duration: Durations.medium1,
+                    child: isCollapsed
+                        ? Container(
+                            key: ValueKey(isCollapsed),
+                            height: 160 * globals.scaleParam,
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 20 * globals.scaleParam),
+                            alignment: Alignment.centerLeft,
+                            decoration: BoxDecoration(
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(20)),
+                              // color: Colors.amber,
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  flex: 5,
+                                  child: TextButton(
+                                    style: TextButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                    ),
+                                    onPressed: () {
+                                      Navigator.push(context, MaterialPageRoute(
+                                        builder: (context) {
+                                          return PickAddressPage(
+                                            client: widget.user,
+                                            addresses: widget.addresses,
+                                          );
+                                        },
+                                      ));
                                     },
-                                  ));
-                                },
-                                child: Container(
-                                  margin: EdgeInsets.only(
-                                      top: 10 * globals.scaleParam),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black,
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(15)),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black38,
-                                        blurRadius: 3,
-                                        offset: Offset(-0.5, 1.5),
-                                      ),
-                                    ],
-                                  ),
-                                  child: LayoutBuilder(
-                                    builder: (context, constraints) {
-                                      return Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.start,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          SizedBox(
-                                            width: constraints.maxWidth * 0.15,
-                                            child: Icon(
-                                              Icons.location_on_rounded,
-                                              size: 48 * globals.scaleParam,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                          SizedBox(
-                                            width: constraints.maxWidth * 0.7,
-                                            child: LayoutBuilder(
-                                              builder: (context, constraints2) {
-                                                double cityNameHeight =
-                                                    constraints.maxHeight * 0.5;
-                                                double addressNameHeight =
-                                                    constraints.maxHeight * 0.5;
-                                                if (hasSecondLine(
-                                                    widget.currentAddress
-                                                            .isNotEmpty
-                                                        ? widget.currentAddress[
-                                                            "address"]
-                                                        : "Нет адреса",
-                                                    TextStyle(
-                                                      fontSize: 32 *
-                                                          globals.scaleParam,
-                                                      fontVariations: <FontVariation>[
-                                                        FontVariation(
-                                                            'wght', 600)
-                                                      ],
-                                                      color: isCollapsed
-                                                          ? Colors.white
-                                                          : Colors.transparent,
-                                                      height: 1.1,
-                                                    ),
-                                                    constraints.maxWidth *
-                                                        0.7)) {
-                                                  cityNameHeight =
-                                                      constraints.maxHeight *
-                                                          0.42;
-                                                  addressNameHeight =
-                                                      constraints.maxHeight *
-                                                          0.58;
-                                                }
-
-                                                // return Container(
-                                                // width: constraints.maxWidth * 0.7,
-                                                //   color: Colors.red,
-                                                // );
-
-                                                return Column(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.end,
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.center,
-                                                  children: [
-                                                    Container(
-                                                      height: cityNameHeight,
-                                                      alignment:
-                                                          Alignment.bottomLeft,
-                                                      child: Row(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .end,
-                                                        children: [
-                                                          Flexible(
-                                                            child: Text(
-                                                              widget.currentAddress[
-                                                                      "city_name"] ??
-                                                                  "",
-                                                              textAlign:
-                                                                  TextAlign
-                                                                      .start,
-                                                              style: TextStyle(
-                                                                fontVariations: <FontVariation>[
-                                                                  FontVariation(
-                                                                      'wght',
-                                                                      700)
-                                                                ],
-                                                                fontSize: 36 *
-                                                                    globals
-                                                                        .scaleParam,
-                                                                color: Colors
-                                                                    .white,
-                                                                height: 1.1,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    Container(
-                                                      height: addressNameHeight,
-                                                      alignment:
-                                                          Alignment.topLeft,
-                                                      child: Row(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
-                                                        children: [
-                                                          Flexible(
-                                                            child: Text(
-                                                              widget.currentAddress
-                                                                      .isNotEmpty
-                                                                  ? widget.currentAddress[
-                                                                      "address"]
-                                                                  : "Нет адреса",
-                                                              style: TextStyle(
-                                                                fontFamily:
-                                                                    "Raleway",
-                                                                fontSize: 32 *
-                                                                    globals
-                                                                        .scaleParam,
-                                                                fontVariations: <FontVariation>[
-                                                                  FontVariation(
-                                                                      'wght',
-                                                                      600)
-                                                                ],
-                                                                color: isCollapsed
-                                                                    ? Colors
-                                                                        .white
-                                                                    : Colors
-                                                                        .transparent,
-                                                                height: 1.1,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                          SizedBox(
-                                            width: constraints.maxWidth * 0.15,
-                                            child: const Icon(
-                                              Icons.arrow_drop_down,
-                                              color: Colors.white,
-                                            ),
+                                    child: Container(
+                                      margin: EdgeInsets.only(
+                                          top: 10 * globals.scaleParam),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black,
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(15)),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black38,
+                                            blurRadius: 3,
+                                            offset: Offset(-0.5, 1.5),
                                           ),
                                         ],
-                                      );
-                                    },
+                                      ),
+                                      child: LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          return Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.center,
+                                            children: [
+                                              SizedBox(
+                                                width:
+                                                    constraints.maxWidth * 0.15,
+                                                child: Icon(
+                                                  Icons.location_on_rounded,
+                                                  size: 48 * globals.scaleParam,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                              SizedBox(
+                                                width:
+                                                    constraints.maxWidth * 0.7,
+                                                child: LayoutBuilder(
+                                                  builder:
+                                                      (context, constraints2) {
+                                                    double cityNameHeight =
+                                                        constraints.maxHeight *
+                                                            0.5;
+                                                    double addressNameHeight =
+                                                        constraints.maxHeight *
+                                                            0.5;
+                                                    if (hasSecondLine(
+                                                        widget.currentAddress
+                                                                .isNotEmpty
+                                                            ? widget.currentAddress[
+                                                                "address"]
+                                                            : "Нет адреса",
+                                                        TextStyle(
+                                                          fontSize: 32 *
+                                                              globals
+                                                                  .scaleParam,
+                                                          fontVariations: <FontVariation>[
+                                                            FontVariation(
+                                                                'wght', 600)
+                                                          ],
+                                                          color: isCollapsed
+                                                              ? Colors.white
+                                                              : Colors
+                                                                  .transparent,
+                                                          height: 1.1,
+                                                        ),
+                                                        constraints.maxWidth *
+                                                            0.7)) {
+                                                      cityNameHeight =
+                                                          constraints
+                                                                  .maxHeight *
+                                                              0.42;
+                                                      addressNameHeight =
+                                                          constraints
+                                                                  .maxHeight *
+                                                              0.58;
+                                                    }
+
+                                                    // return Container(
+                                                    // width: constraints.maxWidth * 0.7,
+                                                    //   color: Colors.red,
+                                                    // );
+
+                                                    return Column(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment.end,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Container(
+                                                          height:
+                                                              cityNameHeight,
+                                                          alignment: Alignment
+                                                              .bottomLeft,
+                                                          child: Row(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .end,
+                                                            children: [
+                                                              Flexible(
+                                                                child: Text(
+                                                                  widget.currentAddress[
+                                                                          "city_name"] ??
+                                                                      "",
+                                                                  textAlign:
+                                                                      TextAlign
+                                                                          .start,
+                                                                  style:
+                                                                      TextStyle(
+                                                                    fontVariations: <FontVariation>[
+                                                                      FontVariation(
+                                                                          'wght',
+                                                                          700)
+                                                                    ],
+                                                                    fontSize: 36 *
+                                                                        globals
+                                                                            .scaleParam,
+                                                                    color: Colors
+                                                                        .white,
+                                                                    height: 1.1,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        Container(
+                                                          height:
+                                                              addressNameHeight,
+                                                          alignment:
+                                                              Alignment.topLeft,
+                                                          child: Row(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              Flexible(
+                                                                child: Text(
+                                                                  widget.currentAddress
+                                                                          .isNotEmpty
+                                                                      ? widget.currentAddress[
+                                                                          "address"]
+                                                                      : "Нет адреса",
+                                                                  style:
+                                                                      TextStyle(
+                                                                    fontFamily:
+                                                                        "Raleway",
+                                                                    fontSize: 32 *
+                                                                        globals
+                                                                            .scaleParam,
+                                                                    fontVariations: <FontVariation>[
+                                                                      FontVariation(
+                                                                          'wght',
+                                                                          600)
+                                                                    ],
+                                                                    color: isCollapsed
+                                                                        ? Colors
+                                                                            .white
+                                                                        : Colors
+                                                                            .transparent,
+                                                                    height: 1.1,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                              SizedBox(
+                                                width:
+                                                    constraints.maxWidth * 0.15,
+                                                child: const Icon(
+                                                  Icons.arrow_drop_down,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
+                                Spacer(
+                                  flex: 3,
+                                )
+                              ],
                             ),
-                            Spacer(
-                              flex: 3,
-                            )
-                          ],
-                        ),
-                      )
-                    : Container(
-                        height: 160 * globals.scaleParam,
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 20 * globals.scaleParam),
-                        alignment: Alignment.centerLeft,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              flex: 5,
-                              child: TextButton(
-                                style: TextButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  // backgroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(15)),
+                          )
+                        : Container(
+                            height: 160 * globals.scaleParam,
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 20 * globals.scaleParam),
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  flex: 5,
+                                  child: TextButton(
+                                    style: TextButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      // backgroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(15)),
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      Navigator.push(context, MaterialPageRoute(
+                                        builder: (context) {
+                                          return PickAddressPage(
+                                            client: widget.user,
+                                            addresses: widget.addresses,
+                                          );
+                                        },
+                                      ));
+                                    },
+                                    child: LayoutBuilder(
+                                      builder: (context, constraints) {
+                                        return SizedBox(
+                                          height: 160 * globals.scaleParam,
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.center,
+                                            children: [
+                                              SizedBox(
+                                                width:
+                                                    constraints.maxWidth * 0.15,
+                                                child: Icon(
+                                                  Icons.location_on_rounded,
+                                                  size: 48 * globals.scaleParam,
+                                                  color: Colors.black,
+                                                ),
+                                              ),
+                                              SizedBox(
+                                                width:
+                                                    constraints.maxWidth * 0.7,
+                                                child: LayoutBuilder(
+                                                  builder:
+                                                      (context, constraints2) {
+                                                    double cityNameHeight =
+                                                        constraints.maxHeight *
+                                                            0.5;
+                                                    double addressNameHeight =
+                                                        constraints.maxHeight *
+                                                            0.5;
+                                                    if (hasSecondLine(
+                                                        widget.currentAddress
+                                                                .isNotEmpty
+                                                            ? widget.currentAddress[
+                                                                "address"]
+                                                            : "Нет адреса",
+                                                        TextStyle(
+                                                          fontSize: 32 *
+                                                              globals
+                                                                  .scaleParam,
+                                                          fontVariations: <FontVariation>[
+                                                            FontVariation(
+                                                                'wght', 700)
+                                                          ],
+                                                          color: isCollapsed
+                                                              ? Colors.white
+                                                              : Colors
+                                                                  .transparent,
+                                                          height: 1.1,
+                                                        ),
+                                                        constraints.maxWidth *
+                                                            0.7)) {
+                                                      cityNameHeight =
+                                                          constraints
+                                                                  .maxHeight *
+                                                              0.42;
+                                                      addressNameHeight =
+                                                          constraints
+                                                                  .maxHeight *
+                                                              0.58;
+                                                    }
+
+                                                    // return Container(
+                                                    // width: constraints.maxWidth * 0.7,
+                                                    //   color: Colors.red,
+                                                    // );
+
+                                                    return Column(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment.end,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Container(
+                                                          height:
+                                                              cityNameHeight,
+                                                          alignment: Alignment
+                                                              .bottomLeft,
+                                                          child: Row(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .end,
+                                                            children: [
+                                                              Flexible(
+                                                                child: Text(
+                                                                  widget.currentAddress[
+                                                                          "city_name"] ??
+                                                                      "",
+                                                                  textAlign:
+                                                                      TextAlign
+                                                                          .start,
+                                                                  style:
+                                                                      TextStyle(
+                                                                    fontVariations: <FontVariation>[
+                                                                      FontVariation(
+                                                                          'wght',
+                                                                          700)
+                                                                    ],
+                                                                    fontSize: 36 *
+                                                                        globals
+                                                                            .scaleParam,
+                                                                    color: Colors
+                                                                        .black,
+                                                                    height: 1.1,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        Container(
+                                                          height:
+                                                              addressNameHeight,
+                                                          alignment:
+                                                              Alignment.topLeft,
+                                                          child: Row(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              Flexible(
+                                                                child: Text(
+                                                                  widget.currentAddress
+                                                                          .isNotEmpty
+                                                                      ? widget.currentAddress[
+                                                                          "address"]
+                                                                      : "Нет адреса",
+                                                                  style:
+                                                                      TextStyle(
+                                                                    fontFamily:
+                                                                        "Raleway",
+                                                                    fontSize: 32 *
+                                                                        globals
+                                                                            .scaleParam,
+                                                                    fontVariations: <FontVariation>[
+                                                                      FontVariation(
+                                                                          'wght',
+                                                                          600)
+                                                                    ],
+                                                                    color: !isCollapsed
+                                                                        ? Colors
+                                                                            .black
+                                                                        : Colors
+                                                                            .transparent,
+                                                                    height: 1.1,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                              SizedBox(
+                                                width:
+                                                    constraints.maxWidth * 0.15,
+                                                child: const Icon(
+                                                  Icons.arrow_drop_down,
+                                                  color: Colors.black,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
                                   ),
                                 ),
-                                onPressed: () {
-                                  Navigator.push(context, MaterialPageRoute(
-                                    builder: (context) {
-                                      return PickAddressPage(
-                                        client: widget.user,
-                                        addresses: widget.addresses,
-                                      );
+                                // Expanded(
+                                //   flex: 3,
+                                //   child: SizedBox(),
+                                // ),
+                                Flexible(
+                                  fit: FlexFit.tight,
+                                  child: IconButton(
+                                    onPressed: () {
+                                      Navigator.push(context, MaterialPageRoute(
+                                        builder: (context) {
+                                          return BonusesPage();
+                                        },
+                                      ));
                                     },
-                                  ));
-                                },
-                                child: LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    return SizedBox(
-                                      height: 160 * globals.scaleParam,
+                                    icon: Icon(
+                                      Icons.card_giftcard_rounded,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                                Flexible(
+                                  flex: 3,
+                                  fit: FlexFit.tight,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                        padding: EdgeInsets.all(
+                                            5 * globals.scaleParam),
+                                        elevation: 0,
+                                        backgroundColor: Colors.transparent,
+                                        shadowColor: Colors.transparent),
+                                    onPressed: () {
+                                      _key.currentState!.openEndDrawer();
+                                    },
+                                    child: Padding(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 10 * globals.scaleParam),
                                       child: Row(
                                         mainAxisAlignment:
-                                            MainAxisAlignment.start,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
+                                            MainAxisAlignment.end,
                                         children: [
-                                          SizedBox(
-                                            width: constraints.maxWidth * 0.15,
-                                            child: Icon(
-                                              Icons.location_on_rounded,
-                                              size: 48 * globals.scaleParam,
-                                              color: Colors.black,
-                                            ),
-                                          ),
-                                          SizedBox(
-                                            width: constraints.maxWidth * 0.7,
-                                            child: LayoutBuilder(
-                                              builder: (context, constraints2) {
-                                                double cityNameHeight =
-                                                    constraints.maxHeight * 0.5;
-                                                double addressNameHeight =
-                                                    constraints.maxHeight * 0.5;
-                                                if (hasSecondLine(
-                                                    widget.currentAddress
-                                                            .isNotEmpty
-                                                        ? widget.currentAddress[
-                                                            "address"]
-                                                        : "Нет адреса",
-                                                    TextStyle(
-                                                      fontSize: 32 *
-                                                          globals.scaleParam,
-                                                      fontVariations: <FontVariation>[
-                                                        FontVariation(
-                                                            'wght', 700)
-                                                      ],
-                                                      color: isCollapsed
-                                                          ? Colors.white
-                                                          : Colors.transparent,
-                                                      height: 1.1,
-                                                    ),
-                                                    constraints.maxWidth *
-                                                        0.7)) {
-                                                  cityNameHeight =
-                                                      constraints.maxHeight *
-                                                          0.42;
-                                                  addressNameHeight =
-                                                      constraints.maxHeight *
-                                                          0.58;
-                                                }
-
-                                                // return Container(
-                                                // width: constraints.maxWidth * 0.7,
-                                                //   color: Colors.red,
-                                                // );
-
-                                                return Column(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.end,
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.center,
-                                                  children: [
-                                                    Container(
-                                                      height: cityNameHeight,
-                                                      alignment:
-                                                          Alignment.bottomLeft,
-                                                      child: Row(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .end,
-                                                        children: [
-                                                          Flexible(
-                                                            child: Text(
-                                                              widget.currentAddress[
-                                                                      "city_name"] ??
-                                                                  "",
-                                                              textAlign:
-                                                                  TextAlign
-                                                                      .start,
-                                                              style: TextStyle(
-                                                                fontVariations: <FontVariation>[
-                                                                  FontVariation(
-                                                                      'wght',
-                                                                      700)
-                                                                ],
-                                                                fontSize: 36 *
-                                                                    globals
-                                                                        .scaleParam,
-                                                                color: Colors
-                                                                    .black,
-                                                                height: 1.1,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    Container(
-                                                      height: addressNameHeight,
-                                                      alignment:
-                                                          Alignment.topLeft,
-                                                      child: Row(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
-                                                        children: [
-                                                          Flexible(
-                                                            child: Text(
-                                                              widget.currentAddress
-                                                                      .isNotEmpty
-                                                                  ? widget.currentAddress[
-                                                                      "address"]
-                                                                  : "Нет адреса",
-                                                              style: TextStyle(
-                                                                fontFamily:
-                                                                    "Raleway",
-                                                                fontSize: 32 *
-                                                                    globals
-                                                                        .scaleParam,
-                                                                fontVariations: <FontVariation>[
-                                                                  FontVariation(
-                                                                      'wght',
-                                                                      600)
-                                                                ],
-                                                                color: !isCollapsed
-                                                                    ? Colors
-                                                                        .black
-                                                                    : Colors
-                                                                        .transparent,
-                                                                height: 1.1,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
+                                          Flexible(
+                                            flex: 3,
+                                            fit: FlexFit.tight,
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 5,
+                                              ),
+                                              child: Text(
+                                                widget.user["name"] ?? "",
+                                                textAlign: TextAlign.right,
+                                                style: TextStyle(
+                                                  fontFamily: "Raleway",
+                                                  fontVariations: <FontVariation>[
+                                                    FontVariation('wght', 600)
                                                   ],
-                                                );
-                                              },
+                                                  fontSize:
+                                                      30 * globals.scaleParam,
+                                                  color: Colors.black,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
                                             ),
                                           ),
-                                          SizedBox(
-                                            width: constraints.maxWidth * 0.15,
-                                            child: const Icon(
-                                              Icons.arrow_drop_down,
-                                              color: Colors.black,
-                                            ),
+                                          Flexible(
+                                            fit: FlexFit.tight,
+                                            child: CircleAvatar(),
                                           ),
                                         ],
                                       ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                            // Expanded(
-                            //   flex: 3,
-                            //   child: SizedBox(),
-                            // ),
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: IconButton(
-                                onPressed: () {
-                                  Navigator.push(context, MaterialPageRoute(
-                                    builder: (context) {
-                                      return BonusesPage();
-                                    },
-                                  ));
-                                },
-                                icon: Icon(
-                                  Icons.card_giftcard_rounded,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ),
-                            Flexible(
-                              flex: 3,
-                              fit: FlexFit.tight,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                    padding:
-                                        EdgeInsets.all(5 * globals.scaleParam),
-                                    elevation: 0,
-                                    backgroundColor: Colors.transparent,
-                                    shadowColor: Colors.transparent),
-                                onPressed: () {
-                                  _key.currentState!.openEndDrawer();
-                                },
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 10 * globals.scaleParam),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      Flexible(
-                                        flex: 3,
-                                        fit: FlexFit.tight,
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 5,
-                                          ),
-                                          child: Text(
-                                            widget.user["name"] ?? "",
-                                            textAlign: TextAlign.right,
-                                            style: TextStyle(
-                                              fontFamily: "Raleway",
-                                              fontVariations: <FontVariation>[
-                                                FontVariation('wght', 600)
-                                              ],
-                                              fontSize: 30 * globals.scaleParam,
-                                              color: Colors.black,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      Flexible(
-                                        fit: FlexFit.tight,
-                                        child: CircleAvatar(),
-                                      ),
-                                    ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
 
-                            // IconButton(
-                            //     onPressed: () {},
-                            //     icon: Icon(Icons.settings, color: Colors.black,)),
-                          ],
+                                // IconButton(
+                                //     onPressed: () {},
+                                //     icon: Icon(Icons.settings, color: Colors.black,)),
+                              ],
+                            ),
+                          )),
+              ),
+              // SliverToBoxAdapter(
+              //     child: Padding(
+              //   padding: EdgeInsets.all(30 * globals.scaleParam),
+              //   child: Column(
+              //       crossAxisAlignment: CrossAxisAlignment.start,
+              //       children: [
+              //         RichText(
+              //           text: TextSpan(
+              //               style: TextStyle(
+              //                   color: Colors.black,
+              //                   fontWeight: FontWeight.w400,
+              //                   fontSize: 36),
+              //               children: [
+              //                 TextSpan(text: "Fast and \n"),
+              //                 TextSpan(
+              //                     text: "Delicious",
+              //                     style:
+              //                         TextStyle(fontWeight: FontWeight.w700)),
+              //                 TextSpan(text: " food")
+              //               ]),
+              //         )
+              //       ]),
+              // )),
+              SliverToBoxAdapter(
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: 50 * globals.scaleParam,
+                      vertical: 20 * globals.scaleParam),
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          "Бар-Маркеты",
+                          style: TextStyle(
+                              fontSize: 48 * globals.scaleParam,
+                              fontVariations: <FontVariation>[
+                                FontVariation('wght', 700)
+                              ],
+                              color: Colors.black),
                         ),
                       ),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                    horizontal: 50 * globals.scaleParam,
-                    vertical: 20 * globals.scaleParam),
-                child: Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        "Бар-Маркеты",
-                        style: TextStyle(
-                            fontSize: 48 * globals.scaleParam,
-                            fontVariations: <FontVariation>[
-                              FontVariation('wght', 700)
-                            ],
-                            color: Colors.black),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: 50 * globals.scaleParam,
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 50 * globals.scaleParam,
+                ),
               ),
-            ),
-            BusinessSelectCarousel(
-              businesses: widget.businesses,
-              user: widget.user,
-              currentAddress: widget.currentAddress,
-            ),
-            SliverToBoxAdapter(
-              child: Container(
-                height: 800 * globals.scaleParam,
+              BusinessSelectCarousel(
+                businesses: widget.businesses,
+                user: widget.user,
+                currentAddress: widget.currentAddress,
               ),
-            )
-          ],
-        ),
-      ),
+              SliverToBoxAdapter(
+                child: Container(
+                  height: 800 * globals.scaleParam,
+                ),
+              ),
+            ],
+          )),
     );
   }
 }
