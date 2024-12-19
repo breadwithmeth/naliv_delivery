@@ -151,7 +151,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                         sliver: SliverAppBar(
                           expandedHeight: kToolbarHeight,
                           centerTitle: true,
-                          backgroundColor: Colors.transparent,
+                          backgroundColor: Colors.black,
                           surfaceTintColor: Colors.transparent,
                           leading: IconButton(
                               onPressed: () {
