@@ -65,9 +65,6 @@ class _StartPageState extends State<StartPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          toolbarHeight: 0,
-        ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         // floatingActionButton:
         body: SafeArea(
@@ -76,63 +73,26 @@ class _StartPageState extends State<StartPage> {
             children: [
               const Spacer(),
               Container(
-                  padding:
-                      EdgeInsets.all(MediaQuery.of(context).size.width * 0.05),
-                  // decoration: const BoxDecoration(
-                  //     gradient: LinearGradient(
-                  //         colors: [Colors.deepOrangeAccent, Colors.orange])),
-                  child: AnimatedMeshGradient(
-                      colors: [
-                        Colors.white,
-                        Colors.white,
-                        Colors.white,
-                        Colors.grey.shade100
-                      ],
-                      options: AnimatedMeshGradientOptions(
-                          frequency: 10, amplitude: 1),
-                      child: Container(
-                        color: Colors.white10,
-                        width: MediaQuery.of(context).size.width * 0.9,
-                        height: MediaQuery.of(context).size.width * 0.9,
-                        child: FittedBox(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Flexible(
-                                  child: Text(
-                                "НАЛИВ/",
-                                style: TextStyle(
-                                    color: Colors.black,
-                                    fontVariations: <FontVariation>[
-                                      FontVariation('wght', 900)
-                                    ],
-                                    fontSize: 48),
-                              )),
-                              Flexible(
-                                  child: Text(
-                                "ГРАДУСЫ",
-                                style: TextStyle(
-                                    color: Colors.black,
-                                    fontVariations: <FontVariation>[
-                                      FontVariation('wght', 900)
-                                    ],
-                                    fontSize: 48),
-                              )),
-                              Flexible(
-                                  child: Text(
-                                "24",
-                                style: TextStyle(
-                                    color: Colors.black,
-                                    fontVariations: <FontVariation>[
-                                      FontVariation('wght', 900)
-                                    ],
-                                    fontSize: 48),
-                              )),
-                            ],
-                          ),
-                        ),
-                      ))),
+                padding:
+                    EdgeInsets.all(MediaQuery.of(context).size.width * 0.05),
+                // decoration: const BoxDecoration(
+                //     gradient: LinearGradient(
+                //         colors: [Colors.deepOrangeAccent, Colors.orange])),
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 0.75,
+                  padding: EdgeInsets.all(15),
+                  child: FittedBox(
+                    child: Text(
+                      "Налив/Градусы24",
+                      style: GoogleFonts.prostoOne(
+                        fontSize: 50,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               const Spacer(),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -152,12 +112,10 @@ class _StartPageState extends State<StartPage> {
                     children: [
                       Text(
                         "Войти",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontVariations: <FontVariation>[
-                            const FontVariation('wght', 700)
-                          ],
-                          fontSize: 72 * globals.scaleParam,
+                        style: GoogleFonts.roboto(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
                         ),
                       )
                     ],

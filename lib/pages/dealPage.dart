@@ -21,7 +21,10 @@ class _DealPageState extends State<DealPage> {
         children: [
           Text(
             "-",
-            style: TextStyle(fontSize: 28 * globals.scaleParam, fontVariations: <FontVariation>[FontVariation('wght', 500)], color: Colors.black),
+            style: TextStyle(
+                fontSize: 28 * globals.scaleParam,
+                fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                color: Colors.white),
           ),
           Container(
               alignment: Alignment.centerLeft,
@@ -30,7 +33,11 @@ class _DealPageState extends State<DealPage> {
                 child: Text(
                   text,
                   style: TextStyle(
-                      fontSize: 28 * globals.scaleParam, fontVariations: <FontVariation>[FontVariation('wght', 500)], color: Colors.blue.shade600),
+                      fontSize: 28 * globals.scaleParam,
+                      fontVariations: <FontVariation>[
+                        FontVariation('wght', 500)
+                      ],
+                      color: Colors.blue.shade600),
                 ),
                 onPressed: () {
                   Navigator.push(context, MaterialPageRoute(
@@ -48,10 +55,8 @@ class _DealPageState extends State<DealPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 0,
-      ),
-      body: SingleChildScrollView(
+        body: SafeArea(
+      child: SingleChildScrollView(
         child: Container(
           padding: const EdgeInsets.all(30),
           child: Column(
@@ -62,8 +67,12 @@ class _DealPageState extends State<DealPage> {
                 width: MediaQuery.of(context).size.width * 0.9,
                 child: Text(
                   "Уважаемый пользователь",
-                  style:
-                      TextStyle(fontSize: 42 * globals.scaleParam, fontVariations: <FontVariation>[FontVariation('wght', 600)], color: Colors.black),
+                  style: TextStyle(
+                      fontSize: 42 * globals.scaleParam,
+                      fontVariations: <FontVariation>[
+                        FontVariation('wght', 600)
+                      ],
+                      color: Colors.white),
                 ),
               ),
               const Divider(),
@@ -71,8 +80,12 @@ class _DealPageState extends State<DealPage> {
                 width: MediaQuery.of(context).size.width * 0.9,
                 child: Text(
                   "Продолжение использования нашего веб-ресурса/приложения/сервиса подразумевает ваше добровольное согласие на сбор, обработку и использование ваших персональных данных, а также подтверждение ознакомления и согласия с следующим:",
-                  style:
-                      TextStyle(fontSize: 32 * globals.scaleParam, fontVariations: <FontVariation>[FontVariation('wght', 400)], color: Colors.black),
+                  style: TextStyle(
+                      fontSize: 32 * globals.scaleParam,
+                      fontVariations: <FontVariation>[
+                        FontVariation('wght', 400)
+                      ],
+                      color: Colors.white),
                 ),
               ),
               const SizedBox(
@@ -113,12 +126,16 @@ class _DealPageState extends State<DealPage> {
                     child: Text(
                       "Я, при входе на данный ресурс, подтверждаю, что мне исполнился 21 год. Я подтверждаю, что прочитал и полностью ознакомился с вышеперечисленными документами, включая все правила, условия и политики, действующие на данном ресурсе.",
                       style: TextStyle(
-                          fontSize: 32 * globals.scaleParam, fontVariations: <FontVariation>[FontVariation('wght', 400)], color: Colors.black),
+                          fontSize: 32 * globals.scaleParam,
+                          fontVariations: <FontVariation>[
+                            FontVariation('wght', 400)
+                          ],
+                          color: Colors.white),
                     ),
                   ),
                   Container(
                       child: Checkbox(
-                    activeColor: Colors.black,
+                    activeColor: Colors.white,
                     value: is_agree,
                     onChanged: (value) {
                       setState(() {
@@ -145,7 +162,8 @@ class _DealPageState extends State<DealPage> {
                       }
                     : null,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 20),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 4, horizontal: 20),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -153,7 +171,9 @@ class _DealPageState extends State<DealPage> {
                         "Продолжить",
                         style: TextStyle(
                           color: Colors.white,
-                          fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                          fontVariations: <FontVariation>[
+                            FontVariation('wght', 800)
+                          ],
                           fontSize: 42 * globals.scaleParam,
                         ),
                       )
@@ -166,7 +186,7 @@ class _DealPageState extends State<DealPage> {
           ),
         ),
       ),
-    );
+    ));
   }
 }
 

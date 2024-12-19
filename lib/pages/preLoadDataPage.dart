@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/pages/createProfilePage.dart';
 import 'package:naliv_delivery/pages/finishProfilePage.dart';
+import 'package:naliv_delivery/pages/mainPage.dart';
 import 'package:naliv_delivery/pages/paintLogoPage.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/organizationSelectPage.dart';
@@ -90,7 +91,9 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
         _getUser().then((vv) {
           user["city_name"] = _currentAddress["city_name"];
           _getBusinesses().then((b) {
+            print(user);
             if (user.values.where((v) {
+                  print(v);
                   return v == null;
                 }).length >
                 0) {
@@ -155,9 +158,9 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
   @override
   Widget build(BuildContext context) {
     if (_currentAddress.isEmpty) {
-      return PaintLogoPage(city: "Павлодар");
+      return PaintLogoPage();
     } else {
-      return PaintLogoPage(city: _currentAddress["city_name"]);
+      return PaintLogoPage();
     }
   }
 }
