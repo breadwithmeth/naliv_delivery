@@ -408,7 +408,7 @@ class _ProductPageState extends State<ProductPage> {
       builder: ((context, scrollController) {
         return Container(
           decoration: const BoxDecoration(
-            color: Colors.white,
+            color: Colors.black,
           ),
           child: Column(
             children: [
@@ -483,7 +483,7 @@ class _ProductPageState extends State<ProductPage> {
   Scaffold _productPage(
       BuildContext context, ScrollController scrollController) {
     return Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.black,
         // color: Colors.white,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton: SlideTransition(
@@ -511,7 +511,7 @@ class _ProductPageState extends State<ProductPage> {
                           fit: FlexFit.tight,
                           child: Container(
                             decoration: BoxDecoration(
-                                color: Colors.black,
+                                color: Colors.white,
                                 boxShadow: const [
                                   BoxShadow(
                                     offset: Offset(3, 5),
@@ -525,11 +525,8 @@ class _ProductPageState extends State<ProductPage> {
                             child: Text(
                               "Выберите опцию",
                               style: TextStyle(
-                                fontFamily: "Raleway",
-                                color: Theme.of(context).colorScheme.onPrimary,
-                                fontVariations: <FontVariation>[
-                                  FontVariation('wght', 600)
-                                ],
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
                                 fontSize: 48 * globals.scaleParam,
                               ),
                             ),
@@ -632,9 +629,7 @@ class _ProductPageState extends State<ProductPage> {
                                                         ],
                                                         fontSize: 36 *
                                                             globals.scaleParam,
-                                                        color: Theme.of(context)
-                                                            .colorScheme
-                                                            .onSurface,
+                                                        color: Colors.black,
                                                         height: parentItemMultiplier !=
                                                                     1 ||
                                                                 quantity != 1 ||
@@ -666,9 +661,7 @@ class _ProductPageState extends State<ProductPage> {
                                                       ],
                                                       fontSize: 32 *
                                                           globals.scaleParam,
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .onSurface,
+                                                      color: Colors.black,
                                                       height:
                                                           parentItemMultiplier !=
                                                                       1 ||
@@ -698,8 +691,7 @@ class _ProductPageState extends State<ProductPage> {
                                                           TextAlign.center,
                                                       style: TextStyle(
                                                         fontFamily: "Raleway",
-                                                        color: Colors
-                                                            .grey.shade600,
+                                                        color: Colors.black,
                                                         fontVariations: <FontVariation>[
                                                           FontVariation(
                                                               'wght', 600)
@@ -781,11 +773,11 @@ class _ProductPageState extends State<ProductPage> {
                                 child: Container(
                                   decoration: const BoxDecoration(
                                     boxShadow: [
-                                      BoxShadow(
-                                        offset: Offset(3, 5),
-                                        color: Colors.black38,
-                                        blurRadius: 5,
-                                      )
+                                      // BoxShadow(
+                                      //   offset: Offset(3, 5),
+                                      //   color: Colors.black38,
+                                      //   blurRadius: 5,
+                                      // )
                                     ],
                                   ),
                                   child: Column(
@@ -799,13 +791,8 @@ class _ProductPageState extends State<ProductPage> {
                                               buyButtonActionText,
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
-                                                fontFamily: "Raleway",
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onPrimary,
-                                                fontVariations: <FontVariation>[
-                                                  FontVariation('wght', 600)
-                                                ],
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
                                                 fontSize:
                                                     42 * globals.scaleParam,
                                               ),
@@ -833,11 +820,11 @@ class _ProductPageState extends State<ProductPage> {
           // margin: EdgeInsets.only(left: 10, right: 10),
           decoration: BoxDecoration(
               // color: Colors.grey.shade50,
-              color: Colors.white,
-              boxShadow: [BoxShadow(spreadRadius: -10, color: Colors.green)],
+              color: Color(0xFF121212),
+              boxShadow: [BoxShadow(spreadRadius: -10, color: Colors.white12)],
               // color: Colors.amber,
               borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(30), topRight: Radius.circular(30))),
+                  topLeft: Radius.circular(10), topRight: Radius.circular(10))),
           child: CustomScrollView(
             controller: scrollController,
             slivers: [
@@ -852,12 +839,12 @@ class _ProductPageState extends State<ProductPage> {
                         BoxShadow(
                             offset: const Offset(0, 2),
                             blurRadius: 10,
-                            color: Colors.blueGrey.shade50)
+                            color: Colors.white10)
                       ],
                       color: Colors.white,
                       borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(30),
-                          bottomRight: Radius.circular(30))),
+                          bottomLeft: Radius.circular(10),
+                          bottomRight: Radius.circular(10))),
                   padding: EdgeInsets.all(20 * globals.scaleParam),
                   child: Column(
                     children: [
@@ -948,13 +935,13 @@ class _ProductPageState extends State<ProductPage> {
                         }, child: LayoutBuilder(
                           builder: (context, constraints) {
                             return Container(
-                              alignment: Alignment.center,
+                                alignment: Alignment.center,
                                 width: constraints.maxWidth,
                                 height: constraints.maxWidth,
                                 // margin: EdgeInsets.all(10),
                                 decoration: const BoxDecoration(
                                   borderRadius: BorderRadius.all(
-                                    Radius.circular(15),
+                                    Radius.circular(5),
                                   ),
                                 ),
                                 clipBehavior: Clip.antiAliasWithSaveLayer,
@@ -964,7 +951,7 @@ class _ProductPageState extends State<ProductPage> {
                                       item["img"] ?? "/",
                                       fit: BoxFit.cover,
                                       width: double.infinity,
-                                      
+
                                       // mode: ExtendedImageMode.gesture,
                                       // initGestureConfigHandler: (state) {
                                       //   return GestureConfig(
@@ -983,11 +970,11 @@ class _ProductPageState extends State<ProductPage> {
                       item.isNotEmpty
                           ? Container(
                               // color: Colors.grey.shade50,
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 1 *
-                                    (MediaQuery.sizeOf(context).height / 1080),
-                              ),
+                              // padding: EdgeInsets.symmetric(
+                              //   horizontal: 10,
+                              //   vertical: 1 *
+                              //       (MediaQuery.sizeOf(context).height / 1080),
+                              // ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisAlignment: MainAxisAlignment.start,
@@ -998,12 +985,9 @@ class _ProductPageState extends State<ProductPage> {
                                   buildPromotions(),
                                   Text(
                                     item["name"] ?? "",
-                                    style: TextStyle(
-                                        fontFamily: "Raleway",
-                                        fontVariations: <FontVariation>[
-                                          FontVariation('wght', 600)
-                                        ],
-                                        fontSize: 52 * globals.scaleParam,
+                                    style: GoogleFonts.prostoOne(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
                                         color: Colors.black,
                                         letterSpacing: 0),
                                   ),
@@ -1029,35 +1013,28 @@ class _ProductPageState extends State<ProductPage> {
                                       children: [
                                         Row(
                                           crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                              CrossAxisAlignment.baseline,
+                                          textBaseline: TextBaseline.alphabetic,
                                           children: [
                                             Flexible(
                                               child: Text(
                                                 globals.formatCost(
                                                     (item['price'] ?? '')
                                                         .toString()),
-                                                style: TextStyle(
-                                                  fontSize:
-                                                      62 * globals.scaleParam,
+                                                style: GoogleFonts.prostoOne(
+                                                  fontSize: 24,
                                                   fontWeight: FontWeight.w800,
                                                   color: Colors.black,
-                                                  fontVariations: <FontVariation>[
-                                                    FontVariation('wght', 600)
-                                                  ],
                                                 ),
                                               ),
                                             ),
                                             Flexible(
                                               child: Text(
                                                 "₸",
-                                                style: TextStyle(
+                                                style: GoogleFonts.prostoOne(
                                                   color: Colors.grey.shade600,
                                                   fontWeight: FontWeight.w800,
-                                                  fontSize:
-                                                      62 * globals.scaleParam,
-                                                  fontVariations: <FontVariation>[
-                                                    FontVariation('wght', 600)
-                                                  ],
+                                                  fontSize: 16,
                                                 ),
                                               ),
                                             ),
@@ -1141,14 +1118,11 @@ class _ProductPageState extends State<ProductPage> {
                                     Text(
                                       options[indexOption]["name"],
                                       style: TextStyle(
-                                        fontFamily: "Raleway",
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurface,
-                                        fontVariations: <FontVariation>[
-                                          FontVariation('wght', 700)
-                                        ],
-                                        fontSize: 48 * globals.scaleParam,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 24,
                                       ),
                                     ),
                                     options[indexOption]["required"] == 1
@@ -1162,8 +1136,7 @@ class _ProductPageState extends State<ProductPage> {
                                                 fontVariations: <FontVariation>[
                                                   FontVariation('wght', 600)
                                                 ],
-                                                fontSize:
-                                                    36 * globals.scaleParam,
+                                                fontSize: 12,
                                               ),
                                             ),
                                           )
@@ -1206,7 +1179,7 @@ class _ProductPageState extends State<ProductPage> {
                                                     backgroundColor:
                                                         Colors.grey.shade100,
                                                     checkmarkColor:
-                                                        Colors.black,
+                                                        Colors.white,
                                                     selectedColor: Colors.white,
                                                     surfaceTintColor:
                                                         Colors.white,
@@ -1218,7 +1191,6 @@ class _ProductPageState extends State<ProductPage> {
                                                     label: Text(
                                                       "${globals.formatCost(options[indexOption]["options"][index]["price"].toString())}₸  ${options[indexOption]["options"][index]["name"]}",
                                                       style: TextStyle(
-                                                        fontFamily: "Raleway",
                                                         color: Theme.of(context)
                                                             .colorScheme
                                                             .onSurface,
@@ -1470,8 +1442,8 @@ class _ProductPageState extends State<ProductPage> {
                                         bottom: BorderSide(
                                           width: 3,
                                           color: currentTab == 0
-                                              ? Colors.black
-                                              : Colors.grey.shade200,
+                                              ? Colors.white
+                                              : Colors.grey.shade900,
                                         ),
                                       ),
                                     ),
@@ -1480,7 +1452,6 @@ class _ProductPageState extends State<ProductPage> {
                                       overflow: TextOverflow.ellipsis,
                                       maxLines: 1,
                                       style: TextStyle(
-                                        fontFamily: "Raleway",
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurface,
@@ -1508,8 +1479,8 @@ class _ProductPageState extends State<ProductPage> {
                                         bottom: BorderSide(
                                           width: 3,
                                           color: currentTab == 1
-                                              ? Colors.black
-                                              : Colors.grey.shade200,
+                                              ? Colors.white
+                                              : Colors.grey.shade900,
                                         ),
                                       ),
                                     ),
@@ -1518,7 +1489,6 @@ class _ProductPageState extends State<ProductPage> {
                                       overflow: TextOverflow.ellipsis,
                                       maxLines: 1,
                                       style: TextStyle(
-                                        fontFamily: "Raleway",
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurface,
@@ -1546,8 +1516,8 @@ class _ProductPageState extends State<ProductPage> {
                                         bottom: BorderSide(
                                           width: 3,
                                           color: currentTab == 2
-                                              ? Colors.black
-                                              : Colors.grey.shade200,
+                                              ? Colors.white
+                                              : Colors.grey.shade900,
                                         ),
                                       ),
                                     ),
@@ -1556,7 +1526,6 @@ class _ProductPageState extends State<ProductPage> {
                                       overflow: TextOverflow.ellipsis,
                                       maxLines: 1,
                                       style: TextStyle(
-                                        fontFamily: "Raleway",
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurface,
@@ -1583,7 +1552,6 @@ class _ProductPageState extends State<ProductPage> {
                         child: Text(
                           TabText[currentTab],
                           style: TextStyle(
-                            fontFamily: "Raleway",
                             color: Theme.of(context)
                                 .colorScheme
                                 .onSurface

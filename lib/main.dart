@@ -2,7 +2,10 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:naliv_delivery/pages/mainPage.dart';
 import 'package:naliv_delivery/pages/paintLogoPage.dart';
+import 'package:naliv_delivery/pages/preLoadDataPage2.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/preLoadDataPage.dart';
@@ -32,7 +35,7 @@ class _MainState extends State<Main> {
   // int _tick = 0;
 
   // Widget _redirect = const StartLoadingPage();
-  Widget _redirect = PaintLogoPage(city: "Караганда");
+  Widget _redirect = PaintLogoPage();
 
   @override
   void initState() {
@@ -68,7 +71,8 @@ class _MainState extends State<Main> {
     String? token = await getToken();
     if (token != null) {
       setState(() {
-        _redirect = PreLoadDataPage();
+        _redirect = Preloaddatapage2();
+        // _redirect = MainPage();
       });
       // determinePosition().then((value) {
       //   setCityAuto(value.latitude, value.longitude).then((value) {
@@ -282,26 +286,26 @@ class _MainState extends State<Main> {
         typography: Typography.material2021(),
         bottomSheetTheme:
             BottomSheetThemeData(backgroundColor: Colors.transparent),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.amber,
-          surface: Colors.white,
-          onSurface: Colors.black,
-          error: Colors.red,
-          primary: Colors.black,
-          onPrimary: Colors.white,
-          onError: Colors.white,
-          secondary: Colors
-              .black38, // TODO: Change this later? To make more sense with black/white style
-          onSecondary: Colors.black,
-        ),
+        // colorScheme: ColorScheme.fromSeed(
+        //   seedColor: Colors.amber,
+        //   surface: Colors.white,
+        //   onSurface: Colors.black,
+        //   error: Colors.red,
+        //   primary: Colors.white,
+        //   onPrimary: Colors.white,
+        //   onError: Colors.white,
+        //   secondary: Colors
+        //       .black38, // TODO: Change this later? To make more sense with black/white style
+        //   onSecondary: Colors.black,
+        // ),
         useMaterial3: true,
-        brightness: Brightness.light,
+        brightness: Brightness.dark,
         pageTransitionsTheme: const PageTransitionsTheme(builders: {
           TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
           TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder()
         }),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(),
-        scaffoldBackgroundColor: Colors.white,
+        scaffoldBackgroundColor: Color(0xFF000000),
         appBarTheme: AppBarTheme(
           // shadowColor: Color(0x70FFFFFF),
           shadowColor: Colors.black12,
@@ -314,7 +318,7 @@ class _MainState extends State<Main> {
             fontFamily: "Raleway",
             fontVariations: <FontVariation>[FontVariation('wght', 700)],
             overflow: TextOverflow.ellipsis,
-            color: Colors.black,
+            color: Colors.white,
           ),
           // backgroundColor: Colors.white,
           // shadowColor: Colors.grey.withOpacity(0.2),
@@ -322,13 +326,11 @@ class _MainState extends State<Main> {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(15))),
-            backgroundColor: Colors.black,
-            // backgroundColor: Color(0xFFFFCA3C),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.all(20),
-            // foregroundColor: Colors.white
+            padding: EdgeInsets.all(15),
+            backgroundColor: Colors.grey.shade900,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
@@ -342,12 +344,10 @@ class _MainState extends State<Main> {
         dividerTheme: DividerThemeData(
           color: Colors.grey.shade300,
         ),
-        textTheme: TextTheme(
+        textTheme: GoogleFonts.robotoTextTheme(TextTheme(
             displayLarge: TextStyle(
-          fontFamily: "Raleway",
           fontSize: 64 * globals.scaleParam,
-          fontVariations: <FontVariation>[FontVariation('wght', 900)],
-        )),
+        ))),
 
         // До этого здесь был шрифт Mulish
 

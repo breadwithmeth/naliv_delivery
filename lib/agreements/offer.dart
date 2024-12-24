@@ -13,11 +13,10 @@ class _OfferPageState extends State<OfferPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: Color(0xFF121212),
       appBar: AppBar(
-        title: Text(
-          "Офёрта",
-        ),
+        backgroundColor: Color(0xFF121212),
+        surfaceTintColor: Colors.transparent,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(

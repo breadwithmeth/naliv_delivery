@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:naliv_delivery/pages/cartPage.dart';
 import 'package:naliv_delivery/shared/bottomBar.dart';
 import '../globals.dart' as globals;
@@ -34,7 +35,12 @@ class CategoryNotifier extends ChangeNotifier {
 
 class CategoryPage extends StatefulWidget {
   const CategoryPage(
-      {super.key, required this.categoryId, required this.categoryName, required this.categories, required this.business, required this.user});
+      {super.key,
+      required this.categoryId,
+      required this.categoryName,
+      required this.categories,
+      required this.business,
+      required this.user});
   final String categoryId;
   final String categoryName;
   final List<dynamic> categories;
@@ -82,7 +88,8 @@ class ParentCategoryPage extends StatefulWidget {
   State<ParentCategoryPage> createState() => _ParentCategoryPageState();
 }
 
-class _ParentCategoryPageState extends State<ParentCategoryPage> with SingleTickerProviderStateMixin {
+class _ParentCategoryPageState extends State<ParentCategoryPage>
+    with SingleTickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int initialIndexTabbar = 0;
   List<Map<String, dynamic>> categoriesWidgetList = [];
@@ -144,67 +151,68 @@ class _ParentCategoryPageState extends State<ParentCategoryPage> with SingleTick
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.black,
       key: _scaffoldKey,
-      floatingActionButtonLocation: FloatingActionButtonLocation.endContained,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Padding(
-        padding: EdgeInsets.only(bottom: 35 * globals.scaleParam),
-        child: SizedBox(
-          width: 200 * globals.scaleParam,
-          height: 165 * globals.scaleParam,
-          child: FloatingActionButton(
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(
-                Radius.circular(15),
-              ),
-            ),
-            child: Icon(
-              size: 70 * globals.scaleParam,
-              Icons.shopping_basket_rounded,
-              color: Theme.of(context).colorScheme.onPrimary,
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) {
-                    return CartPage(
-                      business: widget.business,
-                      user: widget.user,
-                    );
-                  },
-                ),
-              ).then(
-                (value) {
-                  if (value != null) {
-                    if (value) {
-                      print("REFRESHING");
-                      Provider.of<CategoryNotifier>(context, listen: false).triggerRefresh(_tabController.index);
-                    }
-                  }
+        padding: EdgeInsets.all(10),
+        child: FloatingActionButton(
+          backgroundColor: Colors.orange,
+          foregroundColor: Colors.white,
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) {
+                  return CartPage(
+                    business: widget.business,
+                    user: widget.user,
+                  );
                 },
-              );
-            },
-          ),
+              ),
+            ).then(
+              (value) {
+                if (value != null) {
+                  if (value) {
+                    print("REFRESHING");
+                    Provider.of<CategoryNotifier>(context, listen: false)
+                        .triggerRefresh(_tabController.index);
+                  }
+                }
+              },
+            );
+          },
+          child: Icon(Icons.shopping_cart_checkout),
         ),
       ),
       appBar: AppBar(
+        backgroundColor: Colors.black,
+        surfaceTintColor: Colors.transparent,
         toolbarHeight: 130 * globals.scaleParam,
         bottom: PreferredSize(
-          preferredSize: Size(MediaQuery.sizeOf(context).width, 75 * globals.scaleParam),
+          preferredSize:
+              Size(MediaQuery.sizeOf(context).width, 75 * globals.scaleParam),
           child: TabBar(
+            indicatorColor: Colors.white,
             controller: _tabController,
             tabAlignment: TabAlignment.start,
             physics: const BouncingScrollPhysics(),
-            labelPadding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam, vertical: 10 * globals.scaleParam),
-            labelStyle: TextStyle(
+            labelPadding: EdgeInsets.symmetric(
+                horizontal: 10 * globals.scaleParam,
+                vertical: 10 * globals.scaleParam),
+            labelStyle: GoogleFonts.roboto(
               fontSize: 38 * globals.scaleParam,
-              fontWeight: FontWeight.w500,
-              color: Theme.of(context).colorScheme.onSurface,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
             ),
-            unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+            unselectedLabelStyle: GoogleFonts.roboto(
+              fontSize: 38 * globals.scaleParam,
+              fontWeight: FontWeight.w100,
+              color: Colors.grey.shade800,
+            ),
             isScrollable: true,
-            tabs: categoriesWidgetList.map((e) => e["widget"] as Widget).toList(),
+            tabs:
+                categoriesWidgetList.map((e) => e["widget"] as Widget).toList(),
           ),
         ),
         actions: [
@@ -240,15 +248,15 @@ class _ParentCategoryPageState extends State<ParentCategoryPage> with SingleTick
                         Text(
                           widget.business["name"],
                           maxLines: 1,
-                          style: TextStyle(fontSize: 40 * globals.scaleParam, fontFamily: "Raleway"),
+                          style: GoogleFonts.prostoOne(
+                            fontSize: 40 * globals.scaleParam,
+                          ),
                         ),
                         Text(
                           widget.business["address"],
                           maxLines: 1,
-                          style: TextStyle(
-                            fontSize: 32 * globals.scaleParam,
-                            fontFamily: "Raleway",
-                            fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                          style: GoogleFonts.roboto(
+                            fontSize: 24 * globals.scaleParam,
                           ),
                         ),
                       ],
@@ -269,13 +277,21 @@ class _ParentCategoryPageState extends State<ParentCategoryPage> with SingleTick
                         Navigator.push(
                           context,
                           globals.getPlatformSpecialRoute(
-                            SearchPage(business: widget.business, category_id: categoriesWidgetList[initialIndexTabbar]["category_id"]),
+                            SearchPage(
+                                business: widget.business,
+                                category_id:
+                                    categoriesWidgetList[initialIndexTabbar]
+                                        ["category_id"]),
                           ),
                         );
                       },
-                      style: TextButton.styleFrom(foregroundColor: Colors.white.withOpacity(0)),
+                      style: TextButton.styleFrom(
+                          foregroundColor: Colors.grey.shade900.withOpacity(0)),
                       child: Container(
-                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.1), borderRadius: BorderRadius.all(Radius.circular(10))),
+                        decoration: BoxDecoration(
+                            color: Colors.grey.shade900,
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(10))),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
@@ -287,16 +303,18 @@ class _ParentCategoryPageState extends State<ParentCategoryPage> with SingleTick
                               style: TextStyle(
                                 fontWeight: FontWeight.w500,
                                 fontSize: 30 * globals.scaleParam,
-                                color: Colors.black,
+                                color: Colors.grey.shade600,
                                 fontFamily: "Raleway",
-                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                                fontVariations: <FontVariation>[
+                                  FontVariation('wght', 600)
+                                ],
                               ),
                             ),
                             Container(
                               padding: EdgeInsets.all(20 * globals.scaleParam),
                               child: Icon(
                                 Icons.search,
-                                color: Colors.black,
+                                color: Colors.grey.shade600,
                               ),
                             ),
                           ],
@@ -339,6 +357,7 @@ class _FilterBarState extends State<FilterBar> {
     return CustomScrollView(
       slivers: [
         SliverAppBar(
+          backgroundColor: Colors.black,
           title: Text("Фильтр"),
           automaticallyImplyLeading: false,
           floating: true,
@@ -367,7 +386,8 @@ class CategoryPageList extends StatefulWidget {
   State<CategoryPageList> createState() => _CategoryPageListState();
 }
 
-class _CategoryPageListState extends State<CategoryPageList> with SingleTickerProviderStateMixin<CategoryPageList> {
+class _CategoryPageListState extends State<CategoryPageList>
+    with SingleTickerProviderStateMixin<CategoryPageList> {
   late bool _isLastPage;
   late int _pageNumber;
   late bool _error;
@@ -382,12 +402,12 @@ class _CategoryPageListState extends State<CategoryPageList> with SingleTickerPr
 
   Future<void> _getItems() async {
     try {
-      Map? responseList = await getItemsMain(_pageNumber, widget.business["business_id"], "", widget.categoryId);
+      Map? responseList = await getItemsMain(
+          _pageNumber, widget.business["business_id"], "", widget.categoryId);
       if (responseList != null) {
         if (responseList["items"] == null) {
           setState(() {
             _loading = false;
-            _isLastPage = true;
           });
           return;
         }
@@ -397,9 +417,7 @@ class _CategoryPageListState extends State<CategoryPageList> with SingleTickerPr
         setState(() {
           children_categories = responseList["c_children"] ?? [];
 
-          _isLastPage = itemList.length < _numberOfPostsPerRequest;
           _loading = false;
-          _pageNumber = _pageNumber + 1;
           _items.addAll(itemList.map((e) => e));
         });
         if (itemList.isEmpty) {
@@ -444,9 +462,9 @@ class _CategoryPageListState extends State<CategoryPageList> with SingleTickerPr
                 _getItems();
               });
             },
-            child: const Text(
+            child: Text(
               "Перезагрузить",
-              style: TextStyle(fontSize: 20, color: Colors.white),
+              style: TextStyle(fontSize: 20, color: Colors.grey.shade900),
             ),
           ),
         ],
@@ -498,7 +516,7 @@ class _CategoryPageListState extends State<CategoryPageList> with SingleTickerPr
         return Stack(
           children: [
             Container(
-              color: Colors.grey.shade100,
+              color: Color(0xFF121212),
             ),
             CustomScrollView(
               slivers: [
@@ -507,7 +525,8 @@ class _CategoryPageListState extends State<CategoryPageList> with SingleTickerPr
                         shadowColor: Colors.transparent,
                         backgroundColor: Colors.transparent,
                         surfaceTintColor: Colors.transparent,
-                        floating: true,
+                        // floating: true,
+                        pinned: true,
                         toolbarHeight: globals.scaleParam * 130,
                         automaticallyImplyLeading: false,
                         titleSpacing: 0,
@@ -518,12 +537,14 @@ class _CategoryPageListState extends State<CategoryPageList> with SingleTickerPr
                           builder: (context, constraints) {
                             return Container(
                               decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: Colors.black,
                                   borderRadius: BorderRadius.only(
-                                      bottomLeft: Radius.circular(30 * globals.scaleParam), bottomRight: Radius.circular(30 * globals.scaleParam))),
+                                      bottomLeft: Radius.circular(5),
+                                      bottomRight: Radius.circular(5))),
                               alignment: Alignment.bottomLeft,
                               height: globals.scaleParam * 130,
-                              padding: EdgeInsets.symmetric(vertical: 15 * globals.scaleParam),
+                              padding: EdgeInsets.symmetric(
+                                  vertical: 15 * globals.scaleParam),
                               width: constraints.maxWidth,
                               child: ListView.builder(
                                 primary: false,
@@ -537,8 +558,13 @@ class _CategoryPageListState extends State<CategoryPageList> with SingleTickerPr
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) => CategoryPage(
-                                            categoryId: children_categories[index]["category_id"].toString(),
-                                            categoryName: children_categories[index]["name"],
+                                            categoryId:
+                                                children_categories[index]
+                                                        ["category_id"]
+                                                    .toString(),
+                                            categoryName:
+                                                children_categories[index]
+                                                    ["name"],
                                             categories: children_categories,
                                             business: widget.business,
                                             user: widget.user,
@@ -549,17 +575,28 @@ class _CategoryPageListState extends State<CategoryPageList> with SingleTickerPr
                                     child: Container(
                                       height: globals.scaleParam * 20,
                                       decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          boxShadow: [BoxShadow(color: Colors.grey.shade200, blurRadius: 3)],
-                                          borderRadius: BorderRadius.all(Radius.circular(45 * globals.scaleParam))),
+                                          color: Colors.grey.shade900,
+                                          boxShadow: [
+                                            BoxShadow(
+                                                color: Colors.black,
+                                                blurRadius: 3)
+                                          ],
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(
+                                                  45 * globals.scaleParam))),
                                       alignment: Alignment.center,
-                                      padding: EdgeInsets.symmetric(vertical: 5 * globals.scaleParam, horizontal: 25 * globals.scaleParam),
-                                      margin: EdgeInsets.all(10 * globals.scaleParam),
+                                      padding: EdgeInsets.symmetric(
+                                          vertical: 5 * globals.scaleParam,
+                                          horizontal: 25 * globals.scaleParam),
+                                      margin: EdgeInsets.all(
+                                          10 * globals.scaleParam),
                                       child: Text(
                                         children_categories[index]["name"],
                                         style: TextStyle(
                                           fontFamily: "Raleway",
-                                          fontVariations: <FontVariation>[FontVariation('wght', 650)],
+                                          fontVariations: <FontVariation>[
+                                            FontVariation('wght', 650)
+                                          ],
                                           fontSize: globals.scaleParam * 30,
                                         ),
                                       ),
@@ -574,23 +611,20 @@ class _CategoryPageListState extends State<CategoryPageList> with SingleTickerPr
                 _items.length > 1
                     ? SliverList.builder(
                         addAutomaticKeepAlives: false,
-                        itemCount: _items.length + (_isLastPage ? 0 : 1),
+                        itemCount: _items.length,
                         itemBuilder: (context, index) {
-                          if ((index == _items.length - _nextPageTrigger) && (!_isLastPage)) {
-                            _getItems();
-                          }
-                          if (index == _items.length) {
-                            if (_error) {
-                              return Center(child: errorDialog(size: 15));
-                            } else {
-                              return const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.all(8),
-                                  child: CircularProgressIndicator(),
-                                ),
-                              );
-                            }
-                          }
+                          // if (index == _items.length) {
+                          //   if (_error) {
+                          //     return Center(child: errorDialog(size: 15));
+                          //   } else {
+                          //     return const Center(
+                          //       child: Padding(
+                          //         padding: EdgeInsets.all(8),
+                          //         child: CircularProgressIndicator(),
+                          //       ),
+                          //     );
+                          //   }
+                          // }
                           final Map<String, dynamic> item = _items[index];
                           return ItemCardListTile(
                             itemId: item["item_id"],
@@ -613,7 +647,9 @@ class _CategoryPageListState extends State<CategoryPageList> with SingleTickerPr
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Colors.grey.shade400,
-                              fontVariations: <FontVariation>[FontVariation('wght', 600)],
+                              fontVariations: <FontVariation>[
+                                FontVariation('wght', 600)
+                              ],
                               fontSize: 52 * globals.scaleParam,
                             ),
                           ),

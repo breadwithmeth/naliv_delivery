@@ -248,7 +248,6 @@ class _HomePageState extends State<HomePage>
               ));
         } else {
           return PaintLogoPage(
-            city: widget.user["city_name"],
           );
         }
       },
