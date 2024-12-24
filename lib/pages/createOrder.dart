@@ -342,6 +342,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
   Widget build(BuildContext context) {
     setPaymentType();
     return Scaffold(
+        backgroundColor: Colors.black,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton: Padding(
           padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
@@ -513,9 +514,8 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                 width: MediaQuery.of(context).size.width * 0.9,
                 height: 330 * globals.scaleParam,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.all(Radius.circular(15)),
-                  color: Color.fromARGB(255, 245, 245, 245),
-                ),
+                    borderRadius: BorderRadius.all(Radius.circular(15)),
+                    color: Color(0xFF121212)),
                 child: Column(
                   children: [
                     Stack(
@@ -530,12 +530,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                             borderRadius: BorderRadius.all(
                               Radius.circular(10),
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.shade300,
-                                spreadRadius: -3,
-                              ),
-                            ],
+
                             // color: const Color.fromARGB(255, 51, 51, 51),
                           ),
                           child: Row(
@@ -691,9 +686,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                               //     blurRadius: 5,
                                               //   ),
                                               // ],
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onPrimary,
+                                              color: Colors.white,
                                             ),
                                           )),
                                     ),
@@ -729,13 +722,11 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                   child: Text(
                                     "Ваш адрес ",
                                     style: TextStyle(
-                                      fontSize: 32 * globals.scaleParam,
-                                      fontVariations: <FontVariation>[
-                                        FontVariation('wght', 600)
-                                      ],
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
-                                    ),
+                                        fontSize: 32 * globals.scaleParam,
+                                        fontVariations: <FontVariation>[
+                                          FontVariation('wght', 600)
+                                        ],
+                                        color: Colors.white),
                                   ),
                                 ),
                                 Flexible(
@@ -822,9 +813,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                               fontVariations: <FontVariation>[
                                                 FontVariation('wght', 600)
                                               ],
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .primary,
+                                              color: Colors.white,
                                             ),
                                           ),
                                         ),
@@ -849,13 +838,11 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                   child: Text(
                                     "Адрес магазина ",
                                     style: TextStyle(
-                                      fontSize: 32 * globals.scaleParam,
-                                      fontVariations: <FontVariation>[
-                                        FontVariation('wght', 600)
-                                      ],
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
-                                    ),
+                                        fontSize: 32 * globals.scaleParam,
+                                        fontVariations: <FontVariation>[
+                                          FontVariation('wght', 600)
+                                        ],
+                                        color: Colors.white),
                                   ),
                                 ),
                                 Flexible(
@@ -902,9 +889,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                               fontVariations: <FontVariation>[
                                                 FontVariation('wght', 600)
                                               ],
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .primary,
+                                              color: Colors.white,
                                             ),
                                           ),
                                         ),
@@ -934,7 +919,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                 // height: 225 * globals.scaleParam,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.all(Radius.circular(15)),
-                  color: Color.fromARGB(255, 245, 245, 245),
+                  color: Color(0xFF121212),
                 ),
                 child: Column(
                   children: [
@@ -958,55 +943,53 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                 fontVariations: <FontVariation>[
                                   FontVariation('wght', 600)
                                 ],
-                                color: Theme.of(context).colorScheme.primary,
+                                color: Colors.white,
                               ),
                             ),
                           ),
-                          Flexible(
-                            flex: 8,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.symmetric(
-                                  vertical: 8 * globals.scaleParam,
-                                  horizontal: 12 * globals.scaleParam,
-                                ),
-                                backgroundColor: Colors.transparent,
-                                disabledBackgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                foregroundColor: Colors.grey,
-                              ),
-                              onPressed: null,
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Flexible(
-                                    flex: 7,
-                                    fit: FlexFit.tight,
-                                    child: Text(
-                                      paymentType.description,
-                                      style: TextStyle(
-                                        fontSize: 32 * globals.scaleParam,
-                                        fontVariations: <FontVariation>[
-                                          FontVariation('wght', 600)
-                                        ],
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
-                                      ),
-                                    ),
-                                  ),
-                                  // TODO: CHANGE THIS "INVISIBLE" BUTTON
-                                  Flexible(
-                                    fit: FlexFit.tight,
-                                    child: Icon(
-                                      Icons.arrow_drop_down_rounded,
-                                      color: Colors.transparent,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                          // Flexible(
+                          //   flex: 8,
+                          //   child: ElevatedButton(
+                          //     style: ElevatedButton.styleFrom(
+                          //       padding: EdgeInsets.symmetric(
+                          //         vertical: 8 * globals.scaleParam,
+                          //         horizontal: 12 * globals.scaleParam,
+                          //       ),
+                          //       backgroundColor: Colors.transparent,
+                          //       disabledBackgroundColor: Colors.transparent,
+                          //       shadowColor: Colors.transparent,
+                          //       foregroundColor: Colors.grey,
+                          //     ),
+                          //     onPressed: null,
+                          //     child: Row(
+                          //       crossAxisAlignment: CrossAxisAlignment.center,
+                          //       children: [
+                          //         Flexible(
+                          //           flex: 7,
+                          //           fit: FlexFit.tight,
+                          //           child: Text(
+                          //             paymentType.description,
+                          //             style: TextStyle(
+                          //               fontSize: 32 * globals.scaleParam,
+                          //               fontVariations: <FontVariation>[
+                          //                 FontVariation('wght', 600)
+                          //               ],
+                          //               color: Colors.white,
+                          //             ),
+                          //           ),
+                          //         ),
+                          //         // TODO: CHANGE THIS "INVISIBLE" BUTTON
+                          //         Flexible(
+                          //           fit: FlexFit.tight,
+                          //           child: Icon(
+                          //             Icons.arrow_drop_down_rounded,
+                          //             color: Colors.transparent,
+                          //           ),
+                          //         ),
+                          //       ],
+                          //     ),
+                          //   ),
+                          // ),
                         ],
                       ),
                     ),
@@ -1065,7 +1048,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                 height: 450 * globals.scaleParam,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.all(Radius.circular(15)),
-                  color: Color.fromARGB(255, 245, 245, 245),
+                  color: Color(0xFF121212),
                 ),
                 child: Column(
                   children: [
@@ -1082,7 +1065,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                 fontVariations: <FontVariation>[
                                   FontVariation('wght', 600)
                                 ],
-                                color: Theme.of(context).colorScheme.primary,
+                                color: Colors.white,
                               ),
                             ),
                           ),
@@ -1095,7 +1078,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                 fontVariations: <FontVariation>[
                                   FontVariation('wght', 600)
                                 ],
-                                color: Theme.of(context).colorScheme.primary,
+                                color: Colors.white,
                               ),
                             ),
                           ),
@@ -1115,7 +1098,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                 fontVariations: <FontVariation>[
                                   FontVariation('wght', 600)
                                 ],
-                                color: Theme.of(context).colorScheme.primary,
+                                color: Colors.white,
                               ),
                             ),
                           ),
@@ -1130,7 +1113,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                 fontVariations: <FontVariation>[
                                   FontVariation('wght', 600)
                                 ],
-                                color: Theme.of(context).colorScheme.primary,
+                                color: Colors.white,
                               ),
                             ),
                           ),
@@ -1150,7 +1133,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                 fontVariations: <FontVariation>[
                                   FontVariation('wght', 600)
                                 ],
-                                color: Theme.of(context).colorScheme.primary,
+                                color: Colors.white,
                               ),
                             ),
                           ),
@@ -1165,7 +1148,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                 fontVariations: <FontVariation>[
                                   FontVariation('wght', 600)
                                 ],
-                                color: Theme.of(context).colorScheme.primary,
+                                color: Colors.white,
                               ),
                             ),
                           ),
@@ -1185,7 +1168,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                     //             fontVariations: <FontVariation>[
                     //   FontVariation('wght', 600)
                     // ],
-                    //             color: Theme.of(context).colorScheme.primary,
+                    //             color: Colors.white,
                     //           ),
                     //         ),
                     //       ),
@@ -1198,7 +1181,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                     //             fontVariations: <FontVariation>[
                     //   FontVariation('wght', 600)
                     // ],
-                    //             color: Theme.of(context).colorScheme.primary,
+                    //             color: Colors.white,
                     //           ),
                     //         ),
                     //       ),
@@ -1226,7 +1209,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                 fontVariations: <FontVariation>[
                                   FontVariation('wght', 600)
                                 ],
-                                color: Theme.of(context).colorScheme.primary,
+                                color: Colors.white,
                               ),
                             ),
                           ),
@@ -1242,7 +1225,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                 fontVariations: <FontVariation>[
                                   FontVariation('wght', 600)
                                 ],
-                                color: Theme.of(context).colorScheme.primary,
+                                color: Colors.white,
                               ),
                             ),
                           ),

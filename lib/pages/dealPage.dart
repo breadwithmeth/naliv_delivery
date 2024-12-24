@@ -55,76 +55,32 @@ class _DealPageState extends State<DealPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        backgroundColor: Color(0xFF121212),
         body: SafeArea(
-      child: SingleChildScrollView(
-        child: Container(
-          padding: const EdgeInsets.all(30),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: MediaQuery.of(context).size.width * 0.9,
-                child: Text(
-                  "Уважаемый пользователь",
-                  style: TextStyle(
-                      fontSize: 42 * globals.scaleParam,
-                      fontVariations: <FontVariation>[
-                        FontVariation('wght', 600)
-                      ],
-                      color: Colors.white),
-                ),
-              ),
-              const Divider(),
-              SizedBox(
-                width: MediaQuery.of(context).size.width * 0.9,
-                child: Text(
-                  "Продолжение использования нашего веб-ресурса/приложения/сервиса подразумевает ваше добровольное согласие на сбор, обработку и использование ваших персональных данных, а также подтверждение ознакомления и согласия с следующим:",
-                  style: TextStyle(
-                      fontSize: 32 * globals.scaleParam,
-                      fontVariations: <FontVariation>[
-                        FontVariation('wght', 400)
-                      ],
-                      color: Colors.white),
-                ),
-              ),
-              const SizedBox(
-                height: 5,
-              ),
-              getAgreementString(
-                  "Договор оферты",
-                  const OfferPage(
-                    path: "assets/agreements/offer.md",
-                  )),
-              // getAgreementString(
-              //     "Политика конфиденциальности",
-              //     const OfferPage(
-              //       path: "assets/agreements/privacy.md",
-              //     )),
-              // getAgreementString(
-              //     "Порядок возврата Товара Держателем Карточки Предприятию и порядок возврата денег, оплаченных за возвращенный Товар, Порядок и сроки поставки товара/услуг, Порядок замены Товара Предприятием Держателю Карточки в случае поставки некачественного и/или некомплектного Товара",
-              //     const OfferPage(
-              //       path: "assets/agreements/returnPolicy.md",
-              //     )),
-              // getAgreementString(
-              //     "Стоимость товаров/услуг, включая расходы на поставку и НДС",
-              //     const OfferPage(
-              //       path: "assets/agreements/nds.md",
-              //     )),
-              // getAgreementString(
-              //     "Почтовый адрес (юридический/фактический) и номера контактных телефонов Предприятия",
-              //     const OfferPage(
-              //       path: "assets/agreements/links.md",
-              //     )),
-              // const SizedBox(
-              //   height: 10,
-              // ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.all(30),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Flexible(
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.9,
                     child: Text(
-                      "Я, при входе на данный ресурс, подтверждаю, что мне исполнился 21 год. Я подтверждаю, что прочитал и полностью ознакомился с вышеперечисленными документами, включая все правила, условия и политики, действующие на данном ресурсе.",
+                      "Уважаемый пользователь",
+                      style: TextStyle(
+                          fontSize: 42 * globals.scaleParam,
+                          fontVariations: <FontVariation>[
+                            FontVariation('wght', 600)
+                          ],
+                          color: Colors.white),
+                    ),
+                  ),
+                  const Divider(),
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.9,
+                    child: Text(
+                      "Продолжение использования нашего веб-ресурса/приложения/сервиса подразумевает ваше добровольное согласие на сбор, обработку и использование ваших персональных данных, а также подтверждение ознакомления и согласия с следующим:",
                       style: TextStyle(
                           fontSize: 32 * globals.scaleParam,
                           fontVariations: <FontVariation>[
@@ -133,60 +89,106 @@ class _DealPageState extends State<DealPage> {
                           color: Colors.white),
                     ),
                   ),
-                  Container(
-                      child: Checkbox(
-                    activeColor: Colors.white,
-                    value: is_agree,
-                    onChanged: (value) {
-                      setState(() {
-                        is_agree = value;
-                      });
-                    },
-                  )),
-                ],
-              ),
-              const SizedBox(
-                height: 30,
-              ),
-              ElevatedButton(
-                onPressed: is_agree!
-                    ? () async {
-                        bool agreed = await setAgreement();
-                        if (agreed) {
-                          Navigator.pushReplacement(context, MaterialPageRoute(
-                            builder: (context) {
-                              return const LoginPage();
-                            },
-                          ));
-                        }
-                      }
-                    : null,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 4, horizontal: 20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  const SizedBox(
+                    height: 5,
+                  ),
+                  getAgreementString(
+                      "Договор оферты",
+                      const OfferPage(
+                        path: "assets/agreements/offer.md",
+                      )),
+                  // getAgreementString(
+                  //     "Политика конфиденциальности",
+                  //     const OfferPage(
+                  //       path: "assets/agreements/privacy.md",
+                  //     )),
+                  // getAgreementString(
+                  //     "Порядок возврата Товара Держателем Карточки Предприятию и порядок возврата денег, оплаченных за возвращенный Товар, Порядок и сроки поставки товара/услуг, Порядок замены Товара Предприятием Держателю Карточки в случае поставки некачественного и/или некомплектного Товара",
+                  //     const OfferPage(
+                  //       path: "assets/agreements/returnPolicy.md",
+                  //     )),
+                  // getAgreementString(
+                  //     "Стоимость товаров/услуг, включая расходы на поставку и НДС",
+                  //     const OfferPage(
+                  //       path: "assets/agreements/nds.md",
+                  //     )),
+                  // getAgreementString(
+                  //     "Почтовый адрес (юридический/фактический) и номера контактных телефонов Предприятия",
+                  //     const OfferPage(
+                  //       path: "assets/agreements/links.md",
+                  //     )),
+                  // const SizedBox(
+                  //   height: 10,
+                  // ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        "Продолжить",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontVariations: <FontVariation>[
-                            FontVariation('wght', 800)
-                          ],
-                          fontSize: 42 * globals.scaleParam,
+                      Flexible(
+                        child: Text(
+                          "Я, при входе на данный ресурс, подтверждаю, что мне исполнился 21 год. Я подтверждаю, что прочитал и полностью ознакомился с вышеперечисленными документами, включая все правила, условия и политики, действующие на данном ресурсе.",
+                          style: TextStyle(
+                              fontSize: 32 * globals.scaleParam,
+                              fontVariations: <FontVariation>[
+                                FontVariation('wght', 400)
+                              ],
+                              color: Colors.white),
                         ),
-                      )
+                      ),
+                      Container(
+                          child: Checkbox(
+                        activeColor: Colors.white,
+                        value: is_agree,
+                        onChanged: (value) {
+                          setState(() {
+                            is_agree = value;
+                          });
+                        },
+                      )),
                     ],
                   ),
-                ),
+                  const SizedBox(
+                    height: 30,
+                  ),
+                  ElevatedButton(
+                    onPressed: is_agree!
+                        ? () async {
+                            bool agreed = await setAgreement();
+                            if (agreed) {
+                              Navigator.pushReplacement(context,
+                                  MaterialPageRoute(
+                                builder: (context) {
+                                  return const LoginPage();
+                                },
+                              ));
+                            }
+                          }
+                        : null,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 4, horizontal: 20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Продолжить",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontVariations: <FontVariation>[
+                                FontVariation('wght', 800)
+                              ],
+                              fontSize: 42 * globals.scaleParam,
+                            ),
+                          )
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Spacer(),
+                ],
               ),
-              // Spacer(),
-            ],
+            ),
           ),
-        ),
-      ),
-    ));
+        ));
   }
 }
 

@@ -8,6 +8,7 @@ import 'package:naliv_delivery/agreements/offer.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/bonusesPage.dart';
 import 'package:naliv_delivery/pages/categoryPage.dart';
+import 'package:naliv_delivery/pages/itemsPage.dart';
 import 'package:naliv_delivery/pages/orderHistoryPage.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
@@ -34,13 +35,12 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   List categories = [];
   List items = [];
   int selectedCategory = 0;
-  List _items = [];
-
+  Map<String, dynamic> _items = {};
   CarouselController _carouselController = CarouselController();
 
   List<dynamic> addresses = [];
 
-  _getItems() {
+  _getCategories() {
     getCategories(widget.business["business_id"]).then((value) {
       setState(() {
         categories = value;
@@ -55,15 +55,19 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     // });
   }
 
-  void updateDataAmount(List newCart, int index) {
-    _items[index]["cart"] = newCart;
+  _getItems() {
+    getItems2(widget.business["business_id"]).then((value) {
+      setState(() {
+        _items = value;
+      });
+    });
   }
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    _getItems();
+    _getCategories();
     _getAddresses();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // _carouselController.(duration: Duration(milliseconds: 2000));
@@ -271,51 +275,26 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                         child: Container(
                       margin: EdgeInsets.all(10),
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          Flexible(
-                              child: TextButton(
-                                  style: TextButton.styleFrom(
-                                      backgroundColor: Colors.grey.shade900),
-                                  onPressed: () {},
-                                  child: Row(
-                                    children: [
-                                      Flexible(
-                                        child: Container(
-                                          child: Image.asset(
-                                              "assets/icons/fire.png"),
-                                        ),
-                                      ),
-                                      Flexible(
-                                          child: Text("Популярное",
-                                              style: GoogleFonts.roboto(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w400,
-                                                color: Colors.white,
-                                              )))
-                                    ],
-                                  ))),
-                          Flexible(
-                              child: TextButton(
-                                  style: TextButton.styleFrom(
-                                      backgroundColor: Colors.grey.shade900),
-                                  onPressed: () {},
-                                  child: Row(
-                                    children: [
-                                      Flexible(
-                                        child: Container(
-                                          child: Image.asset(
-                                              "assets/icons/flash.png"),
-                                        ),
-                                      ),
-                                      Flexible(
-                                          child: Text("Новинки",
-                                              style: GoogleFonts.roboto(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w400,
-                                                color: Colors.white,
-                                              )))
-                                    ],
-                                  ))),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                                backgroundColor: Colors.grey.shade900),
+                            onPressed: () {},
+                            child: Image.asset(
+                              "assets/icons/fire.png",
+                              height: 64,
+                            ),
+                          ),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                                backgroundColor: Colors.grey.shade900),
+                            onPressed: () {},
+                            child: Image.asset(
+                              "assets/icons/flash.png",
+                              height: 64,
+                            ),
+                          )
                         ],
                       ),
                     )),
@@ -325,7 +304,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                   body: SafeArea(
                       // top: true,
                       child: Container(
-                    margin: EdgeInsets.only(top: kToolbarHeight + 5),
+                    margin: EdgeInsets.only(top: 0 + 5),
                     clipBehavior: Clip.hardEdge,
                     decoration: BoxDecoration(
                         color: Colors.black,
@@ -343,14 +322,14 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                               itemBuilder: (context, index) {
                                 return GestureDetector(
                                   onTap: () {
-                                    setState(() {
-                                      selectedCategory = int.parse(
-                                          categories[index]["category_id"]);
-                                      _items.clear();
-                                    });
-                                    print(selectedCategory);
                                     Navigator.push(context, MaterialPageRoute(
                                       builder: (context) {
+                                        // return ItemsPage(
+                                        //     categories: categories,
+                                        //     items: _items,
+                                        //     selectedCategory: int.parse(
+                                        //         categories[index]
+                                        //             ["category_id"]));
                                         return CategoryPage(
                                             categoryId: categories[index]
                                                 ["category_id"],

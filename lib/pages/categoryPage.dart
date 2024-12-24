@@ -402,7 +402,7 @@ class _CategoryPageListState extends State<CategoryPageList>
 
   Future<void> _getItems() async {
     try {
-      Map? responseList = await getItemsMain2(
+      Map? responseList = await getItemsMain(
           _pageNumber, widget.business["business_id"], "", widget.categoryId);
       if (responseList != null) {
         if (responseList["items"] == null) {
@@ -525,7 +525,8 @@ class _CategoryPageListState extends State<CategoryPageList>
                         shadowColor: Colors.transparent,
                         backgroundColor: Colors.transparent,
                         surfaceTintColor: Colors.transparent,
-                        floating: true,
+                        // floating: true,
+                        pinned: true,
                         toolbarHeight: globals.scaleParam * 130,
                         automaticallyImplyLeading: false,
                         titleSpacing: 0,

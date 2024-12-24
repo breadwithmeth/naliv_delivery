@@ -29,6 +29,15 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
   }
 
   @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    determinePosition(context).then((v) {
+      print(v);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
         floatingActionButton: Padding(

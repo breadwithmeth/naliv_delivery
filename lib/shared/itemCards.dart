@@ -1109,7 +1109,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
         borderRadius: BorderRadius.all(
           Radius.circular(30 * globals.scaleParam),
         ),
-        color: Colors.white,
+        color: Colors.transparent,
       ),
       child: Column(
         children: [
@@ -1186,12 +1186,8 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                                 children: [
                                                   TextSpan(
                                                     text: element["name"],
-                                                    style: TextStyle(
-                                                      fontFamily: "Raleway",
-                                                      fontVariations: <FontVariation>[
-                                                        FontVariation(
-                                                            'wght', 600)
-                                                      ],
+                                                    style: GoogleFonts.roboto(
+                                                      color: Colors.white,
                                                       fontSize: 32 *
                                                           globals.scaleParam,
                                                       height: 3 *
@@ -1252,7 +1248,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                                   "${globals.formatCost(element["price"].toString())} ₸ за 1 ${element["unit"]}",
                                                   style: TextStyle(
                                                     fontFamily: "Raleway",
-                                                    color: Colors.grey,
+                                                    color: Colors.orange,
                                                     fontVariations: <FontVariation>[
                                                       FontVariation('wght', 600)
                                                     ],
@@ -1311,7 +1307,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                                   offset: Offset(2, 2),
                                                 ),
                                               ],
-                                              color: Colors.white,
+                                              color: Colors.black,
                                               borderRadius: BorderRadius.all(
                                                 Radius.circular(
                                                     20 * globals.scaleParam),
@@ -1414,7 +1410,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
             decoration: BoxDecoration(
               border: Border(
                 top: BorderSide(
-                  color: Colors.grey.shade300,
+                  color: Colors.grey.shade700,
                   width: 1,
                 ),
               ),
@@ -1435,10 +1431,6 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                         child: Text(
                           "Сумма: ${globals.formatCost(((element['price'] * (element["amount"] - (element["promotions"] != null ? double.parse((element["amount"] / (element["promotions"][0]["add_amount"] + element["promotions"][0]["base_amount"])).toString()).truncate() : 0))) + (element["selected_options"] != null ? ((element["selected_options"][0]["price"] * element["amount"]) / element["selected_options"][0]["parent_item_amount"]) : 0)).toString())} ₸",
                           style: TextStyle(
-                            fontFamily: "Raleway",
-                            fontVariations: <FontVariation>[
-                              FontVariation('wght', 700)
-                            ],
                             fontSize: 32 * globals.scaleParam,
                           ),
                         ),
@@ -1452,9 +1444,8 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                   "${globals.formatCost(((element['price'] * element["amount"]) + (element["selected_options"] != null ? ((element["selected_options"][0]["price"] * element["amount"]) / element["selected_options"][0]["parent_item_amount"]) : 0)).toString())} ₸",
                                   style: TextStyle(
                                     decoration: TextDecoration.lineThrough,
-                                    decorationColor: Colors.grey,
                                     fontFamily: "Raleway",
-                                    color: Colors.grey,
+                                    color: Colors.white,
                                     fontVariations: <FontVariation>[
                                       FontVariation('wght', 600)
                                     ],
@@ -1476,7 +1467,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                     child: Text(
                       "${element["amount"]} ${element["unit"]}",
                       style: TextStyle(
-                        color: Colors.black,
+                        color: Colors.white,
                         fontVariations: <FontVariation>[
                           FontVariation('wght', 600)
                         ],

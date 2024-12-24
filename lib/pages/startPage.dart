@@ -15,12 +15,6 @@ class StartPage extends StatefulWidget {
 }
 
 class _StartPageState extends State<StartPage> {
-  List<String> images = [
-    "assets/s/s3.jpg",
-    "assets/s/s2.jpg",
-    "assets/s/s1.jpg",
-  ];
-
   late Timer _timer;
 
   int currentPage = 0;
@@ -39,27 +33,11 @@ class _StartPageState extends State<StartPage> {
   @override
   void initState() {
     super.initState();
-
-    setState(() {
-      _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
-        setState(() {
-          if (currentPage == 2) {
-            currentPage = 0;
-          } else {
-            currentPage = currentPage + 1;
-          }
-        });
-        p_controller.animateToPage(currentPage,
-            duration: const Duration(seconds: 1), curve: Curves.decelerate);
-      });
-    });
   }
 
   @override
   void dispose() {
     super.dispose();
-    p_controller.dispose();
-    _timer.cancel();
   }
 
   @override
