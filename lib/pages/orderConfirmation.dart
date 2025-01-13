@@ -52,7 +52,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
   }
 
   void startTimer() {
-    Timer(const Duration(seconds: 1), () {
+    Timer(const Duration(seconds: 2, milliseconds: 500), () {
       setState(() {
         _w = MediaQuery.sizeOf(context).width * 0.88;
       });
@@ -93,8 +93,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
             setState(() {
               isOrderCorrect = null;
             });
-            print(
-                "Order was not created. Return code 406, wrong order, or no token");
+            print("Order was not created. Return code 406, wrong order, or no token");
             // DO SOMETHING, SO THAT USER CAN FIX ORDER IN CART?
           }
         }).then((value) {
@@ -124,9 +123,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                           "Остатки изменились",
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
-                            fontVariations: <FontVariation>[
-                              FontVariation('wght', 600)
-                            ],
+                            fontVariations: <FontVariation>[FontVariation('wght', 600)],
                             fontSize: 28 * globals.scaleParam,
                           ),
                         ),
@@ -134,14 +131,11 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     ),
                     titleTextStyle: TextStyle(
                       fontSize: 16,
-                      fontVariations: <FontVariation>[
-                        FontVariation('wght', 600)
-                      ],
+                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
                       color: Theme.of(context).colorScheme.onSecondary,
                     ),
                     content: Padding(
-                      padding: EdgeInsets.symmetric(
-                          vertical: 20 * globals.scaleParam),
+                      padding: EdgeInsets.symmetric(vertical: 20 * globals.scaleParam),
                       child: SizedBox(
                         width: 600 * globals.scaleParam,
                         height: 400 * globals.scaleParam,
@@ -158,12 +152,8 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                         child: Text(
                                           wrongItems[index]["name"].toString(),
                                           style: TextStyle(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSecondary,
-                                            fontVariations: <FontVariation>[
-                                              FontVariation('wght', 600)
-                                            ],
+                                            color: Theme.of(context).colorScheme.onSecondary,
+                                            fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                             fontSize: 28 * globals.scaleParam,
                                           ),
                                         ),
@@ -171,16 +161,13 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                     ],
                                   ),
                                   Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
+                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                     children: [
                                       Flexible(
                                         child: Text(
                                           "В корзине: ${wrongItems[index]['amount'].toString()}",
                                           style: TextStyle(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .secondary,
+                                            color: Theme.of(context).colorScheme.secondary,
                                             fontWeight: FontWeight.w500,
                                             fontSize: 28 * globals.scaleParam,
                                           ),
@@ -190,9 +177,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                         child: Text(
                                           "В наличии: ${double.parse(wrongItems[index]['in_stock'].toString()).toStringAsFixed(0)}",
                                           style: TextStyle(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .secondary,
+                                            color: Theme.of(context).colorScheme.secondary,
                                             fontWeight: FontWeight.w500,
                                             fontSize: 28 * globals.scaleParam,
                                           ),
@@ -211,8 +196,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     actions: [
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(
-                              vertical: 10 * globals.scaleParam),
+                          padding: EdgeInsets.symmetric(vertical: 10 * globals.scaleParam),
                         ),
                         onPressed: () {
                           //! TODO: CHANGE AMOUNT IN CART ACCORDINGLY TO REAL AMOUNT LEFT
@@ -225,9 +209,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                               "Применить изменения",
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.onSurface,
-                                fontVariations: <FontVariation>[
-                                  FontVariation('wght', 600)
-                                ],
+                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                 fontSize: 28 * globals.scaleParam,
                               ),
                             ),
@@ -236,10 +218,8 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                       ),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(
-                              vertical: 10 * globals.scaleParam),
-                          backgroundColor:
-                              Theme.of(context).colorScheme.secondary,
+                          padding: EdgeInsets.symmetric(vertical: 10 * globals.scaleParam),
+                          backgroundColor: Theme.of(context).colorScheme.secondary,
                         ),
                         onPressed: () {
                           Navigator.pop(context);
@@ -251,9 +231,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                               "Изменить самостоятельно",
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.onSurface,
-                                fontVariations: <FontVariation>[
-                                  FontVariation('wght', 600)
-                                ],
+                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                 fontSize: 28 * globals.scaleParam,
                               ),
                             ),
@@ -282,14 +260,11 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     ),
                     titleTextStyle: TextStyle(
                       color: Theme.of(context).colorScheme.onSecondary,
-                      fontVariations: <FontVariation>[
-                        FontVariation('wght', 600)
-                      ],
+                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
                       fontSize: 32 * globals.scaleParam,
                     ),
                     content: Padding(
-                      padding: EdgeInsets.symmetric(
-                          vertical: 20 * globals.scaleParam),
+                      padding: EdgeInsets.symmetric(vertical: 20 * globals.scaleParam),
                       child: SizedBox(
                         width: 600 * globals.scaleParam,
                         height: 400 * globals.scaleParam,
@@ -301,11 +276,8 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                 "Повторите попытку позже, пожалуйста",
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface,
-                                  fontVariations: <FontVariation>[
-                                    FontVariation('wght', 600)
-                                  ],
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                   fontSize: 28 * globals.scaleParam,
                                 ),
                               ),
@@ -317,8 +289,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     actions: [
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(
-                              vertical: 10 * globals.scaleParam),
+                          padding: EdgeInsets.symmetric(vertical: 10 * globals.scaleParam),
                         ),
                         onPressed: () {
                           //! TODO: CHANGE AMOUNT IN CART ACCORDINGLY TO REAL AMOUNT LEFT
@@ -401,9 +372,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white,
-                          fontVariations: <FontVariation>[
-                            FontVariation('wght', 800)
-                          ],
+                          fontVariations: <FontVariation>[FontVariation('wght', 800)],
                           fontSize: 42 * globals.scaleParam,
                         ),
                       ),
@@ -437,9 +406,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                           "Убедитесь в правильности заказа",
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
-                            fontVariations: <FontVariation>[
-                              FontVariation('wght', 600)
-                            ],
+                            fontVariations: <FontVariation>[FontVariation('wght', 600)],
                             height: 2,
                             fontSize: 42 * globals.scaleParam,
                           ),
@@ -516,15 +483,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                           children: [
                             Flexible(
                               child: Text(
-                                widget.delivery
-                                    ? "Доставка по адресу: "
-                                    : "Самовывоз из магазина: ",
+                                widget.delivery ? "Доставка по адресу: " : "Самовывоз из магазина: ",
                                 style: TextStyle(
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface,
-                                  fontVariations: <FontVariation>[
-                                    FontVariation('wght', 600)
-                                  ],
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                  fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                   fontSize: 32 * globals.scaleParam,
                                 ),
                               ),
@@ -541,15 +503,10 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                   left: 50 * globals.scaleParam,
                                 ),
                                 child: Text(
-                                  widget.delivery
-                                      ? widget.address!["address"] ?? ""
-                                      : widget.business["address"],
+                                  widget.delivery ? widget.address!["address"] ?? "" : widget.business["address"],
                                   style: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.onSurface,
-                                    fontVariations: <FontVariation>[
-                                      FontVariation('wght', 600)
-                                    ],
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                    fontVariations: <FontVariation>[FontVariation('wght', 600)],
                                     fontSize: 32 * globals.scaleParam,
                                   ),
                                 ),
@@ -573,9 +530,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                       Radius.circular(15),
                     ),
                   ),
-                  margin: EdgeInsets.symmetric(
-                      horizontal: 20 * globals.scaleParam,
-                      vertical: 5 * globals.scaleParam),
+                  margin: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam, vertical: 5 * globals.scaleParam),
                   padding: EdgeInsets.symmetric(
                     vertical: 20 * globals.scaleParam,
                     horizontal: 30 * globals.scaleParam,
@@ -665,10 +620,8 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                   child: Container(
                     width: constraints.maxWidth * 0.955,
                     // height: 130 * globals.scaleParam,
-                    margin:
-                        EdgeInsets.symmetric(vertical: 20 * globals.scaleParam),
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 20 * globals.scaleParam),
+                    margin: EdgeInsets.symmetric(vertical: 20 * globals.scaleParam),
+                    padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.all(Radius.circular(15)),
                       // color: Color.fromARGB(255, 245, 245, 245),
@@ -684,9 +637,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                 textAlign: TextAlign.left,
                                 style: TextStyle(
                                   color: Color.fromARGB(255, 190, 190, 190),
-                                  fontVariations: <FontVariation>[
-                                    FontVariation('wght', 500)
-                                  ],
+                                  fontVariations: <FontVariation>[FontVariation('wght', 500)],
                                   fontSize: 26 * globals.scaleParam,
                                 ),
                               ),
@@ -701,9 +652,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                                 textAlign: TextAlign.left,
                                 style: TextStyle(
                                   color: Color.fromARGB(255, 190, 190, 190),
-                                  fontVariations: <FontVariation>[
-                                    FontVariation('wght', 500)
-                                  ],
+                                  fontVariations: <FontVariation>[FontVariation('wght', 500)],
                                   fontSize: 26 * globals.scaleParam,
                                 ),
                               ),
