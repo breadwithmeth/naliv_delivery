@@ -6,6 +6,7 @@ import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/orderPage.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
+import 'package:flutter_timer_countdown/flutter_timer_countdown.dart';
 
 // import 'createOrder.dart';
 
@@ -15,21 +16,13 @@ class OrderConfirmation extends StatefulWidget {
     required this.delivery,
     required this.address,
     required this.items,
-    required this.cartInfo,
     required this.business,
-    required this.finalSum,
-    required this.user,
-    required this.paymentType,
     this.card_id,
   });
   final bool delivery;
   final Map? address;
   final List items;
-  final String cartInfo;
   final Map<dynamic, dynamic> business;
-  final int finalSum;
-  final Map<dynamic, dynamic> user;
-  final String paymentType;
   final int? card_id;
   @override
   State<OrderConfirmation> createState() => _OrderConfirmationState();
@@ -46,6 +39,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
   String htmlString = "";
   List<dynamic> wrongPositions = [];
   List<dynamic> wrongItems = [];
+  int currentSeconds = 0;
 
   void composeWrongItemsList() {
     if (!wrongPositions.isEmpty) {
@@ -63,7 +57,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
         _w = MediaQuery.sizeOf(context).width * 0.88;
       });
     });
-    timer = Timer(const Duration(seconds: 6, milliseconds: 500), () {
+    timer = Timer(const Duration(seconds: 10, milliseconds: 0), () {
       // Navigator.push(
       //   context,
       //   MaterialPageRoute(
@@ -73,11 +67,13 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
       //   ),
       // );
       // return;
+      setState(() {
+        currentSeconds = timer.tick;
+      });
       Future.delayed(const Duration(milliseconds: 0)).then((value) async {
         print("Creating order...!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        String user_id = widget.user.isNotEmpty ? widget.user["user_id"] : "";
         await createOrder(widget.business["business_id"], null,
-                widget.delivery ? 1 : 0, widget.card_id, user_id)
+                widget.delivery ? 1 : 0, widget.card_id)
             .then((value) {
           if (value["status"] == true) {
             setState(() {
@@ -371,6 +367,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(0xFF121212),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Padding(
         padding: EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
@@ -448,48 +445,46 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                           ),
                         ),
                       ),
-                      Stack(
-                        children: [
-                          // This Container cuts off ugly part of loading bar when it only starts
-                          Container(
-                            width: MediaQuery.sizeOf(context).width * 0.88,
-                            height: 34 * globals.scaleParam,
-                            alignment: Alignment.centerLeft,
-                            // Disable clipBehavior to see ugly part at the start
-                            clipBehavior: Clip.antiAlias,
-                            decoration: BoxDecoration(
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(15)),
-                            ),
-                            child: AnimatedContainer(
-                              curve: Curves.linear,
-                              duration: const Duration(seconds: 5),
-                              width: _w,
-                              height: 34 * globals.scaleParam,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(15),
-                                ),
-                                color: Colors.black,
-                              ),
-                            ),
+                      TimerCountdown(
+                        format: CountDownTimerFormat.secondsOnly,
+                        secondsDescription: "",
+                        timeTextStyle: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 42 * globals.scaleParam,
+                        ),
+                        endTime: DateTime.now().add(
+                          Duration(
+                            seconds: 10,
                           ),
-                          Container(
-                            width: MediaQuery.sizeOf(context).width * 0.88,
-                            height: 34 * globals.scaleParam,
-                            decoration: BoxDecoration(
-                              color: Colors.transparent,
-                              border: Border.all(
-                                color: Colors.black,
-                                width: 2.5 * globals.scaleParam,
-                              ),
-                              borderRadius: BorderRadius.all(
-                                Radius.circular(15),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
+                        onEnd: () {
+                          print("Timer finished");
+                        },
                       ),
+                      // Stack(
+                      //   children: [
+                      //     Container(
+                      //       height: 100 * globals.scaleParam,
+                      //       decoration: BoxDecoration(
+                      //         color: Colors.black,
+                      //         borderRadius: BorderRadius.all(
+                      //           Radius.circular(15),
+                      //         ),
+                      //       ),
+                      //     ),
+                      //     Container(
+                      //       height: 100 * globals.scaleParam,
+                      //       width: MediaQuery.sizeOf(context).width * 0.88,
+                      //       decoration: BoxDecoration(
+                      //         color: Colors.green,
+                      //         borderRadius: BorderRadius.all(
+                      //           Radius.circular(15),
+                      //         ),
+                      //       ),
+                      //     ),
+                      //   ],
+                      // ),
                     ],
                   ),
                 ),
@@ -501,7 +496,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     //   width: 2,
                     //   color: Color.fromARGB(255, 245, 245, 245),
                     // ),
-                    color: Color.fromARGB(255, 245, 245, 245),
+                    color: Color(0xFF121212),
                     borderRadius: const BorderRadius.all(
                       Radius.circular(15),
                     ),
@@ -573,7 +568,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     //   width: 2,
                     //   color: Color.fromARGB(255, 245, 245, 245),
                     // ),
-                    color: Color.fromARGB(255, 245, 245, 245),
+                    color: Color(0xFF121212),
                     borderRadius: const BorderRadius.all(
                       Radius.circular(15),
                     ),
@@ -587,46 +582,27 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                   ),
                   child: Column(
                     children: [
-                      Flexible(
-                        child: Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                "Оплата ${widget.paymentType}:",
-                                style: TextStyle(
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface,
-                                  fontVariations: <FontVariation>[
-                                    FontVariation('wght', 600)
-                                  ],
-                                  fontSize: 32 * globals.scaleParam,
-                                ),
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
                       Row(
                         children: [
-                          Flexible(
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                left: 50 * globals.scaleParam,
-                              ),
-                              child: Text(
-                                "Сумма к оплате: ${globals.formatCost(widget.finalSum.toString()).toString()} ₸",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface,
-                                  fontVariations: <FontVariation>[
-                                    FontVariation('wght', 600)
-                                  ],
-                                  fontSize: 32 * globals.scaleParam,
-                                ),
-                              ),
-                            ),
-                          ),
+                          // Flexible(
+                          //   child: Padding(
+                          //     padding: EdgeInsets.only(
+                          //       left: 50 * globals.scaleParam,
+                          //     ),
+                          //     child: Text(
+                          //       "Сумма к оплате: ${globals.formatCost(widget.finalSum.toString()).toString()} ₸",
+                          //       textAlign: TextAlign.center,
+                          //       style: TextStyle(
+                          //         color:
+                          //             Theme.of(context).colorScheme.onSurface,
+                          //         fontVariations: <FontVariation>[
+                          //           FontVariation('wght', 600)
+                          //         ],
+                          //         fontSize: 32 * globals.scaleParam,
+                          //       ),
+                          //     ),
+                          //   ),
+                          // ),
                         ],
                       ),
                     ],
@@ -640,7 +616,7 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     //   // color: Color.fromARGB(255, 245, 245, 245),
                     //   color: Colors.black,
                     // ),
-                    color: Color.fromARGB(255, 245, 245, 245),
+                    color: Color(0xFF121212),
                     borderRadius: const BorderRadius.all(
                       Radius.circular(15),
                     ),

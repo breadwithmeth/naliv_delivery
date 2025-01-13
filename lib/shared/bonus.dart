@@ -112,8 +112,22 @@ class _BonusWidgetState extends State<BonusWidget> {
                           ],
                         ),
                         Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
+                            IconButton(
+                              icon: Icon(Icons.info),
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return AlertDialog(
+                                      content: Text(
+                                          "Бонусы начисляются в течение 24 часов после покупки. Чтобы использовать бонусы, необходимо предъявить дисконтную карту в магазине. Максимальная сумма, которую можно оплатить бонусами, составляет 30% от стоимости покупки."),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
                             IconButton(
                                 onPressed: () {
                                   setState(() {

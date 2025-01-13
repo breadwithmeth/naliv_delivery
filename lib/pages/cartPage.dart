@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:naliv_delivery/pages/preLoadDataPage.dart';
+import 'package:naliv_delivery/pages/preLoadOrderPage.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
@@ -42,12 +44,7 @@ class _CartPageState extends State<CartPage>
     Map<String, dynamic> cart = await getCart(widget.business["business_id"]);
     print(cart);
 
-    // Map<String, dynamic>? cartInfo = await getCartInfo();
     print(cartInfo);
-
-    // if (cart["sum"] == null || cart["cart"]) {
-    //   return;
-    // }
 
     setState(() {
       items = cart["cart"] ?? [];
@@ -60,26 +57,6 @@ class _CartPageState extends State<CartPage>
       isCartLoading = false;
       itemsAmount;
     });
-
-    // double dist = distance / 1000;
-    // dist = (dist * 2).round() / 2;
-    // if (dist <= 1.5) {
-    //   price = 700;
-    // } else {
-    //   if (dist < 5) {
-    //     price = ((dist - 1.5) * 300 + 700).toInt();
-    //   } else {
-    //     price = ((dist - 1.5) * 250 + 700).toInt();
-    //   }
-    // }
-
-    // for (dynamic item in items) {
-    //   itemsAmount += double.parse(item["amount"].toString()).round();
-    // }
-    // setState(() {
-    //   itemsAmount;
-    //   price = (price / 100).round() * 100;
-    // });
   }
 
   Future<bool> _deleteFromCart(String itemId) async {
@@ -193,24 +170,24 @@ class _CartPageState extends State<CartPage>
     });
   }
 
-  Future<void> _getRecommendedSectionsItems() async {
-    try {
-      Map? responseList =
-          await getItemsMain(0, widget.business["business_id"], "", "20");
-      if (responseList != null) {
-        List<dynamic> itemList = responseList["items"];
-        // List<dynamic> itemList = responseList.map((data) => Item(data)).toList();
+  // Future<void> _getRecommendedSectionsItems() async {
+  //   try {
+  //     Map? responseList =
+  //         await getItemsMain(0, widget.business["business_id"], "", "20");
+  //     if (responseList != null) {
+  //       List<dynamic> itemList = responseList["items"];
+  //       // List<dynamic> itemList = responseList.map((data) => Item(data)).toList();
 
-        if (mounted) {
-          setState(() {
-            recommendedItems.addAll(itemList.map((e) => e));
-          });
-        }
-      }
-    } catch (e) {
-      print("error --> $e");
-    }
-  }
+  //       if (mounted) {
+  //         setState(() {
+  //           recommendedItems.addAll(itemList.map((e) => e));
+  //         });
+  //       }
+  //     }
+  //   } catch (e) {
+  //     print("error --> $e");
+  //   }
+  // }
 
   @override
   void initState() {
@@ -218,7 +195,7 @@ class _CartPageState extends State<CartPage>
     _setAnimationController();
 
     _getCart();
-    _getRecommendedSectionsItems();
+    // _getRecommendedSectionsItems();
     // Future.delayed( Duration(milliseconds: 0), () async {
     //   setState(() {
     //     isCartLoading = true;
@@ -259,504 +236,234 @@ class _CartPageState extends State<CartPage>
         }
       },
       child: Scaffold(
-        backgroundColor: Color(0xFF121212),
-        // appBar: AppBar(
-        //   automaticallyImplyLeading: false,
-        //   titleSpacing: 0,
-        //   title: Padding(
-        //     padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
-        //     child: Column(
-        //       mainAxisAlignment: MainAxisAlignment.start,
-        //       crossAxisAlignment: CrossAxisAlignment.center,
-        //       children: [
-        //         Row(
-        //           mainAxisSize: MainAxisSize.max,
-        //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        //           children: [
-        //             Flexible(
-        //               child: IconButton(
-        //                 padding: EdgeInsets.zero,
-        //                 onPressed: () {
-        //                   Navigator.pop(context, true);
-        //                 },
-        //                 icon: Icon(Icons.arrow_back_rounded),
-        //               ),
-        //             ),
-        //             Flexible(
-        //               flex: 7,
-        //               fit: FlexFit.tight,
-        //               child: Column(
-        //                 crossAxisAlignment: CrossAxisAlignment.center,
-        //                 mainAxisAlignment: MainAxisAlignment.center,
-        //                 children: [
-        //                   Row(
-        //                     mainAxisAlignment: MainAxisAlignment.center,
-        //                     children: [
-        //                       Flexible(
-        //                         child: Text(
-        //                           "Корзина",
-        //                           style: TextStyle(
-        //                               fontSize: 40 * globals.scaleParam),
-        //                         ),
-        //                       ),
-        //                     ],
-        //                   ),
-        //                   // Row(
-        //                   //   children: [
-        //                   //     Flexible(
-        //                   //       child: Text(
-        //                   //         "${widget.business["name"]} ${widget.business["address"]}",
-        //                   //         maxLines: 1,
-        //                   //         style: TextStyle(fontSize: 32 * globals.scaleParam),
-        //                   //       ),
-        //                   //     ),
-        //                   //   ],
-        //                   // ),
-        //                 ],
-        //               ),
-        //             ),
-        //             Spacer()
-        //           ],
-        //         ),
-        //       ],
-        //     ),
-        //   ),
-        // ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-        floatingActionButton: items.isNotEmpty || isCartLoading
-            ? Padding(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
-                child: Row(
-                  children: [
-                    MediaQuery.sizeOf(context).width >
-                            MediaQuery.sizeOf(context).height
-                        ? Flexible(
-                            flex: 2,
-                            fit: FlexFit.tight,
-                            child: SizedBox(),
-                          )
-                        : SizedBox(),
-                    Flexible(
-                      fit: FlexFit.tight,
-                      child: ElevatedButton(
-                        onPressed: items.isNotEmpty && !dismissingItem
-                            ? () {
-                                // ! TODO: UNCOMMENT FOR PRODUCTION
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) {
-                                      return CreateOrderPage(
-                                        business: widget.business,
-                                        finalSum: localSum,
-                                        items: items,
-                                        // itemsAmount: itemsAmount,
-                                        user: widget.user,
-                                        deliveryInfo: Map.from(
-                                          {
-                                            "distance": distance,
-                                            "price": price,
-                                            "taxes": taxes
-                                          },
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                );
-                              }
-                            : null,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Flexible(
+          backgroundColor: Colors.black,
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerFloat,
+          floatingActionButton: items.isNotEmpty || isCartLoading
+              ? Padding(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
+                  child: Row(
+                    children: [
+                      MediaQuery.sizeOf(context).width >
+                              MediaQuery.sizeOf(context).height
+                          ? Flexible(
                               flex: 2,
                               fit: FlexFit.tight,
-                              child: Text(
-                                "Оформить заказ",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontVariations: <FontVariation>[
-                                    FontVariation('wght', 800)
-                                  ],
-                                  fontSize: 42 * globals.scaleParam,
-                                ),
-                              ),
-                            ),
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: Text(
-                                "${globals.formatCost(localSum.toString())} ₸",
-                                textAlign: TextAlign.justify,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontVariations: <FontVariation>[
-                                    FontVariation('wght', 800)
-                                  ],
-                                  fontSize: 44 * globals.scaleParam,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            : Padding(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
-                child: Row(
-                  children: [
-                    MediaQuery.sizeOf(context).width >
-                            MediaQuery.sizeOf(context).height
-                        ? Flexible(
-                            flex: 2,
-                            fit: FlexFit.tight,
-                            child: SizedBox(),
-                          )
-                        : SizedBox(),
-                    Flexible(
-                      fit: FlexFit.tight,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.maybePop(context);
-                        },
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: Text(
-                                "За покупками!",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontVariations: <FontVariation>[
-                                    FontVariation('wght', 800)
-                                  ],
-                                  fontSize: 42 * globals.scaleParam,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-        body: isCartLoading == false
-            ? items.isEmpty
-                ? Center(
-                    child: Text(
-                      "Ваша корзина пуста",
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontVariations: <FontVariation>[
-                          FontVariation('wght', 800)
-                        ],
-                        fontSize: 44 * globals.scaleParam,
-                      ),
-                    ),
-                  )
-                : ListView(
-                    children: [
-                      Padding(
-                          padding: EdgeInsets.only(
-                              left: 1 * globals.scaleParam,
-                              top: 15 * globals.scaleParam),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              IconButton(
-                                padding: EdgeInsets.zero,
-                                onPressed: () {
-                                  Navigator.pop(context, true);
-                                },
-                                icon: Icon(Icons.arrow_back_rounded),
-                              ),
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Ваша корзина",
-                                        style: TextStyle(
-                                          fontSize: 58 * globals.scaleParam,
-                                          height: 2.5 * globals.scaleParam,
-                                        ),
-                                      )
-                                    ],
-                                  ),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "${widget.business["name"]} ${widget.business["address"]}",
-                                        style: TextStyle(
-                                          fontVariations: <FontVariation>[
-                                            FontVariation('wght', 600)
-                                          ],
-                                          fontSize: 32 * globals.scaleParam,
-                                        ),
-                                      )
-                                    ],
-                                  ),
-                                ],
-                              )
-                            ],
-                          )),
-                      ListView.builder(
-                        primary: false,
-                        shrinkWrap: true,
-                        itemCount: items.length,
-                        itemBuilder: (context, index) {
-                          items[index];
-                          return Column(
-                            children: [
-                              Dismissible(
-                                
-                                // Each Dismissible must contain a Key. Keys allow Flutter to
-                                // uniquely identify widgets.
-                                key: Key(items[index]["item_id"].toString()),
-                                confirmDismiss: (direction) async {
-                                  setState(() {
-                                    dismissingItem = true;
-                                  });
-                                  bool result = await _deleteFromCart(
-                                      items[index]["item_id"].toString());
-
-                                  if (result) {
-                                    updatePrices(index);
-                                  }
-
-                                  setState(() {
-                                    dismissingItem = false;
-                                  });
-                                  return result;
-                                },
-                                onDismissed: ((direction) {
-                                  print(MediaQuery.of(context).size.height *
-                                      ((4 - items.length) / 10));
-                                }),
-                                // Provide a function that tells the app
-                                // what to do after an item has been swiped away.
-
-                                // Show a red background as the item is swiped away.
-                                background: SizedBox(
-                                  width: 200 * globals.scaleParam,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        width:
-                                            MediaQuery.of(context).size.width *
-                                                0.7,
-                                        alignment: Alignment.center,
-                                        padding: EdgeInsets.only(right: 10),
-                                        color: Colors.black,
-                                      ),
-                                      Container(
-                                        width:
-                                            MediaQuery.of(context).size.width *
-                                                0.3,
-                                        alignment: Alignment.center,
-                                        padding: EdgeInsets.only(right: 10),
-                                        color: Colors.black,
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(Icons.delete),
-                                            Text("Удалить")
-                                          ],
-                                        ),
-                                      )
-                                    ],
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    index == 0
-                                        ? SizedBox(
-                                            height: 5 * globals.scaleParam,
-                                          )
-                                        : SizedBox(),
-                                    ItemCardMinimal(
-                                      element: items[index],
-                                      updateExternalInfo: updateDataAmount,
-                                      business: widget.business,
-                                      index: index,
-                                      categoryId: "",
-                                      categoryName: "",
-                                      scroll: 0,
+                              child: SizedBox(),
+                            )
+                          : SizedBox(),
+                      Flexible(
+                        fit: FlexFit.tight,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF121212),
+                          ),
+                          onPressed: items.isNotEmpty && !dismissingItem
+                              ? () {
+                                  // ! TODO: UNCOMMENT FOR PRODUCTION
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) {
+                                        return PreLoadOrderPage(
+                                          business: widget.business,
+                                        );
+                                      },
                                     ),
-                                  ],
+                                  );
+                                }
+                              : null,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Flexible(
+                                flex: 2,
+                                fit: FlexFit.tight,
+                                child: Text(
+                                  "Оформить заказ",
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              Flexible(
+                                fit: FlexFit.tight,
+                                child: Text(
+                                  "${globals.formatCost(localSum.toString())} ₸",
+                                  textAlign: TextAlign.justify,
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold),
                                 ),
                               ),
                             ],
-                          );
-                        },
-                      ),
-                      // Makes buy button stay in the same place imitating other cards in listView
-                      Column(
-                        children: [
-                          SizedBox(
-                            width: MediaQuery.of(context).size.width,
-                            height: items.length < 4
-                                ? (165 * globals.scaleParam) *
-                                    (4 - items.length)
-                                : 0,
                           ),
-                          Divider(
-                            color: Colors.transparent,
-                          ),
-                        ],
-                      ),
-                      SizedBox(
-                        height: 40 * globals.scaleParam,
-                      ),
-                      Divider(),
-                      //!! ONLY FOR DEV RN
-                      // Padding(
-                      //   padding: EdgeInsets.symmetric(
-                      //     horizontal: 45 * globals.scaleParam,
-                      //     vertical: 20 * globals.scaleParam,
-                      //   ),
-                      //   child: Row(
-                      //     children: [
-                      //       Text(
-                      //         "Не забудьте также",
-                      //         style: TextStyle(
-                      //           fontSize: 48 * globals.scaleParam,
-                      //           fontWeight: FontWeight.w700,
-                      //           color: Colors.black,
-                      //         ),
-                      //       ),
-                      //     ],
-                      //   ),
-                      // ),
-                      // SizedBox(
-                      //   width: double.infinity,
-                      //   height: 400 * globals.scaleParam,
-                      //   child: ListView.builder(
-                      //     // itemExtent: MediaQuery.sizeOf(context).width * globals.scaleParam,
-                      //     scrollDirection: Axis.horizontal,
-                      //     itemCount: recommendedItems.isNotEmpty ? recommendedItems.length : 10,
-                      //     itemBuilder: (context, index) {
-                      //       return AspectRatio(
-                      //         aspectRatio: 1,
-                      //         child: Container(
-                      //           margin: EdgeInsets.all(20 * globals.scaleParam),
-                      //           decoration: BoxDecoration(
-                      //             borderRadius: BorderRadius.all(Radius.circular(10)),
-                      //             color: Colors.white,
-                      //           ),
-                      //           clipBehavior: Clip.antiAlias,
-                      //           child: LayoutBuilder(
-                      //             builder: (context, constraints) {
-                      //               return Column(
-                      //                 children: [
-                      //                   Flexible(
-                      //                     flex: 20,
-                      //                     fit: FlexFit.tight,
-                      //                     child: Padding(
-                      //                       padding: EdgeInsets.symmetric(vertical: 5 * globals.scaleParam),
-                      //                       child: recommendedItems.isNotEmpty
-                      //                           ? Column(
-                      //                               mainAxisAlignment: MainAxisAlignment.center,
-                      //                               children: [
-                      //                                 Flexible(
-                      //                                     flex: 5, fit: FlexFit.tight, child: ExtendedImage.network(recommendedItems[index]["img"])),
-                      //                                 Flexible(
-                      //                                   fit: FlexFit.tight,
-                      //                                   child: Text(
-                      //                                     recommendedItems[index]["name"],
-                      //                                     maxLines: 1,
-                      //                                     overflow: TextOverflow.ellipsis,
-                      //                                     textAlign: TextAlign.center,
-                      //                                     style: TextStyle(
-                      //                                       fontSize: 24 * globals.scaleParam,
-                      //                                       fontWeight: FontWeight.w700,
-                      //                                       color: Colors.black,
-                      //                                     ),
-                      //                                   ),
-                      //                                 ),
-                      //                               ],
-                      //                             )
-                      //                           : SizedBox(),
-                      //                     ),
-                      //                   ),
-                      //                   Flexible(
-                      //                     flex: 7,
-                      //                     fit: FlexFit.tight,
-                      //                     child: Container(
-                      //                       decoration: BoxDecoration(
-                      //                         color: Colors.black87,
-                      //                       ),
-                      //                       child: Row(
-                      //                         children: [
-                      //                           Flexible(
-                      //                             fit: FlexFit.tight,
-                      //                             child: Text(
-                      //                               recommendedItems.isNotEmpty ? "${recommendedItems[index]["price"]} ₸" : "0 ₸",
-                      //                               textAlign: TextAlign.center,
-                      //                               style: TextStyle(
-                      //                                 fontSize: 36 * globals.scaleParam,
-                      //                                 fontWeight: FontWeight.w700,
-                      //                                 color: Colors.white,
-                      //                               ),
-                      //                             ),
-                      //                           ),
-                      //                           Flexible(
-                      //                             fit: FlexFit.tight,
-                      //                             child: IconButton(
-                      //                               onPressed: () {},
-                      //                               icon: Icon(
-                      //                                 Icons.add_rounded,
-                      //                                 color: Colors.white,
-                      //                               ),
-                      //                             ),
-                      //                           ),
-                      //                         ],
-                      //                       ),
-                      //                     ),
-                      //                   ),
-                      //                 ],
-                      //               );
-                      //             },
-                      //           ),
-                      //         ),
-                      //       );
-                      //     },
-                      //   ),
-                      // ),
-                      SizedBox(
-                        height: 250 * globals.scaleParam,
+                        ),
                       ),
                     ],
-                  )
-            : Column(
-                children: [
-                  SizedBox(
-                    height: 140 * globals.scaleParam,
                   ),
-                  LinearProgressIndicator(),
-                ],
+                )
+              : Padding(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
+                  child: Row(
+                    children: [
+                      MediaQuery.sizeOf(context).width >
+                              MediaQuery.sizeOf(context).height
+                          ? Flexible(
+                              flex: 2,
+                              fit: FlexFit.tight,
+                              child: SizedBox(),
+                            )
+                          : SizedBox(),
+                      Flexible(
+                        fit: FlexFit.tight,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.maybePop(context);
+                          },
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Flexible(
+                                fit: FlexFit.tight,
+                                child: Text(
+                                  "За покупками!",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontVariations: <FontVariation>[
+                                      FontVariation('wght', 800)
+                                    ],
+                                    fontSize: 42 * globals.scaleParam,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+          body: CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                centerTitle: false,
+                backgroundColor: Colors.black,
+                title: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "${widget.business["name"]}",
+                      style: TextStyle(fontSize: 24),
+                    ),
+                    Text(
+                      "${widget.business["address"]}",
+                      style: TextStyle(fontSize: 14),
+                    )
+                  ],
+                ),
               ),
-      ),
+              SliverPadding(
+                padding: EdgeInsets.all(10),
+                sliver: SliverList.builder(
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    items[index];
+                    return Column(
+                      children: [
+                        Dismissible(
+                          // Each Dismissible must contain a Key. Keys allow Flutter to
+                          // uniquely identify widgets.
+                          key: Key(items[index]["item_id"].toString()),
+                          confirmDismiss: (direction) async {
+                            setState(() {
+                              dismissingItem = true;
+                            });
+                            bool result = await _deleteFromCart(
+                                items[index]["item_id"].toString());
+
+                            if (result) {
+                              updatePrices(index);
+                            }
+
+                            setState(() {
+                              dismissingItem = false;
+                            });
+                            return result;
+                          },
+                          onDismissed: ((direction) {
+                            print(MediaQuery.of(context).size.height *
+                                ((4 - items.length) / 10));
+                          }),
+                          // Provide a function that tells the app
+                          // what to do after an item has been swiped away.
+
+                          // Show a red background as the item is swiped away.
+                          background: SizedBox(
+                            width: 200 * globals.scaleParam,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.7,
+                                  alignment: Alignment.center,
+                                  padding: EdgeInsets.only(right: 10),
+                                  color: Colors.black,
+                                ),
+                                Container(
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.3,
+                                  alignment: Alignment.center,
+                                  padding: EdgeInsets.only(right: 10),
+                                  color: Colors.black,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.delete),
+                                      Text("Удалить")
+                                    ],
+                                  ),
+                                )
+                              ],
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              index == 0
+                                  ? SizedBox(
+                                      height: 5 * globals.scaleParam,
+                                    )
+                                  : SizedBox(),
+                              ItemCardMinimal(
+                                element: items[index],
+                                updateExternalInfo: updateDataAmount,
+                                business: widget.business,
+                                index: index,
+                                categoryId: "",
+                                categoryName: "",
+                                scroll: 0,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          )),
     );
   }
 }

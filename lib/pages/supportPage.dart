@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:chatwoot_sdk/chatwoot_sdk.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SupportPage extends StatefulWidget {
   const SupportPage({super.key, required this.user});
@@ -13,6 +14,22 @@ class SupportPage extends StatefulWidget {
 }
 
 class _SupportPageState extends State<SupportPage> {
+  whatsapp(String text) async {
+    var contact = "+77710131111";
+    var androidUrl = "whatsapp://send?phone=$contact&text=$text!";
+    var iosUrl = "https://wa.me/$contact?text=${Uri.parse(text)}";
+
+    try {
+      if (Platform.isIOS) {
+        await launchUrl(Uri.parse(iosUrl));
+      } else {
+        await launchUrl(Uri.parse(androidUrl));
+      }
+    } on Exception {
+      //  EasyLoading.showError('WhatsApp is not installed.');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -21,35 +38,27 @@ class _SupportPageState extends State<SupportPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Naliv.Support"),
-      ),
-      body: ChatwootWidget(
-        websiteToken: "gfHGUpGQdGbmCscyuZB8dZiE",
-        baseUrl: "https://chatwoot.naliv.kz",
-        user: ChatwootUser(
-          identifier: widget.user["user_id"],
-          name: widget.user["name"],
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
         ),
-        locale: "ru",
-        closeWidget: () {
-          if (Platform.isAndroid) {
-            SystemNavigator.pop();
-          } else if (Platform.isIOS) {
-            exit(0);
-          }
-        },
-        //attachment only works on android for now
-        onLoadStarted: () {
-          print("loading widget");
-        },
-        onLoadProgress: (int progress) {
-          print("loading... ${progress}");
-        },
-        onLoadCompleted: () {
-          print("widget loaded");
-        },
-      ),
-    );
+        body: Center(
+          child: ListView(
+            children: [
+              ListTile(
+                title: Text("Проблемы с заказом"),
+                onTap: () async {
+                  whatsapp("проблемы с заказом");
+                },
+              ),
+              ListTile(
+                title: Text("Вакансии"),
+                onTap: () async {
+                  whatsapp("вакансии");
+                },
+              ),
+            ],
+          ),
+        ));
   }
 }

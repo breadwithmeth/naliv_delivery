@@ -107,7 +107,7 @@ class _CheckCourierPageState extends State<CheckCourierPage> {
                                     TileLayer(
                                       // tileBuilder: _darkModeTileBuilder,
                                       urlTemplate:
-                                          'https://tile3.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
+                                          'https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
                                       subdomains: [
                                         'tile0',
                                         'tile1',

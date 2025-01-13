@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
+import 'package:naliv_delivery/pages/createAddressPage.dart';
+import 'package:naliv_delivery/pages/finishProfilePage.dart';
 import 'package:naliv_delivery/pages/mainPage.dart';
 import 'package:naliv_delivery/pages/paintLogoPage.dart';
 import 'package:naliv_delivery/pages/selectAddressPage.dart';
@@ -42,7 +44,6 @@ class _Preloaddatapage2State extends State<Preloaddatapage2> {
 
   Future<void> _getUser() async {
     await getUser().then((value) {
-      
       setState(() {
         if (value != null) {
           user = value;
@@ -68,24 +69,45 @@ class _Preloaddatapage2State extends State<Preloaddatapage2> {
     _getUser().then((v) {
       _getAddresses().then((v) {
         _getBusinesses().then((v) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => SelectAddressPage(
-                addresses: _addresses,
-                currentAddress: _currentAddress,
-                
-              ),
-            ),
-            // MaterialPageRoute(
-            //   builder: (context) => SelectBusinessesPage(
-            //     addresses: _addresses,
-            //     currentAddress: _currentAddress,
-            //     user: user,
-            //     businesses: _businesses,
-            //   ),
-            // ),
-          );
+          if (user["first_name"] == null) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => Finishprofilepage(user: user)),
+            );
+          } else {
+            if (_addresses.isEmpty) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CreateAddressPage(
+                    createOrder: false,
+                    business: null,
+                  ),
+                ),
+              );
+            } else {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SelectAddressPage(
+                    addresses: _addresses,
+                    currentAddress: _currentAddress,
+                    createOrder: false,
+                    business: null,
+                  ),
+                ),
+                // MaterialPageRoute(
+                //   builder: (context) => SelectBusinessesPage(
+                //     addresses: _addresses,
+                //     currentAddress: _currentAddress,
+                //     user: user,
+                //     businesses: _businesses,
+                //   ),
+                // ),
+              );
+            }
+          }
         });
       });
     });

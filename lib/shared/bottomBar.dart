@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/checkCourierPage.dart';
+import 'package:naliv_delivery/pages/orderHistoryPage.dart';
 import 'package:naliv_delivery/pages/webViewCardPayPage.dart';
 import '../globals.dart' as globals;
 
@@ -16,8 +19,7 @@ class BottomBar extends StatefulWidget {
   State<BottomBar> createState() => _BottomBarState();
 }
 
-class _BottomBarState extends State<BottomBar>
-    with SingleTickerProviderStateMixin {
+class _BottomBarState extends State<BottomBar> with TickerProviderStateMixin {
   bool get _isOnDesktopAndWeb {
     if (kIsWeb) {
       return true;
@@ -33,6 +35,8 @@ class _BottomBarState extends State<BottomBar>
         return false;
     }
   }
+
+  ScrollController _scrollController = ScrollController();
 
   List orders = [];
 
@@ -112,285 +116,89 @@ class _BottomBarState extends State<BottomBar>
     super.dispose();
   }
 
-  Widget getOrderStatusFormat(String string) {
+  String getOrderStatusFormat(String string) {
     if (string == "66") {
-      return Container(
-        // color: Colors.red,
-        padding: EdgeInsets.all(5 * globals.scaleParam),
-        child: Text("Заказ ожидает оплаты",
-            style: TextStyle(
-                fontFamily: "Raleway",
-                fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                fontSize: 36 * globals.scaleParam)),
-      );
+      return "Заказ ожидает оплаты";
     } else if (string == "0") {
-      return Container(
-        // color: Colors.yellow.shade800,
-        padding: EdgeInsets.all(5 * globals.scaleParam),
-        child: Text("Заказ отправлен в магазин",
-            style: TextStyle(
-                fontFamily: "Raleway",
-                fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                fontSize: 36 * globals.scaleParam)),
-      );
+      return "Заказ отправлен в магазин";
     } else if (string == "1") {
-      return Container(
-        // color: Colors.yellow.shade800,
-        padding: EdgeInsets.all(5 * globals.scaleParam),
-        child: Text("Заказ ожидает сборки",
-            style: TextStyle(
-                fontFamily: "Raleway",
-                fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                fontSize: 36 * globals.scaleParam)),
-      );
+      return "Заказ ожидает сборки";
     } else if (string == "2") {
-      return Container(
-        // color: Colors.teal.shade700,
-        padding: EdgeInsets.all(5 * globals.scaleParam),
-        child: Text("Заказ собран",
-            style: TextStyle(
-                fontFamily: "Raleway",
-                fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                fontSize: 36 * globals.scaleParam)),
-      );
+      return "Заказ собран";
     } else if (string == "3") {
-      return Container(
-        // color: Colors.greenAccent.shade700,
-        padding: EdgeInsets.all(5 * globals.scaleParam),
-        child: Text("Заказ забрал курьер",
-            style: TextStyle(
-                fontFamily: "Raleway",
-                fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                fontSize: 36 * globals.scaleParam)),
-      );
+      return "Заказ забрал курьер";
     } else {
-      return Container();
+      return "Неизвестный статус";
     }
   }
 
+  bool isExpandedFloatingButton = true;
+
   @override
   Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      controller: _dsController,
-      minChildSize: 0.1,
-      maxChildSize: 1,
-      initialChildSize: _dsController.isAttached ? _sheetPosition : 0.1,
-      snap: true,
-      expand: false,
-      builder: (context, scrollController) {
-        return orders.length == 0
-            ? Container()
-            : Container(
-                clipBehavior: Clip.antiAliasWithSaveLayer,
-                decoration: BoxDecoration(
-                  color: isExpanded ? Colors.transparent : Colors.transparent,
-                ),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return CustomScrollView(
-                      controller: scrollController,
-                      slivers: [
-                        SliverToBoxAdapter(
-                          child: AnimatedContainer(
-                            duration: Durations.short1,
-                            color: Colors.transparent,
-                            width: double.infinity,
-                            height: isExpanded ? 1 : constraints.minHeight,
-                            child: Row(
-                              children: [
-                                AnimatedContainer(
-                                  duration: Durations.short1,
-                                  decoration: BoxDecoration(
-                                      color: Colors.transparent,
-                                      borderRadius: BorderRadius.all(
-                                          Radius.circular(30))),
-                                  // width: isExpanded
-                                  //     ? MediaQuery.of(context).size.width * 1
-                                  //     : MediaQuery.of(context).size.width * 0.7,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      if (orders.length == 1 &&
-                                          orders.first["order_status"] == "3") {
-                                        Navigator.push(context,
-                                            MaterialPageRoute(
-                                          builder: (context) {
-                                            return CheckCourierPage(
-                                                order: orders.first);
-                                          },
-                                        ));
-                                      }
-                                      _dsController.animateTo(1,
-                                          duration: Duration(microseconds: 10),
-                                          curve: Curves.bounceIn);
-                                    },
-                                    child: Container(
-                                      color: Colors.transparent,
-                                      alignment: isExpanded
-                                          ? Alignment.topLeft
-                                          : Alignment.bottomLeft,
-                                      height: isExpanded
-                                          ? constraints.smallest.height
-                                          : constraints.minHeight,
-                                      child: orders.length >= 1
-                                          ? Container(
-                                              margin: EdgeInsets.only(
-                                                  top: 15 * globals.scaleParam),
-                                              padding: EdgeInsets.only(
-                                                  top: 45 * globals.scaleParam,
-                                                  bottom:
-                                                      45 * globals.scaleParam,
-                                                  left: 60 * globals.scaleParam,
-                                                  right:
-                                                      60 * globals.scaleParam),
-                                              decoration: BoxDecoration(
-                                                  color: Colors.black,
-                                                  borderRadius:
-                                                      BorderRadius.only(
-                                                          topRight:
-                                                              Radius.circular(
-                                                                  500))),
-                                              child: orders.length > 1
-                                                  ? Text(
-                                                      formatActiveOrderString(
-                                                          orders.length),
-                                                      // orders.length.toString(),
-                                                      style: TextStyle(
-                                                          fontFamily:
-                                                              "MontserratAlternates",
-                                                          color: Colors.white,
-                                                          fontWeight:
-                                                              FontWeight.w700,
-                                                          fontSize: 36 *
-                                                              globals
-                                                                  .scaleParam),
-                                                    )
-                                                  : getOrderStatusFormat(orders
-                                                      .first["order_status"]),
-                                            )
-                                          : Container(),
-                                    ),
+    return orders.length == 0
+        ? Container()
+        : GestureDetector(
+            onHorizontalDragEnd: (details) {
+              setState(() {
+                isExpandedFloatingButton = !isExpandedFloatingButton;
+              });
+            },
+            child: FloatingActionButton.extended(
+              clipBehavior: Clip.none,
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black,
+              icon: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(
+                    Icons.delivery_dining,
+                    size: 32,
+                  ),
+                  isExpandedFloatingButton
+                      ? Container()
+                      : Positioned(
+                          child: Container(
+                            alignment: Alignment.center,
+                            height: 40,
+                            width: 40,
+                            decoration: BoxDecoration(
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.5),
+                                    spreadRadius: 1,
+                                    blurRadius: 5,
+                                    offset: Offset(0, 3),
                                   ),
-                                ),
-                              ],
+                                ],
+                                color: Colors.red,
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(1000))),
+                            child: Text(
+                              orders.length.toString(),
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900),
                             ),
                           ),
-                        ),
-                        // SliverToBoxAdapter(
-                        //   child: Center(
-                        //     child: Container(
-                        //       decoration: BoxDecoration(
-                        //         color: Theme.of(context).hintColor,
-                        //         borderRadius: const BorderRadius.all(Radius.circular(10)),
-                        //       ),
-                        //       height: 10,
-                        //       width: 10,
-                        //       margin: const EdgeInsets.symmetric(vertical: 10),
-                        //     ),
-                        //   ),
-                        // ),
-                        // LayoutBuilder(
-                        //   builder: (context, constraints) {
-                        //     print(constraints);
-                        //     return Container();
-                        //   },
-                        // ),
-                        SliverToBoxAdapter(
-                            child: Container(
-                                height: MediaQuery.of(context).size.height,
-                                color: Colors.transparent,
-                                padding: EdgeInsets.only(
-                                    top: MediaQueryData.fromView(
-                                            View.of(context))
-                                        .padding
-                                        .top,
-                                    bottom: 20),
-                                child: LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    return Container(
-                                      height: constraints.maxHeight,
-                                      child: SingleChildScrollView(
-                                        primary: false,
-                                        child: Container(
-                                          height: constraints.maxHeight,
-                                          // margin:
-                                          //     EdgeInsets.only(top: 60 * globals.scaleParam),
-                                          padding: EdgeInsets.all(
-                                              45 * globals.scaleParam),
-                                          width: double.infinity,
-                                          // height: 1000,
-                                          decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius: BorderRadius.all(
-                                                  Radius.circular(90 *
-                                                      globals.scaleParam))),
-                                          child: ListView(
-                                            primary: false,
-                                            shrinkWrap: true,
-                                            children: [
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Text(
-                                                    formatActiveOrderString(
-                                                        orders.length),
-                                                    style: TextStyle(
-                                                        fontFamily: "Raleway",
-                                                        fontVariations: <FontVariation>[
-                                                          FontVariation(
-                                                              'wght', 600)
-                                                        ],
-                                                        color: Colors.black,
-                                                        fontWeight:
-                                                            FontWeight.w900,
-                                                        fontSize: 48 *
-                                                            globals.scaleParam),
-                                                  ),
-                                                  IconButton(
-                                                      onPressed: () {
-                                                        _dsController.animateTo(
-                                                            _sheetPosition,
-                                                            duration: Durations
-                                                                .short1,
-                                                            curve: Curves
-                                                                .bounceOut);
-                                                      },
-                                                      icon: Icon(Icons.close))
-                                                ],
-                                              ),
-                                              ListView.builder(
-                                                primary: false,
-                                                shrinkWrap: true,
-                                                itemCount: orders.length,
-                                                itemBuilder: (context, index) {
-                                                  return OrderListTile(
-                                                      order: orders[index]);
-                                                },
-                                              )
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                )))
-                      ],
-                    );
+                          top: -32,
+                          right: -32)
+                ],
+              ),
+              isExtended: isExpandedFloatingButton,
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return OrderHistoryPage();
                   },
-                ));
-      },
-    );
+                );
+              },
+              label: Text(orders.length > 1
+                  ? formatActiveOrderString(orders.length)
+                  : getOrderStatusFormat(orders.first["order_status"] ?? "99")),
+            ),
+          );
   }
 }
 

@@ -16,7 +16,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.1.7
+version:  1.1.8
 
 environment:
   sdk: ">=2.19.5 <3.0.0"
@@ -63,7 +63,6 @@ dependencies:
     sdk: flutter
   latlong2: ^0.9.1
   extended_image: ^8.2.1
-  flutter_native_splash: ^2.2.16
   vector_map_tiles: ^7.3.1
   url_launcher: ^6.3.0
   flutter_staggered_grid_view: ^0.7.0
@@ -88,6 +87,10 @@ dependencies:
   persistent_header_adaptive: ^2.1.0
   loading_animation_widget: ^1.3.0
   carousel_slider: ^5.0.0
+  bottom_sheet_scroll_physics: ^1.0.0
+  flutter_timer_countdown: ^1.0.7
+  flutter_native_splash: ^2.4.4
+  flutter_widget_from_html: ^0.15.3
 
 dependency_overrides:
   intl: '0.19.0'
@@ -115,8 +118,12 @@ flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
   image_path: "assets/naliv_launcher.png"
-
   min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/naliv_launcher.png"
+    background_color: "#121212"
+    theme_color: "#121212"
 
 flutter:
   # The following line ensures that the Material Icons font is
@@ -236,7 +243,7 @@ flutter_native_splash:
   # The branding property allows you to specify an image used as branding in the splash screen.
   # It must be a png file. It is supported for Android, iOS and the Web.  For Android 12,
   # see the Android 12 section below.
-  #branding: assets/dart.png
+  branding: assets/naliv_logo_loading.png
 
   # To position the branding image at the bottom of the screen you can use bottom, bottomRight,
   # and bottomLeft. The default values is bottom if not specified or specified something else.
@@ -356,3 +363,5 @@ flutter_native_splash:
   #info_plist_files:
   #  - 'ios/Runner/Info-Debug.plist'
   #  - 'ios/Runner/Info-Release.plist'
+
+

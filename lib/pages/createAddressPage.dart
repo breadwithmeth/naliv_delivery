@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/selectAddressPage.dart';
 
 class CreateAddressPage extends StatefulWidget {
-  const CreateAddressPage({super.key});
-
+  const CreateAddressPage(
+      {super.key, required this.createOrder, this.business});
+  final bool createOrder;
+  final Map? business;
   @override
   State<CreateAddressPage> createState() => _CreateAddressPageState();
 }
@@ -43,11 +46,11 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
             ),
             children: [
               TileLayer(
+                tileProvider: CancellableNetworkTileProvider(),
                 tileBuilder: _darkModeTileBuilder,
                 // Display map tiles from any source
-                urlTemplate:
-                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png', // OSMF's Tile Server
-                userAgentPackageName: 'com.example.app',
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                subdomains: ['tile0', 'tile1', 'tile2', 'tile3'],
                 // And many more recommended properties!
               ),
               // MarkerLayer(markers: [
@@ -67,9 +70,10 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
         ),
         SafeArea(
             child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             Container(
-                margin: EdgeInsets.all(15),
+                margin: EdgeInsets.only(top: 60, left: 15, right: 15),
                 padding: EdgeInsets.all(15),
                 decoration: BoxDecoration(
                   color: Color(0xFF121212),
@@ -125,11 +129,13 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                           child: ListTile(
                             title: Text(addresses[index]["name"]),
                             onTap: () {
-                              Navigator.push(
+                              Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => ConfirmAddressPage(
                                     currentAddress: addresses[index],
+                                    createOrder: widget.createOrder,
+                                    business: widget.business,
                                   ),
                                 ),
                               );
@@ -147,6 +153,15 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                   )
                 : Container()
           ],
+        )),
+        SafeArea(
+            child: Container(
+          margin: EdgeInsets.only(top: 5, left: 5),
+          child: IconButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              icon: Icon(Icons.close)),
         ))
       ],
     ));
@@ -170,8 +185,14 @@ Widget _darkModeTileBuilder(
 }
 
 class ConfirmAddressPage extends StatefulWidget {
-  const ConfirmAddressPage({super.key, required this.currentAddress});
+  const ConfirmAddressPage(
+      {super.key,
+      required this.currentAddress,
+      required this.createOrder,
+      this.business});
   final Map currentAddress;
+  final bool createOrder;
+  final Map? business;
   @override
   State<ConfirmAddressPage> createState() => _ConfirmAddressPageState();
 }
@@ -219,8 +240,8 @@ class _ConfirmAddressPageState extends State<ConfirmAddressPage> {
                         tileBuilder: _darkModeTileBuilder,
                         // Display map tiles from any source
                         urlTemplate:
-                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png', // OSMF's Tile Server
-                        userAgentPackageName: 'com.example.app',
+                            'https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+                        subdomains: ['tile0', 'tile1', 'tile2', 'tile3'],
                         // And many more recommended properties!
                       ),
                       MarkerLayer(markers: [
@@ -322,13 +343,16 @@ class _ConfirmAddressPageState extends State<ConfirmAddressPage> {
                       Navigator.pushReplacement(context, MaterialPageRoute(
                         builder: (context) {
                           return SelectAddressPage(
-                              addresses: addresses,
-                              currentAddress: addresses.firstWhere(
-                                (element) => element["is_selected"] == "1",
-                                orElse: () {
-                                  return {};
-                                },
-                              ));
+                            addresses: addresses,
+                            currentAddress: addresses.firstWhere(
+                              (element) => element["is_selected"] == "1",
+                              orElse: () {
+                                return {};
+                              },
+                            ),
+                            createOrder: widget.createOrder,
+                            business: widget.business,
+                          );
                         },
                       ));
                     });

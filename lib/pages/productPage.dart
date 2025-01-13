@@ -90,6 +90,8 @@ class _ProductPageState extends State<ProductPage> {
   double inStock = 0.0;
   List newCart = [];
 
+  List recItems = [];
+
   Widget optionSelector = Container();
 
   Future<bool> _deleteFromCart(String itemId) async {
@@ -326,9 +328,43 @@ class _ProductPageState extends State<ProductPage> {
 
   // BUTTON VARIABLES/FUNCS END
 
+  _getRecItems() {
+    getItemsRecs(
+            widget.business["business_id"], widget.item["item_id"].toString())
+        .then((value) {
+      setState(() {
+        recItems = value["items"];
+      });
+    });
+  }
+
+  void showModalProductPageWithClearedState(
+    Map<String, dynamic> element,
+  ) {
+    // Map<String, dynamic> newElement = Map<String, dynamic>.from(element);
+    // newElement["amount"] = 0;
+    // newElement["cart"] = [];
+    showModalBottomSheet(
+      context: context,
+      clipBehavior: Clip.antiAlias,
+      useSafeArea: true,
+      isScrollControlled: true,
+      showDragHandle: false,
+      builder: (context) {
+        // widget.element["amount"] = amountInCart.toString();
+        return ProductPage(
+            item: element,
+            index: widget.index,
+            business: widget.business,
+            promotions: []);
+      },
+    );
+  }
+
   @override
   void initState() {
     super.initState();
+    _getRecItems();
     if (widget.item["options"] != null) {
       if (!widget.dontClearOptions) {
         setState(() {
@@ -1406,6 +1442,74 @@ class _ProductPageState extends State<ProductPage> {
                       // const SizedBox(
                       //   height: 5,
                       // ),
+                      recItems.length > 1
+                          ? Padding(
+                              padding: EdgeInsets.all(10),
+                              child: Text(
+                                "С этим товаром также берут",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                            )
+                          : Container(),
+                      recItems.length < 1
+                          ? Container()
+                          : Container(
+                              height: 180,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                primary: false,
+                                shrinkWrap: true,
+                                itemCount: recItems.length,
+                                itemBuilder: (context, index) {
+                                  return GestureDetector(
+                                    onTap: () {
+                                      showModalProductPageWithClearedState(
+                                          recItems[index]);
+                                    },
+                                    child: Container(
+                                      margin: EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(15)),
+                                          color: Colors.grey.shade900),
+                                      child: Column(
+                                        children: [
+                                          Container(
+                                            clipBehavior: Clip.antiAlias,
+                                            decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.all(
+                                                    Radius.circular(15))),
+                                            margin: EdgeInsets.all(10),
+                                            height: 100,
+                                            width: 100,
+                                            child: ExtendedImage.network(
+                                              recItems[index]["img"] ?? "/",
+                                              fit: BoxFit.cover,
+                                              width: double.infinity,
+                                            ),
+                                          ),
+                                          Container(
+                                            width: 100,
+                                            height: 40,
+                                            child: Text(
+                                              recItems[index]["name"],
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12),
+                                              textAlign: TextAlign.left,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
 
                       Stack(
                         children: [
@@ -1578,11 +1682,13 @@ class _ProductPageState extends State<ProductPage> {
                           children: properties,
                         ),
                       ),
-                      const SizedBox(
-                        height: 100,
-                      )
                     ],
                   ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 500,
                 ),
               )
             ],

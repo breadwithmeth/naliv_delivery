@@ -3,12 +3,12 @@ import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:naliv_delivery/shared/loadingScreen.dart';
 import '../globals.dart' as globals;
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, this.login = "", this.password = ""});
-  final String login;
-  final String password;
+  const LoginPage();
+
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
@@ -18,407 +18,349 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _password = TextEditingController();
   final TextEditingController _phone_number = TextEditingController();
   final TextEditingController _one_time_code = TextEditingController();
+  bool _isLoading = false;
   bool isCodeSend = false;
   String _number = "";
   Future<void> _getOneTimeCode() async {
-    await getOneTimeCode(_number).then(
+    await getOneTimeCode("+7" + _number).then(
       (value) {
+        setState(() {
+          _isLoading = false;
+        });
         print(_phone_number.text);
         setState(() {
           isCodeSend = true;
         });
+        Navigator.pushReplacement(context, MaterialPageRoute(
+          builder: (context) {
+            return VerifyPage(phone: "+7" + _number);
+          },
+        ));
       },
+    );
+  }
+
+  buildNumPadDigitWidget(String digit, BoxConstraints constraints) {
+    return Container(
+      margin: EdgeInsets.all(5),
+      clipBehavior: Clip.hardEdge,
+      decoration:
+          BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(100))),
+      height: constraints.maxHeight * 0.2,
+      width: constraints.maxWidth * 0.3,
+      child: InkWell(
+        onTap: () {
+          if (_number.length < 10) {
+            setState(() {
+              _number += digit;
+            });
+          }
+        },
+        child: Container(
+          margin: EdgeInsets.all(5),
+          decoration: BoxDecoration(),
+          child: Center(
+            child: Text(
+              digit,
+              style: TextStyle(fontSize: 24),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
   @override
   void initState() {
     super.initState();
-    if (!(widget.login.isEmpty && widget.password.isEmpty)) {
-      setState(() {
-        _login.text = widget.login;
-        _password.text = widget.password;
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: SafeArea(
-            child: Padding(
-      padding: EdgeInsets.all(30),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Flexible(
-            fit: FlexFit.tight,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          surfaceTintColor: Colors.black,
+        ),
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            Column(
               children: [
                 Flexible(
-                  fit: FlexFit.tight,
-                  child: Text(
-                    "Вход",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontVariations: <FontVariation>[
-                        FontVariation('wght', 800)
-                      ],
-                      fontSize: 42 * globals.scaleParam,
-                    ),
+                  child: Container(
+                    alignment: Alignment.center,
+                    child: Text("+7" + _number, style: TextStyle(fontSize: 24)),
                   ),
-                )
-              ],
-            ),
-          ),
-          Flexible(
-            flex: 1,
-            fit: FlexFit.tight,
-            child: Form(
-              autovalidateMode: AutovalidateMode.always,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Flexible(
-                    flex: 6,
-                    fit: FlexFit.tight,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Flexible(
-                          child: IntlPhoneField(
-                            controller: _phone_number,
-                            enabled: !isCodeSend,
-                            dropdownIconPosition: IconPosition.trailing,
-                            showCountryFlag: true,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontVariations: <FontVariation>[
-                                FontVariation('wght', 500)
-                              ],
-                              fontSize: 42 * globals.scaleParam,
-                            ),
-                            dropdownTextStyle: TextStyle(
-                              color: Colors.white,
-                              fontVariations: <FontVariation>[
-                                FontVariation('wght', 500)
-                              ],
-                              fontSize: 42 * globals.scaleParam,
-                            ),
-                            decoration: InputDecoration(
-                              labelText: 'Номер телефона',
-                              border: OutlineInputBorder(
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(10)),
-                              ),
-                              hintStyle: TextStyle(
-                                color: Colors.grey,
-                                fontVariations: <FontVariation>[
-                                  FontVariation('wght', 500)
-                                ],
-                                fontSize: 42 * globals.scaleParam,
-                              ),
-                              labelStyle: TextStyle(
-                                color: Colors.grey,
-                                fontVariations: <FontVariation>[
-                                  FontVariation('wght', 500)
-                                ],
-                                fontSize: 42 * globals.scaleParam,
-                              ),
-                              errorStyle: TextStyle(
-                                color: Colors.red,
-                                fontVariations: <FontVariation>[
-                                  FontVariation('wght', 500)
-                                ],
-                                fontSize: 28 * globals.scaleParam,
-                              ),
-                              prefixStyle: TextStyle(
-                                color: Colors.white,
-                                fontVariations: <FontVariation>[
-                                  FontVariation('wght', 500)
-                                ],
-                                fontSize: 42 * globals.scaleParam,
-                              ),
-                              helperStyle: TextStyle(
-                                color: Colors.white,
-                                fontVariations: <FontVariation>[
-                                  FontVariation('wght', 500)
-                                ],
-                                fontSize: 38 * globals.scaleParam,
-                              ),
-                              floatingLabelStyle: TextStyle(
-                                color: Colors.white,
-                                fontVariations: <FontVariation>[
-                                  FontVariation('wght', 500)
-                                ],
-                                fontSize: 42 * globals.scaleParam,
-                              ),
-                            ),
-                            initialCountryCode: 'KZ',
-                            onChanged: (phone) {
-                              setState(() {
-                                _number = phone.completeNumber;
-                              });
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Flexible(flex: 1, fit: FlexFit.tight, child: SizedBox()),
-                  Flexible(
-                    flex: 6,
-                    fit: FlexFit.tight,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Flexible(
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 500),
-                            transitionBuilder:
-                                (Widget child, Animation<double> animation) {
-                              return ScaleTransition(
-                                  scale: animation, child: child);
-                            },
-                            child: isCodeSend
-                                ? TextField(
-                                    controller: _one_time_code,
-                                    keyboardType: TextInputType.number,
-                                    maxLength: 6,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontVariations: <FontVariation>[
-                                        FontVariation('wght', 800)
-                                      ],
-                                      fontSize: 42 * globals.scaleParam,
-                                    ),
-                                    decoration: InputDecoration(
-                                      labelText: "Введите код из СМС",
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.all(
-                                            Radius.circular(10)),
-                                      ),
-                                      hintStyle: TextStyle(
-                                        color: Colors.grey,
-                                        fontVariations: <FontVariation>[
-                                          FontVariation('wght', 500)
-                                        ],
-                                        fontSize: 42 * globals.scaleParam,
-                                      ),
-                                      labelStyle: TextStyle(
-                                        color: Colors.grey,
-                                        fontVariations: <FontVariation>[
-                                          FontVariation('wght', 500)
-                                        ],
-                                        fontSize: 42 * globals.scaleParam,
-                                      ),
-                                      errorStyle: TextStyle(
-                                        color: Colors.red,
-                                        fontVariations: <FontVariation>[
-                                          FontVariation('wght', 500)
-                                        ],
-                                        fontSize: 28 * globals.scaleParam,
-                                      ),
-                                      prefixStyle: TextStyle(
-                                        color: Colors.white,
-                                        fontVariations: <FontVariation>[
-                                          FontVariation('wght', 500)
-                                        ],
-                                        fontSize: 42 * globals.scaleParam,
-                                      ),
-                                      helperStyle: TextStyle(
-                                        color: Colors.white,
-                                        fontVariations: <FontVariation>[
-                                          FontVariation('wght', 500)
-                                        ],
-                                        fontSize: 38 * globals.scaleParam,
-                                      ),
-                                      floatingLabelStyle: TextStyle(
-                                        color: Colors.white,
-                                        fontVariations: <FontVariation>[
-                                          FontVariation('wght', 500)
-                                        ],
-                                        fontSize: 42 * globals.scaleParam,
-                                      ),
-                                    ),
-                                  )
-                                : Container(),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // TextFormField(
-                  //   controller: _login,
-                  //   decoration: InputDecoration(
-                  //       labelStyle: TextStyle(color: gray1, fontSize: 16),
-                  //       label: Row(
-                  //         mainAxisSize: MainAxisSize.min,
-                  //         children: [
-                  //           Icon(
-                  //             Icons.mail_outline_rounded,
-                  //             size: 30,
-                  //           ),
-                  //           SizedBox(
-                  //             width: 5,
-                  //           ),
-                  //           Text("Адрес эл.почты")
-                  //         ],
-                  //       ),
-                  //       focusColor: Colors.white,
-                  //       enabledBorder: OutlineInputBorder(
-                  //           borderSide: BorderSide(
-                  //               width: 0.5, color: Color(0xFFD8DADC)),
-                  //           borderRadius:
-                  //               BorderRadius.all(Radius.circular(10))),
-                  //       focusedBorder: OutlineInputBorder(
-                  //           borderSide: BorderSide(color: Colors.white))),
-                  // ),
-                  // SizedBox(
-                  //   height: 10,
-                  // ),
-                  // TextFormField(
-                  //   controller: _password,
-                  //   obscureText: true,
-                  //   decoration: InputDecoration(
-                  //       labelStyle: TextStyle(color: gray1, fontSize: 16),
-                  //       label: Row(
-                  //         mainAxisSize: MainAxisSize.min,
-                  //         children: [
-                  //           Icon(
-                  //             Icons.lock_outline,
-                  //             size: 30,
-                  //           ),
-                  //           SizedBox(
-                  //             width: 5,
-                  //           ),
-                  //           Text("Пароль")
-                  //         ],
-                  //       ),
-                  //       focusColor: Colors.white,
-                  //       enabledBorder: OutlineInputBorder(
-                  //           borderSide: BorderSide(
-                  //               width: 0.5, color: Color(0xFFD8DADC)),
-                  //           borderRadius:
-                  //               BorderRadius.all(Radius.circular(10))),
-                  //       focusedBorder: OutlineInputBorder(
-                  //           borderSide: BorderSide(color: Colors.white))),
-                  // ),
-                  // Spacer(),
-                ],
-              ),
-            ),
-          ),
-          Flexible(
-            flex: 2,
-            fit: FlexFit.tight,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                !isCodeSend
-                    ? Flexible(
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            print(_phone_number.text.length);
-                            if (_phone_number.text.length == 10) {
-                              _getOneTimeCode();
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    "Проверьте правильность номера",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontVariations: <FontVariation>[
-                                        FontVariation('wght', 800)
-                                      ],
-                                      fontSize: 32 * globals.scaleParam,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }
-                            // bool _loginStatus =
-                            //     await login(_login.text, _password.text);
-                            // if (_loginStatus) {
-                            //   Navigator.push(
-                            //     context,
-                            //     MaterialPageRoute(
-                            //         builder: (context) => BottomMenu(
-                            //               page: 0,
-                            //             )),
-                            //   );
-                            // }
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.max,
+                  flex: 2,
+                ),
+                Flexible(
+                    child: Container(
+                  alignment: Alignment.center,
+                  child: Text("Введите номер телефона"),
+                )),
+                Flexible(
+                    flex: 10,
+                    child: Container(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Flexible(
-                                fit: FlexFit.tight,
-                                child: Text(
-                                  "Получить код подтверждения",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontVariations: <FontVariation>[
-                                      FontVariation('wght', 800)
-                                    ],
-                                    fontSize: 42 * globals.scaleParam,
-                                  ),
-                                ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  buildNumPadDigitWidget("1", constraints),
+                                  buildNumPadDigitWidget("2", constraints),
+                                  buildNumPadDigitWidget("3", constraints),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : Flexible(
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            await verify(_number, _one_time_code.text).then(
-                              (value) => {
-                                if (value == true)
-                                  {
-                                    Navigator.pushAndRemoveUntil(context,
-                                        MaterialPageRoute(
-                                      builder: (context) {
-                                        return const Main();
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  buildNumPadDigitWidget("4", constraints),
+                                  buildNumPadDigitWidget("5", constraints),
+                                  buildNumPadDigitWidget("6", constraints),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  buildNumPadDigitWidget("7", constraints),
+                                  buildNumPadDigitWidget("8", constraints),
+                                  buildNumPadDigitWidget("9", constraints),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    height: constraints.maxHeight * 0.2,
+                                    width: constraints.maxWidth * 0.3,
+                                    child: InkWell(
+                                      onTap: () {
+                                        setState(() {
+                                          _number = "";
+                                        });
                                       },
-                                    ), (route) => false)
-                                  }
-                              },
-                            );
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.max,
-                            children: [
-                              Flexible(
-                                fit: FlexFit.tight,
-                                child: Text(
-                                  "Отправить код",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontVariations: <FontVariation>[
-                                      FontVariation('wght', 800)
-                                    ],
-                                    fontSize: 42 * globals.scaleParam,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          border:
+                                              Border.all(color: Colors.black),
+                                        ),
+                                        child: Center(
+                                          child: Icon(Icons.close),
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  buildNumPadDigitWidget("0", constraints),
+                                  Container(
+                                    height: constraints.maxHeight * 0.2,
+                                    width: constraints.maxWidth * 0.3,
+                                    child: InkWell(
+                                      onTap: () {
+                                        setState(() {
+                                          _isLoading = true;
+                                        });
+                                        _getOneTimeCode();
+                                      },
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          border:
+                                              Border.all(color: Colors.black),
+                                        ),
+                                        child: Center(
+                                            child:
+                                                Icon(Icons.arrow_forward_ios)),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               )
                             ],
-                          ),
-                        ),
+                          );
+                        },
                       ),
+                    ))
               ],
             ),
+            _isLoading ? LoadingScrenn() : Container()
+          ],
+        ));
+  }
+}
+
+class VerifyPage extends StatefulWidget {
+  const VerifyPage({super.key, required this.phone});
+  final String phone;
+  @override
+  State<VerifyPage> createState() => _VerifyPageState();
+}
+
+class _VerifyPageState extends State<VerifyPage> {
+  String _code = "";
+  bool _isLoading = false;
+
+  _verify() {
+    verify(widget.phone, _code).then((value) {
+      if (value) {
+        Navigator.pushReplacement(context, MaterialPageRoute(
+          builder: (context) {
+            return Main();
+          },
+        ));
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    });
+  }
+
+  buildNumPadDigitWidget(String digit, BoxConstraints constraints) {
+    return Container(
+      margin: EdgeInsets.all(5),
+      clipBehavior: Clip.hardEdge,
+      decoration:
+          BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(100))),
+      height: constraints.maxHeight * 0.2,
+      width: constraints.maxWidth * 0.3,
+      child: InkWell(
+        onTap: () {
+          if (_code.length < 10) {
+            setState(() {
+              _code += digit;
+            });
+          }
+        },
+        child: Container(
+          margin: EdgeInsets.all(5),
+          decoration: BoxDecoration(),
+          child: Center(
+            child: Text(
+              digit,
+              style: TextStyle(fontSize: 24),
+            ),
           ),
-        ],
+        ),
       ),
-    )));
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          surfaceTintColor: Colors.black,
+        ),
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            Column(
+              children: [
+                Flexible(
+                  child: Container(
+                    alignment: Alignment.center,
+                    child: Text(_code, style: TextStyle(fontSize: 24)),
+                  ),
+                  flex: 2,
+                ),
+                Flexible(
+                    child: Container(
+                  alignment: Alignment.center,
+                  child: Text("Введите код"),
+                )),
+                Flexible(
+                    flex: 10,
+                    child: Container(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  buildNumPadDigitWidget("1", constraints),
+                                  buildNumPadDigitWidget("2", constraints),
+                                  buildNumPadDigitWidget("3", constraints),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  buildNumPadDigitWidget("4", constraints),
+                                  buildNumPadDigitWidget("5", constraints),
+                                  buildNumPadDigitWidget("6", constraints),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  buildNumPadDigitWidget("7", constraints),
+                                  buildNumPadDigitWidget("8", constraints),
+                                  buildNumPadDigitWidget("9", constraints),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    height: constraints.maxHeight * 0.2,
+                                    width: constraints.maxWidth * 0.3,
+                                    child: InkWell(
+                                      onTap: () {
+                                        setState(() {
+                                          _code = "";
+                                        });
+                                      },
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          border:
+                                              Border.all(color: Colors.black),
+                                        ),
+                                        child: Center(
+                                          child: Icon(Icons.close),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  buildNumPadDigitWidget("0", constraints),
+                                  Container(
+                                    height: constraints.maxHeight * 0.2,
+                                    width: constraints.maxWidth * 0.3,
+                                    child: InkWell(
+                                      onTap: () {
+                                        setState(() {
+                                          _isLoading = true;
+                                        });
+                                        // _getOneTimeCode();
+                                        _verify();
+                                      },
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          border:
+                                              Border.all(color: Colors.black),
+                                        ),
+                                        child: Center(
+                                            child:
+                                                Icon(Icons.arrow_forward_ios)),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            ],
+                          );
+                        },
+                      ),
+                    ))
+              ],
+            ),
+            _isLoading ? LoadingScrenn() : Container()
+          ],
+        ));
   }
 }

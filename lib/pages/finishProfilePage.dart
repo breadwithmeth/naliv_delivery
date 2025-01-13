@@ -52,7 +52,7 @@ class _FinishprofilepageState extends State<Finishprofilepage>
           children: <Widget>[
             Container(
               decoration: const BoxDecoration(
-                  boxShadow: [BoxShadow()], color: Colors.white),
+                  boxShadow: [BoxShadow()], color: Colors.black),
               margin: const EdgeInsets.all(10),
               child: Column(
                 children: [
@@ -72,7 +72,7 @@ class _FinishprofilepageState extends State<Finishprofilepage>
                                   fontVariations: <FontVariation>[
                                     FontVariation('wght', 700)
                                   ],
-                                  color: Colors.black),
+                                  color: Colors.white),
                             ),
                             TextField(
                               controller: _first_name,
@@ -84,14 +84,14 @@ class _FinishprofilepageState extends State<Finishprofilepage>
                                   fontVariations: <FontVariation>[
                                     FontVariation('wght', 700)
                                   ],
-                                  color: Colors.black),
+                                  color: Colors.white),
                               decoration: const InputDecoration(
                                 hintText: "Имя",
                                 border: OutlineInputBorder(),
                               ),
                             ),
                             const Divider(
-                              color: Colors.white,
+                              color: Colors.black,
                             ),
                             TextField(
                               controller: _last_name,
@@ -103,7 +103,7 @@ class _FinishprofilepageState extends State<Finishprofilepage>
                                   fontVariations: <FontVariation>[
                                     FontVariation('wght', 700)
                                   ],
-                                  color: Colors.black),
+                                  color: Colors.white),
                               decoration: const InputDecoration(
                                 hintText: "Фамилия",
                                 border: OutlineInputBorder(),
@@ -138,7 +138,7 @@ class _FinishprofilepageState extends State<Finishprofilepage>
                                     fontVariations: <FontVariation>[
                                       FontVariation('wght', 700)
                                     ],
-                                    color: Colors.black),
+                                    color: Colors.white),
                               ),
                             ))),
                   )
@@ -147,7 +147,7 @@ class _FinishprofilepageState extends State<Finishprofilepage>
             ),
             Container(
               decoration: const BoxDecoration(
-                  boxShadow: [BoxShadow()], color: Colors.white),
+                  boxShadow: [BoxShadow()], color: Colors.black),
               margin: const EdgeInsets.all(10),
               child: Column(
                 children: [
@@ -165,7 +165,7 @@ class _FinishprofilepageState extends State<Finishprofilepage>
                                   fontVariations: <FontVariation>[
                                     FontVariation('wght', 700)
                                   ],
-                                  color: Colors.black),
+                                  color: Colors.white),
                             ),
                             DropdownDatePicker(
                               dateformatorder:
@@ -202,7 +202,7 @@ class _FinishprofilepageState extends State<Finishprofilepage>
                                   fontVariations: <FontVariation>[
                                     FontVariation('wght', 700)
                                   ],
-                                  color: Colors.black),
+                                  color: Colors.white),
                               boxDecoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
@@ -244,7 +244,7 @@ class _FinishprofilepageState extends State<Finishprofilepage>
                                     fontVariations: <FontVariation>[
                                       FontVariation('wght', 700)
                                     ],
-                                    color: Colors.black),
+                                    color: Colors.white),
                               ),
                             ))),
                   )
@@ -253,7 +253,7 @@ class _FinishprofilepageState extends State<Finishprofilepage>
             ),
             Container(
               decoration: const BoxDecoration(
-                  boxShadow: [BoxShadow()], color: Colors.white),
+                  boxShadow: [BoxShadow()], color: Colors.black),
               margin: const EdgeInsets.all(10),
               child: Column(
                 children: [
@@ -271,7 +271,7 @@ class _FinishprofilepageState extends State<Finishprofilepage>
                                   fontVariations: <FontVariation>[
                                     FontVariation('wght', 700)
                                   ],
-                                  color: Colors.black),
+                                  color: Colors.white),
                             ),
                             Padding(
                               padding: const EdgeInsets.all(10),
@@ -296,7 +296,7 @@ class _FinishprofilepageState extends State<Finishprofilepage>
                                         fontVariations: <FontVariation>[
                                           FontVariation('wght', 700)
                                         ],
-                                        color: Colors.black),
+                                        color: Colors.white),
                                   ),
                                   selected: male),
                             ),
@@ -323,7 +323,7 @@ class _FinishprofilepageState extends State<Finishprofilepage>
                                         fontVariations: <FontVariation>[
                                           FontVariation('wght', 700)
                                         ],
-                                        color: Colors.black),
+                                        color: Colors.white),
                                   ),
                                   selected: female),
                             ),
@@ -370,7 +370,7 @@ class _FinishprofilepageState extends State<Finishprofilepage>
                                     fontVariations: <FontVariation>[
                                       FontVariation('wght', 700)
                                     ],
-                                    color: Colors.black),
+                                    color: Colors.white),
                               ),
                             ))),
                   )

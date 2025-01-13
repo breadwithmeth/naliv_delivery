@@ -272,6 +272,7 @@ class _MainState extends State<Main> {
     print("SCALE PARAM IS: ${globals.scaleParam}");
     // globals.scaleParam = 1;
     return MaterialApp(
+      title: "Налив/Градусы24",
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/orderInfoPage.dart';
+import 'package:naliv_delivery/pages/webViewCardPayPage.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:intl/intl.dart';
@@ -12,8 +13,13 @@ class OrderHistoryPage extends StatefulWidget {
 }
 
 class _OrderHistoryPageState extends State<OrderHistoryPage> {
+  List _orders = [];
   Future<List<dynamic>> _getOrders() async {
     List<dynamic> orders = await getOrders();
+    print(orders);
+    setState(() {
+      _orders = orders.reversed.toList();
+    });
     return orders;
   }
 
@@ -25,245 +31,205 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
     return format.format(parsedData);
   }
 
+  String getOrderStatusFormat(String string) {
+    if (string == "66") {
+      return "Заказ ожидает оплаты";
+    } else if (string == "0") {
+      return "Заказ отправлен в магазин";
+    } else if (string == "1") {
+      return "Заказ ожидает сборки";
+    } else if (string == "2") {
+      return "Заказ собран";
+    } else if (string == "3") {
+      return "Заказ забрал курьер";
+    } else if (string == "4") {
+      return "Заказ доставлен";
+    } else {
+      return "Неизвестный статус";
+    }
+  }
+
+  Color getOrderColorStatusFormat(String string) {
+    if (string == "66") {
+      return Colors.red;
+    } else if (string == "0") {
+      return Colors.yellow;
+    } else if (string == "1") {
+      return Colors.orange;
+    } else if (string == "2") {
+      return Colors.green;
+    } else if (string == "3") {
+      return Colors.blue;
+    } else {
+      return Colors.white;
+    }
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _getOrders();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
-      appBar: AppBar(
-        title: Text(
-          "История заказов",
-        ),
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: const Icon(Icons.close),
-          )
-        ],
-      ),
-      body: FutureBuilder(
-        future: _getOrders(),
-        builder: (context, snapshot) {
-          Widget children;
-          if (snapshot.hasData) {
-            if (snapshot.data!.isEmpty) {
-              children = Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: MediaQuery.sizeOf(context).width * 0.8,
-                      child: Column(
-                        children: [
-                          Text(
-                            "История заказов пуста",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface,
-                              fontVariations: <FontVariation>[FontVariation('wght', 700)],
-                              fontSize: 42 * globals.scaleParam,
-                            ),
-                          ),
-                          Text(
-                            "Самое время её пополнить!",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface,
-                              fontVariations: <FontVariation>[FontVariation('wght', 700)],
-                              fontSize: 42 * globals.scaleParam,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            } else {
-              List data = snapshot.data!.reversed.toList();
-              children = Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam, vertical: 20 * globals.scaleParam),
-                child: ListView.builder(
-                  itemCount: data.length,
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(context, MaterialPageRoute(
-                          builder: (context) {
-                            return OrderInfoPage(
-                              orderId: data[index]["order_id"].toString(),
-                              clientDeliveryInfo: {"a_name": data[index]["a_name"], "a_address": data[index]["a_address"]},
-                            );
+        floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
+        floatingActionButton: FloatingActionButton(
+            onPressed: () {},
+            child: IconButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                icon: Icon(
+                  Icons.close,
+                  color: Colors.white,
+                ))),
+        body: SafeArea(
+            child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: kToolbarHeight * 1,
+              ),
+            ),
+            SliverList.builder(
+              itemCount: _orders.length,
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                  onTap: () {
+                    showBottomSheet(
+                      constraints: BoxConstraints(
+                          minHeight: double.infinity,
+                          maxHeight: double.infinity),
+                      context: context,
+                      builder: (context) {
+                        return OrderInfoPage(
+                          orderId: _orders[index]["order_id"].toString(),
+                          clientDeliveryInfo: {
+                            "a_name": _orders[index]["a_name"],
+                            "a_address": _orders[index]["a_address"]
                           },
-                        ));
+                        );
                       },
-                      child: Container(
-                        margin: EdgeInsets.symmetric(vertical: 15 * globals.scaleParam),
-                        child: Column(
-                          children: [
-                            Container(
-                              height: 95 * globals.scaleParam,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(15),
-                                  topRight: Radius.circular(15),
-                                ),
-                                color: Colors.black,
-                              ),
-                              child: LayoutBuilder(builder: (context, constraints) {
-                                return Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam, vertical: 10 * globals.scaleParam),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      Flexible(
-                                        fit: FlexFit.tight,
-                                        child: Text(
-                                          "№ ${(data.length - index).toString()}",
-                                          textAlign: TextAlign.start,
-                                          style: TextStyle(
-                                            color: Theme.of(context).colorScheme.onPrimary,
-                                            fontVariations: <FontVariation>[FontVariation('wght', 700)],
-                                            fontSize: 39 * globals.scaleParam,
-                                          ),
-                                        ),
-                                      ),
-                                      Flexible(
-                                        fit: FlexFit.tight,
-                                        child: Text(
-                                          getLocalTime(data[index]["log_timestamp"].toString()),
-                                          textAlign: TextAlign.start,
-                                          style: TextStyle(
-                                            color: Theme.of(context).colorScheme.onPrimary,
-                                            fontVariations: <FontVariation>[FontVariation('wght', 700)],
-                                            fontSize: 36 * globals.scaleParam,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }),
-                            ),
-                            Container(
-                              height: 120 * globals.scaleParam,
-                              padding: EdgeInsets.symmetric(horizontal: 25 * globals.scaleParam),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.only(
-                                  bottomLeft: Radius.circular(15),
-                                  bottomRight: Radius.circular(15),
-                                ),
-                              ),
-                              child: LayoutBuilder(builder: (context, constraints) {
-                                return Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Flexible(
-                                      fit: FlexFit.tight,
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Flexible(
-                                            fit: FlexFit.tight,
-                                            child: Text(
-                                              data[index]["b_name"].toString(),
-                                              textAlign: TextAlign.start,
-                                              style: TextStyle(
-                                                color: Theme.of(context).colorScheme.onSurface,
-                                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                                                fontSize: 36 * globals.scaleParam,
-                                              ),
-                                            ),
-                                          ),
-                                          Flexible(
-                                            fit: FlexFit.tight,
-                                            child: Text(
-                                              data[index]["b_address"].toString(),
-                                              textAlign: TextAlign.start,
-                                              style: TextStyle(
-                                                color: Theme.of(context).colorScheme.onSurface,
-                                                fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                                                fontSize: 36 * globals.scaleParam,
-                                                height: 2 * globals.scaleParam,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Flexible(
-                                      fit: FlexFit.tight,
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          data[index]["a_name"] != null
-                                              ? Flexible(
-                                                  fit: FlexFit.tight,
-                                                  child: Text(
-                                                    data[index]["a_name"].toString(),
-                                                    textAlign: TextAlign.start,
-                                                    style: TextStyle(
-                                                      overflow: TextOverflow.ellipsis,
-                                                      color: Theme.of(context).colorScheme.onSurface,
-                                                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                                                      fontSize: 36 * globals.scaleParam,
-                                                    ),
-                                                  ),
-                                                )
-                                              : Flexible(
-                                                  child: Text(
-                                                    "Самовывоз",
-                                                    textAlign: TextAlign.start,
-                                                    style: TextStyle(
-                                                      overflow: TextOverflow.ellipsis,
-                                                      color: Theme.of(context).colorScheme.onSurface,
-                                                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                                                      fontSize: 36 * globals.scaleParam,
-                                                    ),
-                                                  ),
-                                                ),
-                                          data[index]["a_address"] != null
-                                              ? Flexible(
-                                                  fit: FlexFit.tight,
-                                                  child: Text(
-                                                    data[index]["a_address"].toString(),
-                                                    textAlign: TextAlign.start,
-                                                    style: TextStyle(
-                                                      overflow: TextOverflow.ellipsis,
-                                                      color: Theme.of(context).colorScheme.onSurface,
-                                                      fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                                                      fontSize: 36 * globals.scaleParam,
-                                                      height: 2 * globals.scaleParam,
-                                                    ),
-                                                  ),
-                                                )
-                                              : SizedBox(),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }),
-                            ),
-                          ],
-                        ),
-                      ),
                     );
                   },
-                ),
-              );
-            }
-          } else {
-            children = LinearProgressIndicator();
-          }
-          return children;
-        },
-      ),
-    );
+                  child: Card(
+                      clipBehavior: Clip.antiAlias,
+                      color: Color(0xFF121212),
+                      child: Column(
+                        children: [
+                          Container(
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  left: BorderSide(
+                                    color: getOrderColorStatusFormat(
+                                        _orders[index]["order_status"]),
+                                    width: 10,
+                                  ),
+                                ),
+                              ),
+                              padding: EdgeInsets.all(10),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Flexible(
+                                    flex: 2,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(
+                                              "#${_orders[index]['order_uuid']}",
+                                              style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: Colors.grey),
+                                            ),
+                                          ],
+                                        ),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              _orders[index]['b_name']
+                                                  .toString(),
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 20,
+                                                  color: Colors.white),
+                                            ),
+                                          ],
+                                        ),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              _orders[index]['b_address']
+                                                  .toString(),
+                                              style: TextStyle(
+                                                  fontSize: 16,
+                                                  color: Colors.white),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Flexible(
+                                      child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(getOrderStatusFormat(
+                                          _orders[index]["order_status"])),
+                                      _orders[index]["order_status"] == "66"
+                                          ? TextButton(
+                                              onPressed: () {
+                                                getPaymentPageForUnpaidOrder(
+                                                        _orders[index]
+                                                            ["order_id"])
+                                                    .then((v) {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          WebViewCardPayPage(
+                                                        htmlString: v["data"],
+                                                      ),
+                                                    ),
+                                                  );
+                                                });
+                                              },
+                                              child: Container(
+                                                padding: EdgeInsets.all(5),
+                                                decoration: BoxDecoration(
+                                                    // color: Colors.white,
+                                                    borderRadius:
+                                                        BorderRadius.all(
+                                                            Radius.circular(
+                                                                5))),
+                                                child: Text(
+                                                  "Оплатить",
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Colors.redAccent),
+                                                ),
+                                              ))
+                                          : Container(),
+                                    ],
+                                  ))
+                                ],
+                              )),
+                        ],
+                      )),
+                );
+              },
+            ),
+          ],
+        )));
   }
 }

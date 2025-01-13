@@ -28,8 +28,10 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: Color(0xFF121212),
       appBar: AppBar(
+        backgroundColor: Color(0xFF121212),
+        surfaceTintColor: Colors.transparent,
         title: Text(
           "Настройки",
         ),
@@ -53,7 +55,7 @@ class _SettingsPageState extends State<SettingsPage> {
             Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.circular(15)),
-                color: Colors.white,
+                color: Color(0xFF121212),
               ),
               child: TextButton(
                 onPressed: () {
@@ -89,18 +91,23 @@ class _SettingsPageState extends State<SettingsPage> {
                               "Удалить аккаунт?",
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.onSurface,
-                                fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                fontVariations: <FontVariation>[
+                                  FontVariation('wght', 800)
+                                ],
                                 fontSize: 42 * globals.scaleParam,
                               ),
                             ),
                             content: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 20 * globals.scaleParam),
                               child: Text(
                                 "Удаление приведёт к потере всех данных.\nЭто безвозвратное действие!",
                                 textAlign: TextAlign.start,
                                 style: TextStyle(
                                   color: Colors.red,
-                                  fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                  fontVariations: <FontVariation>[
+                                    FontVariation('wght', 800)
+                                  ],
                                   fontSize: 38 * globals.scaleParam,
                                 ),
                               ),
@@ -115,29 +122,43 @@ class _SettingsPageState extends State<SettingsPage> {
                                             ? null
                                             : () {
                                                 logout();
-                                                Timer(const Duration(seconds: 5), () {
-                                                  Navigator.pushReplacement(context, MaterialPageRoute(
+                                                Timer(
+                                                    const Duration(seconds: 5),
+                                                    () {
+                                                  Navigator.pushReplacement(
+                                                      context,
+                                                      MaterialPageRoute(
                                                     builder: (context) {
                                                       return const Main();
                                                     },
                                                   ));
                                                 });
                                                 deleteAccount().then((value) {
-                                                  Navigator.pushReplacement(context, MaterialPageRoute(builder: ((context) {
+                                                  Navigator.pushReplacement(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                          builder: ((context) {
                                                     return const Main();
                                                   })));
                                                 });
-                                                Navigator.pushReplacement(context, MaterialPageRoute(
+                                                Navigator.pushReplacement(
+                                                    context, MaterialPageRoute(
                                                   builder: (context) {
                                                     return const Main();
                                                   },
                                                 ));
                                               },
                                         child: Text(
-                                          seconds > 0 ? "Да (${seconds.toString()})" : "Да",
+                                          seconds > 0
+                                              ? "Да (${seconds.toString()})"
+                                              : "Да",
                                           style: TextStyle(
-                                            color: seconds > 0 ? Colors.grey : Colors.red,
-                                            fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                            color: seconds > 0
+                                                ? Colors.grey
+                                                : Colors.red,
+                                            fontVariations: <FontVariation>[
+                                              FontVariation('wght', 800)
+                                            ],
                                             fontSize: 48 * globals.scaleParam,
                                           ),
                                         )),
@@ -151,8 +172,12 @@ class _SettingsPageState extends State<SettingsPage> {
                                       child: Text(
                                         "Нет",
                                         style: TextStyle(
-                                          color: Theme.of(context).colorScheme.onSurface,
-                                          fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface,
+                                          fontVariations: <FontVariation>[
+                                            FontVariation('wght', 800)
+                                          ],
                                           fontSize: 48 * globals.scaleParam,
                                         ),
                                       ),
@@ -174,7 +199,9 @@ class _SettingsPageState extends State<SettingsPage> {
                       "Удалить аккаунт",
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurface,
-                        fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                        fontVariations: <FontVariation>[
+                          FontVariation('wght', 800)
+                        ],
                         fontSize: 42 * globals.scaleParam,
                       ),
                     ),
@@ -188,7 +215,7 @@ class _SettingsPageState extends State<SettingsPage> {
             Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.circular(15)),
-                color: Colors.white,
+                color: Color(0xFF121212),
               ),
               child: TextButton(
                 onPressed: () {
@@ -204,7 +231,9 @@ class _SettingsPageState extends State<SettingsPage> {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
-                            fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                            fontVariations: <FontVariation>[
+                              FontVariation('wght', 800)
+                            ],
                             fontSize: 42 * globals.scaleParam,
                           ),
                         ),
@@ -222,7 +251,8 @@ class _SettingsPageState extends State<SettingsPage> {
                                         Navigator.pushAndRemoveUntil(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (context) => const LoginPage(),
+                                            builder: (context) =>
+                                                const LoginPage(),
                                           ),
                                           (route) => false,
                                         );
@@ -232,8 +262,12 @@ class _SettingsPageState extends State<SettingsPage> {
                                   child: Text(
                                     "Да",
                                     style: TextStyle(
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                      fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
+                                      fontVariations: <FontVariation>[
+                                        FontVariation('wght', 800)
+                                      ],
                                       fontSize: 48 * globals.scaleParam,
                                     ),
                                   ),
@@ -248,8 +282,12 @@ class _SettingsPageState extends State<SettingsPage> {
                                   child: Text(
                                     "Нет",
                                     style: TextStyle(
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                      fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
+                                      fontVariations: <FontVariation>[
+                                        FontVariation('wght', 800)
+                                      ],
                                       fontSize: 48 * globals.scaleParam,
                                     ),
                                   ),
@@ -277,7 +315,9 @@ class _SettingsPageState extends State<SettingsPage> {
                       "Выйти",
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurface,
-                        fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                        fontVariations: <FontVariation>[
+                          FontVariation('wght', 800)
+                        ],
                         fontSize: 42 * globals.scaleParam,
                       ),
                     ),

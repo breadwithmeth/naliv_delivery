@@ -1679,7 +1679,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                         child: Text(
                           "${globals.formatCost(element["price"].toString())} ₸ за ${element["unit"]}",
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.secondary,
+                            color: Colors.white,
                             fontVariations: <FontVariation>[
                               FontVariation('wght', 600)
                             ],
@@ -1708,7 +1708,7 @@ class _ItemCardNoImageState extends State<ItemCardNoImage> {
                       text:
                           "${globals.formatCost((element['price'] * element['amount']).toString())} ₸",
                       style: TextStyle(
-                        color: Colors.black,
+                        color: Colors.white,
                         fontWeight: FontWeight.w600,
                         fontSize: 32 * globals.scaleParam,
                       ),

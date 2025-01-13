@@ -162,27 +162,57 @@ class _SelectBusinessesPageState extends State<SelectBusinessesPage> {
                         Divider(
                           color: Colors.transparent,
                         ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _closestBusiness["name"],
-                              style: GoogleFonts.prostoOne(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w400,
-                                color: Colors.white,
+                        Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _closestBusiness["name"],
+                                    style: GoogleFonts.prostoOne(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w400,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  Text(
+                                    _closestBusiness["address"],
+                                    style: GoogleFonts.roboto(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w400,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            Text(
-                              _closestBusiness["address"],
-                              style: GoogleFonts.roboto(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w400,
-                                color: Colors.white,
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _closestBusiness["delivery_price"],
+                                    style: GoogleFonts.prostoOne(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w400,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  Text(
+                                    "~" +
+                                        (double.parse(_closestBusiness[
+                                                    "distance"])
+                                                .toInt())
+                                            .toString() +
+                                        "м",
+                                    style: GoogleFonts.prostoOne(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w400,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
-                        ),
+                            ]),
                         Divider(
                           color: Colors.transparent,
                         ),
@@ -235,8 +265,20 @@ class _SelectBusinessesPageState extends State<SelectBusinessesPage> {
                       itemCount: widget.businesses.length,
                       itemBuilder: (context, index) {
                         return ListTile(
-                          trailing: Icon(Icons.keyboard_arrow_right,
-                              color: Colors.white),
+                          onTap: () {
+                            routeToMainPage(widget.businesses[index]);
+                          },
+                          trailing: Text(
+                            (double.parse(widget.businesses[index]
+                                        ["delivery_price"])
+                                    .toInt())
+                                .toString(),
+                            style: GoogleFonts.prostoOne(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.white,
+                            ),
+                          ),
                           contentPadding: EdgeInsets.all(0),
                           leading: AspectRatio(
                             aspectRatio: 1,

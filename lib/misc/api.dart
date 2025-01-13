@@ -180,7 +180,7 @@ Future<List<Map>?> getBusinesses() async {
   if (token == null) {
     return [];
   }
-  var url = Uri.https(URL_API, 'api/business/get2');
+  var url = Uri.https(URL_API, 'api/item/getBusinesses2');
   var response = await client.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -283,7 +283,6 @@ Future<Map?> getItemsMain(int page, String business_id,
   }
 }
 
-
 Future<Map?> getItemsMain2(int page, String business_id,
     [String? search, String? categoryId]) async {
   String? token = globals.currentToken;
@@ -297,10 +296,12 @@ Future<Map?> getItemsMain2(int page, String business_id,
   Map<String, String> queryBody = {};
 
   if (search!.isNotEmpty) {
-    queryBody.addAll({'search': search, 'business_id': business_id, 'all':"true"});
+    queryBody
+        .addAll({'search': search, 'business_id': business_id, 'all': "true"});
   }
   if (categoryId != null && categoryId.isNotEmpty) {
-    queryBody.addAll({'category_id': categoryId, 'business_id': business_id, 'all':"true"});
+    queryBody.addAll(
+        {'category_id': categoryId, 'business_id': business_id, 'all': "true"});
   }
   queryBody.addAll({'page': page.toString()});
   var jsonBody = jsonEncode(queryBody);
@@ -690,8 +691,7 @@ Future<Map<String, dynamic>?> getCity() async {
 }
 
 Future<Map<String, dynamic>> createOrder(
-    String businessId, String? addressId, int? delivery, int? card_id,
-    [String user_id = ""]) async {
+    String businessId, String? addressId, int? delivery, int? card_id) async {
   // Returns null in two situations, token is null or wrong order (406)
   String? token = globals.currentToken;
 
@@ -702,9 +702,7 @@ Future<Map<String, dynamic>> createOrder(
     'business_id': businessId,
     'card_id': card_id,
   };
-  if (user_id.isNotEmpty) {
-    body.addAll({"user_id": user_id});
-  }
+
   // if (addressId != null) {
   //   body.addAll({"address_id": addressId});
   // }
@@ -1171,6 +1169,71 @@ Future<Map<String, dynamic>> getItems2(String business_id) async {
 
   // List<dynamic> list = json.decode(response.body);
   print(response.bodyBytes);
+  Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+  print(
+      "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
+  return data;
+}
+
+Future<Map<String, dynamic>> getItemsPopular(String business_id) async {
+  String? token = globals.currentToken;
+
+  if (token == null) {
+    return {};
+  }
+  var url = Uri.https(URL_API, 'api/item/get');
+  var response = await client.post(
+    url,
+    headers: {"Content-Type": "application/json", "AUTH": token},
+    body: json.encode({'business_id': business_id, 'popular': true}),
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(response.body);
+  Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+  print(
+      "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
+  return data;
+}
+
+Future<Map<String, dynamic>> getItemsNew(String business_id) async {
+  String? token = globals.currentToken;
+
+  if (token == null) {
+    return {};
+  }
+  var url = Uri.https(URL_API, 'api/item/get');
+  var response = await client.post(
+    url,
+    headers: {"Content-Type": "application/json", "AUTH": token},
+    body: json.encode({'business_id': business_id, 'new': true}),
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(response.body);
+  Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+  print(
+      "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
+  return data;
+}
+
+
+
+Future<Map<String, dynamic>> getItemsRecs(String business_id, String item_id) async {
+  String? token = globals.currentToken;
+
+  if (token == null) {
+    return {};
+  }
+  var url = Uri.https(URL_API, 'api/item/get');
+  var response = await client.post(
+    url,
+    headers: {"Content-Type": "application/json", "AUTH": token},
+    body: json.encode({'business_id': business_id, 'rec_item_id': item_id}),
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(response.body);
   Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
   print(
       "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");

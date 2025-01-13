@@ -7,15 +7,21 @@ import 'package:mesh_gradient/mesh_gradient.dart';
 import 'package:naliv_delivery/agreements/offer.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/bonusesPage.dart';
+import 'package:naliv_delivery/pages/cartPage.dart';
 import 'package:naliv_delivery/pages/categoryPage.dart';
 import 'package:naliv_delivery/pages/itemsPage.dart';
+import 'package:naliv_delivery/pages/newItemsPage.dart';
 import 'package:naliv_delivery/pages/orderHistoryPage.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
+import 'package:naliv_delivery/pages/popularItemsPage.dart';
+import 'package:naliv_delivery/pages/selectAddressPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
 import 'package:naliv_delivery/pages/supportPage.dart';
 import 'package:naliv_delivery/shared/bonus.dart';
+import 'package:naliv_delivery/shared/bottomBar.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:provider/provider.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({
@@ -55,6 +61,14 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     // });
   }
 
+  _getAddresses() {
+    getAddresses().then((value) {
+      setState(() {
+        addresses = value;
+      });
+    });
+  }
+
   _getItems() {
     getItems2(widget.business["business_id"]).then((value) {
       setState(() {
@@ -74,17 +88,37 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     });
   }
 
-  _getAddresses() {
-    getAddresses().then((value) {
-      setState(() {
-        addresses = value;
-      });
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        floatingActionButton: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Padding(
+              padding: EdgeInsets.all(10),
+              child: FloatingActionButton(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) {
+                        return CartPage(
+                          business: widget.business,
+                          user: widget.user,
+                        );
+                      },
+                    ),
+                  );
+                },
+                child: Icon(Icons.shopping_cart_checkout),
+              ),
+            ),
+            context.mounted ? BottomBar() : Container(),
+          ],
+        ),
         drawer: Drawer(
             backgroundColor: Colors.black,
             child: SafeArea(
@@ -113,14 +147,19 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       route: OrderHistoryPage(),
                     ),
                     DrawerMenuItem(
-                      name: "Адреса доставки",
-                      icon: Icons.map_outlined,
-                      route: PickAddressPage(
-                        client: widget.user,
-                        addresses: addresses,
-                        fromDrawer: true,
-                      ),
-                    ),
+                        name: "Адреса доставки",
+                        icon: Icons.map_outlined,
+                        route: SelectAddressPage(
+                          addresses: addresses,
+                          currentAddress: addresses.firstWhere(
+                            (element) => element["is_selected"] == "1",
+                            orElse: () {
+                              return {};
+                            },
+                          ),
+                          createOrder: false,
+                          business: null,
+                        )),
                     DrawerMenuItem(
                       name: "Поддержка",
                       icon: Icons.support_agent_rounded,
@@ -154,7 +193,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                             context),
                         sliver: SliverAppBar(
                           expandedHeight: kToolbarHeight,
-                          centerTitle: true,
+                          centerTitle: false,
                           backgroundColor: Colors.black,
                           surfaceTintColor: Colors.transparent,
                           leading: IconButton(
@@ -163,32 +202,32 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                               },
                               icon: Icon(Icons.menu)),
                           title: Text(
-                            widget.currentAddress["address"] ?? "",
+                            widget.user["first_name"] ?? "",
                             textAlign: TextAlign.center,
                             maxLines: 2,
                             softWrap: true,
                             style: GoogleFonts.roboto(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w400,
+                              // fontSize: 12,
+                              fontWeight: FontWeight.w700,
                               color: Colors.white,
                             ),
                           ),
                           actions: [
-                            Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                AspectRatio(
-                                    aspectRatio: 1,
-                                    child: Container(
-                                        alignment: Alignment.center,
-                                        child: CircleAvatar(
-                                          child: Icon(
-                                            Icons.person,
-                                            size: 32,
-                                          ),
-                                        ))),
-                              ],
-                            )
+                            // Stack(
+                            //   alignment: Alignment.center,
+                            //   children: [
+                            //     AspectRatio(
+                            //         aspectRatio: 1,
+                            //         child: Container(
+                            //             alignment: Alignment.center,
+                            //             child: CircleAvatar(
+                            //               child: Icon(
+                            //                 Icons.person,
+                            //                 size: 32,
+                            //               ),
+                            //             ))),
+                            //   ],
+                            // )
                           ],
                           pinned: true,
                           automaticallyImplyLeading: false,
@@ -198,106 +237,172 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                         height: kToolbarHeight,
                       ),
                     ),
-                    SliverToBoxAdapter(child: BonusWidget()),
-                    SliverToBoxAdapter(
+                    SliverPadding(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      sliver: SliverToBoxAdapter(
                         child: Container(
-                      // height: 400,
-                      // width: 200,
-                      child: CarouselSlider(
-                        options: CarouselOptions(
-                            autoPlay: true,
-                            height: MediaQuery.of(context).size.width /
-                                16 *
-                                9 *
-                                0.9,
-                            aspectRatio: 16 / 9,
-                            viewportFraction: 0.9),
-                        items: [1, 2, 3, 4, 5].map((i) {
-                          return Builder(
-                            builder: (BuildContext context) {
-                              return Stack(
-                                children: [
-                                  Container(
-                                    alignment: Alignment.bottomLeft,
-                                    padding: EdgeInsets.all(15),
-                                    width:
-                                        MediaQuery.of(context).size.width * 0.9,
-                                    margin:
-                                        EdgeInsets.symmetric(horizontal: 5.0),
-                                    decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                            colors: [
-                                              Colors.transparent,
-                                              Colors.black
-                                            ],
-                                            begin: Alignment.topCenter,
-                                            end: Alignment.bottomCenter),
-                                        borderRadius: BorderRadius.circular(30),
-                                        image: DecorationImage(
-                                            fit: BoxFit.cover,
-                                            image: NetworkImage(
-                                                "https://i.ytimg.com/vi/jPFQfAKvNks/maxresdefault.jpg")),
-                                        color: Colors.amber),
+                          alignment: Alignment.centerLeft,
+                          height: 60,
+                          decoration: BoxDecoration(),
+                          child: ListView(
+                            scrollDirection: Axis.horizontal,
+                            primary: false,
+                            shrinkWrap: true,
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(context, MaterialPageRoute(
+                                    builder: (context) {
+                                      return PopularItemsPage(
+                                          business: widget.business);
+                                    },
+                                  ));
+                                },
+                                child: Container(
+                                  margin: EdgeInsets.all(5),
+                                  padding: EdgeInsets.all(15),
+                                  decoration: BoxDecoration(
+                                      borderRadius:
+                                          BorderRadius.all(Radius.circular(5)),
+                                      color: Color(0xFF121212)),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    "Популярное",
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.w700),
                                   ),
-                                  Container(
-                                      alignment: Alignment.bottomLeft,
-                                      padding: EdgeInsets.all(15),
-                                      width: MediaQuery.of(context).size.width *
-                                          0.9,
-                                      margin:
-                                          EdgeInsets.symmetric(horizontal: 5.0),
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                            colors: [
-                                              Colors.transparent,
-                                              Colors.black54
-                                            ],
-                                            begin: Alignment.topCenter,
-                                            end: Alignment.bottomCenter),
-                                        borderRadius: BorderRadius.circular(30),
-                                      ),
-                                      child: Text(
-                                        'Какой то длинный рекламный текст $i',
-                                        style: GoogleFonts.roboto(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.white,
-                                        ),
-                                      ))
-                                ],
-                              );
-                            },
-                          );
-                        }).toList(),
-                      ),
-                    )),
-                    SliverToBoxAdapter(
-                        child: Container(
-                      margin: EdgeInsets.all(10),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          TextButton(
-                            style: TextButton.styleFrom(
-                                backgroundColor: Colors.grey.shade900),
-                            onPressed: () {},
-                            child: Image.asset(
-                              "assets/icons/fire.png",
-                              height: 64,
-                            ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(context, MaterialPageRoute(
+                                    builder: (context) {
+                                      return NewItemsPage(
+                                          business: widget.business);
+                                    },
+                                  ));
+                                },
+                                child: Container(
+                                  margin: EdgeInsets.all(5),
+                                  padding: EdgeInsets.all(15),
+                                  decoration: BoxDecoration(
+                                      borderRadius:
+                                          BorderRadius.all(Radius.circular(5)),
+                                      color: Color(0xFF121212)),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    "Новое",
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.w700),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          TextButton(
-                            style: TextButton.styleFrom(
-                                backgroundColor: Colors.grey.shade900),
-                            onPressed: () {},
-                            child: Image.asset(
-                              "assets/icons/flash.png",
-                              height: 64,
-                            ),
-                          )
-                        ],
+                        ),
                       ),
-                    )),
+                    ),
+                    SliverToBoxAdapter(child: BonusWidget()),
+                    // SliverToBoxAdapter(
+                    //     child: Container(
+                    //   // height: 400,
+                    //   // width: 200,
+                    //   child: CarouselSlider(
+                    //     options: CarouselOptions(
+                    //         autoPlay: true,
+                    //         height: MediaQuery.of(context).size.width /
+                    //             16 *
+                    //             9 *
+                    //             0.9,
+                    //         aspectRatio: 16 / 9,
+                    //         viewportFraction: 0.9),
+                    //     items: [1, 2, 3, 4, 5].map((i) {
+                    //       return Builder(
+                    //         builder: (BuildContext context) {
+                    //           return Stack(
+                    //             children: [
+                    //               Container(
+                    //                 alignment: Alignment.bottomLeft,
+                    //                 padding: EdgeInsets.all(15),
+                    //                 width:
+                    //                     MediaQuery.of(context).size.width * 0.9,
+                    //                 margin:
+                    //                     EdgeInsets.symmetric(horizontal: 5.0),
+                    //                 decoration: BoxDecoration(
+                    //                     gradient: LinearGradient(
+                    //                         colors: [
+                    //                           Colors.transparent,
+                    //                           Colors.black
+                    //                         ],
+                    //                         begin: Alignment.topCenter,
+                    //                         end: Alignment.bottomCenter),
+                    //                     borderRadius: BorderRadius.circular(30),
+                    //                     image: DecorationImage(
+                    //                         fit: BoxFit.cover,
+                    //                         image: NetworkImage(
+                    //                             "https://i.ytimg.com/vi/jPFQfAKvNks/maxresdefault.jpg")),
+                    //                     color: Colors.amber),
+                    //               ),
+                    //               Container(
+                    //                   alignment: Alignment.bottomLeft,
+                    //                   padding: EdgeInsets.all(15),
+                    //                   width: MediaQuery.of(context).size.width *
+                    //                       0.9,
+                    //                   margin:
+                    //                       EdgeInsets.symmetric(horizontal: 5.0),
+                    //                   decoration: BoxDecoration(
+                    //                     gradient: LinearGradient(
+                    //                         colors: [
+                    //                           Colors.transparent,
+                    //                           Colors.black54
+                    //                         ],
+                    //                         begin: Alignment.topCenter,
+                    //                         end: Alignment.bottomCenter),
+                    //                     borderRadius: BorderRadius.circular(30),
+                    //                   ),
+                    //                   child: Text(
+                    //                     'Какой то длинный рекламный текст $i',
+                    //                     style: GoogleFonts.roboto(
+                    //                       fontSize: 24,
+                    //                       fontWeight: FontWeight.w500,
+                    //                       color: Colors.white,
+                    //                     ),
+                    //                   ))
+                    //             ],
+                    //           );
+                    //         },
+                    //       );
+                    //     }).toList(),
+                    //   ),
+                    // )),
+                    // SliverToBoxAdapter(
+                    //     child: Container(
+                    //   margin: EdgeInsets.all(10),
+                    //   child: Row(
+                    //     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    //     children: [
+                    //       TextButton(
+                    //         style: TextButton.styleFrom(
+                    //             backgroundColor: Colors.grey.shade900),
+                    //         onPressed: () {},
+                    //         child: Image.asset(
+                    //           "assets/icons/fire.png",
+                    //           height: 64,
+                    //         ),
+                    //       ),
+                    //       TextButton(
+                    //         style: TextButton.styleFrom(
+                    //             backgroundColor: Colors.grey.shade900),
+                    //         onPressed: () {},
+                    //         child: Image.asset(
+                    //           "assets/icons/flash.png",
+                    //           height: 64,
+                    //         ),
+                    //       )
+                    //     ],
+                    //   ),
+                    // )),
                   ];
                 },
                 body: Scaffold(
@@ -398,6 +503,12 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                                 );
                               },
                             ),
+
+                            // SliverToBoxAdapter(
+                            //   child: SizedBox(
+                            //     height: 300,
+                            //   ),
+                            // )
                           ],
                         );
                       },

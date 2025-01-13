@@ -4,14 +4,22 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createAddressPage.dart';
+import 'package:naliv_delivery/pages/createOrder.dart';
+import 'package:naliv_delivery/pages/preLoadOrderPage.dart';
 import 'package:naliv_delivery/pages/selectBusinessesPage.dart';
 import 'package:naliv_delivery/shared/loadingScreen.dart';
 
 class SelectAddressPage extends StatefulWidget {
   const SelectAddressPage(
-      {super.key, required this.addresses, required this.currentAddress});
+      {super.key,
+      required this.addresses,
+      required this.currentAddress,
+      required this.createOrder,
+      required this.business});
   final List addresses;
   final Map currentAddress;
+  final bool createOrder;
+  final Map? business;
   @override
   State<SelectAddressPage> createState() => _SelectAddressPageState();
 }
@@ -48,7 +56,9 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
             onPressed: () {
               Navigator.push(context, MaterialPageRoute(
                 builder: (context) {
-                  return CreateAddressPage();
+                  return CreateAddressPage(
+                      createOrder: widget.createOrder,
+                      business: widget.business);
                 },
               ));
             },
@@ -95,7 +105,7 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                               options: MapOptions(
                                 interactionOptions: InteractionOptions(
                                     flags: InteractiveFlag.none),
-                                initialZoom: 16,
+                                initialZoom: 18,
                                 initialCenter: LatLng(
                                     double.parse(widget.currentAddress["lat"]),
                                     double.parse(widget.currentAddress["lon"])),
@@ -105,8 +115,13 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                                   tileBuilder: _darkModeTileBuilder,
                                   // Display map tiles from any source
                                   urlTemplate:
-                                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png', // OSMF's Tile Server
-                                  userAgentPackageName: 'com.example.app',
+                                      'https://{s}.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
+                                  subdomains: [
+                                    'tile0',
+                                    'tile1',
+                                    'tile2',
+                                    'tile3'
+                                  ],
                                   // And many more recommended properties!
                                 ),
                                 MarkerLayer(markers: [
@@ -134,7 +149,8 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.currentAddress["city_name"],
+                            widget.currentAddress["city_name"] ??
+                                "Этого города еще нет в базе",
                             style: GoogleFonts.roboto(
                               fontSize: 12,
                               fontWeight: FontWeight.w400,
@@ -173,17 +189,25 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                               _isLoading = true;
                             });
                             _getBusinesses().then((v) {
-                              Navigator.push(context, MaterialPageRoute(
-                                builder: (context) {
-                                  return SelectBusinessesPage(
-                                    businesses: v,
-                                    currentAddress: widget.currentAddress,
-                                  );
-                                },
-                              ));
-                              setState(() {
-                                _isLoading = false;
-                              });
+                              if (widget.createOrder) {
+                                Navigator.pushReplacement(context,
+                                    MaterialPageRoute(builder: (context) {
+                                  return PreLoadOrderPage(
+                                      business: widget.business!);
+                                }));
+                              } else {
+                                Navigator.push(context, MaterialPageRoute(
+                                  builder: (context) {
+                                    return SelectBusinessesPage(
+                                      businesses: v,
+                                      currentAddress: widget.currentAddress,
+                                    );
+                                  },
+                                ));
+                                setState(() {
+                                  _isLoading = false;
+                                });
+                              }
                             });
                           },
                           child: Row(
@@ -243,7 +267,9 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                                             orElse: () {
                                               return {};
                                             },
-                                          ));
+                                          ),
+                                          createOrder: widget.createOrder,
+                                          business: widget.business);
                                     },
                                   ));
                                 });
@@ -260,7 +286,8 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                               ),
                             ),
                             subtitle: Text(
-                              widget.addresses[index]["city_name"],
+                              widget.addresses[index]["city_name"] ??
+                                  "Этого города еще нет в базе",
                               style: GoogleFonts.roboto(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w400,
