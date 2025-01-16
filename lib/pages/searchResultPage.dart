@@ -1,235 +1,114 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/pages/productPage.dart';
+import 'package:naliv_delivery/pages/cartPage.dart';
+import 'package:naliv_delivery/shared/bottomBar.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
+import 'package:flutter/cupertino.dart';
 
 class SearchResultPage extends StatefulWidget {
-  const SearchResultPage({super.key, required this.search, required this.page, required this.business, this.result, this.category_id = ""});
-  final String search;
-  final int page;
+  const SearchResultPage(
+      {super.key, required this.business, required this.search});
   final Map<dynamic, dynamic> business;
-  final Widget? result;
-  final String category_id;
+  final String search;
   @override
   State<SearchResultPage> createState() => _SearchResultPageState();
 }
 
 class _SearchResultPageState extends State<SearchResultPage> {
-  late bool _isLastPage;
-  late int _pageNumber;
-  late bool _error;
-  late bool _loading;
-  final int _numberOfPostsPerRequest = 30;
-  late List _items;
-  final int _nextPageTrigger = 3;
-  Map? responseList = {};
-
-  Future<void> _getItems() async {
-    try {
-      if (widget.category_id == "") {
-        responseList = await getItemsMain(_pageNumber, widget.business["business_id"], widget.search, widget.category_id);
-      } else {
-        responseList = await getItemsMain(_pageNumber, widget.business["business_id"], widget.search, widget.category_id);
-      }
-      if (responseList != null) {
-        List<dynamic> itemList = responseList!["items"];
-
-        setState(() {
-          _isLastPage = itemList.length < _numberOfPostsPerRequest;
-          _loading = false;
-          _pageNumber = _pageNumber + 1;
-          _items.addAll(itemList);
-        });
-        if (itemList.isEmpty) {
-          setState(() {
-            _isLastPage = true;
-          });
-        }
-      }
-    } catch (e) {
-      print("error --> $e");
-      setState(() {
-        _loading = false;
-        _error = true;
-      });
-    }
+  List _items = [];
+  void updateDataAmount(List newCart, int index) {
+    _items[index]["cart"] = newCart;
   }
 
-  void updateDataAmount(int newDataAmount, int index) {
-    setState(() {
-      _items[index]["amount"] = newDataAmount;
+  Future<void> _getItems() async {
+    await getItemsSearch(
+      widget.business["business_id"],
+      widget.search,
+    ).then((value) {
+      setState(() {
+        _items = value["items"];
+      });
     });
   }
 
   @override
   void initState() {
+    // TODO: implement initState
     super.initState();
-    _pageNumber = 0;
-    _items = [];
-    _isLastPage = false;
-    _loading = true;
-    _error = false;
     _getItems();
-  }
-
-  Widget buildPostsView() {
-    if (_items.isEmpty) {
-      if (_loading) {
-        return const Center(
-            child: Padding(
-          padding: EdgeInsets.all(8),
-          child: CircularProgressIndicator(),
-        ));
-      } else if (_error) {
-        return Center(child: errorDialog(size: 20));
-      }
-    }
-    return ListView.builder(
-      itemCount: _items.length + (_isLastPage ? 0 : 1),
-      itemBuilder: (context, index) {
-        if (index == _items.length - _nextPageTrigger) {
-          _getItems();
-        }
-        if (index == _items.length) {
-          if (_error) {
-            return Center(child: errorDialog(size: 15));
-          } else {
-            return const Center(
-                child: Padding(
-              padding: EdgeInsets.all(8),
-              child: CircularProgressIndicator(),
-            ));
-          }
-        }
-        final Map<String, dynamic> item = _items[index];
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          key: Key(item["item_id"].toString()),
-          onTap: () {
-            showModalBottomSheet(
-              context: context,
-              clipBehavior: Clip.antiAlias,
-              useSafeArea: true,
-              isScrollControlled: true,
-              builder: (context) {
-                return ProductPage(
-                    item: item,
-                    index: index,
-                    returnDataAmountSearchPage: updateDataAmount,
-                    // returnDataAmount: updateDataAmount,
-                    business: widget.business,
-                    promotions: const []);
-              },
-            );
-          },
-          child: Column(
-            children: [
-              ItemCard(
-                itemId: item["item_id"].toString(),
-                element: item,
-                categoryId: "",
-                categoryName: "",
-                scroll: 0,
-                business_id: widget.business["business_id"],
-              ),
-              _items.length - 1 != index
-                  ? const Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 5,
-                      ),
-                      child: Divider(
-                        height: 0,
-                      ),
-                    )
-                  : Container(),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget errorDialog({required double size}) {
-    return SizedBox(
-      height: 180,
-      width: 200,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'Произошла ошибка при загрузке позиций.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: size,
-              fontWeight: FontWeight.w500,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(
-            height: 10,
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _loading = true;
-                _error = false;
-                _getItems();
-              });
-            },
-            child: const Text(
-              "Перезагрузить",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 20, color: Colors.purpleAccent),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        // actions: [
-        //   IconButton(
-        //     icon: Icon(
-        //       Icons.search,
-        //       color: Colors.black,
-        //     ),
-        //     onPressed: () {
-        //       setState(() {
-        //         _itemsist = Container();
-        //       });
-        //     },
-        //   ),
-        // ],
-        title: TextField(
-          decoration: InputDecoration(
-              floatingLabelAlignment: FloatingLabelAlignment.start,
-              floatingLabelBehavior: FloatingLabelBehavior.never,
-              label: IconButton(
-                icon: const Icon(
-                  Icons.search,
-                  color: Colors.black,
-                ),
-                onPressed: () {
-                  setState(() {});
-                },
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
-              isDense: true,
-              fillColor: Colors.black12,
-              filled: true,
-              focusedBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Colors.white, width: 0)),
-              enabledBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Colors.white, width: 0)),
-              border: const OutlineInputBorder(borderSide: BorderSide(color: Colors.white, width: 0))),
-        ),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Padding(
+            padding: EdgeInsets.all(10),
+            child: FloatingActionButton(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                    builder: (context) {
+                      return CartPage(
+                        business: widget.business,
+                        user: {},
+                      );
+                    },
+                  ),
+                );
+              },
+              child: Icon(Icons.shopping_cart_checkout),
+            ),
+          ),
+          context.mounted ? BottomBar() : Container(),
+        ],
       ),
-      body: buildPostsView(),
+      backgroundColor: Color(0xFF121212),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            backgroundColor: Colors.black,
+            surfaceTintColor: Colors.black,
+            floating: false,
+            pinned: true,
+            centerTitle: false,
+            title: Text("Результаты поиска"),
+          ),
+          _items.length == 0
+              ? SliverToBoxAdapter(
+                  child: Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Text("Ничего не найдено"),
+                    ),
+                  ),
+                )
+              : SliverList.builder(
+                  itemCount: _items.length,
+                  itemBuilder: (context, index) {
+                    final Map<String, dynamic> item = _items[index];
+
+                    return ItemCardListTile(
+                      itemId: item["item_id"],
+                      element: item,
+                      categoryId: "",
+                      categoryName: "",
+                      scroll: 0,
+                      business: widget.business,
+                      index: index,
+                      categoryPageUpdateData: updateDataAmount,
+                    );
+                  },
+                )
+        ],
+      ),
     );
   }
 }

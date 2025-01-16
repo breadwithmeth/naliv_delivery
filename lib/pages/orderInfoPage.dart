@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'dart:html' as html;
+// import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/webViewCardPayPage.dart';
@@ -41,7 +41,7 @@ class _OrderInfoPageState extends State<OrderInfoPage> {
     var url =
         "https://api.whatsapp.com/send/?phone=$contact&text=$text&type=phone_number&app_absent=0";
     try {
-      html.window.open(url, 'whatsapp');
+      // html.window.open(url, 'whatsapp');
       if (Platform.isIOS) {
         await launchUrl(Uri.parse(iosUrl));
       } else {

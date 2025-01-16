@@ -6,6 +6,7 @@ import 'package:mesh_gradient/mesh_gradient.dart';
 import '../misc/api.dart';
 import 'DealPage.dart';
 import '../globals.dart' as globals;
+import 'package:flutter/cupertino.dart';
 
 class StartPage extends StatefulWidget {
   const StartPage({super.key});
@@ -24,7 +25,7 @@ class _StartPageState extends State<StartPage> {
     if (token != true) {
       Navigator.push(
           context,
-          MaterialPageRoute(
+          CupertinoPageRoute(
             builder: (context) => const DealPage(),
           ));
     }
@@ -78,7 +79,7 @@ class _StartPageState extends State<StartPage> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
+                      CupertinoPageRoute(
                         builder: (context) {
                           return const DealPage();
                         },

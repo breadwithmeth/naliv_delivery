@@ -4,6 +4,7 @@ import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/mainPage.dart';
 import 'package:naliv_delivery/shared/bonus.dart';
 import 'package:naliv_delivery/shared/loadingScreen.dart';
+import 'package:flutter/cupertino.dart';
 
 class SelectBusinessesPage extends StatefulWidget {
   const SelectBusinessesPage(
@@ -43,7 +44,7 @@ class _SelectBusinessesPageState extends State<SelectBusinessesPage> {
       _isLoading = true;
     });
     await getUser().then((user) {
-      Navigator.push(context, MaterialPageRoute(
+      Navigator.push(context, CupertinoPageRoute(
         builder: (context) {
           return MainPage(
               currentAddress: widget.currentAddress,

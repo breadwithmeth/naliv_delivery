@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/selectAddressPage.dart';
+import 'package:flutter/cupertino.dart';
 
 class CreateAddressPage extends StatefulWidget {
   const CreateAddressPage(
@@ -131,7 +132,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                             onTap: () {
                               Navigator.pushReplacement(
                                 context,
-                                MaterialPageRoute(
+                                CupertinoPageRoute(
                                   builder: (context) => ConfirmAddressPage(
                                     currentAddress: addresses[index],
                                     createOrder: widget.createOrder,
@@ -340,7 +341,7 @@ class _ConfirmAddressPageState extends State<ConfirmAddressPage> {
                 onPressed: () {
                   _createAddress().then((value) {
                     getAddresses().then((addresses) {
-                      Navigator.pushReplacement(context, MaterialPageRoute(
+                      Navigator.pushReplacement(context, CupertinoPageRoute(
                         builder: (context) {
                           return SelectAddressPage(
                             addresses: addresses,

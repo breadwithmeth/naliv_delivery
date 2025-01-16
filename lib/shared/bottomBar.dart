@@ -325,7 +325,7 @@ class _OrderListTileState extends State<OrderListTile> {
                         .then((v) {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
+                        CupertinoPageRoute(
                           builder: (context) => WebViewCardPayPage(
                             htmlString: v["data"],
                           ),

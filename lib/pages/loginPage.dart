@@ -5,6 +5,7 @@ import 'package:naliv_delivery/pages/startPage.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:naliv_delivery/shared/loadingScreen.dart';
 import '../globals.dart' as globals;
+import 'package:flutter/cupertino.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage();
@@ -31,7 +32,7 @@ class _LoginPageState extends State<LoginPage> {
         setState(() {
           isCodeSend = true;
         });
-        Navigator.pushReplacement(context, MaterialPageRoute(
+        Navigator.pushReplacement(context, CupertinoPageRoute(
           builder: (context) {
             return VerifyPage(phone: "+7" + _number);
           },
@@ -205,7 +206,7 @@ class _VerifyPageState extends State<VerifyPage> {
   _verify() {
     verify(widget.phone, _code).then((value) {
       if (value) {
-        Navigator.pushReplacement(context, MaterialPageRoute(
+        Navigator.pushReplacement(context, CupertinoPageRoute(
           builder: (context) {
             return Main();
           },

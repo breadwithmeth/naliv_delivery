@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/misc/api.dart';
+import 'package:naliv_delivery/shared/itemCards.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/pages/searchResultPage.dart';
+import 'package:flutter/cupertino.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key, required this.business, this.category_id = ""});
@@ -17,155 +20,119 @@ class _SearchPageState extends State<SearchPage> {
   bool isTextInField = false;
   bool isSearchEverywhere = false;
 
-  void _search() {
-    print("=====================================");
-    print(_keyword.text);
-    Navigator.pushReplacement(context, MaterialPageRoute(
-      builder: (context) {
-        if (isSearchEverywhere) {
-          print("SEARCH EVERYWHERE");
-          return SearchResultPage(
-            search: _keyword.text,
-            page: 0,
-            business: widget.business,
-          );
-        } else {
-          print("SEARCH INSIDE CATEGORY");
-          return SearchResultPage(
-            search: _keyword.text,
-            page: 0,
-            category_id: widget.category_id,
-            business: widget.business,
-          );
-        }
-      },
-    ));
+  List _items = [];
+  void updateDataAmount(List newCart, int index) {
+    _items[index]["cart"] = newCart;
+  }
+
+  Future<void> _getItems() async {
+    await getItemsPopular(
+      widget.business["business_id"],
+    ).then((value) {
+      setState(() {
+        _items = value["items"];
+      });
+    });
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _getItems();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          "Поиск",
+        body: CustomScrollView(
+      slivers: [
+        SliverAppBar(
+          backgroundColor: Colors.black,
+          surfaceTintColor: Colors.black,
+          title: Text("Поиск"),
+          centerTitle: false,
         ),
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              margin: EdgeInsets.all(20 * globals.scaleParam),
-              padding: EdgeInsets.all(40 * globals.scaleParam),
-              decoration: BoxDecoration(boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  offset: Offset(10 * globals.scaleParam, 10 * globals.scaleParam),
-                  blurRadius: 10,
-                )
-              ], color: Colors.grey.shade100, borderRadius: BorderRadius.all(Radius.circular(10))),
-              child: Column(
-                children: [
-                  TextField(
-                    onChanged: ((value) {
-                      // This is so complex because otherway the button will flicker non-stop on any change in TextField
-                      // because setState method will update isTextInField and that will trigger AnimatedSwitcher for search button to rebuild and that is causing flickering
-                      if (value.isNotEmpty) {
-                        if (isTextInField == true) {
-                          return;
-                        } else {
+        SliverPadding(
+          padding: EdgeInsets.all(10),
+          sliver: SliverToBoxAdapter(
+            child: Container(
+                padding: EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    color: Color(0xFF121212)),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        onFieldSubmitted: (value) {
+                          Navigator.push(context,
+                              CupertinoPageRoute(builder: (context) {
+                            return SearchResultPage(
+                              search: _keyword.text,
+                              business: widget.business,
+                            );
+                          }));
+                        },
+                        style: TextStyle(color: Colors.black),
+                        controller: _keyword,
+                        onChanged: (value) {
                           setState(() {
-                            isTextInField = true;
+                            isTextInField = value.isNotEmpty;
                           });
-                        }
-                      } else {
-                        if (isTextInField == false) {
-                          return;
-                        } else {
-                          setState(() {
-                            isTextInField = false;
-                          });
-                        }
-                      }
-                    }),
-                    controller: _keyword,
-                    autofocus: true,
-                    decoration: InputDecoration(
-                        labelText: "Поиск",
-                        filled: true,
-                        fillColor: Colors.white,
-                        focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(width: 2, color: Theme.of(context).colorScheme.primary),
-                            borderRadius: BorderRadius.all(Radius.circular(10))),
-                        enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(width: 2, color: Theme.of(context).colorScheme.primary),
-                            borderRadius: BorderRadius.all(Radius.circular(10))),
-                        border: OutlineInputBorder(
-                            borderSide: BorderSide(width: 5, color: Theme.of(context).colorScheme.primary),
-                            borderRadius: BorderRadius.all(Radius.circular(10)))),
-                  ),
-                  SizedBox(
-                    height: 10 * globals.scaleParam,
-                  ),
-                  widget.category_id != ""
-                      ? Row(
-                          children: [
-                            Checkbox(
-                              value: isSearchEverywhere,
-                              onChanged: (value) {
-                                setState(() {
-                                  print("VALUE IS " + isSearchEverywhere.toString());
-                                  isSearchEverywhere = value!;
-                                });
-                              },
-                            ),
-                            Text(
-                              "Искать везде",
-                              style: TextStyle(
-                                fontSize: 28 * globals.scaleParam,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ],
-                        )
-                      : Container(),
-                  SizedBox(
-                    height: 10 * globals.scaleParam,
-                  ),
-                  AnimatedSwitcher(
-                    duration: Duration(milliseconds: 125),
-                    switchInCurve: Curves.easeIn,
-                    switchOutCurve: Curves.easeOut,
-                    child: ElevatedButton(
-                      key: UniqueKey(),
-                      style: ElevatedButton.styleFrom(
-                        textStyle: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontSize: 32 * globals.scaleParam,
-                          fontWeight: FontWeight.w600,
+                        },
+                        decoration: InputDecoration(
+                          fillColor: Colors.grey.shade200,
+                          filled: true,
+                          hintText: "Поиск",
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                       ),
-                      onPressed: _search,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.max,
-                        children: [
-                          Text(
-                            "Найти",
-                            style: TextStyle(
-                              fontSize: 48 * globals.scaleParam,
-                            ),
-                          )
-                        ],
-                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+                    IconButton(onPressed: () {}, icon: Icon(Icons.search))
+                  ],
+                )),
+          ),
         ),
-      ),
-    );
+        SliverPadding(
+          padding: EdgeInsets.all(10),
+          sliver: SliverToBoxAdapter(
+            child: Text(
+              "Рекомендуемые товары",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Container(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            decoration: BoxDecoration(
+                color: Color(0xFF121212),
+                borderRadius: BorderRadius.circular(20)),
+            child: ListView.builder(
+              primary: false,
+              shrinkWrap: true,
+              itemCount: _items.length,
+              itemBuilder: (context, index) {
+                final Map<String, dynamic> item = _items[index];
+
+                return ItemCardListTile(
+                  itemId: item["item_id"],
+                  element: item,
+                  categoryId: "",
+                  categoryName: "",
+                  scroll: 0,
+                  business: widget.business,
+                  index: index,
+                  categoryPageUpdateData: updateDataAmount,
+                );
+              },
+            ),
+          ),
+        )
+      ],
+    ));
   }
 }

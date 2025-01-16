@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/main.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../globals.dart' as globals;
+import 'package:flutter/cupertino.dart';
 
 class PermissionPage extends StatefulWidget {
   PermissionPage({super.key});
@@ -10,7 +11,8 @@ class PermissionPage extends StatefulWidget {
   State<PermissionPage> createState() => _PermissionPageState();
 }
 
-class _PermissionPageState extends State<PermissionPage> with WidgetsBindingObserver {
+class _PermissionPageState extends State<PermissionPage>
+    with WidgetsBindingObserver {
   Future<void> _requestPermission() async {
     final location = Permission.locationWhenInUse;
 
@@ -41,7 +43,7 @@ class _PermissionPageState extends State<PermissionPage> with WidgetsBindingObse
   void didChangeAppLifecycleState(AppLifecycleState state) {
     print('AppLifecycleState: $state');
     // if (state == AppLifecycleState.resumed) {
-    //   Navigator.pushReplacement(context, MaterialPageRoute(
+    //   Navigator.pushReplacement(context, CupertinoPageRoute(
     //     builder: (context) {
     //       return Main();
     //     },
@@ -94,17 +96,22 @@ class _PermissionPageState extends State<PermissionPage> with WidgetsBindingObse
                           text: 'Геолокации:',
                           style: TextStyle(
                             fontFamily: "Raleway",
-                            fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                            fontVariations: <FontVariation>[
+                              FontVariation('wght', 500)
+                            ],
                             color: Colors.black,
                             fontWeight: FontWeight.w700,
                             fontSize: 28 * globals.scaleParam,
                           ),
                         ),
                         TextSpan(
-                          text: ' для оперделения адреса доставки и поиска оптимального маршрута доставки!',
+                          text:
+                              ' для оперделения адреса доставки и поиска оптимального маршрута доставки!',
                           style: TextStyle(
                             fontFamily: "Raleway",
-                            fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                            fontVariations: <FontVariation>[
+                              FontVariation('wght', 500)
+                            ],
                             color: Colors.black,
                             fontWeight: FontWeight.w700,
                             fontSize: 28 * globals.scaleParam,
@@ -136,7 +143,9 @@ class _PermissionPageState extends State<PermissionPage> with WidgetsBindingObse
                           text: 'Камере:',
                           style: TextStyle(
                             fontFamily: "Raleway",
-                            fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                            fontVariations: <FontVariation>[
+                              FontVariation('wght', 500)
+                            ],
                             color: Colors.black,
                             fontWeight: FontWeight.w700,
                             fontSize: 28 * globals.scaleParam,
@@ -146,7 +155,9 @@ class _PermissionPageState extends State<PermissionPage> with WidgetsBindingObse
                           text: '  для сканирования QR-кодов.',
                           style: TextStyle(
                             fontFamily: "Raleway",
-                            fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                            fontVariations: <FontVariation>[
+                              FontVariation('wght', 500)
+                            ],
                             color: Colors.black,
                             fontWeight: FontWeight.w700,
                             fontSize: 28 * globals.scaleParam,
@@ -178,17 +189,22 @@ class _PermissionPageState extends State<PermissionPage> with WidgetsBindingObse
                           text: 'Хранилищу:',
                           style: TextStyle(
                             fontFamily: "Raleway",
-                            fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                            fontVariations: <FontVariation>[
+                              FontVariation('wght', 500)
+                            ],
                             color: Colors.black,
                             fontWeight: FontWeight.w700,
                             fontSize: 28 * globals.scaleParam,
                           ),
                         ),
                         TextSpan(
-                          text: ' для кэширования данных - более быстрой загрузки и бесперебойной работы!',
+                          text:
+                              ' для кэширования данных - более быстрой загрузки и бесперебойной работы!',
                           style: TextStyle(
                             fontFamily: "Raleway",
-                            fontVariations: <FontVariation>[FontVariation('wght', 500)],
+                            fontVariations: <FontVariation>[
+                              FontVariation('wght', 500)
+                            ],
                             color: Colors.black,
                             fontWeight: FontWeight.w700,
                             fontSize: 28 * globals.scaleParam,
@@ -210,7 +226,7 @@ class _PermissionPageState extends State<PermissionPage> with WidgetsBindingObse
                   // app. The only way to change the permission's status now is to let the
                   // user manually enables it in the system settings.
                   await openAppSettings().then((value) {
-                    Navigator.pushReplacement(context, MaterialPageRoute(
+                    Navigator.pushReplacement(context, CupertinoPageRoute(
                       builder: (context) {
                         return Main();
                       },
@@ -218,7 +234,7 @@ class _PermissionPageState extends State<PermissionPage> with WidgetsBindingObse
                   });
                 } else if (await Permission.storage.isPermanentlyDenied) {
                   await openAppSettings().then((value) {
-                    Navigator.pushReplacement(context, MaterialPageRoute(
+                    Navigator.pushReplacement(context, CupertinoPageRoute(
                       builder: (context) {
                         return Main();
                       },
@@ -226,7 +242,7 @@ class _PermissionPageState extends State<PermissionPage> with WidgetsBindingObse
                   });
                 } else if (await Permission.camera.isPermanentlyDenied) {
                   await openAppSettings().then((value) {
-                    Navigator.pushReplacement(context, MaterialPageRoute(
+                    Navigator.pushReplacement(context, CupertinoPageRoute(
                       builder: (context) {
                         return Main();
                       },
@@ -236,7 +252,7 @@ class _PermissionPageState extends State<PermissionPage> with WidgetsBindingObse
                 Future.delayed(
                   Duration.zero,
                   () {
-                    Navigator.pushReplacement(context, MaterialPageRoute(
+                    Navigator.pushReplacement(context, CupertinoPageRoute(
                       builder: (context) {
                         return Main();
                       },
@@ -251,7 +267,9 @@ class _PermissionPageState extends State<PermissionPage> with WidgetsBindingObse
                       "Перейти в настройки",
                       style: TextStyle(
                         fontFamily: "Raleway",
-                        fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                        fontVariations: <FontVariation>[
+                          FontVariation('wght', 800)
+                        ],
                         color: Colors.white,
                         fontSize: 42 * globals.scaleParam,
                       ),

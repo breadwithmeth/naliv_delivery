@@ -9,6 +9,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
+import 'package:flutter/cupertino.dart';
 
 class PickOnMapPage extends StatefulWidget {
   const PickOnMapPage(
@@ -1019,13 +1020,13 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
       "other": other.text,
     }).then((value) {
       if (widget.isFromCreateOrder) {
-        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+        Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
           builder: (context) {
             return const Main();
           },
         ), (route) => false);
       } else {
-        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+        Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
           builder: (context) {
             return const Main();
           },

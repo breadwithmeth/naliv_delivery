@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:naliv_delivery/pages/selectAddressPage.dart';
 import 'package:naliv_delivery/pages/webViewCardPayPage.dart';
 import '../globals.dart' as globals;
+import 'package:flutter/cupertino.dart';
 
 import 'package:naliv_delivery/pages/orderConfirmation.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
@@ -105,7 +106,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
         //               : () {
         //                   Navigator.push(
         //                     context,
-        //                     MaterialPageRoute(
+        //                     CupertinoPageRoute(
         //                       builder: (context) => OrderConfirmation(
         //                         card_id: _selectedCard,
         //                         delivery: delivery,
@@ -294,7 +295,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                                                 backgroundColor: Colors.black),
                                             onPressed: () {
                                               Navigator.pushReplacement(context,
-                                                  MaterialPageRoute(
+                                                  CupertinoPageRoute(
                                                 builder: (context) {
                                                   return SelectAddressPage(
                                                     addresses: widget.addresses,
@@ -625,7 +626,7 @@ class _CreateOrderPageState extends State<CreateOrderPage>
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
+                        CupertinoPageRoute(
                           builder: (context) => OrderConfirmation(
                             card_id: _selectedCard,
                             delivery: delivery,

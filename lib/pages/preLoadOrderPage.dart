@@ -19,7 +19,7 @@ class _PreLoadOrderPageState extends State<PreLoadOrderPage> {
   int taxes = 0;
   Map currentAddress = {};
   List addresses = [];
-  
+
   Future<void> _getCart() async {
     Map<String, dynamic> cart = await getCart(widget.business["business_id"]);
     print(cart);
@@ -57,7 +57,7 @@ class _PreLoadOrderPageState extends State<PreLoadOrderPage> {
     super.initState();
     _getAddresses().then((v) {
       _getCart().then((v) {
-        Navigator.pushReplacement(context, MaterialPageRoute(
+        Navigator.pushReplacement(context, CupertinoPageRoute(
           builder: (context) {
             return CreateOrderPage(
                 business: widget.business,

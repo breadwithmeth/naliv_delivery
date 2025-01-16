@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:datepicker_dropdown/datepicker_dropdown.dart';
 import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
+import 'package:flutter/cupertino.dart';
 
 class Finishprofilepage extends StatefulWidget {
   const Finishprofilepage({super.key, required this.user});
@@ -354,7 +355,7 @@ class _FinishprofilepageState extends State<Finishprofilepage>
                                       if (isfinished) {
                                         print(123);
                                         Navigator.pushReplacement(context,
-                                            MaterialPageRoute(
+                                            CupertinoPageRoute(
                                           builder: (context) {
                                             return Main();
                                           },

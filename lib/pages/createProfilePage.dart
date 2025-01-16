@@ -8,7 +8,7 @@ import '../globals.dart' as globals;
 
 class ProfileCreatePage extends StatefulWidget {
   const ProfileCreatePage({super.key, required this.user});
-  final Map<String, dynamic>  user;
+  final Map<String, dynamic> user;
   @override
   State<ProfileCreatePage> createState() => _ProfileCreatePageState();
 }
@@ -274,7 +274,7 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                                     .then((v) {
                                                   Navigator.pushAndRemoveUntil(
                                                       context,
-                                                      MaterialPageRoute(
+                                                      CupertinoPageRoute(
                                                     builder: (context) {
                                                       return PreLoadDataPage();
                                                     },

@@ -4,6 +4,7 @@ import 'package:naliv_delivery/pages/webViewCardPayPage.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/cupertino.dart';
 
 class OrderHistoryPage extends StatefulWidget {
   const OrderHistoryPage({super.key});
@@ -194,7 +195,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                                     .then((v) {
                                                   Navigator.push(
                                                     context,
-                                                    MaterialPageRoute(
+                                                    CupertinoPageRoute(
                                                       builder: (context) =>
                                                           WebViewCardPayPage(
                                                         htmlString: v["data"],

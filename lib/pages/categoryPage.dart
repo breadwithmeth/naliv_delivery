@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:naliv_delivery/pages/cartPage.dart';
 import 'package:naliv_delivery/shared/bottomBar.dart';
+import 'package:naliv_delivery/shared/searchWidget.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/searchPage.dart';
 import 'package:naliv_delivery/shared/cartButton.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/cupertino.dart';
 
 class CategoryNotifier extends ChangeNotifier {
   // A list that tracks whether a particular page needs refreshing
@@ -162,7 +164,7 @@ class _ParentCategoryPageState extends State<ParentCategoryPage>
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
+              CupertinoPageRoute(
                 builder: (context) {
                   return CartPage(
                     business: widget.business,
@@ -186,148 +188,42 @@ class _ParentCategoryPageState extends State<ParentCategoryPage>
         ),
       ),
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        surfaceTintColor: Colors.transparent,
-        toolbarHeight: 130 * globals.scaleParam,
-        bottom: PreferredSize(
-          preferredSize:
-              Size(MediaQuery.sizeOf(context).width, 75 * globals.scaleParam),
-          child: TabBar(
-            indicatorColor: Colors.white,
-            controller: _tabController,
-            tabAlignment: TabAlignment.start,
-            physics: const BouncingScrollPhysics(),
-            labelPadding: EdgeInsets.symmetric(
-                horizontal: 10 * globals.scaleParam,
-                vertical: 10 * globals.scaleParam),
-            labelStyle: GoogleFonts.roboto(
-              fontSize: 38 * globals.scaleParam,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-            ),
-            unselectedLabelStyle: GoogleFonts.roboto(
-              fontSize: 38 * globals.scaleParam,
-              fontWeight: FontWeight.w100,
-              color: Colors.grey.shade800,
-            ),
-            isScrollable: true,
-            tabs:
-                categoriesWidgetList.map((e) => e["widget"] as Widget).toList(),
-          ),
-        ),
-        actions: [
-          Builder(builder: (context) => const SizedBox()),
-        ], // Important: removes endDrawer button form appbar
-        automaticallyImplyLeading: false,
-        titleSpacing: 0,
-        title: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20 * globals.scaleParam),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.max,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Flexible(
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      icon: Icon(Icons.arrow_back_rounded),
-                    ),
-                  ),
-                  Flexible(
-                    flex: 3,
-                    fit: FlexFit.tight,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.business["name"],
-                          maxLines: 1,
-                          style: GoogleFonts.prostoOne(
-                            fontSize: 40 * globals.scaleParam,
-                          ),
-                        ),
-                        Text(
-                          widget.business["address"],
-                          maxLines: 1,
-                          style: GoogleFonts.roboto(
-                            fontSize: 24 * globals.scaleParam,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Flexible(
-                    flex: 4,
-                    fit: FlexFit.tight,
-                    child: TextButton(
-                      onPressed: () {
-                        // Navigator.push(context, MaterialPageRoute(
-                        //   builder: (context) {
-                        //     return SearchPage(
-                        //       business: widget.business,
-                        //     );
-                        //   },
-                        // ));
-                        Navigator.push(
-                          context,
-                          globals.getPlatformSpecialRoute(
-                            SearchPage(
-                                business: widget.business,
-                                category_id:
-                                    categoriesWidgetList[initialIndexTabbar]
-                                        ["category_id"]),
-                          ),
-                        );
-                      },
-                      style: TextButton.styleFrom(
-                          foregroundColor: Colors.grey.shade900.withOpacity(0)),
-                      child: Container(
-                        decoration: BoxDecoration(
-                            color: Colors.grey.shade900,
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(10))),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Spacer(
-                              flex: 3,
-                            ),
-                            Text(
-                              "Найти",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 30 * globals.scaleParam,
-                                color: Colors.grey.shade600,
-                                fontFamily: "Raleway",
-                                fontVariations: <FontVariation>[
-                                  FontVariation('wght', 600)
-                                ],
-                              ),
-                            ),
-                            Container(
-                              padding: EdgeInsets.all(20 * globals.scaleParam),
-                              child: Icon(
-                                Icons.search,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+          backgroundColor: Colors.black,
+          surfaceTintColor: Colors.transparent,
+          toolbarHeight: 130 * globals.scaleParam,
+          bottom: PreferredSize(
+            preferredSize:
+                Size(MediaQuery.sizeOf(context).width, 75 * globals.scaleParam),
+            child: TabBar(
+              indicatorColor: Colors.white,
+              controller: _tabController,
+              tabAlignment: TabAlignment.start,
+              physics: const BouncingScrollPhysics(),
+              labelPadding: EdgeInsets.symmetric(
+                  horizontal: 10 * globals.scaleParam,
+                  vertical: 10 * globals.scaleParam),
+              labelStyle: GoogleFonts.roboto(
+                fontSize: 38 * globals.scaleParam,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
               ),
-            ],
+              unselectedLabelStyle: GoogleFonts.roboto(
+                fontSize: 38 * globals.scaleParam,
+                fontWeight: FontWeight.w100,
+                color: Colors.grey.shade800,
+              ),
+              isScrollable: true,
+              tabs: categoriesWidgetList
+                  .map((e) => e["widget"] as Widget)
+                  .toList(),
+            ),
           ),
-        ),
-      ),
+          actions: [
+            Builder(builder: (context) => const SizedBox()),
+          ], // Important: removes endDrawer button form appbar
+          automaticallyImplyLeading: true,
+          titleSpacing: 0,
+          title: Searchwidget(business: widget.business)),
       body: TabBarView(
         controller: _tabController,
         children: [
@@ -556,7 +452,7 @@ class _CategoryPageListState extends State<CategoryPageList>
                                     onTap: () {
                                       Navigator.push(
                                         context,
-                                        MaterialPageRoute(
+                                        CupertinoPageRoute(
                                           builder: (context) => CategoryPage(
                                             categoryId:
                                                 children_categories[index]

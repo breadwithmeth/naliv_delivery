@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../globals.dart' as globals;
+import 'package:flutter/cupertino.dart';
 
 //var URL_API = '10.8.0.3';
 
@@ -23,7 +24,7 @@ Future<Position> determinePosition(BuildContext ctx) async {
       // Location services are not enabled don't continue
       // accessing the position and request users of the
       // App to enable the location services.
-      Navigator.push(ctx, MaterialPageRoute(
+      Navigator.push(ctx, CupertinoPageRoute(
         builder: (context) {
           return PermissionPage();
         },
@@ -1217,9 +1218,8 @@ Future<Map<String, dynamic>> getItemsNew(String business_id) async {
   return data;
 }
 
-
-
-Future<Map<String, dynamic>> getItemsRecs(String business_id, String item_id) async {
+Future<Map<String, dynamic>> getItemsRecs(
+    String business_id, String item_id) async {
   String? token = globals.currentToken;
 
   if (token == null) {
@@ -1230,6 +1230,50 @@ Future<Map<String, dynamic>> getItemsRecs(String business_id, String item_id) as
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
     body: json.encode({'business_id': business_id, 'rec_item_id': item_id}),
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(response.body);
+  Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+  print(
+      "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
+  return data;
+}
+
+Future<Map<String, dynamic>> getItemsSearch(
+    String business_id, String keyword) async {
+  String? token = globals.currentToken;
+
+  if (token == null) {
+    return {};
+  }
+  var url = Uri.https(URL_API, 'api/item/get');
+  var response = await client.post(
+    url,
+    headers: {"Content-Type": "application/json", "AUTH": token},
+    body: json.encode({'business_id': business_id, 'search': keyword}),
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(response.body);
+  Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+  print(
+      "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
+  return data;
+}
+
+Future<Map<String, dynamic>> getItemsCategory(
+    String business_id, String category_id) async {
+  String? token = globals.currentToken;
+
+  if (token == null) {
+    return {};
+  }
+  var url = Uri.https(URL_API, 'api/item/get');
+  var response = await client.post(
+    url,
+    headers: {"Content-Type": "application/json", "AUTH": token},
+    body: json.encode({'business_id': business_id, 'category_id': category_id}),
   );
 
   // List<dynamic> list = json.decode(response.body);
@@ -1304,7 +1348,29 @@ Future<List<dynamic>> getSavedCards() async {
     // body: json.encode({"user_id": userID}),
   );
 
-  List<dynamic> result = json.decode(response.body);
+  List<dynamic> result = json.decode(response.body) ?? [];
+  print(json.encode(response.statusCode));
+  print(response.body);
+  return result;
+}
+
+Future<List<dynamic>> getProperties(String item_id) async {
+  String? token = globals.currentToken;
+
+  if (token == null) {
+    return [];
+  }
+  var url = Uri.https(URL_API, 'api/item/getProperties');
+  var response = await client.post(
+    url,
+    headers: {
+      "Content-Type": "application/json",
+      "AUTH": token,
+    },
+    body: json.encode({"item_id": item_id}),
+  );
+
+  List<dynamic> result = json.decode(response.body) ?? [];
   print(json.encode(response.statusCode));
   print(response.body);
   return result;

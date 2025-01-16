@@ -150,19 +150,14 @@ class _AddressesPageState extends State<AddressesPage>
                         },
                       ),
                       children: [
-                         TileLayer(
-                                  tileBuilder: _darkModeTileBuilder,
-                                  // Display map tiles from any source
-                                  urlTemplate:
-                                      'https://{s}.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
-                                  subdomains: [
-                                    'tile0',
-                                    'tile1',
-                                    'tile2',
-                                    'tile3'
-                                  ],
-                                  // And many more recommended properties!
-                                ),
+                        TileLayer(
+                          tileBuilder: _darkModeTileBuilder,
+                          // Display map tiles from any source
+                          urlTemplate:
+                              'https://{s}.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
+                          subdomains: ['tile0', 'tile1', 'tile2', 'tile3'],
+                          // And many more recommended properties!
+                        ),
                         MarkerLayer(markers: [
                           Marker(point: _selectedAddress, child: FlutterLogo())
                         ]),
@@ -209,7 +204,7 @@ class _AddressesPageState extends State<AddressesPage>
                                         child: Text("Использовать этот адрес"),
                                       ),
                                       onTap: () {
-                                        // Navigator.push(context, MaterialPageRoute(
+                                        // Navigator.push(context, CupertinoPageRoute(
                                         //   builder: (context) {
                                         //     return CreateAddressName(
                                         //         street: _adressName,

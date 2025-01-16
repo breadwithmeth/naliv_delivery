@@ -8,6 +8,7 @@ import 'package:naliv_delivery/pages/createOrder.dart';
 import 'package:naliv_delivery/pages/preLoadOrderPage.dart';
 import 'package:naliv_delivery/pages/selectBusinessesPage.dart';
 import 'package:naliv_delivery/shared/loadingScreen.dart';
+import 'package:flutter/cupertino.dart';
 
 class SelectAddressPage extends StatefulWidget {
   const SelectAddressPage(
@@ -54,7 +55,7 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
             backgroundColor: Colors.white,
             foregroundColor: Colors.black,
             onPressed: () {
-              Navigator.push(context, MaterialPageRoute(
+              Navigator.push(context, CupertinoPageRoute(
                 builder: (context) {
                   return CreateAddressPage(
                       createOrder: widget.createOrder,
@@ -191,12 +192,12 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                             _getBusinesses().then((v) {
                               if (widget.createOrder) {
                                 Navigator.pushReplacement(context,
-                                    MaterialPageRoute(builder: (context) {
+                                    CupertinoPageRoute(builder: (context) {
                                   return PreLoadOrderPage(
                                       business: widget.business!);
                                 }));
                               } else {
-                                Navigator.push(context, MaterialPageRoute(
+                                Navigator.push(context, CupertinoPageRoute(
                                   builder: (context) {
                                     return SelectBusinessesPage(
                                       businesses: v,
@@ -257,7 +258,7 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                                   .then((value) {
                                 getAddresses().then((addresses) {
                                   Navigator.pushReplacement(context,
-                                      MaterialPageRoute(
+                                      CupertinoPageRoute(
                                     builder: (context) {
                                       return SelectAddressPage(
                                           addresses: addresses,

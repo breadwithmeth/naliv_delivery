@@ -25,6 +25,7 @@ import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:mesh_gradient/mesh_gradient.dart';
 import 'package:persistent_header_adaptive/persistent_header_adaptive.dart';
+import 'package:flutter/cupertino.dart';
 
 //сервис геолокации
 
@@ -344,7 +345,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                             widget.user["user_id"])
                                         .then((q) {
                                       Navigator.pushAndRemoveUntil(context,
-                                          MaterialPageRoute(
+                                          CupertinoPageRoute(
                                         builder: (context) {
                                           return PreLoadDataPage(
                                               // business: widget.business,
@@ -840,7 +841,7 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
       // OneSignal.InAppMessages.removeTrigger("regbonus");
       OneSignal.InAppMessages.addTrigger("regbonus", "true");
       if (widget.user["name"].toString().isEmpty) {
-        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+        Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
           builder: (context) {
             Map<String, dynamic> user = widget.user;
             return Finishprofilepage(user: user);
@@ -1185,7 +1186,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                       padding: EdgeInsets.zero,
                                     ),
                                     onPressed: () {
-                                      Navigator.push(context, MaterialPageRoute(
+                                      Navigator.push(context,
+                                          CupertinoPageRoute(
                                         builder: (context) {
                                           return PickAddressPage(
                                             client: widget.user,
@@ -1405,7 +1407,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                       ),
                                     ),
                                     onPressed: () {
-                                      Navigator.push(context, MaterialPageRoute(
+                                      Navigator.push(context,
+                                          CupertinoPageRoute(
                                         builder: (context) {
                                           return PickAddressPage(
                                             client: widget.user,
@@ -1595,7 +1598,8 @@ class _OrganizationSelectPageState extends State<OrganizationSelectPage>
                                   fit: FlexFit.tight,
                                   child: IconButton(
                                     onPressed: () {
-                                      Navigator.push(context, MaterialPageRoute(
+                                      Navigator.push(context,
+                                          CupertinoPageRoute(
                                         builder: (context) {
                                           return BonusesPage();
                                         },
@@ -1749,7 +1753,7 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(
+        Navigator.push(context, CupertinoPageRoute(
           builder: (context) {
             return widget.route;
           },
@@ -1812,7 +1816,7 @@ class BusinessItemState extends State<BusinessItem> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
+          CupertinoPageRoute(
             builder: (context) {
               // return StorePage(business: widget.business);
               return HomePage(

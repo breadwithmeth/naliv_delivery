@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:barcode_widget/barcode_widget.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mesh_gradient/mesh_gradient.dart';
@@ -14,6 +15,7 @@ import 'package:naliv_delivery/pages/newItemsPage.dart';
 import 'package:naliv_delivery/pages/orderHistoryPage.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
 import 'package:naliv_delivery/pages/popularItemsPage.dart';
+import 'package:naliv_delivery/pages/searchPage.dart';
 import 'package:naliv_delivery/pages/selectAddressPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
 import 'package:naliv_delivery/pages/supportPage.dart';
@@ -21,6 +23,7 @@ import 'package:naliv_delivery/shared/bonus.dart';
 import 'package:naliv_delivery/shared/bottomBar.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:naliv_delivery/shared/searchWidget.dart';
 import 'package:provider/provider.dart';
 
 class MainPage extends StatefulWidget {
@@ -103,7 +106,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
+                    CupertinoPageRoute(
                       builder: (context) {
                         return CartPage(
                           business: widget.business,
@@ -192,24 +195,75 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                         handle: NestedScrollView.sliverOverlapAbsorberHandleFor(
                             context),
                         sliver: SliverAppBar(
-                          expandedHeight: kToolbarHeight,
+                          floating: true,
+                          toolbarHeight: 80,
+                          expandedHeight: 160,
                           centerTitle: false,
-                          backgroundColor: Colors.black,
+                          backgroundColor: Colors.transparent,
                           surfaceTintColor: Colors.transparent,
-                          leading: IconButton(
-                              onPressed: () {
-                                Scaffold.of(context).openDrawer();
-                              },
-                              icon: Icon(Icons.menu)),
-                          title: Text(
-                            widget.user["first_name"] ?? "",
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            softWrap: true,
-                            style: GoogleFonts.roboto(
-                              // fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
+                          flexibleSpace: FlexibleSpaceBar(
+                            expandedTitleScale: 1.2,
+                            title: Searchwidget(
+                              business: widget.business,
+                            ),
+                            background: Container(
+                              padding: EdgeInsets.all(15),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Flexible(
+                                        flex: 4,
+                                        child: GestureDetector(
+                                            onTap: () {
+                                              Navigator.push(context,
+                                                  CupertinoPageRoute(
+                                                builder: (context) {
+                                                  return SelectAddressPage(
+                                                    addresses: addresses,
+                                                    currentAddress:
+                                                        addresses.firstWhere(
+                                                      (element) =>
+                                                          element[
+                                                              "is_selected"] ==
+                                                          "1",
+                                                      orElse: () {
+                                                        return {};
+                                                      },
+                                                    ),
+                                                    createOrder: false,
+                                                    business: null,
+                                                  );
+                                                },
+                                              ));
+                                            },
+                                            child: Row(
+                                              children: [
+                                                Flexible(
+                                                  flex: 3,
+                                                  child: Text(
+                                                    widget.currentAddress[
+                                                            "address"] ??
+                                                        "Адрес не выбран",
+                                                  ),
+                                                ),
+                                                Icon(Icons.arrow_drop_down)
+                                              ],
+                                            )),
+                                      ),
+                                      Flexible(
+                                        child: IconButton(
+                                            onPressed: () {
+                                              Scaffold.of(context).openDrawer();
+                                            },
+                                            icon: Icon(Icons.menu)),
+                                      )
+                                    ],
+                                  )
+                                ],
+                              ),
                             ),
                           ),
                           actions: [
@@ -234,9 +288,11 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                         )),
                     SliverToBoxAdapter(
                       child: Container(
-                        height: kToolbarHeight,
+                        height: 100,
                       ),
                     ),
+
+                    SliverToBoxAdapter(child: BonusWidget()),
                     SliverPadding(
                       padding:
                           EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -252,7 +308,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                             children: [
                               GestureDetector(
                                 onTap: () {
-                                  Navigator.push(context, MaterialPageRoute(
+                                  Navigator.push(context, CupertinoPageRoute(
                                     builder: (context) {
                                       return PopularItemsPage(
                                           business: widget.business);
@@ -276,7 +332,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                               ),
                               GestureDetector(
                                 onTap: () {
-                                  Navigator.push(context, MaterialPageRoute(
+                                  Navigator.push(context, CupertinoPageRoute(
                                     builder: (context) {
                                       return NewItemsPage(
                                           business: widget.business);
@@ -303,7 +359,6 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                         ),
                       ),
                     ),
-                    SliverToBoxAdapter(child: BonusWidget()),
                     // SliverToBoxAdapter(
                     //     child: Container(
                     //   // height: 400,
@@ -417,7 +472,6 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                     child: Builder(
                       builder: (context) {
                         return CustomScrollView(
-                          // physics: NeverScrollableScrollPhysics(),
                           slivers: [
                             SliverGrid.builder(
                               gridDelegate:
@@ -427,7 +481,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                               itemBuilder: (context, index) {
                                 return GestureDetector(
                                   onTap: () {
-                                    Navigator.push(context, MaterialPageRoute(
+                                    Navigator.push(context, CupertinoPageRoute(
                                       builder: (context) {
                                         // return ItemsPage(
                                         //     categories: categories,
@@ -560,7 +614,7 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(
+        Navigator.push(context, CupertinoPageRoute(
           builder: (context) {
             return widget.route;
           },

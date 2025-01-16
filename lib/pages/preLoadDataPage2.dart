@@ -6,6 +6,7 @@ import 'package:naliv_delivery/pages/mainPage.dart';
 import 'package:naliv_delivery/pages/paintLogoPage.dart';
 import 'package:naliv_delivery/pages/selectAddressPage.dart';
 import 'package:naliv_delivery/pages/selectBusinessesPage.dart';
+import 'package:flutter/cupertino.dart';
 
 class Preloaddatapage2 extends StatefulWidget {
   const Preloaddatapage2({super.key});
@@ -72,14 +73,14 @@ class _Preloaddatapage2State extends State<Preloaddatapage2> {
           if (user["first_name"] == null) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(
+              CupertinoPageRoute(
                   builder: (context) => Finishprofilepage(user: user)),
             );
           } else {
             if (_addresses.isEmpty) {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(
+                CupertinoPageRoute(
                   builder: (context) => CreateAddressPage(
                     createOrder: false,
                     business: null,
@@ -89,7 +90,7 @@ class _Preloaddatapage2State extends State<Preloaddatapage2> {
             } else {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(
+                CupertinoPageRoute(
                   builder: (context) => SelectAddressPage(
                     addresses: _addresses,
                     currentAddress: _currentAddress,
@@ -97,7 +98,7 @@ class _Preloaddatapage2State extends State<Preloaddatapage2> {
                     business: null,
                   ),
                 ),
-                // MaterialPageRoute(
+                // CupertinoPageRoute(
                 //   builder: (context) => SelectBusinessesPage(
                 //     addresses: _addresses,
                 //     currentAddress: _currentAddress,

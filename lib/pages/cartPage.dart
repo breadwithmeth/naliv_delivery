@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:extended_image/extended_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:naliv_delivery/pages/preLoadDataPage.dart';
@@ -264,7 +265,7 @@ class _CartPageState extends State<CartPage>
                                   // ! TODO: UNCOMMENT FOR PRODUCTION
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(
+                                    CupertinoPageRoute(
                                       builder: (context) {
                                         return PreLoadOrderPage(
                                           business: widget.business,

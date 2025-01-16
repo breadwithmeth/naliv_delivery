@@ -333,7 +333,16 @@ class _ProductPageState extends State<ProductPage> {
             widget.business["business_id"], widget.item["item_id"].toString())
         .then((value) {
       setState(() {
-        recItems = value["items"];
+        recItems = value["items"] ?? [];
+      });
+    });
+  }
+
+  List _properties = [];
+  _getProperties() {
+    getProperties(widget.item["item_id"].toString()).then((value) {
+      setState(() {
+        _properties = value;
       });
     });
   }
@@ -365,6 +374,7 @@ class _ProductPageState extends State<ProductPage> {
   void initState() {
     super.initState();
     _getRecItems();
+    _getProperties();
     if (widget.item["options"] != null) {
       if (!widget.dontClearOptions) {
         setState(() {
@@ -1439,10 +1449,7 @@ class _ProductPageState extends State<ProductPage> {
                               ),
                             )
                           : Container(),
-                      // const SizedBox(
-                      //   height: 5,
-                      // ),
-                      recItems.length > 1
+                      recItems.length > 0
                           ? Padding(
                               padding: EdgeInsets.all(10),
                               child: Text(
@@ -1510,7 +1517,76 @@ class _ProductPageState extends State<ProductPage> {
                                 },
                               ),
                             ),
-
+                      _properties.isNotEmpty
+                          ? Container(
+                              padding: EdgeInsets.all(20 * globals.scaleParam),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Text(
+                                  //   "Характеристики",
+                                  //   style: TextStyle(
+                                  //     color: Theme.of(context)
+                                  //         .colorScheme
+                                  //         .onSurface,
+                                  //     fontWeight: FontWeight.bold,
+                                  //     fontSize: 24,
+                                  //   ),
+                                  // ),
+                                  ListView.builder(
+                                    primary: false,
+                                    shrinkWrap: true,
+                                    itemCount: _properties.length,
+                                    itemBuilder: (context, index) {
+                                      return Container(
+                                        alignment: Alignment.bottomCenter,
+                                        decoration: BoxDecoration(
+                                          border: Border(
+                                            bottom: _properties[index]
+                                                            ["name"] ==
+                                                        null ||
+                                                    _properties[index]
+                                                            ["value"] ==
+                                                        null
+                                                ? BorderSide.none
+                                                : BorderSide(
+                                                    color: Colors.grey.shade200,
+                                                    width: 1),
+                                          ),
+                                        ),
+                                        child: _properties[index]["name"] ==
+                                                    null ||
+                                                _properties[index]["value"] ==
+                                                    null
+                                            ? Container()
+                                            : Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.end,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Flexible(
+                                                    child: Text(
+                                                        _properties[index]
+                                                            ["name"]),
+                                                  ),
+                                                  Flexible(
+                                                    child: Text(
+                                                      _properties[index]
+                                                          ["value"],
+                                                      textAlign: TextAlign.end,
+                                                    ),
+                                                  )
+                                                ],
+                                              ),
+                                      );
+                                    },
+                                  )
+                                ],
+                              ),
+                            )
+                          : Container(),
                       Stack(
                         children: [
                           // Container(

@@ -11,6 +11,7 @@ import 'package:naliv_delivery/pages/categoryPage.dart';
 import 'package:naliv_delivery/shared/cartButton.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/searchPage.dart';
+import 'package:flutter/cupertino.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key, required this.business, required this.user});
@@ -144,7 +145,7 @@ class _HomePageState extends State<HomePage>
                                 fit: FlexFit.tight,
                                 child: TextButton(
                                   onPressed: () {
-                                    // Navigator.push(context, MaterialPageRoute(
+                                    // Navigator.push(context, CupertinoPageRoute(
                                     //   builder: (context) {
                                     //     return SearchPage(
                                     //       business: widget.business,
@@ -247,8 +248,7 @@ class _HomePageState extends State<HomePage>
                 ],
               ));
         } else {
-          return PaintLogoPage(
-          );
+          return PaintLogoPage();
         }
       },
     );
@@ -295,7 +295,7 @@ class _CategoryItemState extends State<CategoryItem> {
             print("CATEGORY_ID IS ${widget.category_id}");
             Navigator.push(
               context,
-              MaterialPageRoute(
+              CupertinoPageRoute(
                 builder: (context) => CategoryPage(
                   categoryId: widget.category_id,
                   categoryName: widget.name,

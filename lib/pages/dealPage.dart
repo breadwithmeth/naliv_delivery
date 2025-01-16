@@ -3,6 +3,7 @@ import 'package:naliv_delivery/agreements/offer.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/loginPage.dart';
 import '../globals.dart' as globals;
+import 'package:flutter/cupertino.dart';
 
 class DealPage extends StatefulWidget {
   const DealPage({super.key});
@@ -40,7 +41,7 @@ class _DealPageState extends State<DealPage> {
                       color: Colors.blue.shade600),
                 ),
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(
+                  Navigator.push(context, CupertinoPageRoute(
                     builder: (context) {
                       return aRoute;
                     },
@@ -155,7 +156,7 @@ class _DealPageState extends State<DealPage> {
                             bool agreed = await setAgreement();
                             if (agreed) {
                               Navigator.pushReplacement(context,
-                                  MaterialPageRoute(
+                                  CupertinoPageRoute(
                                 builder: (context) {
                                   return const LoginPage();
                                 },

@@ -5,6 +5,7 @@ import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/loginPage.dart';
 import '../globals.dart' as globals;
+import 'package:flutter/cupertino.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -127,7 +128,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                                     () {
                                                   Navigator.pushReplacement(
                                                       context,
-                                                      MaterialPageRoute(
+                                                      CupertinoPageRoute(
                                                     builder: (context) {
                                                       return const Main();
                                                     },
@@ -136,13 +137,13 @@ class _SettingsPageState extends State<SettingsPage> {
                                                 deleteAccount().then((value) {
                                                   Navigator.pushReplacement(
                                                       context,
-                                                      MaterialPageRoute(
+                                                      CupertinoPageRoute(
                                                           builder: ((context) {
                                                     return const Main();
                                                   })));
                                                 });
                                                 Navigator.pushReplacement(
-                                                    context, MaterialPageRoute(
+                                                    context, CupertinoPageRoute(
                                                   builder: (context) {
                                                     return const Main();
                                                   },
@@ -250,7 +251,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                       () {
                                         Navigator.pushAndRemoveUntil(
                                           context,
-                                          MaterialPageRoute(
+                                          CupertinoPageRoute(
                                             builder: (context) =>
                                                 const LoginPage(),
                                           ),
@@ -302,7 +303,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   // setState(() {});
                   // print(123);
                   // logout();
-                  // Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+                  // Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
                   //   builder: (context) {
                   //     return const LoginPage();
                   //   },

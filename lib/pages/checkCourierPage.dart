@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/preLoadDataPage.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:flutter/cupertino.dart';
 
 class CheckCourierPage extends StatefulWidget {
   const CheckCourierPage({super.key, required this.order});
@@ -42,7 +43,7 @@ class _CheckCourierPageState extends State<CheckCourierPage> {
         data = _data;
       });
     } else {
-      Navigator.pushReplacement(context, MaterialPageRoute(
+      Navigator.pushReplacement(context, CupertinoPageRoute(
         builder: (context) {
           return PreLoadDataPage();
         },
@@ -67,7 +68,7 @@ class _CheckCourierPageState extends State<CheckCourierPage> {
                           onTap: () {
                             Navigator.pushReplacement(
                                 context,
-                                MaterialPageRoute(
+                                CupertinoPageRoute(
                                     builder: (context) => PreLoadDataPage()));
                           },
                           child: Padding(

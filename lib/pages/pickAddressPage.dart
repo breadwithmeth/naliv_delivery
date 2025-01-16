@@ -5,6 +5,7 @@ import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/pickOnMap.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter/cupertino.dart';
 
 class PickAddressPage extends StatefulWidget {
   const PickAddressPage({
@@ -84,7 +85,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
     _getAddresses().whenComplete(
       () {
         if (_addresses.isEmpty && !isAddressesLoading) {
-          Navigator.pushReplacement(context, MaterialPageRoute(
+          Navigator.pushReplacement(context, CupertinoPageRoute(
             builder: (context) {
               return PickOnMapPage(currentPosition: _location, cities: _cities);
             },
@@ -109,7 +110,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
       Future.delayed(
         Duration.zero,
         () {
-          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+          Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
             builder: (context) {
               return PickOnMapPage(
                 currentPosition: _location!,
@@ -118,7 +119,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
               );
             },
           ), (Route<dynamic> route) => false);
-          // Navigator.push(context, MaterialPageRoute(
+          // Navigator.push(context, CupertinoPageRoute(
           //   builder: (context) {
           //     return PickOnMapPage(
           //       currentPosition: _location!,
@@ -174,7 +175,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                 _getCities().then((value) {
                   _getAddresses().whenComplete(() {
                     // setState(() {});
-                    Navigator.push(context, MaterialPageRoute(
+                    Navigator.push(context, CupertinoPageRoute(
                       builder: (context) {
                         return PickOnMapPage(
                           currentPosition: _location,
@@ -192,7 +193,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                 });
               });
             } else {
-              Navigator.push(context, MaterialPageRoute(
+              Navigator.push(context, CupertinoPageRoute(
                 builder: (context) {
                   return PickOnMapPage(
                     currentPosition: _location!,
@@ -275,7 +276,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                                   context,
                                 )
                               : Navigator.pushAndRemoveUntil(context,
-                                  MaterialPageRoute(
+                                  CupertinoPageRoute(
                                   builder: (context) {
                                     return Main(
                                         // business: widget.business,
@@ -527,7 +528,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                   //               widget.isFromCreateOrder
                   //                   ? Navigator.pop(context)
                   //                   : Navigator.pushAndRemoveUntil(context,
-                  //                       MaterialPageRoute(
+                  //                       CupertinoPageRoute(
                   //                       builder: (context) {
                   //                         return Main(
                   //                             // business: widget.business,

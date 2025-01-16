@@ -44,7 +44,7 @@
 //     //     onTap: () {
 //     //       Navigator.push(
 //     //         context,
-//     //         MaterialPageRoute(
+//     //         CupertinoPageRoute(
 //     //           builder: (context) => ProductPage(
 //     //             item: element,
 //     //             index: items.indexOf(element),

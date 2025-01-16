@@ -25,7 +25,7 @@ bool addressSelectPopUpDone = false;
 
 // Navigator.push(
 //   context,
-//   MaterialPageRoute(builder: (context) => const StartPage()),
+//   CupertinoPageRoute(builder: (context) => const StartPage()),
 // );
 
 Route getPlatformSpecialRoute(Widget route) {
@@ -34,7 +34,7 @@ Route getPlatformSpecialRoute(Widget route) {
       builder: (context) => route,
     );
   } else {
-    return MaterialPageRoute(
+    return CupertinoPageRoute(
       builder: (context) => route,
     );
   }
@@ -51,7 +51,7 @@ Route getPlatformSpecialRoute(Widget route) {
 //     builder: (context) => route,
 //   );
 // } else {
-//   return MaterialPageRoute(
+//   return CupertinoPageRoute(
 //     builder: (context) => route,
 //   );
 // }

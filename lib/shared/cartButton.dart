@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/cartPage.dart';
 import '../globals.dart' as globals;
+import 'package:flutter/cupertino.dart';
 
 class CartButton extends StatefulWidget {
   const CartButton({
@@ -38,7 +39,7 @@ class _CartButtonState extends State<CartButton> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
+              CupertinoPageRoute(
                 builder: (context) {
                   return CartPage(
                     business: widget.business,

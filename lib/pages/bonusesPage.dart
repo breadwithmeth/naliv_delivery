@@ -76,7 +76,9 @@ class _BonusesPageState extends State<BonusesPage> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white,
-                          fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                          fontVariations: <FontVariation>[
+                            FontVariation('wght', 800)
+                          ],
                           fontSize: 42 * globals.scaleParam,
                         ),
                       ),
@@ -128,7 +130,9 @@ class _BonusesPageState extends State<BonusesPage> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.onSurface,
-                              fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                              fontVariations: <FontVariation>[
+                                FontVariation('wght', 800)
+                              ],
                               fontSize: 58 * globals.scaleParam,
                               height: 1.8,
                             ),
@@ -138,7 +142,7 @@ class _BonusesPageState extends State<BonusesPage> {
                         //   onPressed: () {
                         //     Navigator.push(
                         //       context,
-                        //       MaterialPageRoute(
+                        //       CupertinoPageRoute(
                         //         builder: (context) {
                         //           return const BonusRulesPage();
                         //         },
@@ -211,7 +215,9 @@ class _BonusQRModalPageState extends State<BonusQRModalPage> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white,
-                          fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                          fontVariations: <FontVariation>[
+                            FontVariation('wght', 800)
+                          ],
                           fontSize: 42 * globals.scaleParam,
                         ),
                       ),
@@ -260,7 +266,9 @@ class _BonusQRModalPageState extends State<BonusQRModalPage> {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
-                            fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                            fontVariations: <FontVariation>[
+                              FontVariation('wght', 800)
+                            ],
                             fontSize: 42 * globals.scaleParam,
                           ),
                         ),
@@ -273,7 +281,9 @@ class _BonusQRModalPageState extends State<BonusQRModalPage> {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
-                            fontVariations: <FontVariation>[FontVariation('wght', 800)],
+                            fontVariations: <FontVariation>[
+                              FontVariation('wght', 800)
+                            ],
                             fontSize: 42 * globals.scaleParam,
                           ),
                         ),

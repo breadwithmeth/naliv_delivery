@@ -8,6 +8,7 @@ import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/organizationSelectPage.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
 import 'package:naliv_delivery/pages/pickOnMap.dart';
+import 'package:flutter/cupertino.dart';
 
 class PreLoadDataPage extends StatefulWidget {
   const PreLoadDataPage({super.key});
@@ -82,7 +83,7 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
 
     _getAddresses().then((v) {
       if (v == false) {
-        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+        Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
           builder: (context) {
             return PickAddressPage(client: user, isFirstTime: true);
           },
@@ -97,7 +98,7 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
                   return v == null;
                 }).length >
                 0) {
-              Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+              Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
                 builder: (context) {
                   return Finishprofilepage(
                     user: user,
@@ -106,7 +107,7 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
               ), (route) => false);
             } else {
               _addresses.isNotEmpty
-                  ? Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+                  ? Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
                       builder: (context) {
                         return OrganizationSelectPage(
                           addresses: _addresses,
@@ -117,18 +118,18 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
                       },
                     ), (Route<dynamic> route) => false)
                   : () {
-                      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+                      Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
                         builder: (context) {
                           return PickAddressPage(
                               client: user, isFirstTime: true);
                         },
                       ), (Route<dynamic> route) => false);
-                      // Navigator.push(context, MaterialPageRoute(builder: (context) {
+                      // Navigator.push(context, CupertinoPageRoute(builder: (context) {
                       //   return PickOnMapPage(currentPosition: , cities: );
                       // },))
                     };
               _addresses.isNotEmpty
-                  ? Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+                  ? Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
                       builder: (context) {
                         return OrganizationSelectPage(
                           addresses: _addresses,
@@ -138,7 +139,7 @@ class _PreLoadDataPageState extends State<PreLoadDataPage> {
                         );
                       },
                     ), (Route<dynamic> route) => false)
-                  : Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+                  : Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
                       builder: (context) {
                         return PickAddressPage(client: user, isFirstTime: true);
                       },
