@@ -2794,7 +2794,6 @@ class _ItemCardListTileState extends State<ItemCardListTile>
   Widget build(BuildContext context) {
     return Container(
       clipBehavior: Clip.antiAliasWithSaveLayer,
-      margin: EdgeInsets.symmetric(vertical: 0, horizontal: 15),
       // padding: EdgeInsets.on(20),
       padding: EdgeInsets.only(top: 10, bottom: 0),
       decoration: BoxDecoration(

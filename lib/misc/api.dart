@@ -284,6 +284,53 @@ Future<Map?> getItemsMain(int page, String business_id,
   }
 }
 
+
+Future<Map?> getItemsMain3(String business_id,
+    [String? categoryId]) async {
+  String? token = globals.currentToken;
+
+  if (token == null) {
+    return {};
+  }
+  http.Response response;
+  var url = Uri.https(URL_API, 'api/item/get');
+
+  Map<String, String> queryBody = {};
+
+  if (categoryId != null && categoryId.isNotEmpty) {
+    queryBody.addAll({'category_id': categoryId, 'business_id': business_id});
+  }
+  var jsonBody = jsonEncode(queryBody);
+
+  if (categoryId != "") {
+    response = await client.post(
+      url,
+      encoding: Encoding.getByName('utf-8'),
+      headers: {"Content-Type": "application/json", "AUTH": token},
+      body: jsonBody,
+    );
+  } else {
+    response = await client.post(
+      url,
+      encoding: Encoding.getByName('utf-8'),
+      headers: {"Content-Type": "application/json", "AUTH": token},
+      body: jsonBody,
+    );
+  }
+
+  print(jsonBody);
+  print(queryBody);
+
+  // List<dynamic> list = json.decode(response.body);
+  print(utf8.decode(response.bodyBytes));
+  if (utf8.decode(response.bodyBytes) == "") {
+    return {};
+  } else {
+    Map data = json.decode(utf8.decode(response.bodyBytes));
+    return data;
+  }
+}
+
 Future<Map?> getItemsMain2(int page, String business_id,
     [String? search, String? categoryId]) async {
   String? token = globals.currentToken;

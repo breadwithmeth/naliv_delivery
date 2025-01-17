@@ -107,10 +107,11 @@ class _SearchPageState extends State<SearchPage> {
         ),
         SliverToBoxAdapter(
           child: Container(
-            padding: EdgeInsets.symmetric(vertical: 10),
+            alignment: Alignment.topCenter,
+            padding: EdgeInsets.symmetric(vertical: 2),
             decoration: BoxDecoration(
                 color: Color(0xFF121212),
-                borderRadius: BorderRadius.circular(20)),
+                borderRadius: BorderRadius.circular(10)),
             child: ListView.builder(
               primary: false,
               shrinkWrap: true,
