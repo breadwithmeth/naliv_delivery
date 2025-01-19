@@ -224,9 +224,7 @@ Future<List> getCategories(String business_id,
   var url = Uri.https(URL_API, 'api/category/get');
   var response = await client.post(url,
       headers: {"Content-Type": "application/json", "AUTH": token},
-      body: parent_category
-          ? json.encode({'parent_category_only': "1"})
-          : json.encode({"business_id": business_id}));
+      body: json.encode({"business_id": business_id, "all": "true"}));
 
   // List<dynamic> list = json.decode(response.body);
   List data = json.decode(utf8.decode(response.bodyBytes));
@@ -284,16 +282,14 @@ Future<Map?> getItemsMain(int page, String business_id,
   }
 }
 
-
-Future<Map?> getItemsMain3(String business_id,
-    [String? categoryId]) async {
+Future<Map> getItemsMain3(String business_id, [String? categoryId]) async {
   String? token = globals.currentToken;
 
   if (token == null) {
     return {};
   }
   http.Response response;
-  var url = Uri.https(URL_API, 'api/item/get');
+  var url = Uri.https(URL_API, 'api/item/get2');
 
   Map<String, String> queryBody = {};
 
@@ -1415,6 +1411,49 @@ Future<List<dynamic>> getProperties(String item_id) async {
       "AUTH": token,
     },
     body: json.encode({"item_id": item_id}),
+  );
+
+  List<dynamic> result = json.decode(response.body) ?? [];
+  print(json.encode(response.statusCode));
+  print(response.body);
+  return result;
+}
+
+Future<Map<String, dynamic>?> getPropertiesForCategory(
+    String category_id, String business_id) async {
+  String? token = globals.currentToken;
+
+  if (token == null) {
+    return {};
+  }
+  var url = Uri.https(URL_API, 'api/item/getPropertiesForCategory');
+  var response = await client.post(
+    url,
+    headers: {"Content-Type": "application/json", "AUTH": token},
+    body: json.encode({'category_id': category_id, 'business_id': business_id}),
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(response.bodyBytes);
+  Map<String, dynamic>? data = json.decode(utf8.decode(response.bodyBytes));
+
+  return data;
+}
+
+Future<List<dynamic>> getItemsByPropertiesValues(List values) async {
+  String? token = globals.currentToken;
+
+  if (token == null) {
+    return [];
+  }
+  var url = Uri.https(URL_API, 'api/item/getItemsByPropertiesValues');
+  var response = await client.post(
+    url,
+    headers: {
+      "Content-Type": "application/json",
+      "AUTH": token,
+    },
+    body: json.encode({"values": values}),
   );
 
   List<dynamic> result = json.decode(response.body) ?? [];

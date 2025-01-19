@@ -412,7 +412,7 @@ class _ProductPageState extends State<ProductPage> {
         actualCartAmount = 0;
       }
     }
-    TabText[0] = widget.item["description"];
+    TabText[0] = widget.item["description"] ?? "";
 
     setState(() {
       quantity = item["quantity"];

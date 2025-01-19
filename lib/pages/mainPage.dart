@@ -51,10 +51,13 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   CarouselController _carouselController = CarouselController();
   bool isLoading = true;
   List<dynamic> addresses = [];
-
+  List parentCategories = [];
   _getCategories() {
     getCategories(widget.business["business_id"]).then((value) {
       setState(() {
+        parentCategories = value.where((element) {
+          return element["parent_category"] == "0";
+        }).toList();
         categories = value;
         selectedCategory = int.parse(categories[0]["category_id"]);
       });
@@ -495,18 +498,26 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                                   gridDelegate:
                                       SliverGridDelegateWithFixedCrossAxisCount(
                                           crossAxisCount: 3),
-                                  itemCount: categories.length,
+                                  itemCount: parentCategories.length,
                                   itemBuilder: (context, index) {
                                     return GestureDetector(
                                       onTap: () {
-                                        
-                                        Navigator.push(context, CupertinoPageRoute(builder: (context) {
+                                        Navigator.push(context,
+                                            CupertinoPageRoute(
+                                                builder: (context) {
                                           return PreLoadCategoryPage(
+                                            user: widget.user,
                                             business: widget.business,
-                                            category: categories[index],
+                                            category: parentCategories[index],
+                                            subcategories:
+                                                categories.where((element) {
+                                              return element[
+                                                      "parent_category"] ==
+                                                  parentCategories[index]
+                                                      ["category_id"];
+                                            }).toList(),
                                           );
                                         }));
-                                        
 
                                         // setState(() {
                                         //   _items = categories[index]["items"];
@@ -544,22 +555,23 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                                                   child: AspectRatio(
                                                     aspectRatio: 1,
                                                     child: Image.network(
-                                                        categories[index]
+                                                        parentCategories[index]
                                                             ["img"]),
                                                   )
                                                   // AssetImage("assets/icons/wine.png"),
                                                   ),
                                               Text(
-                                                categories[index]["name"],
+                                                parentCategories[index]["name"],
                                                 maxLines: 1,
                                                 textAlign: TextAlign.center,
                                                 style: GoogleFonts.roboto(
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.w700,
                                                     color: selectedCategory ==
-                                                            int.parse(categories[
-                                                                    index]
-                                                                ["category_id"])
+                                                            int.parse(
+                                                                parentCategories[
+                                                                        index][
+                                                                    "category_id"])
                                                         ? Colors.white
                                                         : Colors.white),
                                               ),

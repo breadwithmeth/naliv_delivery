@@ -10,10 +10,15 @@ class PreLoadCategoryPage extends StatefulWidget {
       {super.key,
       required this.business,
       this.categoryId,
-      required this.category});
+      required this.category,
+      required this.subcategories,
+      required this.user});
   final Map<dynamic, dynamic> business;
   final String? categoryId;
   final Map category;
+  final List subcategories;
+  final Map<String, dynamic> user;
+
   @override
   State<PreLoadCategoryPage> createState() => _PreLoadCategoryPageState();
 }
@@ -23,14 +28,17 @@ class _PreLoadCategoryPageState extends State<PreLoadCategoryPage> {
     getItemsMain3(
             widget.business["business_id"], widget.category["category_id"])
         .then((value) {
+      print(value);
       Navigator.pushReplacement(context, CupertinoPageRoute(
         builder: (context) {
           return CategoryPage2(
-              categoryId: widget.category["category_id"],
-              business: widget.business,
-              category: widget.category,
-              subcategories: value!["c_children"],
-              items: value!["items"]);
+            categoryId: widget.category["category_id"],
+            business: widget.business,
+            category: widget.category,
+            subcategories: widget.subcategories,
+            items: value["items"] ?? [],
+            user: widget.user,
+          );
         },
       ));
     });
