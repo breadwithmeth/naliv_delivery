@@ -72,178 +72,192 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
             SafeArea(
                 child: CustomScrollView(
               slivers: [
-                SliverPadding(
-                  padding: EdgeInsets.only(left: 30, right: 30, top: 10),
-                  sliver: SliverToBoxAdapter(
-                      child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      Container(
-                        child: FittedBox(
-                          child: Text(
-                            "Текущий адрес",
-                            style: GoogleFonts.prostoOne(
-                              fontSize: 36,
-                              fontWeight: FontWeight.w400,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                      Divider(
-                        color: Colors.transparent,
-                      ),
-                      AspectRatio(
-                          aspectRatio: 1,
-                          child: Container(
-                            clipBehavior: Clip.hardEdge,
-                            decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(30))),
-                            child: FlutterMap(
-                              options: MapOptions(
-                                interactionOptions: InteractionOptions(
-                                    flags: InteractiveFlag.none),
-                                initialZoom: 18,
-                                initialCenter: LatLng(
-                                    double.parse(widget.currentAddress["lat"]),
-                                    double.parse(widget.currentAddress["lon"])),
-                              ),
-                              children: [
-                                TileLayer(
-                                  tileBuilder: _darkModeTileBuilder,
-                                  // Display map tiles from any source
-                                  urlTemplate:
-                                      'https://{s}.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
-                                  subdomains: [
-                                    'tile0',
-                                    'tile1',
-                                    'tile2',
-                                    'tile3'
-                                  ],
-                                  // And many more recommended properties!
+                widget.currentAddress["lat"] != null
+                    ? SliverPadding(
+                        padding: EdgeInsets.only(left: 30, right: 30, top: 10),
+                        sliver: SliverToBoxAdapter(
+                            child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.max,
+                          children: [
+                            Container(
+                              child: FittedBox(
+                                child: Text(
+                                  "Текущий адрес",
+                                  style: GoogleFonts.prostoOne(
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.w400,
+                                    color: Colors.white,
+                                  ),
                                 ),
-                                MarkerLayer(markers: [
-                                  Marker(
-                                      width: 80.0,
-                                      height: 80.0,
-                                      point: LatLng(
+                              ),
+                            ),
+                            Divider(
+                              color: Colors.transparent,
+                            ),
+                            AspectRatio(
+                                aspectRatio: 1,
+                                child: Container(
+                                  clipBehavior: Clip.hardEdge,
+                                  decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.all(
+                                          Radius.circular(30))),
+                                  child: FlutterMap(
+                                    options: MapOptions(
+                                      interactionOptions: InteractionOptions(
+                                          flags: InteractiveFlag.none),
+                                      initialZoom: 18,
+                                      initialCenter: LatLng(
                                           double.parse(
-                                              widget.currentAddress["lat"]),
+                                              widget.currentAddress["lat"] ??
+                                                  "0"),
                                           double.parse(
-                                              widget.currentAddress["lon"])),
-                                      child: Icon(
-                                        Icons.location_on,
-                                        color: Colors.orangeAccent,
-                                        size: 40,
-                                      ))
-                                ]),
+                                              widget.currentAddress["lon"] ??
+                                                  "0")),
+                                    ),
+                                    children: [
+                                      TileLayer(
+                                        tileBuilder: _darkModeTileBuilder,
+                                        // Display map tiles from any source
+                                        urlTemplate:
+                                            'https://{s}.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
+                                        subdomains: [
+                                          'tile0',
+                                          'tile1',
+                                          'tile2',
+                                          'tile3'
+                                        ],
+                                        // And many more recommended properties!
+                                      ),
+                                      MarkerLayer(markers: [
+                                        Marker(
+                                            width: 80.0,
+                                            height: 80.0,
+                                            point: LatLng(
+                                                double.parse(
+                                                    widget.currentAddress[
+                                                            "lat"] ??
+                                                        "0"),
+                                                double.parse(
+                                                    widget.currentAddress[
+                                                            "lon"] ??
+                                                        "0")),
+                                            child: Icon(
+                                              Icons.location_on,
+                                              color: Colors.orangeAccent,
+                                              size: 40,
+                                            ))
+                                      ]),
+                                    ],
+                                  ),
+                                )),
+                            Divider(
+                              color: Colors.transparent,
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.currentAddress["city_name"] ??
+                                      "Этого города еще нет в базе",
+                                  style: GoogleFonts.roboto(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w400,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                Text(
+                                  widget.currentAddress["address"] ?? "",
+                                  style: GoogleFonts.prostoOne(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w400,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                Text(
+                                  "",
+                                  style: GoogleFonts.roboto(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w400,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ],
                             ),
-                          )),
-                      Divider(
-                        color: Colors.transparent,
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.currentAddress["city_name"] ??
-                                "Этого города еще нет в базе",
-                            style: GoogleFonts.roboto(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w400,
-                              color: Colors.white,
+                            Divider(
+                              color: Colors.transparent,
                             ),
-                          ),
-                          Text(
-                            widget.currentAddress["address"],
-                            style: GoogleFonts.prostoOne(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w400,
-                              color: Colors.white,
+                            ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.deepOrange,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(15)))),
+                                onPressed: () {
+                                  setState(() {
+                                    _isLoading = true;
+                                  });
+                                  _getBusinesses().then((v) {
+                                    if (widget.createOrder) {
+                                      Navigator.pushReplacement(context,
+                                          CupertinoPageRoute(
+                                              builder: (context) {
+                                        return PreLoadOrderPage(
+                                            business: widget.business!);
+                                      }));
+                                    } else {
+                                      Navigator.push(context,
+                                          CupertinoPageRoute(
+                                        builder: (context) {
+                                          return SelectBusinessesPage(
+                                            businesses: v,
+                                            currentAddress:
+                                                widget.currentAddress,
+                                          );
+                                        },
+                                      ));
+                                      setState(() {
+                                        _isLoading = false;
+                                      });
+                                    }
+                                  });
+                                },
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      "Продолжить",
+                                      style: GoogleFonts.prostoOne(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  ],
+                                )),
+                            Divider(
+                              color: Colors.transparent,
                             ),
-                          ),
-                          Text(
-                            "",
-                            style: GoogleFonts.roboto(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Divider(
-                        color: Colors.transparent,
-                      ),
-                      ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.deepOrange,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(15)))),
-                          onPressed: () {
-                            setState(() {
-                              _isLoading = true;
-                            });
-                            _getBusinesses().then((v) {
-                              if (widget.createOrder) {
-                                Navigator.pushReplacement(context,
-                                    CupertinoPageRoute(builder: (context) {
-                                  return PreLoadOrderPage(
-                                      business: widget.business!);
-                                }));
-                              } else {
-                                Navigator.push(context, CupertinoPageRoute(
-                                  builder: (context) {
-                                    return SelectBusinessesPage(
-                                      businesses: v,
-                                      currentAddress: widget.currentAddress,
-                                    );
-                                  },
-                                ));
-                                setState(() {
-                                  _isLoading = false;
-                                });
-                              }
-                            });
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                "Продолжить",
-                                style: GoogleFonts.prostoOne(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w400,
-                                  color: Colors.white,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "Другиe адреса",
+                                  style: GoogleFonts.roboto(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w400,
+                                    color: Colors.white,
+                                  ),
                                 ),
-                              )
-                            ],
-                          )),
-                      Divider(
-                        color: Colors.transparent,
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Другиe адреса",
-                            style: GoogleFonts.roboto(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
-                              color: Colors.white,
-                            ),
-                          ),
-                          Icon(Icons.keyboard_arrow_down, color: Colors.white),
-                        ],
+                                Icon(Icons.keyboard_arrow_down,
+                                    color: Colors.white),
+                              ],
+                            )
+                          ],
+                        )),
                       )
-                    ],
-                  )),
-                ),
+                    : SliverToBoxAdapter(),
                 SliverPadding(
                   padding: EdgeInsets.only(left: 30, right: 30, top: 10),
                   sliver: SliverList.builder(

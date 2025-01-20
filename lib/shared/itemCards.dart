@@ -2819,10 +2819,43 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                 },
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     Flexible(
-                        flex: 5,
+                        flex: 3,
+                        child: AspectRatio(
+                            aspectRatio: 1,
+                            child: Container(
+                              clipBehavior: Clip.antiAliasWithSaveLayer,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(15 * globals.scaleParam),
+                                ),
+                                color: Color(0xFF121212),
+                              ),
+                              child: element["img"] != null
+                                  ? ExtendedImage.network(
+                                      element["img"],
+                                      // height: double.infinity,
+
+                                      clearMemoryCacheWhenDispose: true,
+                                      enableMemoryCache: true,
+                                      enableLoadState: false,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : ExtendedImage.asset(
+                                      "assets/category_items/no_image_ico.png",
+                                      // height: double.infinity,
+
+                                      clearMemoryCacheWhenDispose: true,
+                                      enableMemoryCache: true,
+                                      enableLoadState: false,
+                                      fit: BoxFit.cover,
+                                    ),
+                            ))),
+                    Spacer(),
+                    Flexible(
+                        flex: 7,
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2864,396 +2897,6 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                             ),
                           ],
                         )),
-                    Spacer(),
-                    Flexible(
-                        flex: 2,
-                        child: AspectRatio(
-                            aspectRatio: 1,
-                            child: Container(
-                              clipBehavior: Clip.antiAliasWithSaveLayer,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(15 * globals.scaleParam),
-                                ),
-                                color: Color(0xFF121212),
-                              ),
-                              child: element["img"] != null
-                                  ? ExtendedImage.network(
-                                      element["img"],
-                                      // height: double.infinity,
-
-                                      clearMemoryCacheWhenDispose: true,
-                                      enableMemoryCache: true,
-                                      enableLoadState: false,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : ExtendedImage.asset(
-                                      "assets/category_items/no_image_ico.png",
-                                      // height: double.infinity,
-
-                                      clearMemoryCacheWhenDispose: true,
-                                      enableMemoryCache: true,
-                                      enableLoadState: false,
-                                      fit: BoxFit.cover,
-                                    ),
-                            ))),
-                    // Expanded(
-                    //   flex: 1,
-                    //   child: Padding(
-                    //     padding: EdgeInsets.only(
-                    //       left: 20 * globals.scaleParam,
-                    //       right: 10 * globals.scaleParam,
-                    //       top: 12 * globals.scaleParam,
-                    //       // bottom: 10 * globals.scaleParam,
-                    //     ),
-                    //     child: Column(
-                    //       crossAxisAlignment: CrossAxisAlignment.start,
-                    //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    //       mainAxisSize: MainAxisSize.max,
-                    //       children: [
-                    //         Flexible(
-                    //           flex: 6,
-                    //           fit: FlexFit.tight,
-                    //           child: Row(
-                    //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    //             crossAxisAlignment: CrossAxisAlignment.start,
-                    //             children: [
-                    //               Flexible(
-                    //                 fit: FlexFit.tight,
-                    //                 child: Container(
-                    //                   alignment: Alignment.topLeft,
-                    //                   child: Row(
-                    //                     children: [
-                    //                       Flexible(
-                    //                         fit: FlexFit.tight,
-                    //                         child: Text(
-                    //                           element["name"],
-                    //                           overflow: TextOverflow.ellipsis,
-                    //                           maxLines: 2,
-                    //                           style: TextStyle(
-                    //                               fontSize:
-                    //                                   38 * globals.scaleParam,
-                    //                               fontWeight: FontWeight.w700,
-                    //                               height: 1,
-                    //                               letterSpacing: 0),
-                    //                         ),
-                    //                       ),
-                    //                     ],
-                    //                   ),
-                    //                 ),
-                    //               ),
-                    //             ],
-                    //           ),
-                    //         ),
-                    //         Flexible(
-                    //           flex: 5,
-                    //           fit: FlexFit.tight,
-                    //           child: promotions.isEmpty
-                    //               ? Container()
-                    //               : ListView.builder(
-                    //                   primary: false,
-                    //                   shrinkWrap: true,
-                    //                   itemCount: promotions.length,
-                    //                   itemBuilder: (context, index) {
-                    //                     return Row(
-                    //                       mainAxisSize: MainAxisSize.min,
-                    //                       crossAxisAlignment:
-                    //                           CrossAxisAlignment.center,
-                    //                       children: [
-                    //                         Container(
-                    //                           alignment: Alignment.center,
-                    //                           decoration: BoxDecoration(
-                    //                               borderRadius: BorderRadius.all(
-                    //                                   Radius.circular(10 *
-                    //                                       globals.scaleParam)),
-                    //                               gradient: LinearGradient(
-                    //                                 begin: Alignment.topRight,
-                    //                                 end: Alignment.bottomLeft,
-                    //                                 colors: [
-                    //                                   Colors.purpleAccent,
-                    //                                   Color(0xFFFFC837),
-                    //                                 ],
-                    //                               )),
-                    //                           padding: EdgeInsets.all(
-                    //                               10 * globals.scaleParam),
-                    //                           margin: EdgeInsets.all(
-                    //                               3 * globals.scaleParam),
-                    //                           child: Text(
-                    //                               promotions[index]["name"],
-                    //                               style: TextStyle(
-                    //                                   fontWeight: FontWeight.w700,
-                    //                                   color: Colors.white,
-                    //                                   fontSize: 24 *
-                    //                                       globals.scaleParam)),
-                    //                         )
-                    //                       ],
-                    //                     );
-                    //                   },
-                    //                 ),
-                    //         ),
-                    //         Flexible(
-                    //           flex: 5,
-                    //           fit: FlexFit.tight,
-                    //           child: Row(
-                    //             mainAxisAlignment: MainAxisAlignment.end,
-                    //             mainAxisSize: MainAxisSize.min,
-                    //             children: [
-                    //               Flexible(
-                    //                 child: Text(
-                    //                   globals.formatCost(
-                    //                       (element['price'] ?? "").toString()),
-                    //                   style: TextStyle(
-                    //                     color: Colors.white,
-                    //                     fontWeight: FontWeight.w700,
-                    //                     fontSize: 40 * globals.scaleParam,
-                    //                     fontVariations: <FontVariation>[
-                    //                       FontVariation('wght', 600)
-                    //                     ],
-                    //                   ),
-                    //                 ),
-                    //               ),
-                    //               Flexible(
-                    //                 child: Text(
-                    //                   "₸",
-                    //                   textAlign: TextAlign.start,
-                    //                   style: TextStyle(
-                    //                     color: Colors.grey.shade600,
-                    //                     fontWeight: FontWeight.w900,
-                    //                     fontSize: 40 * globals.scaleParam,
-                    //                     fontVariations: <FontVariation>[
-                    //                       FontVariation('wght', 600)
-                    //                     ],
-                    //                   ),
-                    //                 ),
-                    //               ),
-                    //             ],
-                    //           ),
-                    //         ),
-                    //         Flexible(
-                    //           flex: 9,
-                    //           fit: FlexFit.tight,
-                    //           child: Padding(
-                    //             padding: EdgeInsets.only(
-                    //               right: 30 * globals.scaleParam,
-                    //               bottom: 10 * globals.scaleParam,
-                    //             ),
-                    //             child: AnimatedCrossFade(
-                    //               alignment: Alignment.topRight,
-                    //               duration: Durations.medium1,
-                    //               crossFadeState: amountInCart == 0 ||
-                    //                       (amountInCart > 0 && hideButtons) ||
-                    //                       options.isNotEmpty
-                    //                   ? CrossFadeState.showFirst
-                    //                   : CrossFadeState.showSecond,
-                    //               firstChild: Row(
-                    //                 mainAxisAlignment: MainAxisAlignment.end,
-                    //                 children: [
-                    //                   Flexible(
-                    //                     flex: 2,
-                    //                     fit: FlexFit.tight,
-                    //                     child: SizedBox(),
-                    //                   ),
-                    //                   options.isEmpty && element["quantity"] == 1
-                    //                       ? Flexible(
-                    //                           fit: FlexFit.tight,
-                    //                           child: IconButton(
-                    //                               style: IconButton.styleFrom(
-                    //                                 alignment: Alignment.center,
-                    //                                 // padding: EdgeInsets.all(0),
-                    //                                 // backgroundColor: amountInCart > 0
-                    //                                 // ? Colors.amberAccent.shade200
-                    //                                 //     : Colors.transparent,
-                    //                                 // backgroundColor: Colors.amber,
-                    //                               ),
-                    //                               highlightColor: canButtonsBeUsed
-                    //                                   ? Colors.transparent
-                    //                                   : Colors.transparent,
-                    //                               padding: EdgeInsets.zero,
-                    //                               onPressed: canButtonsBeUsed
-                    //                                   ? () {
-                    //                                       if (hideButtons &&
-                    //                                           amountInCart > 0) {
-                    //                                         setState(() {
-                    //                                           hideButtons = false;
-                    //                                         });
-                    //                                         _hideButtonsAfterTime();
-                    //                                         return;
-                    //                                       } else if (hideButtons &&
-                    //                                           amountInCart == 0) {
-                    //                                         setState(() {
-                    //                                           hideButtons = false;
-                    //                                         });
-                    //                                         _hideButtonsAfterTime();
-                    //                                       } else {
-                    //                                         _hideButtonsAfterTime();
-                    //                                       }
-                    //                                       _incrementAmountInCart();
-                    //                                       setState(
-                    //                                         () {
-                    //                                           canButtonsBeUsed =
-                    //                                               false;
-                    //                                         },
-                    //                                       );
-                    //                                       Timer(
-                    //                                         Duration(
-                    //                                             milliseconds:
-                    //                                                 250),
-                    //                                         () {
-                    //                                           setState(() {
-                    //                                             canButtonsBeUsed =
-                    //                                                 true;
-                    //                                           });
-                    //                                         },
-                    //                                       );
-                    //                                     }
-                    //                                   : () {},
-                    //                               icon: Icon(
-                    //                                 cart.isEmpty
-                    //                                     ? Icons.add_rounded
-                    //                                     : Icons.edit,
-                    //                                 color: Theme.of(context)
-                    //                                     .colorScheme
-                    //                                     .onSurface,
-                    //                                 size: cart.isEmpty
-                    //                                     ? 70 * globals.scaleParam
-                    //                                     : 60 * globals.scaleParam,
-                    //                               )),
-                    //                         )
-                    //                       : Flexible(
-                    //                           fit: FlexFit.tight,
-                    //                           child: IconButton(
-                    //                             padding: EdgeInsets.zero,
-                    //                             style: IconButton.styleFrom(
-                    //                                 // backgroundColor: Colors.red,
-                    //                                 ),
-                    //                             onPressed: () {
-                    //                               showModalProductPageWithClearedState();
-                    //                               // showModalBottomSheet(
-                    //                               //   context: context,
-                    //                               //   clipBehavior: Clip.antiAlias,
-                    //                               //   useSafeArea: true,
-                    //                               //   isScrollControlled: true,
-                    //                               //   showDragHandle: false,
-                    //                               //   builder: (context) {
-                    //                               //     // widget.element["amount"] = amountInCart.toString();
-                    //                               //     return ProductPage(
-                    //                               //       item: element,
-                    //                               //       index: widget.index,
-                    //                               //       returnDataAmount: updateCurrentItem,
-                    //                               //       business: widget.business,
-                    //                               //     );
-                    //                               //   },
-                    //                               // );
-                    //                             },
-                    //                             icon: Icon(
-                    //                               Icons.add,
-                    //                               color: Theme.of(context)
-                    //                                   .colorScheme
-                    //                                   .onSurface,
-                    //                               size: 80 * globals.scaleParam,
-                    //                             ),
-                    //                           ),
-                    //                         ),
-                    //                 ],
-                    //               ),
-                    //               secondChild: Row(
-                    //                 mainAxisAlignment: MainAxisAlignment.end,
-                    //                 children: [
-                    //                   Flexible(
-                    //                     fit: FlexFit.tight,
-                    //                     child: IconButton(
-                    //                       padding: EdgeInsets.zero,
-                    //                       onPressed: canButtonsBeUsed
-                    //                           ? () {
-                    //                               _hideButtonsAfterTime();
-                    //                               _decrementAmountInCart();
-                    //                               if (amountInCart <= 0) {
-                    //                                 setState(() {
-                    //                                   canButtonsBeUsed = false;
-                    //                                 });
-                    //                                 Timer(
-                    //                                   Duration(milliseconds: 250),
-                    //                                   () {
-                    //                                     setState(() {
-                    //                                       canButtonsBeUsed = true;
-                    //                                     });
-                    //                                   },
-                    //                                 );
-                    //                               }
-                    //                             }
-                    //                           : null,
-                    //                       icon: Container(
-                    //                         child: Icon(
-                    //                           Icons.remove_rounded,
-                    //                           color: amountInCart > 0
-                    //                               ? Theme.of(context)
-                    //                                   .colorScheme
-                    //                                   .onSurface
-                    //                               : Theme.of(context)
-                    //                                   .colorScheme
-                    //                                   .secondary,
-                    //                           size: 70 * globals.scaleParam,
-                    //                         ),
-                    //                       ),
-                    //                     ),
-                    //                   ),
-                    //                   Flexible(
-                    //                     fit: FlexFit.tight,
-                    //                     child: Text(
-                    //                       "${amountInCart.ceil() > amountInCart ? amountInCart.toString() : amountInCart.round()} ${widget.element["unit"]}", //"${globals.formatCost((cacheAmount * int.parse(item["price"])).toString())} ₸",
-                    //                       textHeightBehavior: TextHeightBehavior(
-                    //                         applyHeightToFirstAscent: false,
-                    //                       ),
-                    //                       textAlign: TextAlign.center,
-                    //                       style: TextStyle(
-                    //                         fontVariations: <FontVariation>[
-                    //                           FontVariation('wght', 600)
-                    //                         ],
-                    //                         fontSize: 36 * globals.scaleParam,
-                    //                         color: amountInCart != 0
-                    //                             ? Theme.of(context)
-                    //                                 .colorScheme
-                    //                                 .onSurface
-                    //                             : Colors.grey.shade600,
-                    //                       ),
-                    //                     ),
-                    //                   ),
-                    //                   Flexible(
-                    //                     fit: FlexFit.tight,
-                    //                     child: IconButton(
-                    //                       padding: EdgeInsets.zero,
-                    //                       onPressed: canButtonsBeUsed
-                    //                           ? () {
-                    //                               _incrementAmountInCart();
-                    //                               _hideButtonsAfterTime();
-                    //                             }
-                    //                           : null,
-                    //                       icon: Container(
-                    //                         child: Icon(
-                    //                           Icons.add_rounded,
-                    //                           color: amountInCart <
-                    //                                   element["in_stock"]
-                    //                                       .truncate()
-                    //                               ? Theme.of(context)
-                    //                                   .colorScheme
-                    //                                   .onSurface
-                    //                               : Theme.of(context)
-                    //                                   .colorScheme
-                    //                                   .secondary,
-                    //                           size: 70 * globals.scaleParam,
-                    //                         ),
-                    //                       ),
-                    //                     ),
-                    //                   ),
-                    //                 ],
-                    //               ),
-                    //             ),
-                    //           ),
-                    //         ),
-                    //       ],
-                    //     ),
-                    //   ),
-                    // ),
                   ],
                 ),
               )

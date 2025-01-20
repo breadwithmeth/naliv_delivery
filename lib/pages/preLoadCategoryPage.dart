@@ -38,6 +38,7 @@ class _PreLoadCategoryPageState extends State<PreLoadCategoryPage> {
             subcategories: widget.subcategories,
             items: value["items"] ?? [],
             user: widget.user,
+            priceIncrease: false,
           );
         },
       ));

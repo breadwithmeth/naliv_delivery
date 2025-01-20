@@ -69,47 +69,45 @@ class _Preloaddatapage2State extends State<Preloaddatapage2> {
   getInfo() {
     _getUser().then((v) {
       _getAddresses().then((v) {
-        _getBusinesses().then((v) {
-          if (user["first_name"] == null) {
+        if (user["first_name"] == null) {
+          Navigator.pushReplacement(
+            context,
+            CupertinoPageRoute(
+                builder: (context) => Finishprofilepage(user: user)),
+          );
+        } else {
+          if (_addresses.isEmpty) {
             Navigator.pushReplacement(
               context,
               CupertinoPageRoute(
-                  builder: (context) => Finishprofilepage(user: user)),
+                builder: (context) => CreateAddressPage(
+                  createOrder: false,
+                  business: null,
+                ),
+              ),
             );
           } else {
-            if (_addresses.isEmpty) {
-              Navigator.pushReplacement(
-                context,
-                CupertinoPageRoute(
-                  builder: (context) => CreateAddressPage(
-                    createOrder: false,
-                    business: null,
-                  ),
+            Navigator.pushReplacement(
+              context,
+              CupertinoPageRoute(
+                builder: (context) => SelectAddressPage(
+                  addresses: _addresses,
+                  currentAddress: _currentAddress,
+                  createOrder: false,
+                  business: null,
                 ),
-              );
-            } else {
-              Navigator.pushReplacement(
-                context,
-                CupertinoPageRoute(
-                  builder: (context) => SelectAddressPage(
-                    addresses: _addresses,
-                    currentAddress: _currentAddress,
-                    createOrder: false,
-                    business: null,
-                  ),
-                ),
-                // CupertinoPageRoute(
-                //   builder: (context) => SelectBusinessesPage(
-                //     addresses: _addresses,
-                //     currentAddress: _currentAddress,
-                //     user: user,
-                //     businesses: _businesses,
-                //   ),
-                // ),
-              );
-            }
+              ),
+              // CupertinoPageRoute(
+              //   builder: (context) => SelectBusinessesPage(
+              //     addresses: _addresses,
+              //     currentAddress: _currentAddress,
+              //     user: user,
+              //     businesses: _businesses,
+              //   ),
+              // ),
+            );
           }
-        });
+        }
       });
     });
   }

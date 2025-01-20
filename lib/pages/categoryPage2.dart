@@ -20,12 +20,14 @@ class CategoryPage2 extends StatefulWidget {
       required this.category,
       required this.items,
       required this.subcategories,
-      required this.user});
+      required this.user,
+      required this.priceIncrease});
   final Map<dynamic, dynamic> business;
   final String? categoryId;
   final Map category;
   final List subcategories;
   final List items;
+  final bool priceIncrease;
 
   final Map<String, dynamic> user;
 
@@ -53,6 +55,34 @@ class _CategoryPage2State extends State<CategoryPage2>
 
   bool showFilters = false;
 
+  int lowestPrice = 0;
+  int highestPrice = 0;
+
+  int rangeLowPrice = 0;
+  int rangeHighPrice = 0;
+
+  List items = [];
+
+  initPriceRange() {
+    int lowestPricet = widget.items[0]["price"];
+    int highestPricet = widget.items[0]["price"];
+    for (var i in widget.items) {
+      if (i["price"] < lowestPricet) {
+        lowestPricet = i["price"];
+      }
+      if (i["price"] > highestPricet) {
+        highestPricet = i["price"];
+      }
+    }
+
+    setState(() {
+      lowestPrice = lowestPricet;
+      highestPrice = highestPricet;
+      rangeLowPrice = lowestPricet;
+      rangeHighPrice = highestPricet;
+    });
+  }
+
   _getPropertiesForCat() {
     getPropertiesForCategory(widget.categoryId!, widget.business["business_id"])
         .then((value) {
@@ -68,8 +98,9 @@ class _CategoryPage2State extends State<CategoryPage2>
   void initState() {
     // TODO: implement initState
     super.initState();
-
+    initPriceRange();
     setState(() {
+      items = widget.items;
       _tabController = TabController(
           vsync: this,
           length: widget.subcategories.length,
@@ -181,6 +212,73 @@ class _CategoryPage2State extends State<CategoryPage2>
                     preferredSize: Size.fromHeight(10), child: Container()),
             actions: [
               IconButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        return Dialog.fullscreen(
+                          backgroundColor: Colors.black,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  IconButton(
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                      },
+                                      icon: Icon(Icons.close))
+                                ],
+                              ),
+                              ListTile(
+                                trailing: Icon(Icons.arrow_upward),
+                                title: Text("По возрастанию цены"),
+                                onTap: () {
+                                  Navigator.pop(context);
+
+                                  Navigator.pushReplacement(context,
+                                      CupertinoPageRoute(builder: (context) {
+                                    return CategoryPage2(
+                                      categoryId: widget.categoryId,
+                                      business: widget.business,
+                                      category: widget.category,
+                                      subcategories: widget.subcategories,
+                                      items: widget.items,
+                                      user: widget.user,
+                                      priceIncrease: true,
+                                    );
+                                  }));
+                                },
+                              ),
+                              ListTile(
+                                trailing: Icon(Icons.arrow_downward),
+                                title: Text("По убыванию цены"),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  Navigator.pushReplacement(context,
+                                      CupertinoPageRoute(builder: (context) {
+                                    return CategoryPage2(
+                                      categoryId: widget.categoryId,
+                                      business: widget.business,
+                                      category: widget.category,
+                                      subcategories: widget.subcategories,
+                                      items: widget.items,
+                                      user: widget.user,
+                                      priceIncrease: false,
+                                    );
+                                  }));
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  icon: Icon(Icons.sort)),
+              IconButton(
                 icon: Icon(Icons.filter_list_rounded),
                 onPressed: () {
                   setState(() {
@@ -207,12 +305,23 @@ class _CategoryPage2State extends State<CategoryPage2>
                   physics: ClampingScrollPhysics(),
                   itemCount: widget.subcategories.length,
                   itemBuilder: (context, index) {
-                    List subitems = widget.items.where((element) {
+                    List subitems = items.where((element) {
                       return element["category_id"].toString() ==
                           widget.subcategories[index]["category_id"].toString();
                     }).toList();
+
                     void updateDataAmount(List newCart, int index) {
                       subitems[index]["cart"] = newCart;
+                    }
+
+                    if (widget.priceIncrease) {
+                      subitems.sort((a, b) {
+                        return a["price"].compareTo(b["price"]);
+                      });
+                    } else {
+                      subitems.sort((a, b) {
+                        return b["price"].compareTo(a["price"]);
+                      });
                     }
 
                     return subitems.length == 0
@@ -255,20 +364,9 @@ class _CategoryPage2State extends State<CategoryPage2>
                                   itemBuilder: (context, index2) {
                                     final Map<String, dynamic> item =
                                         subitems[index2];
-                                    return searchItems == null
-                                        ? ItemCardListTile(
-                                            itemId: item["item_id"],
-                                            element: item,
-                                            categoryId: "",
-                                            categoryName: "",
-                                            scroll: 0,
-                                            business: widget.business,
-                                            index: index2,
-                                            categoryPageUpdateData:
-                                                updateDataAmount,
-                                          )
-                                        : searchItems!.contains(
-                                                item["item_id"].toString())
+                                    return rangeLowPrice <= item["price"] &&
+                                            item["price"] <= rangeHighPrice
+                                        ? (searchItems == null
                                             ? ItemCardListTile(
                                                 itemId: item["item_id"],
                                                 element: item,
@@ -280,7 +378,21 @@ class _CategoryPage2State extends State<CategoryPage2>
                                                 categoryPageUpdateData:
                                                     updateDataAmount,
                                               )
-                                            : Container();
+                                            : searchItems!.contains(
+                                                    item["item_id"].toString())
+                                                ? ItemCardListTile(
+                                                    itemId: item["item_id"],
+                                                    element: item,
+                                                    categoryId: "",
+                                                    categoryName: "",
+                                                    scroll: 0,
+                                                    business: widget.business,
+                                                    index: index2,
+                                                    categoryPageUpdateData:
+                                                        updateDataAmount,
+                                                  )
+                                                : Container())
+                                        : Container();
                                   },
                                 ),
                               )
@@ -296,20 +408,9 @@ class _CategoryPage2State extends State<CategoryPage2>
                   itemCount: widget.items.length,
                   itemBuilder: (context, index) {
                     final Map<String, dynamic> item = widget.items[index];
-                    return searchItems == null
-                        ? ItemCardListTile(
-                            itemId: item["item_id"],
-                            element: item,
-                            categoryId: "",
-                            categoryName: "",
-                            scroll: 0,
-                            business: widget.business,
-                            index: index,
-                            categoryPageUpdateData: (List newCart, int index) {
-                              item["cart"] = newCart;
-                            },
-                          )
-                        : searchItems!.contains(item["item_id"].toString())
+                    return rangeLowPrice <= item["price"] &&
+                            item["price"] <= rangeHighPrice
+                        ? (searchItems == null
                             ? ItemCardListTile(
                                 itemId: item["item_id"],
                                 element: item,
@@ -323,7 +424,22 @@ class _CategoryPage2State extends State<CategoryPage2>
                                   item["cart"] = newCart;
                                 },
                               )
-                            : Container();
+                            : searchItems!.contains(item["item_id"].toString())
+                                ? ItemCardListTile(
+                                    itemId: item["item_id"],
+                                    element: item,
+                                    categoryId: "",
+                                    categoryName: "",
+                                    scroll: 0,
+                                    business: widget.business,
+                                    index: index,
+                                    categoryPageUpdateData:
+                                        (List newCart, int index) {
+                                      item["cart"] = newCart;
+                                    },
+                                  )
+                                : Container())
+                        : Container();
                   },
                 ),
         ),
@@ -331,8 +447,8 @@ class _CategoryPage2State extends State<CategoryPage2>
             ? Container()
             : Scaffold(
                 appBar: AppBar(
-                  title: Text("Фильтры"),
                   backgroundColor: Colors.black,
+                  surfaceTintColor: Colors.black,
                   automaticallyImplyLeading: false,
                   actions: [
                     IconButton(
@@ -349,12 +465,18 @@ class _CategoryPage2State extends State<CategoryPage2>
                   padding: EdgeInsets.all(10),
                   child: ElevatedButton(
                     onPressed: () {
-                      getItemsByPropertiesValues(selectedValues).then((v) {
-                        setState(() {
-                          searchItems = v;
-                          showFilters = false;
-                        });
-                      });
+                      selectedValues.length > 0
+                          ? getItemsByPropertiesValues(selectedValues)
+                              .then((v) {
+                              setState(() {
+                                searchItems = v;
+                                showFilters = false;
+                              });
+                            })
+                          : setState(() {
+                              // searchItems = widget.items;
+                              showFilters = false;
+                            });
                       // setState(() {
                       //   searchItems = widget.items.where((element) {
                       //     List valuesl = values.where((value) {
@@ -375,6 +497,34 @@ class _CategoryPage2State extends State<CategoryPage2>
                     // margin: EdgeInsets.only(top: 10, bottom: 1000),
                     child: Column(
                   children: [
+                    ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            items.sort((a, b) {
+                              return a["price"].compareTo(b["price"]);
+                            });
+                          });
+                        },
+                        child: Text("Цена")),
+                    Divider(
+                      color: Colors.white,
+                    ),
+                    RangeSlider(
+                        activeColor: Colors.orange,
+                        inactiveColor: Colors.grey,
+                        labels: RangeLabels(rangeLowPrice.toString(),
+                            rangeHighPrice.toString()),
+                        min: lowestPrice.toDouble(),
+                        max: highestPrice.toDouble(),
+                        values: RangeValues(rangeLowPrice.toDouble(),
+                            rangeHighPrice.toDouble()),
+                        onChanged: (rv) {
+                          setState(() {
+                            rangeLowPrice = rv.start.toInt();
+                            rangeHighPrice = rv.end.toInt();
+                          });
+                        }),
+                    Text("Цена от: $rangeLowPrice до: $rangeHighPrice"),
                     ListView.builder(
                       primary: false,
                       shrinkWrap: true,
@@ -427,12 +577,26 @@ class _CategoryPage2State extends State<CategoryPage2>
                                                   color:
                                                       selectedValues.contains(
                                                               i["value_id"])
-                                                          ? Colors.orange
+                                                          ? Colors.white
                                                           : Colors.black,
                                                   borderRadius:
                                                       BorderRadius.circular(
                                                           10)),
-                                              child: Text(i["value"]),
+                                              child: Text(
+                                                i["value"],
+                                                style: TextStyle(
+                                                    color: valuesl
+                                                                .where((val) {
+                                                                  return selectedValues
+                                                                      .contains(
+                                                                          val["value_id"]);
+                                                                })
+                                                                .toList()
+                                                                .length ==
+                                                            0
+                                                        ? Colors.white
+                                                        : Colors.grey.shade900),
+                                              ),
                                             ),
                                           ),
                                       ],
