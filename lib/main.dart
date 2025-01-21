@@ -14,6 +14,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
 Future<void> main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -272,6 +273,7 @@ class _MainState extends State<Main> {
     print("SCALE PARAM IS: ${globals.scaleParam}");
     // globals.scaleParam = 1;
     return MaterialApp(
+      navigatorObservers: [routeObserver],
       title: "Налив/Градусы24",
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,

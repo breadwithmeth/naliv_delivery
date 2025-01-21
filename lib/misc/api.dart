@@ -1461,3 +1461,54 @@ Future<List<dynamic>> getItemsByPropertiesValues(List values) async {
   print(response.body);
   return result;
 }
+
+Future<Map<String, dynamic>> getItemsCart(String business_id) async {
+  String? token = globals.currentToken;
+
+  if (token == null) {
+    return {};
+  }
+  var url = Uri.https(URL_API, 'api/item/getCart2');
+  var response = await client.post(
+    url,
+    headers: {"Content-Type": "application/json", "AUTH": token},
+    body: json.encode({
+      'business_id': business_id,
+    }),
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(response.body);
+  Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+  print(
+      "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
+  return data;
+}
+
+Future<Map> changeCartItemByCartItemId(
+  dynamic cart_item_id,
+  double amount,
+  String businessId,
+) async {
+  String? token = globals.currentToken;
+
+  print("ADD TO CARD");
+  if (token == null) {
+    return {};
+  }
+  var url = Uri.https(URL_API, 'api/item/addToCart');
+
+  late var response;
+  response = await client.post(
+    url,
+    body: json.encode({
+      'cart_item_id': cart_item_id,
+      'amount': amount.toString(),
+      'business_id': businessId,
+    }),
+    headers: {"Content-Type": "application/json", "AUTH": token},
+  );
+
+  Map data = jsonDecode(response.body);
+  return data;
+}

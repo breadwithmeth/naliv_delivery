@@ -4,6 +4,7 @@ import 'package:extended_image/extended_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:naliv_delivery/pages/preLoadDataPage.dart';
 import 'package:naliv_delivery/pages/preLoadOrderPage.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
@@ -13,10 +14,19 @@ import 'package:naliv_delivery/pages/createOrder.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 
 class CartPage extends StatefulWidget {
-  const CartPage({super.key, required this.business, required this.user});
+  const CartPage(
+      {super.key,
+      required this.business,
+      required this.items,
+      required this.sum,
+      required this.delivery,
+      required this.tax});
 
   final Map<dynamic, dynamic> business;
-  final Map user;
+  final List items;
+  final int sum;
+  final int delivery;
+  final int tax;
 
   @override
   State<CartPage> createState() => _CartPageState();
@@ -24,447 +34,323 @@ class CartPage extends StatefulWidget {
 
 class _CartPageState extends State<CartPage>
     with SingleTickerProviderStateMixin {
-  late List items = [];
   double itemsAmount = 0;
   late Map<String, dynamic> cartInfo = {};
   late List recommendedItems = [];
   late AnimationController animController;
   final Duration animDuration = Duration(milliseconds: 250);
-
+  int sum = 0;
   Map<String, dynamic> client = {};
-  int localSum = 0;
-  int localDiscount = 0;
-  int distance = 0;
-  int bonusSum = 0;
-  int price = 0;
-  int taxes = 0;
-  bool isCartLoading = true;
-  bool dismissingItem = false;
+  List _items = [];
+  bool isLoading = false;
+  Map cart = {};
+  void updateDataAmount(List newCart, int index) {
+    _getItems();
+    _items[index]["cart"] = newCart;
+  }
 
-  Future<void> _getCart() async {
-    Map<String, dynamic> cart = await getCart(widget.business["business_id"]);
-    print(cart);
-
-    print(cartInfo);
-
+  Future<void> _getItems() async {
     setState(() {
-      items = cart["cart"] ?? [];
-      itemsAmount = 0;
-      localSum = double.parse((cart["sum"] ?? 0.0).toString()).round();
-      // distance = double.parse((cart["distance"] ?? 0.0).toString()).round();
-      // price = (price / 100).round() * 100;
-      price = double.parse((cart["delivery"] ?? 0.0).toString()).round();
-      taxes = double.parse((cart["taxes"] ?? 0.0).toString()).round();
-      isCartLoading = false;
-      itemsAmount;
+      _items = widget.items;
+      sum = widget.sum;
     });
   }
 
-  Future<bool> _deleteFromCart(String itemId) async {
-    bool? result = await deleteFromCart(itemId);
-    result ??= false;
-
-    print(result);
-    return Future(() => result!);
-  }
-
-  void _setAnimationController() {
-    animController = BottomSheet.createAnimationController(this);
-
-    animController.duration = animDuration;
-    animController.reverseDuration = animDuration;
-    animController.drive(CurveTween(curve: Curves.easeIn));
-  }
-
-  void updateDataAmount(int index, int newDataAmount) {
-    if (newDataAmount == 0) {
-      items.removeAt(index);
-    } else {
-      items[index]["amount"] = newDataAmount.toString();
-    }
-    setState(() {
-      items;
-    });
-    localSum = 0;
-    itemsAmount = 0;
-    for (dynamic item in items) {
-      localSum += (int.parse(item["price"]) * int.parse(item["amount"]));
-      itemsAmount += double.parse(item["amount"].toString());
-    }
-    // if ((localSum * (bonusPercent / 100)).round() >
-    //     userBonusPoints) {
-    //   print(
-    //       "NOT ENOUGH BONUS POINTS, NEED (${(localSum * (bonusPercent / 100)).round()}), HAVE ($userBonusPoints)");
-    // } else {
-    //   print(
-    //       "ENOUGH BONUSES, NEED (${(localSum * (bonusPercent / 100)).round()}), HAVE ($userBonusPoints)");
-    // }
-    // changeBonusPercent(bonusPercent);
-    setState(() {
-      localSum;
-      itemsAmount;
-    });
-  }
-
-  void updatePrices(int indexUpdatePrice) {
-    items.removeAt(indexUpdatePrice);
-    setState(() {
-      items;
-    });
-    localSum = 0;
-    itemsAmount = 0;
-    if (items.isNotEmpty) {
-      for (dynamic item in items) {
-        if (item["selected_options"] != null) {
-          //! LOCATE AND CALCULATE PARENT_ITEM_AMOUNT FIRST!!!!!!
-          for (Map selectedOption in item["selected_options"]) {
-            if (selectedOption["parent_item_amount"] != 1 ||
-                item["selected_options"].last == selectedOption) {
-              localSum += double.parse((item["price"] *
-                          selectedOption["parent_item_amount"] *
-                          (item["amount_b"] -
-                              (item["promotions"] != null
-                                  ? double.parse((item["amount_b"] /
-                                              (item["promotions"][0]
-                                                      ["add_amount"] +
-                                                  item["promotions"][0]
-                                                      ["base_amount"]))
-                                          .toString())
-                                      .truncate()
-                                  : 0)))
-                      .toString())
-                  .round();
-              break;
-            }
-          }
-          //! ONLY THEN CALCULATE ADDITIONAL COST OF THE BOTTLES AND ETC. WITHOUT PARENT_ITEM_AMOUNT
-          for (Map selectedOption in item["selected_options"]) {
-            localSum += double.parse(
-                    ((selectedOption["price"] * item["amount_b"])).toString())
-                .round();
-          }
-          itemsAmount += double.parse(item["amount_b"].toString());
-        } else {
-          localSum += double.parse((item["price"] *
-                      (item["amount"] -
-                          (item["promotions"] != null
-                              ? double.parse((item["amount"] /
-                                          (item["promotions"][0]["add_amount"] +
-                                              item["promotions"][0]
-                                                  ["base_amount"]))
-                                      .toString())
-                                  .truncate()
-                              : 0)))
-                  .toString())
-              .round();
-          itemsAmount += double.parse(item["amount"].toString());
-        }
-      }
-    } else {
+  _getCart() {
+    getCart(widget.business["business_id"]).then((value) {
       setState(() {
-        localSum = 0;
+        cart = value;
+        _items = value["cart"] ?? [];
+        sum = double.parse((value["sum"] ?? 0.0).toString()).round();
       });
-    }
-    setState(() {
-      localSum;
-      itemsAmount;
     });
   }
-
-  // Future<void> _getRecommendedSectionsItems() async {
-  //   try {
-  //     Map? responseList =
-  //         await getItemsMain(0, widget.business["business_id"], "", "20");
-  //     if (responseList != null) {
-  //       List<dynamic> itemList = responseList["items"];
-  //       // List<dynamic> itemList = responseList.map((data) => Item(data)).toList();
-
-  //       if (mounted) {
-  //         setState(() {
-  //           recommendedItems.addAll(itemList.map((e) => e));
-  //         });
-  //       }
-  //     }
-  //   } catch (e) {
-  //     print("error --> $e");
-  //   }
-  // }
 
   @override
   void initState() {
+    _getItems();
     super.initState();
-    _setAnimationController();
-
-    _getCart();
-    // _getRecommendedSectionsItems();
-    // Future.delayed( Duration(milliseconds: 0), () async {
-    //   setState(() {
-    //     isCartLoading = true;
-    //   });
-    //   await _getCart();
-    //   if (mounted) {
-    //     setState(() {
-    //       localSum = int.parse(sum);
-    //       for (dynamic item in items) {
-    //         if (item["previous_price"] != null) {
-    //           localDiscount += int.parse(item["price"]) -
-    //               int.parse(item["previous_price"] ?? "0");
-    //         }
-    //       }
-    //       isCartLoading = false;
-    //     });
-    //   }
-    //   await getUser().then((value) {
-    //     if (value != null && mounted) {
-    //       setState(() {
-    //         client = value;
-    //       });
-    //     }
-    //   });
-    // });
   }
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) {
-        if (!didPop) {
-          print("IT DIDN'T POPPED");
-          Navigator.pop(context, true);
-        } else {
-          print("WELL DAMN. IT POPPED");
-        }
-      },
-      child: Scaffold(
-          backgroundColor: Colors.black,
-          floatingActionButtonLocation:
-              FloatingActionButtonLocation.centerFloat,
-          floatingActionButton: items.isNotEmpty || isCartLoading
-              ? Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
-                  child: Row(
-                    children: [
-                      MediaQuery.sizeOf(context).width >
-                              MediaQuery.sizeOf(context).height
-                          ? Flexible(
-                              flex: 2,
-                              fit: FlexFit.tight,
-                              child: SizedBox(),
-                            )
-                          : SizedBox(),
-                      Flexible(
-                        fit: FlexFit.tight,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF121212),
-                          ),
-                          onPressed: items.isNotEmpty && !dismissingItem
-                              ? () {
-                                  // ! TODO: UNCOMMENT FOR PRODUCTION
-                                  Navigator.push(
-                                    context,
-                                    CupertinoPageRoute(
-                                      builder: (context) {
-                                        return PreLoadOrderPage(
-                                          business: widget.business,
-                                        );
-                                      },
-                                    ),
-                                  );
-                                }
-                              : null,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Flexible(
-                                flex: 2,
-                                fit: FlexFit.tight,
-                                child: Text(
-                                  "Оформить заказ",
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                              Flexible(
-                                fit: FlexFit.tight,
-                                child: Text(
-                                  "${globals.formatCost(localSum.toString())} ₸",
-                                  textAlign: TextAlign.justify,
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            automaticallyImplyLeading: false,
+            leading: IconButton(
+                onPressed: () {
+                  Navigator.pop(context, true);
+                },
+                icon: Icon(Icons.arrow_back_ios)),
+            backgroundColor: Colors.black,
+            surfaceTintColor: Colors.black,
+            floating: false,
+            pinned: true,
+            centerTitle: false,
+            title: Text("Корзина",
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+          // SliverToBoxAdapter(
+          //   child: Text(cart.toString()),
+          // ),
+          _items.length == 0
+              ? SliverFillRemaining(
+                  child: Center(
+                    child: Text("Похоже здесь ничего нет"),
                   ),
                 )
-              : Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 30 * globals.scaleParam),
-                  child: Row(
-                    children: [
-                      MediaQuery.sizeOf(context).width >
-                              MediaQuery.sizeOf(context).height
-                          ? Flexible(
-                              flex: 2,
-                              fit: FlexFit.tight,
-                              child: SizedBox(),
-                            )
-                          : SizedBox(),
-                      Flexible(
-                        fit: FlexFit.tight,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.maybePop(context);
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Flexible(
-                                fit: FlexFit.tight,
-                                child: Text(
-                                  "За покупками!",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontVariations: <FontVariation>[
-                                      FontVariation('wght', 800)
-                                    ],
-                                    fontSize: 42 * globals.scaleParam,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-          body: CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                centerTitle: false,
-                backgroundColor: Colors.black,
-                title: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "${widget.business["name"]}",
-                      style: TextStyle(fontSize: 24),
-                    ),
-                    Text(
-                      "${widget.business["address"]}",
-                      style: TextStyle(fontSize: 14),
-                    )
-                  ],
-                ),
-              ),
-              SliverPadding(
-                padding: EdgeInsets.all(10),
-                sliver: SliverList.builder(
-                  itemCount: items.length,
+              : SliverList.builder(
+                  itemCount: _items.length,
                   itemBuilder: (context, index) {
-                    items[index];
-                    return Column(
-                      children: [
-                        Dismissible(
-                          // Each Dismissible must contain a Key. Keys allow Flutter to
-                          // uniquely identify widgets.
-                          key: Key(items[index]["item_id"].toString()),
-                          confirmDismiss: (direction) async {
-                            setState(() {
-                              dismissingItem = true;
-                            });
-                            bool result = await _deleteFromCart(
-                                items[index]["item_id"].toString());
+                    final Map<String, dynamic> item = _items[index];
 
-                            if (result) {
-                              updatePrices(index);
-                            }
+                    return item["amount_b"] <= 0
+                        ? Container()
+                        : Container(
+                            margin: EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                color: Colors.black),
+                            child: GestureDetector(
+                              // onTap: () {
+                              //   showMaterialModalBottomSheet(
+                              //     context: context,
+                              //     builder: (context) => StatefulBuilder(
+                              //       builder: (context, setState) {
+                              //         double amount =
+                              //             item["amount_b"].runtimeType == int
+                              //                 ? item["amount_b"].toDouble()
+                              //                 : item["amount_b"];
+                              //         return Container(
+                              //           height: 300,
+                              //           color: Color(0xFF121212),
+                              //           child: Row(
+                              //             children: [
+                              //               IconButton(
+                              //                   onPressed: () {
+                              //                     setState(() {
+                              //                       amount--;
+                              //                     });
+                              //                   },
+                              //                   icon: Icon(Icons.add)),
+                              //               Text(amount.toString()),
+                              //             ],
+                              //           ),
+                              //         );
+                              //       },
+                              //     ),
+                              //   );
+                              // },
+                              child: Container(
+                                padding: EdgeInsets.all(10),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Flexible(
+                                        flex: 2,
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              item["name"],
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12),
+                                            ),
+                                            item["selected_options"] == null
+                                                ? Container()
+                                                : ListView.builder(
+                                                    primary: false,
+                                                    shrinkWrap: true,
+                                                    itemCount:
+                                                        item["selected_options"]
+                                                            .length,
+                                                    itemBuilder:
+                                                        (context, index2) {
+                                                      Map option = item[
+                                                              "selected_options"]
+                                                          [index2];
+                                                      return Text(
+                                                          option["name"]);
+                                                    },
+                                                  ),
+                                          ],
+                                        )),
+                                    Flexible(
+                                        flex: 2,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                            color: Color(0xFF121212),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              IconButton(
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      isLoading = true;
+                                                    });
+                                                    try {
+                                                      changeCartItemByCartItemId(
+                                                        item["cart_item_id"],
+                                                        (item["amount_b"] -
+                                                                item[
+                                                                    "quantity"])
+                                                            .toDouble(),
+                                                        widget.business[
+                                                            "business_id"],
+                                                      ).then((v) {
+                                                        if (v["result"]) {
+                                                          if (v["amount"] ==
+                                                              null) {
+                                                            _getCart();
+                                                          }
+                                                          print("succes");
+                                                          if (v["amount"] ==
+                                                              null) {
+                                                            _getCart();
+                                                          } else {
+                                                            setState(() {
+                                                              item["amount_b"] =
+                                                                  double.parse(v[
+                                                                      "amount"]);
+                                                              isLoading = false;
+                                                            });
+                                                          }
 
-                            setState(() {
-                              dismissingItem = false;
-                            });
-                            return result;
-                          },
-                          onDismissed: ((direction) {
-                            print(MediaQuery.of(context).size.height *
-                                ((4 - items.length) / 10));
-                          }),
-                          // Provide a function that tells the app
-                          // what to do after an item has been swiped away.
+                                                          _getCart();
+                                                        } else {
+                                                          _getCart();
 
-                          // Show a red background as the item is swiped away.
-                          background: SizedBox(
-                            width: 200 * globals.scaleParam,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width:
-                                      MediaQuery.of(context).size.width * 0.7,
-                                  alignment: Alignment.center,
-                                  padding: EdgeInsets.only(right: 10),
-                                  color: Colors.black,
+                                                          print("error");
+                                                        }
+                                                      });
+                                                    } catch (e) {
+                                                      _getCart();
+                                                    }
+                                                  },
+                                                  icon: Icon(Icons.remove)),
+                                              Text(
+                                                item["amount_b"].toString(),
+                                                style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                              IconButton(
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      isLoading = true;
+                                                    });
+                                                    try {
+                                                      changeCartItemByCartItemId(
+                                                        item["cart_item_id"],
+                                                        (item["amount_b"] +
+                                                                item[
+                                                                    "quantity"])
+                                                            .toDouble(),
+                                                        widget.business[
+                                                            "business_id"],
+                                                      ).then((v) {
+                                                        if (v["result"]) {
+                                                          if (v["amount"] ==
+                                                              null) {
+                                                            _getCart();
+                                                          }
+                                                          print("succes");
+
+                                                          if (v["amount"] ==
+                                                              null) {
+                                                            _getCart();
+                                                          } else {
+                                                            setState(() {
+                                                              item["amount_b"] =
+                                                                  double.parse(v[
+                                                                      "amount"]);
+                                                              isLoading = false;
+                                                            });
+                                                          }
+
+                                                          _getCart();
+                                                        } else {
+                                                          _getCart();
+
+                                                          print("error");
+                                                        }
+                                                      });
+                                                    } catch (e) {
+                                                      _getCart();
+                                                    }
+                                                  },
+                                                  icon: Icon(Icons.add)),
+                                            ],
+                                          ),
+                                        ))
+                                  ],
                                 ),
-                                Container(
-                                  width:
-                                      MediaQuery.of(context).size.width * 0.3,
-                                  alignment: Alignment.center,
-                                  padding: EdgeInsets.only(right: 10),
-                                  color: Colors.black,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.delete),
-                                      Text("Удалить")
-                                    ],
-                                  ),
-                                )
-                              ],
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              index == 0
-                                  ? SizedBox(
-                                      height: 5 * globals.scaleParam,
-                                    )
-                                  : SizedBox(),
-                              ItemCardMinimal(
-                                element: items[index],
-                                updateExternalInfo: updateDataAmount,
-                                business: widget.business,
-                                index: index,
-                                categoryId: "",
-                                categoryName: "",
-                                scroll: 0,
                               ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    );
+                            ));
                   },
                 ),
+          SliverToBoxAdapter(
+            child: Container(
+              padding: EdgeInsets.all(20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Итого",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  Text(
+                    sum.toString() + "₸",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  )
+                ],
               ),
-            ],
-          )),
+            ),
+          ),
+          SliverToBoxAdapter(
+              child: Container(
+            padding: EdgeInsets.all(10),
+            child: ElevatedButton(
+                onPressed: isLoading
+                    ? null
+                    : () {
+                        Navigator.push(
+                          context,
+                          CupertinoPageRoute(
+                            builder: (context) {
+                              return PreLoadOrderPage(
+                                business: widget.business,
+                              );
+                            },
+                          ),
+                        );
+                      },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text("Продолжить",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18)),
+                  ],
+                )),
+          ))
+        ],
+      ),
     );
   }
 }

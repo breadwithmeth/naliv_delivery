@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/cartPage.dart';
+import 'package:naliv_delivery/pages/preLoadCartPage.dart';
 import 'package:naliv_delivery/shared/bottomBar.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:flutter/cupertino.dart';
@@ -56,9 +57,8 @@ class _SearchResultPageState extends State<SearchResultPage> {
                   context,
                   CupertinoPageRoute(
                     builder: (context) {
-                      return CartPage(
+                      return PreLoadCartPage(
                         business: widget.business,
-                        user: {},
                       );
                     },
                   ),

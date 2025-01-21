@@ -16,6 +16,7 @@ import 'package:naliv_delivery/pages/newItemsPage.dart';
 import 'package:naliv_delivery/pages/orderHistoryPage.dart';
 import 'package:naliv_delivery/pages/pickAddressPage.dart';
 import 'package:naliv_delivery/pages/popularItemsPage.dart';
+import 'package:naliv_delivery/pages/preLoadCartPage.dart';
 import 'package:naliv_delivery/pages/preLoadCategoryPage.dart';
 import 'package:naliv_delivery/pages/searchPage.dart';
 import 'package:naliv_delivery/pages/selectAddressPage.dart';
@@ -123,10 +124,9 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                         context,
                         CupertinoPageRoute(
                           builder: (context) {
-                            return CartPage(
-                              business: widget.business,
-                              user: widget.user,
-                            );
+                            return PreLoadCartPage(
+                        business: widget.business,
+                      );
                           },
                         ),
                       );

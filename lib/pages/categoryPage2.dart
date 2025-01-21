@@ -1,9 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:dynamic_tabbar/dynamic_tabbar.dart';
 import 'package:naliv_delivery/pages/cartPage.dart';
+import 'package:naliv_delivery/pages/preLoadCartPage.dart';
+import 'package:naliv_delivery/pages/preLoadCategoryPage.dart';
 import 'package:naliv_delivery/shared/bottomBar.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:naliv_delivery/shared/searchWidget.dart';
@@ -36,7 +40,7 @@ class CategoryPage2 extends StatefulWidget {
 }
 
 class _CategoryPage2State extends State<CategoryPage2>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, RouteAware {
   final List<GlobalObjectKey> keyList =
       List.generate(100, (index) => GlobalObjectKey(index));
   late TabController _tabController;
@@ -62,6 +66,30 @@ class _CategoryPage2State extends State<CategoryPage2>
   int rangeHighPrice = 0;
 
   List items = [];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context) as PageRoute);
+    print("dadasdasasd");
+  }
+
+  @override
+  void didPopNext() {
+    // Covering route was popped off the navigator.
+    print("popped");
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Navigator.pushReplacement(context, CupertinoPageRoute(builder: (context) {
+        return PreLoadCategoryPage(
+          categoryId: widget.categoryId,
+          business: widget.business,
+          category: widget.category,
+          subcategories: widget.subcategories,
+          user: widget.user,
+        );
+      }));
+    });
+  }
 
   initPriceRange() {
     int lowestPricet = widget.items[0]["price"];
@@ -169,17 +197,18 @@ class _CategoryPage2State extends State<CategoryPage2>
                   backgroundColor: Colors.orange,
                   foregroundColor: Colors.white,
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      CupertinoPageRoute(
-                        builder: (context) {
-                          return CartPage(
-                            business: widget.business,
-                            user: widget.user,
-                          );
-                        },
-                      ),
-                    );
+                    SchedulerBinding.instance.addPostFrameCallback((_) {
+                      Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (context) {
+                            return PreLoadCartPage(
+                              business: widget.business,
+                            );
+                          },
+                        ),
+                      );
+                    });
                   },
                   child: Icon(Icons.shopping_cart_checkout),
                 ),

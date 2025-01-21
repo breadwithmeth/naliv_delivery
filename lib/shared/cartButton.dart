@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/cartPage.dart';
+import 'package:naliv_delivery/pages/preLoadCartPage.dart';
 import '../globals.dart' as globals;
 import 'package:flutter/cupertino.dart';
 
@@ -41,10 +42,7 @@ class _CartButtonState extends State<CartButton> {
               context,
               CupertinoPageRoute(
                 builder: (context) {
-                  return CartPage(
-                    business: widget.business,
-                    user: widget.user,
-                  );
+                  return PreLoadCartPage(business: widget.business);
                 },
               ),
             );

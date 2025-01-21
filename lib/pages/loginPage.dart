@@ -89,9 +89,27 @@ class _LoginPageState extends State<LoginPage> {
             Column(
               children: [
                 Flexible(
-                  child: Container(
-                    alignment: Alignment.center,
-                    child: Text("+7" + _number, style: TextStyle(fontSize: 24)),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(child: Container()),
+                      Flexible(
+                        flex: 3,
+                        child: Container(
+                          alignment: Alignment.center,
+                          child: Text("+7" + _number,
+                              style: TextStyle(fontSize: 24)),
+                        ),
+                      ),
+                      Flexible(
+                          child: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _number = "";
+                                });
+                              },
+                              icon: Icon(Icons.cancel)))
+                    ],
                   ),
                   flex: 2,
                 ),
@@ -141,7 +159,10 @@ class _LoginPageState extends State<LoginPage> {
                                     child: InkWell(
                                       onTap: () {
                                         setState(() {
-                                          _number = "";
+                                          if (_number.length > 0) {
+                                            _number = _number.substring(
+                                                0, _number.length - 1);
+                                          }
                                         });
                                       },
                                       child: Container(
@@ -150,7 +171,7 @@ class _LoginPageState extends State<LoginPage> {
                                               Border.all(color: Colors.black),
                                         ),
                                         child: Center(
-                                          child: Icon(Icons.close),
+                                          child: Icon(Icons.arrow_back_ios_new),
                                         ),
                                       ),
                                     ),
@@ -268,6 +289,15 @@ class _VerifyPageState extends State<VerifyPage> {
                   ),
                   flex: 2,
                 ),
+                Flexible(
+                    child: Container(
+                        alignment: Alignment.center,
+                        child: TextButton(
+                          onPressed: () {},
+                          child: Text("Изменить " + widget.phone,
+                              style:
+                                  TextStyle(fontSize: 12, color: Colors.white)),
+                        ))),
                 Flexible(
                     child: Container(
                   alignment: Alignment.center,

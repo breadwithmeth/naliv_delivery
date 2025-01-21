@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:naliv_delivery/pages/cartPage.dart';
+import 'package:naliv_delivery/pages/preLoadCartPage.dart';
 import 'package:naliv_delivery/shared/bottomBar.dart';
 import 'package:naliv_delivery/shared/searchWidget.dart';
 import '../globals.dart' as globals;
@@ -166,10 +167,9 @@ class _ParentCategoryPageState extends State<ParentCategoryPage>
               context,
               CupertinoPageRoute(
                 builder: (context) {
-                  return CartPage(
-                    business: widget.business,
-                    user: widget.user,
-                  );
+                  return PreLoadCartPage(
+                        business: widget.business,
+                      );
                 },
               ),
             ).then(

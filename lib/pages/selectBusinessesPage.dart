@@ -44,14 +44,18 @@ class _SelectBusinessesPageState extends State<SelectBusinessesPage> {
       _isLoading = true;
     });
     await getUser().then((user) {
-      Navigator.push(context, CupertinoPageRoute(
-        builder: (context) {
-          return MainPage(
-              currentAddress: widget.currentAddress,
-              user: user!,
-              business: business);
-        },
-      ));
+      Navigator.pushAndRemoveUntil(
+        context,
+        CupertinoPageRoute(
+          builder: (context) {
+            return MainPage(
+                currentAddress: widget.currentAddress,
+                user: user!,
+                business: business);
+          },
+        ),
+        (Route<dynamic> route) => false,
+      );
     });
   }
 
