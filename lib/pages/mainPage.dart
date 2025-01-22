@@ -125,8 +125,8 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                         CupertinoPageRoute(
                           builder: (context) {
                             return PreLoadCartPage(
-                        business: widget.business,
-                      );
+                              business: widget.business,
+                            );
                           },
                         ),
                       );
@@ -231,7 +231,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                                             MainAxisAlignment.spaceBetween,
                                         children: [
                                           Flexible(
-                                            flex: 4,
+                                            flex: 6,
                                             child: GestureDetector(
                                                 onTap: () {
                                                   Navigator.push(context,
@@ -259,7 +259,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                                                 child: Row(
                                                   children: [
                                                     Flexible(
-                                                      flex: 3,
+                                                      flex: 4,
                                                       child: Text(
                                                         widget.currentAddress[
                                                                 "address"] ??
@@ -271,13 +271,15 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                                                 )),
                                           ),
                                           Flexible(
+                                              flex: 2, child: BonusWidget()),
+                                          Flexible(
                                             child: IconButton(
                                                 onPressed: () {
                                                   Scaffold.of(context)
                                                       .openDrawer();
                                                 },
                                                 icon: Icon(Icons.menu)),
-                                          )
+                                          ),
                                         ],
                                       )
                                     ],
@@ -310,7 +312,6 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                           ),
                         ),
 
-                        SliverToBoxAdapter(child: BonusWidget()),
                         SliverPadding(
                           padding:
                               EdgeInsets.symmetric(horizontal: 10, vertical: 5),

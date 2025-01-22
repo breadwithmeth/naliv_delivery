@@ -2823,36 +2823,78 @@ class _ItemCardListTileState extends State<ItemCardListTile>
                   children: [
                     Flexible(
                         flex: 3,
-                        child: AspectRatio(
-                            aspectRatio: 1,
-                            child: Container(
-                              clipBehavior: Clip.antiAliasWithSaveLayer,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(15 * globals.scaleParam),
-                                ),
-                                color: Color(0xFF121212),
-                              ),
-                              child: element["img"] != null
-                                  ? ExtendedImage.network(
-                                      element["img"],
-                                      // height: double.infinity,
-
-                                      clearMemoryCacheWhenDispose: true,
-                                      enableMemoryCache: true,
-                                      enableLoadState: false,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : ExtendedImage.asset(
-                                      "assets/category_items/no_image_ico.png",
-                                      // height: double.infinity,
-
-                                      clearMemoryCacheWhenDispose: true,
-                                      enableMemoryCache: true,
-                                      enableLoadState: false,
-                                      fit: BoxFit.cover,
+                        child: Stack(
+                          children: [
+                            AspectRatio(
+                                aspectRatio: 1,
+                                child: Container(
+                                  clipBehavior: Clip.antiAliasWithSaveLayer,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(15 * globals.scaleParam),
                                     ),
-                            ))),
+                                    color: Color(0xFF121212),
+                                  ),
+                                  child: element["img"] != null
+                                      ? ExtendedImage.network(
+                                          element["img"],
+                                          // height: double.infinity,
+
+                                          clearMemoryCacheWhenDispose: true,
+                                          enableMemoryCache: true,
+                                          enableLoadState: false,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : ExtendedImage.asset(
+                                          "assets/category_items/no_image_ico.png",
+                                          // height: double.infinity,
+
+                                          clearMemoryCacheWhenDispose: true,
+                                          enableMemoryCache: true,
+                                          enableLoadState: false,
+                                          fit: BoxFit.cover,
+                                        ),
+                                )),
+                            AspectRatio(
+                                aspectRatio: 1,
+                                child: promotions.length == 0
+                                    ? Container()
+                                    : Container(
+                                        clipBehavior:
+                                            Clip.antiAliasWithSaveLayer,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.all(
+                                            Radius.circular(
+                                                15 * globals.scaleParam),
+                                          ),
+                                          color: Colors.transparent,
+                                        ),
+                                        child: Wrap(
+                                          children: [
+                                            for (var promo in promotions)
+                                              Container(
+                                                padding: EdgeInsets.all(5),
+                                                decoration: BoxDecoration(
+                                                    borderRadius:
+                                                        BorderRadius.only(
+                                                      bottomRight:
+                                                          Radius.circular(15 *
+                                                              globals
+                                                                  .scaleParam),
+                                                    ),
+                                                    color: Colors.white),
+                                                child: Text(
+                                                  promo["name"],
+                                                  style: TextStyle(
+                                                      color: Colors.black,
+                                                      fontWeight:
+                                                          FontWeight.bold),
+                                                ),
+                                              )
+                                          ],
+                                        )))
+                          ],
+                        )),
                     Spacer(),
                     Flexible(
                         flex: 7,

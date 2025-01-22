@@ -35,52 +35,68 @@ class _BonusWidgetState extends State<BonusWidget> {
   @override
   Widget build(BuildContext context) {
     return Container(
-        margin: EdgeInsets.only(left: 5, right: 5, bottom: 10),
         padding: EdgeInsets.all(0),
         clipBehavior: Clip.hardEdge,
-        height: 150,
         decoration: BoxDecoration(
             color: Colors.orangeAccent,
             borderRadius: BorderRadius.all(Radius.circular(30))),
         child: AnimatedMeshGradient(
             colors: [
+              Colors.orangeAccent.shade700,
+              Colors.orange,
               Colors.black,
-              Colors.deepPurpleAccent.shade700,
-              Colors.black,
-              Colors.indigo.shade900
+              Colors.amber.shade900
             ],
-            options: AnimatedMeshGradientOptions(),
+            options: AnimatedMeshGradientOptions(
+                frequency: 5, amplitude: 50, speed: 1),
             child: AnimatedCrossFade(
                 alignment: Alignment.bottomCenter,
                 firstChild: Container(
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.8),
+                      color: Colors.black.withOpacity(0.4),
                       boxShadow: [
-                        BoxShadow(
-                            color: Colors.white.withOpacity(0.5),
-                            blurRadius: 10,
-                            spreadRadius: 5)
+                        // BoxShadow(
+                        //     color: Colors.white.withOpacity(0.5),
+                        //     blurRadius: 10,
+                        //     spreadRadius: 5)
                       ],
                     ),
-                    padding: EdgeInsets.all(10),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    padding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+                    child: GestureDetector(
+                      onTap: () {
+                        showModalBottomSheet(
+                          context: context,
+                          builder: (context) {
+                            return Container(
+                              padding: EdgeInsets.all(30),
+                              decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(30))),
+                              height: 500,
+                              child: Column(
+                                children: [
+                                  BarcodeWidget(
+                                    barcode: Barcode.code128(),
+                                    data: card_uuid,
+                                    drawText: false,
+                                  ),
+                                  Text(
+                                    "Покажите код сотруднику магазина",
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black),
+                                  )
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                      child: FittedBox(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                Text(
-                                  "Текущий баланс:",
-                                  style: GoogleFonts.roboto(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white),
-                                ),
-                              ],
-                            ),
                             amount == null
                                 ? CircularProgressIndicator()
                                 : Row(
@@ -96,48 +112,15 @@ class _BonusWidgetState extends State<BonusWidget> {
                                       Text(
                                         amount.toString(),
                                         style: GoogleFonts.prostoOne(
-                                            fontSize: 48,
+                                            fontSize: 20,
                                             fontWeight: FontWeight.w400,
                                             color: Colors.white),
                                       ),
-                                      Text(
-                                        "Б",
-                                        style: GoogleFonts.prostoOne(
-                                            fontSize: 24,
-                                            fontWeight: FontWeight.w900,
-                                            color: Colors.white),
-                                      ),
                                     ],
-                                  )
+                                  ),
                           ],
                         ),
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.info),
-                              onPressed: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) {
-                                    return AlertDialog(
-                                      content: Text(
-                                          "Бонусы начисляются в течение 24 часов после покупки. Чтобы использовать бонусы, необходимо предъявить дисконтную карту в магазине. Максимальная сумма, которую можно оплатить бонусами, составляет 30% от стоимости покупки."),
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                            IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    showbarcode = !showbarcode;
-                                  });
-                                },
-                                icon: Icon(Icons.qr_code))
-                          ],
-                        )
-                      ],
+                      ),
                     )),
                 secondChild: GestureDetector(
                   onTap: () => setState(() {
@@ -169,6 +152,6 @@ class _BonusWidgetState extends State<BonusWidget> {
                 crossFadeState: showbarcode
                     ? CrossFadeState.showSecond
                     : CrossFadeState.showFirst,
-                duration: Durations.medium2)));
+                duration: Durations.short4)));
   }
 }

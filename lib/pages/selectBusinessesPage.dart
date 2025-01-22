@@ -69,28 +69,8 @@ class _SelectBusinessesPageState extends State<SelectBusinessesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        floatingActionButton: Padding(
-          padding: EdgeInsets.all(10),
-          child: FloatingActionButton(
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.black,
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) {
-                  return Dialog(
-                    child: BonusWidget(),
-                  );
-                },
-              );
-            },
-            child: Icon(
-              Icons.qr_code,
-              color: Colors.black,
-            ),
-          ),
-        ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+        floatingActionButton: BonusWidget(),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
         body: Stack(
           children: [
             SafeArea(
@@ -195,7 +175,11 @@ class _SelectBusinessesPageState extends State<SelectBusinessesPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    _closestBusiness["delivery_price"],
+                                    (double.parse(_closestBusiness[
+                                                    "delivery_price"])
+                                                .toInt())
+                                            .toString() +
+                                        "₸",
                                     style: GoogleFonts.prostoOne(
                                       fontSize: 24,
                                       fontWeight: FontWeight.w400,
@@ -275,11 +259,12 @@ class _SelectBusinessesPageState extends State<SelectBusinessesPage> {
                           },
                           trailing: Text(
                             (double.parse(widget.businesses[index]
-                                        ["delivery_price"])
-                                    .toInt())
-                                .toString(),
+                                            ["delivery_price"])
+                                        .toInt())
+                                    .toString() +
+                                "₸",
                             style: GoogleFonts.prostoOne(
-                              fontSize: 24,
+                              fontSize: 16,
                               fontWeight: FontWeight.w400,
                               color: Colors.white,
                             ),
