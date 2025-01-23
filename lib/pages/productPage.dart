@@ -338,6 +338,21 @@ class _ProductPageState extends State<ProductPage> {
     });
   }
 
+  List addItems = [];
+
+  _getAdditions() {
+    getAdditions(widget.business["business_id"],
+            widget.item["category_id"].toString())
+        .then((value) {
+      print("===========");
+      print(value);
+      setState(() {
+        addItems = value["items"] ?? [];
+        addItems.shuffle();
+      });
+    });
+  }
+
   List _properties = [];
   _getProperties() {
     getProperties(widget.item["item_id"].toString()).then((value) {
@@ -373,6 +388,7 @@ class _ProductPageState extends State<ProductPage> {
   @override
   void initState() {
     super.initState();
+    _getAdditions();
     _getRecItems();
     _getProperties();
     if (widget.item["options"] != null) {
@@ -1168,7 +1184,7 @@ class _ProductPageState extends State<ProductPage> {
                                             .colorScheme
                                             .onSurface,
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 24,
+                                        fontSize: 16,
                                       ),
                                     ),
                                     options[indexOption]["required"] == 1
@@ -1244,8 +1260,7 @@ class _ProductPageState extends State<ProductPage> {
                                                           FontVariation(
                                                               'wght', 600)
                                                         ],
-                                                        fontSize: 34 *
-                                                            globals.scaleParam,
+                                                        fontSize: 12,
                                                       ),
                                                     ),
                                                     selected: options[
@@ -1435,6 +1450,64 @@ class _ProductPageState extends State<ProductPage> {
                           );
                         },
                       ),
+                      addItems.length < 1
+                          ? Container()
+                          : Container(
+                              height: 180,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                primary: false,
+                                shrinkWrap: true,
+                                itemCount: addItems.length,
+                                itemBuilder: (context, index) {
+                                  return GestureDetector(
+                                    onTap: () {
+                                      showModalProductPageWithClearedState(
+                                          addItems[index]);
+                                    },
+                                    child: Container(
+                                      margin: EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(15)),
+                                          color: Colors.grey.shade900),
+                                      child: Column(
+                                        children: [
+                                          Container(
+                                            clipBehavior: Clip.antiAlias,
+                                            decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.all(
+                                                    Radius.circular(15))),
+                                            margin: EdgeInsets.all(10),
+                                            height: 100,
+                                            width: 100,
+                                            child: ExtendedImage.network(
+                                              addItems[index]["img"] ?? "/",
+                                              fit: BoxFit.cover,
+                                              width: double.infinity,
+                                            ),
+                                          ),
+                                          Container(
+                                            width: 100,
+                                            height: 40,
+                                            child: Text(
+                                              addItems[index]["name"],
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12),
+                                              textAlign: TextAlign.left,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
                       item["group"] != null
                           ? Container(
                               padding: EdgeInsets.symmetric(

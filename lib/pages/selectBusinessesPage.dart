@@ -49,6 +49,7 @@ class _SelectBusinessesPageState extends State<SelectBusinessesPage> {
         CupertinoPageRoute(
           builder: (context) {
             return MainPage(
+                businesses: widget.businesses,
                 currentAddress: widget.currentAddress,
                 user: user!,
                 business: business);

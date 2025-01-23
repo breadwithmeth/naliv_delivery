@@ -20,7 +20,9 @@ import 'package:naliv_delivery/pages/preLoadCartPage.dart';
 import 'package:naliv_delivery/pages/preLoadCategoryPage.dart';
 import 'package:naliv_delivery/pages/searchPage.dart';
 import 'package:naliv_delivery/pages/selectAddressPage.dart';
+import 'package:naliv_delivery/pages/selectBusinessesPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
+import 'package:naliv_delivery/pages/storiesPage.dart';
 import 'package:naliv_delivery/pages/supportPage.dart';
 import 'package:naliv_delivery/shared/bonus.dart';
 import 'package:naliv_delivery/shared/bottomBar.dart';
@@ -36,10 +38,12 @@ class MainPage extends StatefulWidget {
     required this.currentAddress,
     required this.user,
     required this.business,
+    required this.businesses,
   });
   final Map currentAddress;
   final Map<String, dynamic> user;
   final Map business;
+  final List<Map> businesses;
   @override
   State<MainPage> createState() => _MainPageState();
 }
@@ -53,6 +57,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   bool isLoading = true;
   List<dynamic> addresses = [];
   List parentCategories = [];
+  List stories = [];
   _getCategories() {
     getCategories(widget.business["business_id"]).then((value) {
       setState(() {
@@ -87,10 +92,19 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     });
   }
 
+  _getStories() {
+    getStories(widget.business["business_id"]).then((v) {
+      setState(() {
+        stories = v["stories"];
+      });
+    });
+  }
+
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
+    _getStories();
     _getCategories();
     _getAddresses();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -308,8 +322,156 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                             )),
                         SliverToBoxAdapter(
                           child: Container(
-                            height: 100,
+                            height: 70,
                           ),
+                        ),
+                        SliverToBoxAdapter(
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(context, CupertinoPageRoute(
+                                builder: (context) {
+                                  return SelectBusinessesPage(
+                                      businesses: widget.businesses,
+                                      currentAddress: widget.currentAddress);
+                                },
+                              ));
+                            },
+                            child: Stack(
+                              children: [
+                                Container(
+                                  margin: EdgeInsets.all(10),
+                                  height: 100,
+                                  foregroundDecoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                          colors: [
+                                        Colors.black,
+                                        Colors.transparent
+                                      ],
+                                          begin: Alignment.bottomCenter,
+                                          end: Alignment.topCenter)),
+                                  decoration: BoxDecoration(
+                                      borderRadius:
+                                          BorderRadius.all(Radius.circular(15)),
+                                      image: DecorationImage(
+                                          fit: BoxFit.cover,
+                                          image: NetworkImage(
+                                              widget.business["img"]))),
+                                ),
+                                Container(
+                                  margin: EdgeInsets.all(15),
+                                  height: 100,
+                                  alignment: Alignment.bottomLeft,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        widget.business["name"],
+                                        textAlign: TextAlign.left,
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 26),
+                                      ),
+                                      Text(
+                                        widget.business["address"],
+                                        textAlign: TextAlign.left,
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        SliverToBoxAdapter(
+                          child: stories.length == 0
+                              ? Container()
+                              : Container(
+                                  height: 200,
+                                  child: ListView.builder(
+                                    primary: false,
+                                    shrinkWrap: true,
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: stories.length,
+                                    itemBuilder: (context, index) {
+                                      return GestureDetector(
+                                        onTap: () {
+                                          Navigator.push(context,
+                                              MaterialPageRoute(
+                                            builder: (context) {
+                                              return StoriesPage(
+                                                stories: stories ?? [],
+                                                business: widget.business,
+                                                initialIndex: index,
+                                                t_id: stories[index]["t_id"]
+                                                    .toString(),
+                                                type: stories[index]["type"]
+                                                    .toString(),
+                                              );
+                                            },
+                                          ));
+                                        },
+                                        child: Container(
+                                            margin: EdgeInsets.all(10),
+                                            height: 200,
+                                            child: Stack(
+                                              children: [
+                                                AspectRatio(
+                                                  aspectRatio: 9 / 16,
+                                                  child: Container(
+                                                    decoration: BoxDecoration(
+                                                        borderRadius:
+                                                            BorderRadius.all(
+                                                                Radius.circular(
+                                                                    15)),
+                                                        color: Colors.yellow,
+                                                        image: DecorationImage(
+                                                            fit: BoxFit.cover,
+                                                            image: NetworkImage(
+                                                                stories[index][
+                                                                    "cover"]))),
+                                                  ),
+                                                ),
+                                                AspectRatio(
+                                                  aspectRatio: 9 / 16,
+                                                  child: Container(
+                                                    padding: EdgeInsets.all(5),
+                                                    alignment:
+                                                        Alignment.bottomLeft,
+                                                    decoration: BoxDecoration(
+                                                      gradient: LinearGradient(
+                                                          begin:
+                                                              Alignment.center,
+                                                          end: Alignment
+                                                              .bottomCenter,
+                                                          colors: [
+                                                            Colors.transparent,
+                                                            Colors.black
+                                                          ]),
+                                                      borderRadius:
+                                                          BorderRadius.all(
+                                                              Radius.circular(
+                                                                  15)),
+                                                    ),
+                                                    child: Text(
+                                                      stories[index]["name"],
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            )),
+                                      );
+                                    },
+                                  ),
+                                ),
                         ),
 
                         SliverPadding(

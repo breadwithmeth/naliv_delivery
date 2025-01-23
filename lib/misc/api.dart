@@ -1512,3 +1512,100 @@ Future<Map> changeCartItemByCartItemId(
   Map data = jsonDecode(response.body);
   return data;
 }
+
+Future<Map> getStories(
+  String businessId,
+) async {
+  String? token = globals.currentToken;
+
+  print("ADD TO CARD");
+  if (token == null) {
+    return {};
+  }
+  var url = Uri.https(URL_API, 'api/item/getStories');
+
+  late var response;
+  response = await client.post(
+    url,
+    body: json.encode({
+      'business_id': businessId,
+    }),
+    headers: {"Content-Type": "application/json", "AUTH": token},
+  );
+
+  Map data = jsonDecode(response.body);
+  return data;
+}
+
+Future<Map<String, dynamic>> getItemsPromotion(
+    String business_id, String promotion_id) async {
+  String? token = globals.currentToken;
+
+  if (token == null) {
+    return {};
+  }
+  var url = Uri.https(URL_API, 'api/item/get');
+  var response = await client.post(
+    url,
+    headers: {"Content-Type": "application/json", "AUTH": token},
+    body:
+        json.encode({'business_id': business_id, 'promotion_id': promotion_id}),
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(response.body);
+  Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+  print(
+      "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
+  return data;
+}
+
+Future<Map<String, dynamic>> getItemsCollection(
+    String business_id, String collection_id) async {
+  String? token = globals.currentToken;
+
+  if (token == null) {
+    return {};
+  }
+  var url = Uri.https(URL_API, 'api/item/get');
+  var response = await client.post(
+    url,
+    headers: {"Content-Type": "application/json", "AUTH": token},
+    body: json
+        .encode({'business_id': business_id, 'collection_id': collection_id}),
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(response.body);
+  Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+  print(
+      "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
+  return data;
+}
+
+Future<Map<String, dynamic>> getAdditions(
+    String business_id, String comp_category_id) async {
+  String? token = globals.currentToken;
+
+  if (token == null) {
+    return {};
+  }
+  var url = Uri.https(URL_API, 'api/item/get');
+  var response = await client.post(
+    url,
+    headers: {"Content-Type": "application/json", "AUTH": token},
+    body: json.encode({
+      'business_id': business_id,
+      'comp_category_id': comp_category_id,
+      "page": 1,
+      "all": "true"
+    }),
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(response.body);
+  Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+  print(
+      "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
+  return data;
+}

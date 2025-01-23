@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
+import 'package:naliv_delivery/pages/preLoadDataPage2.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:naliv_delivery/shared/loadingScreen.dart';
@@ -229,7 +230,7 @@ class _VerifyPageState extends State<VerifyPage> {
       if (value) {
         Navigator.pushReplacement(context, CupertinoPageRoute(
           builder: (context) {
-            return Main();
+            return Preloaddatapage2();
           },
         ));
       } else {

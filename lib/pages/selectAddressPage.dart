@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createAddressPage.dart';
 import 'package:naliv_delivery/pages/createOrder.dart';
+import 'package:naliv_delivery/pages/mainPage.dart';
 import 'package:naliv_delivery/pages/preLoadOrderPage.dart';
 import 'package:naliv_delivery/pages/selectBusinessesPage.dart';
 import 'package:naliv_delivery/shared/loadingScreen.dart';
@@ -207,16 +208,42 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                                             business: widget.business!);
                                       }));
                                     } else {
-                                      Navigator.push(context,
+                                      print(v);
+                                      v.sort((a, b) => a['distance']
+                                          .compareTo(b['distance']));
+                                      // Map closestBusijess = v.where(
+                                      //   (element) {
+
+                                      //   },
+                                      // );
+                                      Map closestBusijess = v.first;
+                                      print(closestBusijess);
+                                      getUser().then((user) {
+                                        Navigator.pushAndRemoveUntil(
+                                          context,
                                           CupertinoPageRoute(
-                                        builder: (context) {
-                                          return SelectBusinessesPage(
-                                            businesses: v,
-                                            currentAddress:
-                                                widget.currentAddress,
-                                          );
-                                        },
-                                      ));
+                                            builder: (context) {
+                                              return MainPage(
+                                                  businesses: v,
+                                                  currentAddress:
+                                                      widget.currentAddress,
+                                                  user: user!,
+                                                  business: closestBusijess);
+                                            },
+                                          ),
+                                          (Route<dynamic> route) => false,
+                                        );
+                                      });
+                                      // Navigator.push(context,
+                                      //     CupertinoPageRoute(
+                                      //   builder: (context) {
+                                      //     return SelectBusinessesPage(
+                                      //       businesses: v,
+                                      //       currentAddress:
+                                      //           widget.currentAddress,
+                                      //     );
+                                      //   },
+                                      // ));
                                       setState(() {
                                         _isLoading = false;
                                       });
