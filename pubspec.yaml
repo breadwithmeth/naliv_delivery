@@ -16,7 +16,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version:  1.1.12
+version:  1.1.15
 
 environment:
   sdk: ">=2.19.5 <3.0.0"
@@ -37,81 +37,55 @@ dependencies:
   shared_preferences: ^2.1.1
   http: ^1.0.0
   geolocator: ^12.0.0
-  states_rebuilder: ^6.3.0
   flutter_markdown: ^0.6.17+3
-  intl_phone_number_input: ^0.7.3+1
-  intl_phone_field: ^3.2.0
-  palette_generator: ^0.3.3+3
-  shimmer: ^3.0.0
+ 
   cached_network_image: ^3.3.1
   flutter_map: ^6.1.0
   location: ^5.0.3
   permission_handler: ^11.3.0
   google_fonts: ^6.2.1
-  flutter_cache_manager: ^3.3.1
-  numberpicker: ^2.1.2
-  infinite_scroll_pagination: ^4.0.0
   # flutter_launcher_icons: ^0.13.1
   flutter_map_cancellable_tile_provider: ^2.0.0
-  flutter_hooks: ^0.20.5
-  aura_box: ^1.0.2
+  
   modal_bottom_sheet: ^3.0.0
-  animated_path: ^0.0.2
   # webview_flutter: ^4.8.0
-  flutter_inappwebview: ^6.1.5
   flutter_localizations:
     sdk: flutter
   latlong2: ^0.9.1
   extended_image: ^8.2.1
   vector_map_tiles: ^7.3.1
   url_launcher: ^6.3.0
-  flutter_staggered_grid_view: ^0.7.0
-  qr_flutter: ^4.1.0
   barcode: ^2.2.8
   barcode_widget: ^2.0.4
-  workmanager: ^0.5.2
-  vibration: ^2.0.0
-  socket_io_client: ^2.0.3+1
-  provider: ^6.1.2
   onesignal_flutter: ^5.2.6
   scrollable_positioned_list: ^0.3.8
   super_sliver_list: ^0.4.1
   datepicker_dropdown: ^0.1.5
-  # drawing_animation: ^1.0.0
-  chatwoot_sdk:
-    git:
-        url: https://github.com/hungryemon/chatwoot-flutter-sdk.git
-        ref: develop
+  
   mesh_gradient: ^1.3.8
   persistent_header_adaptive: ^2.1.0
   loading_animation_widget: ^1.3.0
   carousel_slider: ^5.0.0
   bottom_sheet_scroll_physics: ^1.0.0
-  flutter_timer_countdown: ^1.0.7
-  flutter_native_splash: ^2.4.4
-  flutter_widget_from_html: ^0.15.3
+  
   dynamic_tabbar: ^1.0.9
   expandable_page_view: ^1.0.17
   visibility_detector: ^0.4.0+2
   story: ^1.1.0
   story_time: ^1.0.6
-
-dependency_overrides:
-  intl: '0.19.0'
-  dio: ^5.4.0
-  http: ^1.0.0
-
+  sqflite: ^2.4.1
+  vibration: ^3.1.1
+  flutter_inappwebview: ^6.1.5
+  
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^2.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

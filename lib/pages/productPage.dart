@@ -7,8 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:shimmer/shimmer.dart';
-import 'package:vibration/vibration.dart';
 
 class ProductPage extends StatefulWidget {
   const ProductPage(
@@ -291,7 +289,6 @@ class _ProductPageState extends State<ProductPage> {
 
   void _onLongPressStart(LongPressStartDetails details) {
     _startPositionY = details.globalPosition.dy;
-    Vibration.vibrate(duration: 100);
   }
 
   void _onLongPressMoveUpdate(LongPressMoveUpdateDetails details) async {
@@ -1129,19 +1126,7 @@ class _ProductPageState extends State<ProductPage> {
                               ),
                             )
                           // TODO: Maybe not even needed anymore, content inside productPage loads immediately because data recieved from categoryPage
-                          : Shimmer.fromColors(
-                              baseColor: Theme.of(context)
-                                  .colorScheme
-                                  .secondary
-                                  .withOpacity(0.05),
-                              highlightColor:
-                                  Theme.of(context).colorScheme.secondary,
-                              child: Container(
-                                width: MediaQuery.of(context).size.width * 0.8,
-                                height: 40,
-                                color: Colors.white,
-                              ),
-                            ),
+                          : Container(),
                     ],
                   ),
                 ),

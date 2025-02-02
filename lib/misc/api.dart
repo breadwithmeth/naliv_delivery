@@ -7,6 +7,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../globals.dart' as globals;
 import 'package:flutter/cupertino.dart';
+import 'package:dio/dio.dart';
+
+final dio = Dio(BaseOptions(
+  baseUrl: "https://chorenn.naliv.kz",
+  sendTimeout: Duration(seconds: 10),
+  connectTimeout: Duration(seconds: 10),
+  receiveTimeout: Duration(seconds: 10),
+));
 
 //var URL_API = '10.8.0.3';
 
@@ -62,6 +70,8 @@ Future<Position> determinePosition(BuildContext ctx) async {
 }
 
 Future<String?> getToken() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   final prefs = await SharedPreferences.getInstance();
   String? token = prefs.getString('token');
   if (token == "000" || token == null) {
@@ -73,6 +83,8 @@ Future<String?> getToken() async {
 }
 
 Future<bool> setToken(Map data) async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   final prefs = await SharedPreferences.getInstance();
   await prefs.setString('token', data['token']);
   final token = prefs.getString('token') ?? false;
@@ -137,9 +149,11 @@ Future<bool> login(String login, String password) async {
 }
 
 Future<bool> setCityAuto(double lat, double lon) async {
-  //   String? token = globals.currentToken;
+  //   WidgetsFlutterBinding.ensureInitialized();String? token = globals.currentToken;
 
-  String? token = globals.currentToken;
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return false;
   }
@@ -159,8 +173,9 @@ Future<bool> setCityAuto(double lat, double lon) async {
 }
 
 Future<Map<String, dynamic>?> getLastSelectedBusiness() async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -175,27 +190,34 @@ Future<Map<String, dynamic>?> getLastSelectedBusiness() async {
   return data;
 }
 
-Future<List<Map>?> getBusinesses() async {
-  String? token = globals.currentToken;
-
+Future<List> getBusinesses() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return [];
   }
-  var url = Uri.https(URL_API, 'api/item/getBusinesses2');
-  var response = await client.post(
-    url,
-    headers: {"Content-Type": "application/json", "AUTH": token},
-  );
+  // var url = Uri.https(URL_API, 'api/item/getBusinesses2');
+  // var response = await client.post(
+  //   url,
+  //   headers: {"Content-Type": "application/json", "AUTH": token},
+  // );
 
-  // List<dynamic> list = json.decode(response.body);
-  List<Map> data = List.from(json.decode(utf8.decode(response.bodyBytes)));
-  print(data);
+  // // List<dynamic> list = json.decode(response.body);
+  // List<Map> data = List.from(json.decode(utf8.decode(response.bodyBytes)));
+  // print(data);
+  Response response = await dio.post('/api/item/getBusinesses2',
+      options: Options(
+        headers: {"Content-Type": "application/json", "AUTH": token},
+      ));
+  List data = response.data;
   return data;
 }
 
 Future<bool> setCurrentStore(String businessId) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return false;
   }
@@ -216,26 +238,35 @@ Future<bool> setCurrentStore(String businessId) async {
 
 Future<List> getCategories(String business_id,
     [bool parent_category = false]) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return [];
   }
-  var url = Uri.https(URL_API, 'api/category/get');
-  var response = await client.post(url,
-      headers: {"Content-Type": "application/json", "AUTH": token},
-      body: json.encode({"business_id": business_id, "all": "true"}));
+  // var url = Uri.https(URL_API, 'api/category/get');
+  // var response = await client.post(url,
+  //     headers: {"Content-Type": "application/json", "AUTH": token},
+  //     body: json.encode({"business_id": business_id, "all": "true"}));
 
-  // List<dynamic> list = json.decode(response.body);
-  List data = json.decode(utf8.decode(response.bodyBytes));
-  print(data);
+  // // List<dynamic> list = json.decode(response.body);
+  // List data = json.decode(utf8.decode(response.bodyBytes));
+  // print(data);
+
+  Response response = await dio.post('/api/category/get',
+      data: {"business_id": business_id, "all": "true"},
+      options: Options(
+        headers: {"Content-Type": "application/json", "AUTH": token},
+      ));
+  List data = response.data;
   return data;
 }
 
 Future<Map?> getItemsMain(int page, String business_id,
     [String? search, String? categoryId]) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -283,54 +314,57 @@ Future<Map?> getItemsMain(int page, String business_id,
 }
 
 Future<Map> getItemsMain3(String business_id, [String? categoryId]) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
-  http.Response response;
-  var url = Uri.https(URL_API, 'api/item/get2');
+  // http.Response response;
+  // var url = Uri.https(URL_API, 'api/item/get2');
 
-  Map<String, String> queryBody = {};
+  // Map<String, String> queryBody = {};
 
-  if (categoryId != null && categoryId.isNotEmpty) {
-    queryBody.addAll({'category_id': categoryId, 'business_id': business_id});
-  }
-  var jsonBody = jsonEncode(queryBody);
+  Response response = await dio.post('/api/item/get3',
+      data: {'category_id': categoryId, 'business_id': business_id},
+      options: Options(
+          headers: {"Content-Type": "application/json", "AUTH": token}));
 
-  if (categoryId != "") {
-    response = await client.post(
-      url,
-      encoding: Encoding.getByName('utf-8'),
-      headers: {"Content-Type": "application/json", "AUTH": token},
-      body: jsonBody,
-    );
-  } else {
-    response = await client.post(
-      url,
-      encoding: Encoding.getByName('utf-8'),
-      headers: {"Content-Type": "application/json", "AUTH": token},
-      body: jsonBody,
-    );
-  }
+  // if (categoryId != null && categoryId.isNotEmpty) {
+  //   queryBody.addAll({'category_id': categoryId, 'business_id': business_id});
+  // }
+  // var jsonBody = jsonEncode(queryBody);
 
-  print(jsonBody);
-  print(queryBody);
+  // if (categoryId != "") {
+  //   response = await client.post(
+  //     url,
+  //     encoding: Encoding.getByName('utf-8'),
+  //     headers: {"Content-Type": "application/json", "AUTH": token},
+  //     body: jsonBody,
+  //   );
+  // } else {
+  //   response = await client.post(
+  //     url,
+  //     encoding: Encoding.getByName('utf-8'),
+  //     headers: {"Content-Type": "application/json", "AUTH": token},
+  //     body: jsonBody,
+  //   );
+  // }
+
+  // print(jsonBody);
+  // print(queryBody);
 
   // List<dynamic> list = json.decode(response.body);
-  print(utf8.decode(response.bodyBytes));
-  if (utf8.decode(response.bodyBytes) == "") {
-    return {};
-  } else {
-    Map data = json.decode(utf8.decode(response.bodyBytes));
-    return data;
-  }
+  // print(utf8.decode(response.bodyBytes));
+  Map data = response.data;
+  return data;
 }
 
 Future<Map?> getItemsMain2(int page, String business_id,
     [String? search, String? categoryId]) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -380,8 +414,9 @@ Future<Map?> getItemsMain2(int page, String business_id,
 }
 
 Future<List> getItems(String categoryId, int page, {Map? filters}) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return [];
   }
@@ -404,8 +439,9 @@ Future<List> getItems(String categoryId, int page, {Map? filters}) async {
 }
 
 Future<Map> getFilters(String categoryId) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -423,8 +459,9 @@ Future<Map> getFilters(String categoryId) async {
 
 Future<Map<String, dynamic>> getItem(dynamic itemId, String business_id,
     {List? filter}) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -447,8 +484,9 @@ Future<Map<String, dynamic>> getItem(dynamic itemId, String business_id,
 
 Future<List?> changeCartItem(dynamic itemId, double amount, String businessId,
     {List options = const []}) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   print("ADD TO CARD");
   if (token == null) {
     return null;
@@ -513,8 +551,9 @@ Future<List?> changeCartItem(dynamic itemId, double amount, String businessId,
 }
 
 Future<String?> removeFromCart(String itemId) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return null;
   }
@@ -535,8 +574,9 @@ Future<String?> removeFromCart(String itemId) async {
 }
 
 Future<Map<String, dynamic>> getCart(String businessId) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -556,8 +596,9 @@ Future<Map<String, dynamic>> getCart(String businessId) async {
 }
 
 Future<Map<String, dynamic>?> getCartInfo() async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -574,8 +615,9 @@ Future<Map<String, dynamic>?> getCartInfo() async {
 }
 
 Future<String?> dislikeItem(String itemId) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return null;
   }
@@ -596,8 +638,9 @@ Future<String?> dislikeItem(String itemId) async {
 }
 
 Future<String?> likeItem(String itemId) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return null;
   }
@@ -618,8 +661,9 @@ Future<String?> likeItem(String itemId) async {
 }
 
 Future<List> getLiked() async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return [];
   }
@@ -637,44 +681,62 @@ Future<List> getLiked() async {
 }
 
 Future<Map<String, dynamic>?> getUser() async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
-  var url = Uri.https(URL_API, 'api/user/get');
-  var response = await client.post(
-    url,
-    headers: {"Content-Type": "application/json", "AUTH": token},
-  );
+  // var url = Uri.https(URL_API, 'api/user/get');
+  // var response = await client.post(
+  //   url,
+  //   headers: {"Content-Type": "application/json", "AUTH": token},
+  // );
 
-  // List<dynamic> list = json.decode(response.body);
-  Map<String, dynamic>? data = json.decode(utf8.decode(response.bodyBytes));
-  print(data);
+  // // List<dynamic> list = json.decode(response.body);
+  // Map<String, dynamic>? data = json.decode(utf8.decode(response.bodyBytes));
+  // print(data);
+  Response response = await dio.post('/api/user/get',
+      options: Options(
+        headers: {"Content-Type": "application/json", "AUTH": token},
+      ));
+  Map<String, dynamic> data = response.data;
+
   return data;
 }
 
 Future<List> getAddresses() async {
-  String? token = globals.currentToken;
+  // WidgetsFlutterBinding.ensureInitialized();
 
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return [];
   }
-  var url = Uri.https(URL_API, 'api/user/getAddresses');
-  var response = await client.post(
-    url,
-    headers: {"Content-Type": "application/json", "AUTH": token},
-    body: json.encode({}),
-  );
-  print(utf8.decode(response.bodyBytes));
-  // List<dynamic> list = json.decode(response.body);
-  List data = json.decode(utf8.decode(response.bodyBytes));
+  // var url = Uri.https(URL_API, 'api/user/getAddresses');
+  // var response = await client.post(
+  //   url,
+  //   headers: {"Content-Type": "application/json", "AUTH": token},
+  //   body: json.encode({}),
+  // );
+  // print(utf8.decode(response.bodyBytes));
+  // // List<dynamic> list = json.decode(response.body);
+  // List data = json.decode(utf8.decode(response.bodyBytes));
+
+  Response response = await dio.post('/api/user/getAddresses',
+      options: Options(
+        headers: {"Content-Type": "application/json", "AUTH": token},
+      ));
+  List data = response.data ?? [];
+
   return data;
 }
 
 Future<List> createAddress(Map address) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return [];
   }
@@ -693,8 +755,9 @@ Future<List> createAddress(Map address) async {
 }
 
 Future<bool> selectAddress(String addressId) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return false;
   }
@@ -717,8 +780,9 @@ Future<bool> selectAddress(String addressId) async {
 }
 
 Future<Map<String, dynamic>?> getCity() async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -737,8 +801,9 @@ Future<Map<String, dynamic>?> getCity() async {
 Future<Map<String, dynamic>> createOrder(
     String businessId, String? addressId, int? delivery, int? card_id) async {
   // Returns null in two situations, token is null or wrong order (406)
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {"status": null};
   }
@@ -778,8 +843,9 @@ Future<Map<String, dynamic>> createOrder(
 }
 
 Future<List<dynamic>> getOrders([String orderId = ""]) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return [];
   }
@@ -813,8 +879,9 @@ Future<List<dynamic>> getOrders([String orderId = ""]) async {
 }
 
 Future<bool?> deleteFromCart(String itemId) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return null;
   }
@@ -838,8 +905,9 @@ Future<bool> logout() async {
 }
 
 Future<bool?> deleteAccount() async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return null;
   }
@@ -855,7 +923,7 @@ Future<bool?> deleteAccount() async {
 }
 
 Future<bool> getOneTimeCode(String phoneNumber) async {
-  //   String? token = globals.currentToken;
+  //   WidgetsFlutterBinding.ensureInitialized();String? token = globals.currentToken;
 
   // if (token == null) {
   //   return false;
@@ -880,7 +948,7 @@ Future<bool> getOneTimeCode(String phoneNumber) async {
 }
 
 Future<bool> verify(String phoneNumber, String code) async {
-  //   String? token = globals.currentToken;
+  //   WidgetsFlutterBinding.ensureInitialized();String? token = globals.currentToken;
 
   // if (token == null) {
   //   return false;
@@ -904,8 +972,9 @@ Future<bool> verify(String phoneNumber, String code) async {
 }
 
 Future<List> getGeoData(String search) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return [];
   }
@@ -932,8 +1001,9 @@ Future<List> getGeoData(String search) async {
 }
 
 Future<List> getGeoDataByCoord(double lat, double lon) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return [];
   }
@@ -950,29 +1020,41 @@ Future<List> getGeoDataByCoord(double lat, double lon) async {
 }
 
 Future<List?> getActiveOrders() async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return null;
   }
-  var url = Uri.https(URL_API, 'api/item/getActiveOrder');
-  var response = await client.post(
-    url,
-    headers: {
-      "Content-Type": "application/json",
-      "AUTH": token,
-    },
-  );
+  // var url = Uri.https(URL_API, 'api/item/getActiveOrder');
+  // var response = await client.post(
+  //   url,
+  //   headers: {
+  //     "Content-Type": "application/json",
+  //     "AUTH": token,
+  //   },
+  // );
+  try {
+    Response response = await dio.post('/api/item/getActiveOrder',
+        options: Options(
+          headers: {
+            "Content-Type": "application/json",
+            "AUTH": token,
+          },
+        ));
 
-  List result = json.decode(response.body);
-  print(json.encode(response.statusCode));
-  print(response.body);
-  return result;
+    List? result = response.data;
+
+    return result ?? [];
+  } catch (e) {
+    return [];
+  }
 }
 
 Future<Map<String, dynamic>> getCreateUser(String phoneNumber) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -993,8 +1075,9 @@ Future<Map<String, dynamic>> getCreateUser(String phoneNumber) async {
 }
 
 Future<List<dynamic>> getUserAddresses(String userID) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return [];
   }
@@ -1015,8 +1098,9 @@ Future<List<dynamic>> getUserAddresses(String userID) async {
 }
 
 Future<bool> selectAddressClient(String addressId, String user_id) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return false;
   }
@@ -1039,8 +1123,9 @@ Future<bool> selectAddressClient(String addressId, String user_id) async {
 }
 
 Future<List<dynamic>> getCities() async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return [];
   }
@@ -1061,8 +1146,9 @@ Future<List<dynamic>> getCities() async {
 }
 
 Future<bool> changeName(String name) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return false;
   }
@@ -1082,8 +1168,9 @@ Future<bool> changeName(String name) async {
 }
 
 Future<String> getPaymentHTML() async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return "";
   }
@@ -1099,8 +1186,9 @@ Future<String> getPaymentHTML() async {
 }
 
 Future<Map> getBonuses() async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -1121,8 +1209,9 @@ Future<Map> getBonuses() async {
 }
 
 Future<Map> getOrderDetails(String order_id) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -1145,8 +1234,9 @@ Future<Map> getOrderDetails(String order_id) async {
 Future<Map<String, dynamic>> getPaymentPageForUnpaidOrder(
     String order_id) async {
   // Returns null in two situations, token is null or wrong order (406)
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {"status": null};
   }
@@ -1178,8 +1268,9 @@ Future<Map<String, dynamic>> getPaymentPageForUnpaidOrder(
 }
 
 Future<bool> setIdOneSignal(String id) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return false;
   }
@@ -1199,29 +1290,36 @@ Future<bool> setIdOneSignal(String id) async {
 }
 
 Future<Map<String, dynamic>> getItems2(String business_id) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
-  var url = Uri.https(URL_API, 'api/item/geti2');
-  var response = await client.post(
-    url,
-    headers: {"Content-Type": "application/json", "AUTH": token},
-    body: json.encode({'business_id': business_id}),
-  );
+  Response response = await dio.post('api/item/geti2',
+      options: Options(
+        headers: {"Content-Type": "application/json", "AUTH": token},
+      ),
+      data: {'business_id': business_id});
+  // var url = Uri.https(URL_API, 'api/item/geti2');
+  // var response = await client.post(
+  //   url,
+  //   headers: {"Content-Type": "application/json", "AUTH": token},
+  //   body: json.encode({'business_id': business_id}),
+  // );
 
   // List<dynamic> list = json.decode(response.body);
-  print(response.bodyBytes);
-  Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+  // print(response.bodyBytes);
+  Map<String, dynamic> data = json.decode(utf8.decode(response.data));
   print(
       "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
   return data;
 }
 
 Future<Map<String, dynamic>> getItemsPopular(String business_id) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -1241,8 +1339,9 @@ Future<Map<String, dynamic>> getItemsPopular(String business_id) async {
 }
 
 Future<Map<String, dynamic>> getItemsNew(String business_id) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -1263,8 +1362,9 @@ Future<Map<String, dynamic>> getItemsNew(String business_id) async {
 
 Future<Map<String, dynamic>> getItemsRecs(
     String business_id, String item_id) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -1285,8 +1385,9 @@ Future<Map<String, dynamic>> getItemsRecs(
 
 Future<Map<String, dynamic>> getItemsSearch(
     String business_id, String keyword) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -1307,8 +1408,9 @@ Future<Map<String, dynamic>> getItemsSearch(
 
 Future<Map<String, dynamic>> getItemsCategory(
     String business_id, String category_id) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -1329,8 +1431,9 @@ Future<Map<String, dynamic>> getItemsCategory(
 
 Future<bool> finishProfile(String name, String date, String first_name,
     String last_name, String sex) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return false;
   }
@@ -1356,8 +1459,9 @@ Future<bool> finishProfile(String name, String date, String first_name,
 }
 
 Future<Map<String, dynamic>?> getCourierLocation(String order_id) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -1376,8 +1480,9 @@ Future<Map<String, dynamic>?> getCourierLocation(String order_id) async {
 }
 
 Future<List<dynamic>> getSavedCards() async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return [];
   }
@@ -1398,8 +1503,9 @@ Future<List<dynamic>> getSavedCards() async {
 }
 
 Future<List<dynamic>> getProperties(String item_id) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return [];
   }
@@ -1421,8 +1527,9 @@ Future<List<dynamic>> getProperties(String item_id) async {
 
 Future<Map<String, dynamic>?> getPropertiesForCategory(
     String category_id, String business_id) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -1441,8 +1548,9 @@ Future<Map<String, dynamic>?> getPropertiesForCategory(
 }
 
 Future<List<dynamic>> getItemsByPropertiesValues(List values) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return [];
   }
@@ -1463,8 +1571,9 @@ Future<List<dynamic>> getItemsByPropertiesValues(List values) async {
 }
 
 Future<Map<String, dynamic>> getItemsCart(String business_id) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -1490,8 +1599,9 @@ Future<Map> changeCartItemByCartItemId(
   double amount,
   String businessId,
 ) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   print("ADD TO CARD");
   if (token == null) {
     return {};
@@ -1516,8 +1626,9 @@ Future<Map> changeCartItemByCartItemId(
 Future<Map> getStories(
   String businessId,
 ) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   print("ADD TO CARD");
   if (token == null) {
     return {};
@@ -1539,8 +1650,9 @@ Future<Map> getStories(
 
 Future<Map<String, dynamic>> getItemsPromotion(
     String business_id, String promotion_id) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -1562,8 +1674,9 @@ Future<Map<String, dynamic>> getItemsPromotion(
 
 Future<Map<String, dynamic>> getItemsCollection(
     String business_id, String collection_id) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
@@ -1585,12 +1698,13 @@ Future<Map<String, dynamic>> getItemsCollection(
 
 Future<Map<String, dynamic>> getAdditions(
     String business_id, String comp_category_id) async {
-  String? token = globals.currentToken;
-
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
   if (token == null) {
     return {};
   }
-  var url = Uri.https(URL_API, 'api/item/get');
+  var url = Uri.https(URL_API, 'api/item/get3');
   var response = await client.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -1605,6 +1719,261 @@ Future<Map<String, dynamic>> getAdditions(
   // List<dynamic> list = json.decode(response.body);
   print(response.body);
   Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+  print(
+      "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
+  return data;
+}
+
+Future<Map<String, dynamic>> addNewCard() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
+  if (token == null) {
+    return {};
+  }
+  var url = Uri.https(URL_API, 'api/item/addNewCard');
+  var response = await client.post(
+    url,
+    headers: {"Content-Type": "application/json", "AUTH": token},
+    body: json.encode({}),
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(response.body);
+  Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+
+  return data;
+}
+
+Future<Map<String, dynamic>> createOrder2(String businessId, String? addressId,
+    int? delivery, int? card_id, bool useBonuses) async {
+  // Returns null in two situations, token is null or wrong order (406)
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
+  if (token == null) {
+    return {"status": null};
+  }
+  Map body = {
+    'business_id': businessId,
+    'card_id': card_id,
+    'bonus': useBonuses
+  };
+
+  // if (addressId != null) {
+  //   body.addAll({"address_id": addressId});
+  // }
+  if (delivery != null) {
+    body.addAll({"delivery": delivery});
+  }
+
+  var url = Uri.https(URL_API, 'api/item/createOrder2');
+  var response = await client.post(
+    url,
+    headers: {"Content-Type": "application/json", "AUTH": token},
+    body: json.encode(body),
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(json.encode(response.statusCode));
+  print(response.body);
+  int data = response.statusCode;
+  Map<String, dynamic> d = json.decode(utf8.decode(response.bodyBytes));
+  return d;
+}
+
+Future<Map<String, dynamic>> pay(String order_id, String card_id) async {
+  // Returns null in two situations, token is null or wrong order (406)
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
+  if (token == null) {
+    return {"status": null};
+  }
+  Map body = {
+    'order_id': order_id,
+    'card_id': card_id,
+  };
+
+  // if (addressId != null) {
+  //   body.addAll({"address_id": addressId});
+  // }
+
+  var url = Uri.https(URL_API, 'api/item/pay');
+  var response = await client.post(
+    url,
+    headers: {"Content-Type": "application/json", "AUTH": token},
+    body: json.encode(body),
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(json.encode(response.statusCode));
+  int data = response.statusCode;
+  Map<String, dynamic> d = json.decode(utf8.decode(response.bodyBytes));
+  print(d);
+  return d;
+}
+
+Future<Map> getDeliveyPrice(String business_id) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
+  if (token == null) {
+    return {};
+  }
+  Response response = await dio.post('/api/item/getDeliveryPrice',
+      options: Options(
+        headers: {"Content-Type": "application/json", "AUTH": token},
+      ),
+      data: {'business_id': business_id});
+  // var url = Uri.https(URL_API, 'api/item/geti2');
+  // var response = await client.post(
+  //   url,
+  //   headers: {"Content-Type": "application/json", "AUTH": token},
+  //   body: json.encode({'business_id': business_id}),
+  // );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(response.data);
+  Map data = response.data;
+
+  return data;
+}
+
+Future<bool?> isLiked(int item_id) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
+  if (token == null) {
+    return null;
+  }
+
+  Response response = await dio.post('/api/item/getLiked',
+      data: {'item_id': item_id},
+      options: Options(
+        headers: {"Content-Type": "application/json", "AUTH": token},
+      ));
+  Map? data = response.data;
+  if (data == null) {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+Future<Map<String, dynamic>> createOrder3(String businessId, String? delivery,
+    String? card_id, List items, bool useBonus) async {
+  // Returns null in two situations, token is null or wrong order (406)
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
+  if (token == null) {
+    return {"status": null};
+  }
+  Map body = {
+    'business_id': businessId,
+    'card_id': card_id,
+    'items': items,
+    'bonus': useBonus
+  };
+
+  // if (addressId != null) {
+  //   body.addAll({"address_id": addressId});
+  // }
+  if (delivery != null) {
+    body.addAll({"delivery": delivery});
+  }
+
+  var url = Uri.https(URL_API, 'api/item/createOrder3');
+  var response = await client.post(
+    url,
+    headers: {"Content-Type": "application/json", "AUTH": token},
+    body: json.encode(body),
+  );
+
+  // List<dynamic> list = json.decode(response.body);
+  print(json.encode(response.statusCode));
+  print(response.body);
+  int data = response.statusCode;
+  Map<String, dynamic> d = json.decode(utf8.decode(response.bodyBytes));
+  return d;
+}
+
+Future<Map<String, dynamic>> getItemsRescByItems(
+    String business_id, String ids) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
+  if (token == null) {
+    return {};
+  }
+  Response response = await dio.post('/api/item/get3',
+      options: Options(
+        headers: {"Content-Type": "application/json", "AUTH": token},
+      ),
+      data: {'business_id': business_id, "comp_item_id": ids});
+  // var url = Uri.https(URL_API, 'api/item/geti2');
+  // var response = await client.post(
+  //   url,
+  //   headers: {"Content-Type": "application/json", "AUTH": token},
+  //   body: json.encode({'business_id': business_id}),
+  // );
+
+  // List<dynamic> list = json.decode(response.body);
+  // print(response.bodyBytes);
+  print("============================================");
+  print(response.data);
+  Map<String, dynamic> data = response.data;
+  print(
+      "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
+  return data;
+}
+
+Future<bool?> deleteAddress(String addressId) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
+  if (token == null) {
+    return false;
+  }
+  var url = Uri.https(URL_API, 'api/user/selectAddress');
+  var response = await client.post(
+    url,
+    body: json.encode({"address_id": addressId, "delete": true}),
+    headers: {"Content-Type": "application/json", "AUTH": token},
+  );
+  bool? data = json.decode(utf8.decode(response.bodyBytes));
+  return data;
+}
+
+Future<Map<String, dynamic>> getGigaCats(
+  String business_id,
+) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
+  if (token == null) {
+    return {};
+  }
+  Response response = await dio.post('/api/item/getGigaCatetories',
+      options: Options(
+        headers: {"Content-Type": "application/json", "AUTH": token},
+      ),
+      data: {
+        'business_id': business_id,
+      });
+  // var url = Uri.https(URL_API, 'api/item/geti2');
+  // var response = await client.post(
+  //   url,
+  //   headers: {"Content-Type": "application/json", "AUTH": token},
+  //   body: json.encode({'business_id': business_id}),
+  // );
+
+  // List<dynamic> list = json.decode(response.body);
+  // print(response.bodyBytes);
+  print("============================================");
+  print(response.data);
+  Map<String, dynamic> data = response.data;
   print(
       "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
   return data;

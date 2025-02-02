@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/cartPage.dart';
-import 'package:naliv_delivery/pages/preLoadCartPage.dart';
+import 'package:naliv_delivery/shared/ItemCard2.dart';
 import 'package:naliv_delivery/shared/bottomBar.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:flutter/cupertino.dart';
@@ -43,33 +43,33 @@ class _SearchResultPageState extends State<SearchResultPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Padding(
-            padding: EdgeInsets.all(10),
-            child: FloatingActionButton(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  CupertinoPageRoute(
-                    builder: (context) {
-                      return PreLoadCartPage(
-                        business: widget.business,
-                      );
-                    },
-                  ),
-                );
-              },
-              child: Icon(Icons.shopping_cart_checkout),
-            ),
-          ),
-          context.mounted ? BottomBar() : Container(),
-        ],
-      ),
+      // floatingActionButton: Column(
+      //   mainAxisAlignment: MainAxisAlignment.end,
+      //   crossAxisAlignment: CrossAxisAlignment.end,
+      //   children: [
+      //     Padding(
+      //       padding: EdgeInsets.all(10),
+      //       child: FloatingActionButton(
+      //         backgroundColor: Color(0xFFEE7203),
+      //         foregroundColor: Colors.white,
+      //         onPressed: () {
+      //           Navigator.push(
+      //             context,
+      //             CupertinoPageRoute(
+      //               builder: (context) {
+      //                 return PreLoadCartPage(
+      //                   business: widget.business,
+      //                 );
+      //               },
+      //             ),
+      //           );
+      //         },
+      //         child: Icon(Icons.shopping_cart_checkout),
+      //       ),
+      //     ),
+      //     // context.mounted ? BottomBar() : Container(),
+      //   ],
+      // ),
       backgroundColor: Color(0xFF121212),
       body: CustomScrollView(
         slivers: [
@@ -90,22 +90,25 @@ class _SearchResultPageState extends State<SearchResultPage> {
                     ),
                   ),
                 )
-              : SliverList.builder(
-                  itemCount: _items.length,
-                  itemBuilder: (context, index) {
-                    final Map<String, dynamic> item = _items[index];
+              : SliverToBoxAdapter(
+                  child: GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        childAspectRatio: 8 / 12,
+                        mainAxisSpacing: 10,
+                        crossAxisSpacing: 10,
+                        crossAxisCount: 2),
+                    primary: false,
+                    shrinkWrap: true,
+                    itemCount: _items.length,
+                    itemBuilder: (context, index2) {
+                      final Map<String, dynamic> item = _items[index2];
 
-                    return ItemCardListTile(
-                      itemId: item["item_id"],
-                      element: item,
-                      categoryId: "",
-                      categoryName: "",
-                      scroll: 0,
-                      business: widget.business,
-                      index: index,
-                      categoryPageUpdateData: updateDataAmount,
-                    );
-                  },
+                      return ItemCard2(
+                        item: item,
+                        business: widget.business,
+                      );
+                    },
+                  ),
                 )
         ],
       ),

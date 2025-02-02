@@ -11,7 +11,7 @@ class SelectBusinessesPage extends StatefulWidget {
       {super.key, required this.businesses, required this.currentAddress});
   final Map currentAddress;
 
-  final List<Map> businesses;
+  final List businesses;
   @override
   State<SelectBusinessesPage> createState() => _SelectBusinessesPageState();
 }
@@ -181,7 +181,7 @@ class _SelectBusinessesPageState extends State<SelectBusinessesPage> {
                                                 .toInt())
                                             .toString() +
                                         "₸",
-                                    style: GoogleFonts.prostoOne(
+                                    style: GoogleFonts.inter(
                                       fontSize: 24,
                                       fontWeight: FontWeight.w400,
                                       color: Colors.white,
@@ -208,7 +208,7 @@ class _SelectBusinessesPageState extends State<SelectBusinessesPage> {
                         ),
                         ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.deepOrange,
+                                backgroundColor: Color(0xFFEE7203),
                                 shape: RoundedRectangleBorder(
                                     borderRadius:
                                         BorderRadius.all(Radius.circular(15)))),
@@ -264,7 +264,7 @@ class _SelectBusinessesPageState extends State<SelectBusinessesPage> {
                                         .toInt())
                                     .toString() +
                                 "₸",
-                            style: GoogleFonts.prostoOne(
+                            style: GoogleFonts.inter(
                               fontSize: 16,
                               fontWeight: FontWeight.w400,
                               color: Colors.white,

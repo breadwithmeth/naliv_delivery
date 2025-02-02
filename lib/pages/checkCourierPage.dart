@@ -6,7 +6,6 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/pages/preLoadDataPage.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -43,11 +42,11 @@ class _CheckCourierPageState extends State<CheckCourierPage> {
         data = _data;
       });
     } else {
-      Navigator.pushReplacement(context, CupertinoPageRoute(
-        builder: (context) {
-          return PreLoadDataPage();
-        },
-      ));
+      // Navigator.pushReplacement(context, CupertinoPageRoute(
+      //   builder: (context) {
+      //     // return PreLoadDataPage();
+      //   },
+      // ));
     }
   }
 
@@ -66,10 +65,10 @@ class _CheckCourierPageState extends State<CheckCourierPage> {
                     SliverAppBar(
                       leading: GestureDetector(
                           onTap: () {
-                            Navigator.pushReplacement(
-                                context,
-                                CupertinoPageRoute(
-                                    builder: (context) => PreLoadDataPage()));
+                            // Navigator.pushReplacement(
+                            //     context,
+                            //     CupertinoPageRoute(
+                            //         builder: (context) => PreLoadDataPage()));
                           },
                           child: Padding(
                               padding: EdgeInsets.all(10),

@@ -1,9 +1,6 @@
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/pages/bonusRules.dart';
 import 'package:barcode_widget/barcode_widget.dart';
-import 'dart:io';
 
-import 'package:qr_flutter/qr_flutter.dart';
 import '../globals.dart' as globals;
 import 'package:flutter/material.dart';
 

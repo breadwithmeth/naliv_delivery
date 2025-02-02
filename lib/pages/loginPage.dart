@@ -3,7 +3,6 @@ import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/preLoadDataPage2.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
-import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:naliv_delivery/shared/loadingScreen.dart';
 import '../globals.dart' as globals;
 import 'package:flutter/cupertino.dart';
@@ -117,7 +116,10 @@ class _LoginPageState extends State<LoginPage> {
                 Flexible(
                     child: Container(
                   alignment: Alignment.center,
-                  child: Text("Введите номер телефона"),
+                  child: Text(
+                    "Введите номер телефона, для получения кода верификации",
+                    textAlign: TextAlign.center,
+                  ),
                 )),
                 Flexible(
                     flex: 10,

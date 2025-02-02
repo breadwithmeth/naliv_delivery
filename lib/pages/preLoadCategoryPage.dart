@@ -26,13 +26,13 @@ class PreLoadCategoryPage extends StatefulWidget {
 class _PreLoadCategoryPageState extends State<PreLoadCategoryPage> {
   pushCategoryPage() {
     getItemsMain3(
-            widget.business["business_id"], widget.category["category_id"])
+            widget.business["business_id"], widget.category["c_id"].toString())
         .then((value) {
       print(value);
       Navigator.pushReplacement(context, CupertinoPageRoute(
         builder: (context) {
           return CategoryPage2(
-            categoryId: widget.category["category_id"],
+            categoryId: widget.category["c_id"].toString(),
             business: widget.business,
             category: widget.category,
             subcategories: widget.subcategories,

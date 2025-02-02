@@ -68,3 +68,37 @@ String currentToken = "";
 setToken(String t) {
   currentToken = t;
 }
+
+String formatQuantity(double quantity, String unit) {
+  if (quantity <= 0) {
+    return "0";
+  }
+  String formattedQuantity = quantity.toString();
+  // Проверяем, целое ли число
+  if (unit == "л" || unit == "л.") {
+    formattedQuantity = (quantity % 1 == 0)
+        ? quantity.toStringAsFixed(0) // Целое число без знаков после запятой
+        : quantity
+            .toStringAsFixed(1); // Дробное число с 3 знаками после запятой
+  } else {
+    formattedQuantity = (quantity % 1 == 0)
+        ? quantity.toStringAsFixed(0) // Целое число без знаков после запятой
+        : quantity.toStringAsFixed(3);
+  }
+  return "$formattedQuantity $unit";
+}
+
+String formatPrice(int price) {
+  if (price < 0) {
+    return "!";
+  }
+
+  // Форматируем целую часть (добавляем пробелы)
+  String formattedPrice = price.toString().replaceAllMapped(
+        RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+        (Match match) => "${match[1]} ",
+      );
+
+  // Собираем итоговую строку
+  return "$formattedPrice ₸";
+}

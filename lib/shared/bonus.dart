@@ -18,10 +18,12 @@ class _BonusWidgetState extends State<BonusWidget> {
   _getBonuses() {
     getBonuses().then((value) {
       print(value);
-      setState(() {
-        amount = int.parse(value["amount"]);
-        card_uuid = value["card_uuid"];
-      });
+      if (mounted) {
+        setState(() {
+          amount = int.parse(value["amount"]);
+          card_uuid = value["card_uuid"];
+        });
+      }
     });
   }
 
@@ -38,12 +40,12 @@ class _BonusWidgetState extends State<BonusWidget> {
         padding: EdgeInsets.all(0),
         clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(
-            color: Colors.orangeAccent,
+            color: Color(0xFFEE7203),
             borderRadius: BorderRadius.all(Radius.circular(30))),
         child: AnimatedMeshGradient(
             colors: [
               Colors.orangeAccent.shade700,
-              Colors.orange,
+              Color(0xFFEE7203),
               Colors.black,
               Colors.amber.shade900
             ],
@@ -86,6 +88,13 @@ class _BonusWidgetState extends State<BonusWidget> {
                                     style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: Colors.black),
+                                  ),
+                                  Spacer(),
+                                  Text(
+                                    "Транзакции, связанные с начислением бонусов, могут обрабатываться в течение срока до 24 (двадцати четырех) часов. Для получения предусмотренных подарочных бонусов (при их наличии) Пользователю необходимо предварительно совершить покупку.",
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.grey.shade600),
                                   )
                                 ],
                               ),

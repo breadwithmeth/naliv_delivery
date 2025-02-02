@@ -1248,7 +1248,7 @@ class _ItemCardMinimalState extends State<ItemCardMinimal> {
                                                   "${globals.formatCost(element["price"].toString())} ₸ за 1 ${element["unit"]}",
                                                   style: TextStyle(
                                                     fontFamily: "Raleway",
-                                                    color: Colors.orange,
+                                                    color: Color(0xFFEE7203),
                                                     fontVariations: <FontVariation>[
                                                       FontVariation('wght', 600)
                                                     ],

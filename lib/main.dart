@@ -3,23 +3,29 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:naliv_delivery/misc/databaseapi.dart';
 import 'package:naliv_delivery/pages/mainPage.dart';
 import 'package:naliv_delivery/pages/paintLogoPage.dart';
 import 'package:naliv_delivery/pages/preLoadDataPage2.dart';
+import 'package:sqflite/sqflite.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/pages/preLoadDataPage.dart';
 import 'package:naliv_delivery/pages/startPage.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/widgets.dart';
+import 'package:path/path.dart';
+
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
 Future<void> main() async {
-  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized();
 
-  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  // To intialise the hive database
+
+  WidgetsFlutterBinding.ensureInitialized();
+// Open the database and store the reference.
 
   runApp(const Main());
 }
@@ -36,7 +42,9 @@ class _MainState extends State<Main> {
   // int _tick = 0;
 
   // Widget _redirect = const StartLoadingPage();
+
   Widget _redirect = PaintLogoPage();
+  DatabaseManager dbm = DatabaseManager();
 
   @override
   void initState() {
@@ -58,14 +66,10 @@ class _MainState extends State<Main> {
     // initPlatformState();
     // OneSignal.consentRequired(true);
 
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      print(MediaQuery.of(context).size.aspectRatio);
-    });
     _checkAuth();
     setState(() {
       // _redirect = PermissionPage();
     });
-    FlutterNativeSplash.remove();
   }
 
   Future<void> _checkAuth() async {
@@ -285,7 +289,6 @@ class _MainState extends State<Main> {
         const Locale('en'),
       ],
       theme: ThemeData(
-        fontFamily: "Raleway",
         typography: Typography.material2021(),
         bottomSheetTheme:
             BottomSheetThemeData(backgroundColor: Colors.transparent),
@@ -304,8 +307,8 @@ class _MainState extends State<Main> {
         useMaterial3: true,
         brightness: Brightness.dark,
         pageTransitionsTheme: const PageTransitionsTheme(builders: {
-          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-          TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder()
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder()
         }),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(),
         scaffoldBackgroundColor: Color(0xFF000000),
@@ -318,14 +321,9 @@ class _MainState extends State<Main> {
           scrolledUnderElevation: 4,
           titleTextStyle: TextStyle(
             fontSize: 24,
-            fontFamily: "Raleway",
-            fontVariations: <FontVariation>[FontVariation('wght', 700)],
             overflow: TextOverflow.ellipsis,
             color: Colors.white,
           ),
-          // backgroundColor: Colors.white,
-          // shadowColor: Colors.grey.withOpacity(0.2),
-          // foregroundColor: Colors.black
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
@@ -347,10 +345,83 @@ class _MainState extends State<Main> {
         dividerTheme: DividerThemeData(
           color: Colors.grey.shade300,
         ),
-        textTheme: GoogleFonts.robotoTextTheme(TextTheme(
-            displayLarge: TextStyle(
-          fontSize: 64 * globals.scaleParam,
-        ))),
+        textTheme: TextTheme(
+          displayLarge: GoogleFonts.inter(
+            fontSize: 57,
+            fontWeight: FontWeight.w400,
+            color: Colors.white,
+          ),
+          displayMedium: GoogleFonts.inter(
+            fontSize: 45,
+            fontWeight: FontWeight.w400,
+            color: Colors.white,
+          ),
+          displaySmall: GoogleFonts.inter(
+            fontSize: 36,
+            fontWeight: FontWeight.w400,
+            color: Colors.white,
+          ),
+          headlineLarge: GoogleFonts.inter(
+            fontSize: 32,
+            fontWeight: FontWeight.w400,
+            color: Colors.white,
+          ),
+          headlineMedium: GoogleFonts.inter(
+            fontSize: 28,
+            fontWeight: FontWeight.w400,
+            color: Colors.white,
+          ),
+          headlineSmall: GoogleFonts.inter(
+            fontSize: 24,
+            fontWeight: FontWeight.w400,
+            color: Colors.white,
+          ),
+          titleLarge: GoogleFonts.inter(
+            fontSize: 22,
+            fontWeight: FontWeight.w500,
+            color: Colors.white,
+          ),
+          titleMedium: GoogleFonts.inter(
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+            color: Colors.white,
+          ),
+          titleSmall: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.white,
+          ),
+          bodyLarge: GoogleFonts.inter(
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+            color: Colors.white,
+          ),
+          bodyMedium: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            color: Colors.white,
+          ),
+          bodySmall: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
+            color: Colors.white,
+          ),
+          labelLarge: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.white,
+          ),
+          labelMedium: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
+            color: Colors.white,
+          ),
+          labelSmall: GoogleFonts.inter(
+            fontSize: 11,
+            fontWeight: FontWeight.w400,
+            color: Colors.white,
+          ),
+        ),
 
         // До этого здесь был шрифт Mulish
 

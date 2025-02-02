@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../globals.dart' as globals;
-import 'package:naliv_delivery/pages/preLoadDataPage.dart';
 import 'package:flutter/cupertino.dart';
 
 class OrderPage extends StatefulWidget {
@@ -27,14 +26,14 @@ class _OrderPageState extends State<OrderPage> {
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(),
           onPressed: () {
-            Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
-              builder: (context) {
-                // return HomePage(
-                //   business: widget.business,
-                // );
-                return PreLoadDataPage();
-              },
-            ), (Route<dynamic> route) => false);
+            // Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
+            //   builder: (context) {
+            //     // return HomePage(
+            //     //   business: widget.business,
+            //     // );
+            //     return PreLoadDataPage();
+            //   },
+            // ), (Route<dynamic> route) => false);
           },
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,

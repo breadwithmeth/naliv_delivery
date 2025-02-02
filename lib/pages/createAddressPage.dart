@@ -62,7 +62,7 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
               //           double.parse(widget.currentAddress["lon"])),
               //       child: Icon(
               //         Icons.location_on,
-              //         color: Colors.orangeAccent,
+              //         color: Color(0xFFEE7203),
               //         size: 40,
               //       ))
               // ]),
@@ -253,7 +253,7 @@ class _ConfirmAddressPageState extends State<ConfirmAddressPage> {
                                 widget.currentAddress["point"]["lon"]),
                             child: Icon(
                               Icons.location_on,
-                              color: Colors.orangeAccent,
+                              color: Color(0xFFEE7203),
                               size: 40,
                             ))
                       ]),

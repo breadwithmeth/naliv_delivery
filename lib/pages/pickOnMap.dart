@@ -650,7 +650,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                           color: globals.mainColor,
                           shadows: [
                             BoxShadow(
-                                color: Colors.orange,
+                                color: Color(0xFFEE7203),
                                 blurRadius: 10,
                                 spreadRadius: 200 * globals.scaleParam)
                           ],

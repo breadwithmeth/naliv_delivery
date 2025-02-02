@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
+import 'package:naliv_delivery/shared/ItemCard2.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 
 class NewItemsPage extends StatefulWidget {
@@ -48,22 +49,25 @@ class _NewItemsPageState extends State<NewItemsPage> {
             centerTitle: false,
             title: Text("Новинки"),
           ),
-          SliverList.builder(
-            itemCount: _items.length,
-            itemBuilder: (context, index) {
-              final Map<String, dynamic> item = _items[index];
+          SliverToBoxAdapter(
+            child: GridView.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  childAspectRatio: 8 / 12,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  crossAxisCount: 2),
+              primary: false,
+              shrinkWrap: true,
+              itemCount: _items.length,
+              itemBuilder: (context, index2) {
+                final Map<String, dynamic> item = _items[index2];
 
-              return ItemCardListTile(
-                itemId: item["item_id"],
-                element: item,
-                categoryId: "",
-                categoryName: "",
-                scroll: 0,
-                business: widget.business,
-                index: index,
-                categoryPageUpdateData: updateDataAmount,
-              );
-            },
+                return ItemCard2(
+                  item: item,
+                  business: widget.business,
+                );
+              },
+            ),
           )
         ],
       ),

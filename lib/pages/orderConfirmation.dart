@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:naliv_delivery/pages/webViewCardPayPage.dart';
+import 'package:naliv_delivery/pages/preLoadDataPage2.dart';
+import 'package:naliv_delivery/shared/openMainPageButton.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/orderPage.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
-import 'package:flutter_timer_countdown/flutter_timer_countdown.dart';
 import 'package:flutter/cupertino.dart';
 
 // import 'createOrder.dart';
@@ -19,12 +19,14 @@ class OrderConfirmation extends StatefulWidget {
     required this.items,
     required this.business,
     this.card_id,
+    required this.useBonuses,
   });
   final bool delivery;
   final Map? address;
   final List items;
   final Map<dynamic, dynamic> business;
   final int? card_id;
+  final bool useBonuses;
   @override
   State<OrderConfirmation> createState() => _OrderConfirmationState();
 }
@@ -52,273 +54,55 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
   }
 
   _createOrder() async {
-    await createOrder(widget.business["business_id"], null,
-            widget.delivery ? 1 : 0, widget.card_id)
+    await createOrder2(widget.business["business_id"], null,
+            widget.delivery ? 1 : 0, widget.card_id, widget.useBonuses)
         .then((value) {
-      if (value["status"] == true) {
-        setState(() {
-          isOrderCorrect = true;
-          htmlString = value["data"];
-        });
-        print("Order was created successfully");
-        // NICE! Congratulations, you did well!
-      } else if (value["status"] == false) {
-        setState(() {
-          isOrderCorrect = false;
-          wrongPositions = value["data"];
-        });
-        print("Order was not created. Return code 400, wrong stock amount");
-        // DO SOMETHING, SO THAT USER CAN FIX AMOUNT IN CART?
-      } else if (value["status"] == null) {
-        setState(() {
-          isOrderCorrect = null;
-        });
-        print(
-            "Order was not created. Return code 406, wrong order, or no token");
-        // DO SOMETHING, SO THAT USER CAN FIX ORDER IN CART?
-      }
-    }).then((value) {
-      if (isOrderCorrect == true) {
-        Navigator.pushReplacement(
-          context,
-          CupertinoPageRoute(
-            builder: (context) => WebViewCardPayPage(
-              htmlString: htmlString,
-            ),
-          ),
-        );
-      } else {
-        composeWrongItemsList();
+      if (value["status"] == "insufficent funds") {
         showDialog(
+          barrierDismissible: false,
           context: context,
           builder: (context) {
-            if (isOrderCorrect == false) {
-              return AlertDialog(
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(10)),
-                ),
-                title: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Остатки изменились",
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontVariations: <FontVariation>[
-                          FontVariation('wght', 600)
-                        ],
-                        fontSize: 28 * globals.scaleParam,
-                      ),
-                    ),
-                  ],
-                ),
-                titleTextStyle: TextStyle(
-                  fontSize: 16,
-                  fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                  color: Theme.of(context).colorScheme.onSecondary,
-                ),
-                content: Padding(
-                  padding:
-                      EdgeInsets.symmetric(vertical: 20 * globals.scaleParam),
-                  child: SizedBox(
-                    width: 600 * globals.scaleParam,
-                    height: 400 * globals.scaleParam,
-                    child: ListView.builder(
-                      itemCount: wrongItems.length,
-                      itemBuilder: (context, index) {
-                        return SizedBox(
-                          child: Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      wrongItems[index]["name"].toString(),
-                                      style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondary,
-                                        fontVariations: <FontVariation>[
-                                          FontVariation('wght', 600)
-                                        ],
-                                        fontSize: 28 * globals.scaleParam,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      "В корзине: ${wrongItems[index]['amount'].toString()}",
-                                      style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .secondary,
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 28 * globals.scaleParam,
-                                      ),
-                                    ),
-                                  ),
-                                  Flexible(
-                                    child: Text(
-                                      "В наличии: ${double.parse(wrongItems[index]['in_stock'].toString()).toStringAsFixed(0)}",
-                                      style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .secondary,
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 28 * globals.scaleParam,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const Divider(),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                actions: [
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(
-                          vertical: 10 * globals.scaleParam),
-                    ),
-                    onPressed: () {
-                      //! TODO: CHANGE AMOUNT IN CART ACCORDINGLY TO REAL AMOUNT LEFT
-                      Navigator.pop(context);
-                    },
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Применить изменения",
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                            fontVariations: <FontVariation>[
-                              FontVariation('wght', 600)
-                            ],
-                            fontSize: 28 * globals.scaleParam,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(
-                          vertical: 10 * globals.scaleParam),
-                      backgroundColor: Theme.of(context).colorScheme.secondary,
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Изменить самостоятельно",
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                            fontVariations: <FontVariation>[
-                              FontVariation('wght', 600)
-                            ],
-                            fontSize: 28 * globals.scaleParam,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            } else {
-              return AlertDialog(
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(10)),
-                ),
-                title: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Произошла ошибка",
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 30 * globals.scaleParam,
-                      ),
-                    ),
-                  ],
-                ),
-                titleTextStyle: TextStyle(
-                  color: Theme.of(context).colorScheme.onSecondary,
-                  fontVariations: <FontVariation>[FontVariation('wght', 600)],
-                  fontSize: 32 * globals.scaleParam,
-                ),
-                content: Padding(
-                  padding:
-                      EdgeInsets.symmetric(vertical: 20 * globals.scaleParam),
-                  child: SizedBox(
-                    width: 600 * globals.scaleParam,
-                    height: 400 * globals.scaleParam,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            "Повторите попытку позже, пожалуйста",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface,
-                              fontVariations: <FontVariation>[
-                                FontVariation('wght', 600)
-                              ],
-                              fontSize: 28 * globals.scaleParam,
-                            ),
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-                ),
-                actions: [
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(
-                          vertical: 10 * globals.scaleParam),
-                    ),
-                    onPressed: () {
-                      //! TODO: CHANGE AMOUNT IN CART ACCORDINGLY TO REAL AMOUNT LEFT
-                      Navigator.pop(context);
-                      Navigator.pop(context);
-                    },
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Принять",
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 28 * globals.scaleParam,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            }
+            return AlertDialog(
+              title: Text(
+                "Нехватает средств",
+              ),
+              content: Text("Вернитесь на главный экран для повторной оплаты"),
+              actions: [OpenMainPage()],
+            );
+          },
+        );
+      } else if (value["code"].toString() == "0") {
+        showDialog(
+          barrierDismissible: false,
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text(
+                "Платеж принят в обработку",
+              ),
+              content:
+                  Text("Вернитесь на главный экран для отслеживания заказа"),
+              actions: [OpenMainPage()],
+            );
+          },
+        );
+      } else if (value["status"] == "unknown") {
+        showDialog(
+          barrierDismissible: false,
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text(
+                "Ожидаем подтверждение платежа от банка",
+              ),
+              content: Text(
+                  "Вернитесь на главный экран для просмотра статуса оплаты"),
+              actions: [OpenMainPage()],
+            );
           },
         );
       }
+      return value;
     });
   }
 

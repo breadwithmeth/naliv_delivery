@@ -26,7 +26,7 @@
 
     <!-- foregroundServiceType: remoteMessaging -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
-
+    
     <!-- important: Do not change service name. -->
     <!-- Add android:stopWithTask option only when necessary. -->
 

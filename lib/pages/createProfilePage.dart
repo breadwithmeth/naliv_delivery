@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/pages/preLoadDataPage.dart';
+import 'package:naliv_delivery/pages/preLoadDataPage2.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import '../globals.dart' as globals;
 
@@ -33,7 +33,7 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            dialogBackgroundColor: Colors.yellow, // days/years gridview
+            dialogBackgroundColor: Color(0xFFEE7203), // days/years gridview
             textTheme: TextTheme(
               bodyMedium: TextStyle(
                 fontWeight: FontWeight.w900,
@@ -276,7 +276,7 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
                                                       context,
                                                       CupertinoPageRoute(
                                                     builder: (context) {
-                                                      return PreLoadDataPage();
+                                                      return Preloaddatapage2();
                                                     },
                                                   ), (route) => false);
                                                 });

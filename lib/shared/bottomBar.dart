@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -9,7 +10,7 @@ import 'package:flutter/foundation.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/checkCourierPage.dart';
 import 'package:naliv_delivery/pages/orderHistoryPage.dart';
-import 'package:naliv_delivery/pages/webViewCardPayPage.dart';
+import 'package:naliv_delivery/pages/orderInfoPage.dart';
 import '../globals.dart' as globals;
 
 class BottomBar extends StatefulWidget {
@@ -132,73 +133,66 @@ class _BottomBarState extends State<BottomBar> with TickerProviderStateMixin {
     }
   }
 
-  bool isExpandedFloatingButton = true;
-
   @override
   Widget build(BuildContext context) {
     return orders.length == 0
-        ? Container()
-        : GestureDetector(
-            onHorizontalDragEnd: (details) {
-              setState(() {
-                isExpandedFloatingButton = !isExpandedFloatingButton;
-              });
-            },
-            child: FloatingActionButton.extended(
-              clipBehavior: Clip.none,
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black,
-              icon: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Icon(
-                    Icons.delivery_dining,
-                    size: 32,
-                  ),
-                  isExpandedFloatingButton
-                      ? Container()
-                      : Positioned(
-                          child: Container(
-                            alignment: Alignment.center,
-                            height: 40,
-                            width: 40,
-                            decoration: BoxDecoration(
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.5),
-                                    spreadRadius: 1,
-                                    blurRadius: 5,
-                                    offset: Offset(0, 3),
+        ? Container(
+            height: 1,
+          )
+        : Container(
+            padding: EdgeInsets.only(bottom: 20, left: 0, right: 0, top: 5),
+            height: 110,
+            child: CarouselSlider.builder(
+              options: CarouselOptions(
+                  height: 100.0,
+                  autoPlay: true,
+                  autoPlayAnimationDuration: Durations.extralong4),
+              itemCount: orders.length,
+              itemBuilder: (context, index, realIndex) {
+                return Builder(
+                  builder: (BuildContext context) {
+                    return Container(
+                        width: MediaQuery.of(context).size.width,
+                        margin:
+                            EdgeInsets.symmetric(horizontal: 5.0, vertical: 5),
+                        decoration: BoxDecoration(
+                            color: Color(0xFF121212),
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(15))),
+                        child: ListTile(
+                          onTap: () {
+                            showDialog(
+                              barrierDismissible: true,
+                              context: context,
+                              builder: (context) {
+                                return Dialog(
+                                  insetPadding: EdgeInsets.only(
+                                      bottom: 120,
+                                      top: 30,
+                                      left: 30,
+                                      right: 30),
+                                  backgroundColor: Colors.transparent,
+                                  child: OrderInfoPage(
+                                    orderId: orders[index]["order_id"],
                                   ),
-                                ],
-                                color: Colors.red,
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(1000))),
-                            child: Text(
-                              orders.length.toString(),
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900),
-                            ),
+                                );
+                              },
+                            );
+                          },
+                          title: Text(orders[index]["order_uuid"]),
+                          subtitle: Text(
+                            getOrderStatusFormat(
+                                orders[index]["order_status"] ?? "99"),
+                            style: TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          top: -32,
-                          right: -32)
-                ],
-              ),
-              isExtended: isExpandedFloatingButton,
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    return OrderHistoryPage();
+                          trailing: Text((index + 1).toString() +
+                              "/" +
+                              orders.length.toString()),
+                        ));
                   },
                 );
               },
-              label: Text(orders.length > 1
-                  ? formatActiveOrderString(orders.length)
-                  : getOrderStatusFormat(orders.first["order_status"] ?? "99")),
-            ),
-          );
+            ));
   }
 }
 
@@ -242,7 +236,7 @@ class _OrderListTileState extends State<OrderListTile> {
       );
     } else if (string == "0") {
       return Container(
-        color: Colors.yellow.shade800,
+        color: Color(0xFFEE7203),
         padding: EdgeInsets.all(5 * globals.scaleParam),
         child: Text("Заказ отправлен в магазин",
             style: TextStyle(
@@ -254,7 +248,7 @@ class _OrderListTileState extends State<OrderListTile> {
       );
     } else if (string == "1") {
       return Container(
-        color: Colors.yellow.shade800,
+        color: Color(0xFFEE7203),
         padding: EdgeInsets.all(5 * globals.scaleParam),
         child: Text("Ожидает сборки",
             style: TextStyle(
@@ -321,17 +315,17 @@ class _OrderListTileState extends State<OrderListTile> {
           trailing: widget.order["order_status"] == "66"
               ? TextButton(
                   onPressed: () {
-                    getPaymentPageForUnpaidOrder(widget.order["order_id"])
-                        .then((v) {
-                      Navigator.push(
-                        context,
-                        CupertinoPageRoute(
-                          builder: (context) => WebViewCardPayPage(
-                            htmlString: v["data"],
-                          ),
-                        ),
-                      );
-                    });
+                    // getPaymentPageForUnpaidOrder(widget.order["order_id"])
+                    //     .then((v) {
+                    //   Navigator.push(
+                    //     context,
+                    //     CupertinoPageRoute(
+                    //       builder: (context) => WebViewCardPayPage(
+                    //         htmlString: v["data"],
+                    //       ),
+                    //     ),
+                    //   );
+                    // });
                   },
                   child: Container(
                     padding: EdgeInsets.all(5),
@@ -408,19 +402,6 @@ class _OrderListTileState extends State<OrderListTile> {
                       );
                     },
                   ),
-            Row(
-              children: [
-                Flexible(
-                    child: Text(
-                  "Сумма:  ${globals.formatCost(double.parse(orderDetails["sum"] ?? "0").toStringAsFixed(2))} ₸",
-                  style: TextStyle(
-                    fontFamily: "Raleway",
-                    fontVariations: <FontVariation>[FontVariation('wght', 800)],
-                    fontSize: 38 * globals.scaleParam,
-                  ),
-                ))
-              ],
-            )
           ]),
     );
     ;

@@ -1,19 +1,15 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:dynamic_tabbar/dynamic_tabbar.dart';
-import 'package:naliv_delivery/pages/cartPage.dart';
-import 'package:naliv_delivery/pages/preLoadCartPage.dart';
+import 'package:naliv_delivery/misc/databaseapi.dart';
 import 'package:naliv_delivery/pages/preLoadCategoryPage.dart';
-import 'package:naliv_delivery/shared/bottomBar.dart';
+import 'package:naliv_delivery/shared/ItemCard2.dart';
+import 'package:naliv_delivery/shared/cartButton.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:naliv_delivery/shared/searchWidget.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-import 'package:super_sliver_list/super_sliver_list.dart';
-import 'package:expandable_page_view/expandable_page_view.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 class CategoryPage2 extends StatefulWidget {
@@ -66,6 +62,13 @@ class _CategoryPage2State extends State<CategoryPage2>
   int rangeHighPrice = 0;
 
   List items = [];
+
+  @override
+  void setState(fn) {
+    if (mounted) {
+      super.setState(fn);
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -158,6 +161,12 @@ class _CategoryPage2State extends State<CategoryPage2>
     _getPropertiesForCat();
   }
 
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+  }
+
   final ItemScrollController itemScrollController = ItemScrollController();
   final ScrollOffsetController scrollOffsetController =
       ScrollOffsetController();
@@ -171,51 +180,37 @@ class _CategoryPage2State extends State<CategoryPage2>
     return Stack(
       children: [
         Scaffold(
-          floatingActionButton: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              searchItems == null
-                  ? Container()
-                  : Padding(
-                      padding: EdgeInsets.all(10),
-                      child: FloatingActionButton(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        onPressed: () {
-                          setState(() {
-                            searchItems = null;
-                            selectedValues = [];
-                          });
-                        },
-                        child: Icon(Icons.filter_list_off),
-                      ),
-                    ),
-              Padding(
-                padding: EdgeInsets.all(10),
-                child: FloatingActionButton(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                  onPressed: () {
-                    SchedulerBinding.instance.addPostFrameCallback((_) {
-                      Navigator.push(
-                        context,
-                        CupertinoPageRoute(
-                          builder: (context) {
-                            return PreLoadCartPage(
-                              business: widget.business,
-                            );
-                          },
-                        ),
-                      );
-                    });
-                  },
-                  child: Icon(Icons.shopping_cart_checkout),
-                ),
-              ),
-              context.mounted ? BottomBar() : Container(),
-            ],
-          ),
+          floatingActionButton:
+              CartButton(business: widget.business, user: widget.user),
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerFloat,
+          // floatingActionButton: Column(
+          //   mainAxisAlignment: MainAxisAlignment.end,
+          //   crossAxisAlignment: CrossAxisAlignment.center,
+          //   children: [
+          //     searchItems == null
+          //         ? Container()
+          //         : Padding(
+          //             padding: EdgeInsets.all(10),
+          //             child: FloatingActionButton(
+          //               backgroundColor: Colors.red,
+          //               foregroundColor: Colors.white,
+          //               onPressed: () {
+          //                 setState(() {
+          //                   searchItems = null;
+          //                   selectedValues = [];
+          //                 });
+          //               },
+          //               child: Icon(Icons.filter_list_off),
+          //             ),
+          //           ),
+          //     Padding(
+          //         padding: EdgeInsets.all(10),
+          //         child:
+          //             ),
+          //     // context.mounted ? BottomBar() : Container(),
+          //   ],
+          // ),
           appBar: AppBar(
             title: Searchwidget(business: widget.business),
             backgroundColor: Colors.black,
@@ -229,13 +224,25 @@ class _CategoryPage2State extends State<CategoryPage2>
                     tabs: [
                         for (var i in widget.subcategories)
                           GestureDetector(
-                            onTap: () {
-                              itemScrollController.scrollTo(
-                                  index: widget.subcategories.indexOf(i),
-                                  duration: Durations.medium1);
-                            },
-                            child: Text(i["name"]),
-                          )
+                              onTap: () {
+                                if (mounted) {
+                                  itemScrollController.scrollTo(
+                                      index: widget.subcategories.indexOf(i),
+                                      duration: Durations.medium1);
+                                }
+                                if (mounted) {
+                                  itemScrollController.scrollTo(
+                                      index: widget.subcategories.indexOf(i),
+                                      duration: Durations.medium1);
+                                }
+                              },
+                              child: Container(
+                                padding: EdgeInsets.all(5),
+                                child: Text(
+                                  i["name"],
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ))
                       ])
                 : PreferredSize(
                     preferredSize: Size.fromHeight(10), child: Container()),
@@ -384,41 +391,34 @@ class _CategoryPage2State extends State<CategoryPage2>
                               Container(
                                 decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(20),
-                                    color: Color(0xFF121212)),
+                                    color: Colors.black),
                                 padding: EdgeInsets.all(15),
-                                child: ListView.builder(
+                                child: GridView.builder(
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                          childAspectRatio: 8 / 12,
+                                          mainAxisSpacing: 10,
+                                          crossAxisSpacing: 10,
+                                          crossAxisCount: 2),
                                   primary: false,
                                   shrinkWrap: true,
                                   itemCount: subitems.length,
                                   itemBuilder: (context, index2) {
                                     final Map<String, dynamic> item =
                                         subitems[index2];
+
                                     return rangeLowPrice <= item["price"] &&
                                             item["price"] <= rangeHighPrice
                                         ? (searchItems == null
-                                            ? ItemCardListTile(
-                                                itemId: item["item_id"],
-                                                element: item,
-                                                categoryId: "",
-                                                categoryName: "",
-                                                scroll: 0,
+                                            ? ItemCard2(
+                                                item: item,
                                                 business: widget.business,
-                                                index: index2,
-                                                categoryPageUpdateData:
-                                                    updateDataAmount,
                                               )
                                             : searchItems!.contains(
                                                     item["item_id"].toString())
-                                                ? ItemCardListTile(
-                                                    itemId: item["item_id"],
-                                                    element: item,
-                                                    categoryId: "",
-                                                    categoryName: "",
-                                                    scroll: 0,
+                                                ? ItemCard2(
+                                                    item: item,
                                                     business: widget.business,
-                                                    index: index2,
-                                                    categoryPageUpdateData:
-                                                        updateDataAmount,
                                                   )
                                                 : Container())
                                         : Container();
@@ -433,39 +433,28 @@ class _CategoryPage2State extends State<CategoryPage2>
                   itemPositionsListener: itemPositionsListener,
                   scrollOffsetListener: scrollOffsetListener,
                 )
-              : ListView.builder(
+              : GridView.builder(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      childAspectRatio: 8 / 12,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      crossAxisCount: 2),
+                  primary: false,
+                  shrinkWrap: true,
                   itemCount: widget.items.length,
-                  itemBuilder: (context, index) {
-                    final Map<String, dynamic> item = widget.items[index];
+                  itemBuilder: (context, index2) {
+                    final Map<String, dynamic> item = widget.items[index2];
                     return rangeLowPrice <= item["price"] &&
                             item["price"] <= rangeHighPrice
                         ? (searchItems == null
-                            ? ItemCardListTile(
-                                itemId: item["item_id"],
-                                element: item,
-                                categoryId: "",
-                                categoryName: "",
-                                scroll: 0,
+                            ? ItemCard2(
+                                item: item,
                                 business: widget.business,
-                                index: index,
-                                categoryPageUpdateData:
-                                    (List newCart, int index) {
-                                  item["cart"] = newCart;
-                                },
                               )
                             : searchItems!.contains(item["item_id"].toString())
-                                ? ItemCardListTile(
-                                    itemId: item["item_id"],
-                                    element: item,
-                                    categoryId: "",
-                                    categoryName: "",
-                                    scroll: 0,
+                                ? ItemCard2(
+                                    item: item,
                                     business: widget.business,
-                                    index: index,
-                                    categoryPageUpdateData:
-                                        (List newCart, int index) {
-                                      item["cart"] = newCart;
-                                    },
                                   )
                                 : Container())
                         : Container();
@@ -539,7 +528,7 @@ class _CategoryPage2State extends State<CategoryPage2>
                       color: Colors.white,
                     ),
                     RangeSlider(
-                        activeColor: Colors.orange,
+                        activeColor: Color(0xFFEE7203),
                         inactiveColor: Colors.grey,
                         labels: RangeLabels(rangeLowPrice.toString(),
                             rangeHighPrice.toString()),

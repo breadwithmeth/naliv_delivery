@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/orderInfoPage.dart';
-import 'package:naliv_delivery/pages/webViewCardPayPage.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:intl/intl.dart';
@@ -54,7 +53,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
     if (string == "66") {
       return Colors.red;
     } else if (string == "0") {
-      return Colors.yellow;
+      return Color(0xFFEE7203);
     } else if (string == "1") {
       return Colors.orange;
     } else if (string == "2") {
@@ -108,10 +107,10 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                       builder: (context) {
                         return OrderInfoPage(
                           orderId: _orders[index]["order_id"].toString(),
-                          clientDeliveryInfo: {
-                            "a_name": _orders[index]["a_name"],
-                            "a_address": _orders[index]["a_address"]
-                          },
+                          // clientDeliveryInfo: {
+                          //   "a_name": _orders[index]["a_name"],
+                          //   "a_address": _orders[index]["a_address"]
+                          // },
                         );
                       },
                     );
@@ -193,15 +192,15 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                                         _orders[index]
                                                             ["order_id"])
                                                     .then((v) {
-                                                  Navigator.push(
-                                                    context,
-                                                    CupertinoPageRoute(
-                                                      builder: (context) =>
-                                                          WebViewCardPayPage(
-                                                        htmlString: v["data"],
-                                                      ),
-                                                    ),
-                                                  );
+                                                  // Navigator.push(
+                                                  //   context,
+                                                  //   CupertinoPageRoute(
+                                                  //     builder: (context) =>
+                                                  //         WebViewCardPayPage(
+                                                  //       htmlString: v["data"],
+                                                  //     ),
+                                                  //   ),
+                                                  // );
                                                 });
                                               },
                                               child: Container(

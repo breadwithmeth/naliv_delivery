@@ -66,7 +66,10 @@ class _ActiveOrdersButtonState extends State<ActiveOrdersButton> {
       return orderStatusWidget(order, "Заказ ожидает оплаты", Colors.redAccent);
     } else if (order["order_status"] == "0") {
       return orderStatusWidget(
-          order, "Ждем когда человек увидит ваш заказ", Colors.yellowAccent);
+        order,
+        "Ждем когда человек увидит ваш заказ",
+        Color(0xFFEE7203),
+      );
     } else if (order["order_status"] == "1") {
       return orderStatusWidget(order, "Ваш заказ собирают", Colors.greenAccent);
     } else if (order["order_status"] == "2") {

@@ -1,356 +1,281 @@
-import 'dart:async';
-
-import 'package:extended_image/extended_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
-import 'package:naliv_delivery/pages/preLoadDataPage.dart';
-import 'package:naliv_delivery/pages/preLoadOrderPage.dart';
-import 'package:onesignal_flutter/onesignal_flutter.dart';
-import '../globals.dart' as globals;
+import 'package:naliv_delivery/globals.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/pages/createOrder.dart';
-import 'package:naliv_delivery/shared/itemCards.dart';
+import 'package:naliv_delivery/misc/databaseapi.dart';
+import 'package:naliv_delivery/pages/createOrderPage2.dart';
+import 'package:naliv_delivery/pages/preLoadOrderPage.dart';
+import 'package:naliv_delivery/shared/changeAmountButton.dart';
 
 class CartPage extends StatefulWidget {
-  const CartPage(
-      {super.key,
-      required this.business,
-      required this.items,
-      required this.sum,
-      required this.delivery,
-      required this.tax});
-
+  const CartPage({super.key, required this.business, required this.user});
   final Map<dynamic, dynamic> business;
-  final List items;
-  final int sum;
-  final int delivery;
-  final int tax;
-
+  final Map user;
   @override
   State<CartPage> createState() => _CartPageState();
 }
 
-class _CartPageState extends State<CartPage>
-    with SingleTickerProviderStateMixin {
-  double itemsAmount = 0;
-  late Map<String, dynamic> cartInfo = {};
-  late List recommendedItems = [];
-  late AnimationController animController;
-  final Duration animDuration = Duration(milliseconds: 250);
-  int sum = 0;
-  Map<String, dynamic> client = {};
-  List _items = [];
-  bool isLoading = false;
-  Map cart = {};
-  void updateDataAmount(List newCart, int index) {
-    _getItems();
-    _items[index]["cart"] = newCart;
+class _CartPageState extends State<CartPage> {
+  DatabaseManager dbm = DatabaseManager();
+  List items = [];
+  double sum = 0;
+  int deliveryPrice = 0;
+  @override
+  void setState(fn) {
+    if (mounted) {
+      super.setState(fn);
+    }
   }
 
-  Future<void> _getItems() async {
-    setState(() {
-      _items = widget.items;
-      sum = widget.sum;
-    });
-  }
-
-  _getCart() {
-    getCart(widget.business["business_id"]).then((value) {
+  updateAmount(double newAmount, int index, int item_id) async {
+    await dbm
+        .updateAmount(
+            int.parse(widget.business["business_id"]), item_id, newAmount)
+        .then((v) {
+      print(v);
       setState(() {
-        cart = value;
-        _items = value["cart"] ?? [];
-        sum = double.parse((value["sum"] ?? 0.0).toString()).round();
+        items[index] = v;
+      });
+    });
+    // if (widget.refreshCart != null) {
+    //   widget.refreshCart!();
+    // }
+  }
+
+  _getDeliveryPrice() async {
+    await getDeliveyPrice(widget.business["business_id"]).then((v) {
+      setState(() {
+        deliveryPrice = int.parse(v["price"]);
       });
     });
   }
 
+  getCartSum() async {
+    await dbm.getCartTotal(int.parse(widget.business["business_id"])).then((v) {
+      setState(() {
+        sum = v;
+      });
+    });
+  }
+
+  getCartItems() async {
+    print("checl");
+    await dbm
+        .getAllItemsInCart(int.parse(widget.business["business_id"]))
+        .then((v) {
+      print(v);
+      List _items = [];
+      v.forEach((e) {
+        _items.add(Map.from(e));
+      });
+      setState(() {
+        items.clear();
+        items = _items;
+        ;
+      });
+    });
+  }
+
+  Function? update() {
+    // getCartItems();
+  }
+
   @override
   void initState() {
-    _getItems();
+    // TODO: implement initState
     super.initState();
+    getCartItems();
+    getCartSum();
+    _getDeliveryPrice();
+    dbm.cartUpdates.listen((onData) {
+      getCartItems();
+      getCartSum();
+      if (onData != null) {
+        //
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            automaticallyImplyLeading: false,
-            leading: IconButton(
-                onPressed: () {
-                  Navigator.pop(context, true);
+    return DraggableScrollableSheet(
+      builder: (context, scrollController) {
+        return Container(
+          padding: EdgeInsets.symmetric(vertical: 15, horizontal: 5),
+          decoration: BoxDecoration(
+              color: Color(0xFF121212),
+              borderRadius: BorderRadius.all(Radius.circular(30))),
+          child: Scaffold(
+            backgroundColor: Color(0xFF121212),
+            floatingActionButton: GestureDetector(
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(
+                    builder: (context) {
+                      return PreLoadOrderPage(
+                        business: widget.business,
+                      );
+                    },
+                  ));
                 },
-                icon: Icon(Icons.arrow_back_ios)),
-            backgroundColor: Colors.black,
-            surfaceTintColor: Colors.black,
-            floating: false,
-            pinned: true,
-            centerTitle: false,
-            title: Text("Корзина",
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-          // SliverToBoxAdapter(
-          //   child: Text(cart.toString()),
-          // ),
-          _items.length == 0
-              ? SliverFillRemaining(
-                  child: Center(
-                    child: Text("Похоже здесь ничего нет"),
-                  ),
-                )
-              : SliverList.builder(
-                  itemCount: _items.length,
-                  itemBuilder: (context, index) {
-                    final Map<String, dynamic> item = _items[index];
-
-                    return item["amount_b"] <= 0
-                        ? Container()
-                        : Container(
-                            margin: EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                color: Colors.black),
-                            child: GestureDetector(
-                              // onTap: () {
-                              //   showMaterialModalBottomSheet(
-                              //     context: context,
-                              //     builder: (context) => StatefulBuilder(
-                              //       builder: (context, setState) {
-                              //         double amount =
-                              //             item["amount_b"].runtimeType == int
-                              //                 ? item["amount_b"].toDouble()
-                              //                 : item["amount_b"];
-                              //         return Container(
-                              //           height: 300,
-                              //           color: Color(0xFF121212),
-                              //           child: Row(
-                              //             children: [
-                              //               IconButton(
-                              //                   onPressed: () {
-                              //                     setState(() {
-                              //                       amount--;
-                              //                     });
-                              //                   },
-                              //                   icon: Icon(Icons.add)),
-                              //               Text(amount.toString()),
-                              //             ],
-                              //           ),
-                              //         );
-                              //       },
-                              //     ),
-                              //   );
-                              // },
-                              child: Container(
-                                padding: EdgeInsets.all(10),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Flexible(
-                                        flex: 2,
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              item["name"],
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 12),
-                                            ),
-                                            item["selected_options"] == null
-                                                ? Container()
-                                                : ListView.builder(
-                                                    primary: false,
-                                                    shrinkWrap: true,
-                                                    itemCount:
-                                                        item["selected_options"]
-                                                            .length,
-                                                    itemBuilder:
-                                                        (context, index2) {
-                                                      Map option = item[
-                                                              "selected_options"]
-                                                          [index2];
-                                                      return Text(
-                                                          option["name"]);
-                                                    },
-                                                  ),
-                                          ],
-                                        )),
-                                    Flexible(
-                                        flex: 2,
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(10),
-                                            color: Color(0xFF121212),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              IconButton(
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      isLoading = true;
-                                                    });
-                                                    try {
-                                                      changeCartItemByCartItemId(
-                                                        item["cart_item_id"],
-                                                        (item["amount_b"] -
-                                                                item[
-                                                                    "quantity"])
-                                                            .toDouble(),
-                                                        widget.business[
-                                                            "business_id"],
-                                                      ).then((v) {
-                                                        if (v["result"]) {
-                                                          if (v["amount"] ==
-                                                              null) {
-                                                            _getCart();
-                                                          }
-                                                          print("succes");
-                                                          if (v["amount"] ==
-                                                              null) {
-                                                            _getCart();
-                                                          } else {
-                                                            setState(() {
-                                                              item["amount_b"] =
-                                                                  double.parse(v[
-                                                                      "amount"]);
-                                                              isLoading = false;
-                                                            });
-                                                          }
-
-                                                          _getCart();
-                                                        } else {
-                                                          _getCart();
-
-                                                          print("error");
-                                                        }
-                                                      });
-                                                    } catch (e) {
-                                                      _getCart();
-                                                    }
-                                                  },
-                                                  icon: Icon(Icons.remove)),
-                                              Text(
-                                                item["amount_b"].toString(),
-                                                style: TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight:
-                                                        FontWeight.bold),
-                                              ),
-                                              IconButton(
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      isLoading = true;
-                                                    });
-                                                    try {
-                                                      changeCartItemByCartItemId(
-                                                        item["cart_item_id"],
-                                                        (item["amount_b"] +
-                                                                item[
-                                                                    "quantity"])
-                                                            .toDouble(),
-                                                        widget.business[
-                                                            "business_id"],
-                                                      ).then((v) {
-                                                        if (v["result"]) {
-                                                          if (v["amount"] ==
-                                                              null) {
-                                                            _getCart();
-                                                          }
-                                                          print("succes");
-
-                                                          if (v["amount"] ==
-                                                              null) {
-                                                            _getCart();
-                                                          } else {
-                                                            setState(() {
-                                                              item["amount_b"] =
-                                                                  double.parse(v[
-                                                                      "amount"]);
-                                                              isLoading = false;
-                                                            });
-                                                          }
-
-                                                          _getCart();
-                                                        } else {
-                                                          _getCart();
-
-                                                          print("error");
-                                                        }
-                                                      });
-                                                    } catch (e) {
-                                                      _getCart();
-                                                    }
-                                                  },
-                                                  icon: Icon(Icons.add)),
-                                            ],
-                                          ),
-                                        ))
-                                  ],
+                child: Container(
+                    decoration: BoxDecoration(
+                        color: Color(0xFFEE7203),
+                        borderRadius: BorderRadius.all(Radius.circular(15))),
+                    padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+                    margin: EdgeInsets.symmetric(vertical: 5, horizontal: 15),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Продолжить",
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ))),
+            floatingActionButtonLocation:
+                FloatingActionButtonLocation.centerFloat,
+            body: ListView(
+              controller: scrollController,
+              shrinkWrap: true,
+              primary: false,
+              children: [
+                // Text(items.toString()),
+                Container(
+                  padding: EdgeInsets.all(15),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Корзина",
+                            style: TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            formatPrice(sum.toInt()),
+                            style: GoogleFonts.inter(
+                                fontSize: 25, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      deliveryPrice == 0
+                          ? Container()
+                          : Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  "Доставка и сервис",
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold),
                                 ),
-                              ),
-                            ));
+                                Text(
+                                  formatPrice(deliveryPrice),
+                                  style: GoogleFonts.inter(
+                                      fontSize: 25,
+                                      fontWeight: FontWeight.bold),
+                                )
+                              ],
+                            ),
+                    ],
+                  ),
+                ),
+                ListView.builder(
+                  primary: false,
+                  shrinkWrap: true,
+                  itemCount: items.length,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemBuilder: (context, index) {
+                    return index.runtimeType == int
+                        ? ListTile(
+                            dense: false,
+                            title: Text(
+                              items[index]["name"] ?? "",
+                              style: TextStyle(fontSize: 14),
+                            ),
+                            subtitle: Text(
+                              items[index]["option_name"] ?? "",
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                    onPressed: () {
+                                      if (items[index]["parentItemAmoint"] ==
+                                          null) {
+                                        updateAmount(
+                                            items[index]["amount"] -
+                                                items[index]["quantity"],
+                                            index,
+                                            items[index]["item_id"]);
+                                      } else {
+                                        updateAmount(
+                                            items[index]["amount"] -
+                                                (items[index]["quantity"] *
+                                                    items[index]
+                                                        ["parentItemAmoint"]!),
+                                            index,
+                                            items[index]["item_id"]);
+                                      }
+                                    },
+                                    icon: Icon(
+                                      Icons.remove,
+                                      color: Colors.grey.shade300,
+                                    )),
+                                Text(
+                                  formatQuantity(items[index]["amount"], "ед"),
+                                  style: TextStyle(fontWeight: FontWeight.w900),
+                                ),
+                                IconButton(
+                                    onPressed: () {
+                                      if (items[index]["parentItemAmoint"] ==
+                                          null) {
+                                        updateAmount(
+                                            items[index]["amount"] +
+                                                items[index]["quantity"],
+                                            index,
+                                            items[index]["item_id"]);
+                                      } else {
+                                        updateAmount(
+                                            items[index]["amount"] +
+                                                (items[index]["quantity"] *
+                                                    items[index]
+                                                        ["parentItemAmoint"]!),
+                                            index,
+                                            items[index]["item_id"]);
+                                      }
+                                    },
+                                    icon: Icon(
+                                      Icons.add,
+                                      color: Colors.white,
+                                    )),
+                              ],
+                            ))
+                        : Container();
                   },
                 ),
-          SliverToBoxAdapter(
-            child: Container(
-              padding: EdgeInsets.all(20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Итого",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  Text(
-                    sum.toString() + "₸",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  )
-                ],
-              ),
+                SizedBox(
+                  height: 500,
+                )
+              ],
             ),
           ),
-          SliverToBoxAdapter(
-              child: Container(
-            padding: EdgeInsets.all(10),
-            child: ElevatedButton(
-                onPressed: isLoading
-                    ? null
-                    : () {
-                        Navigator.push(
-                          context,
-                          CupertinoPageRoute(
-                            builder: (context) {
-                              return PreLoadOrderPage(
-                                business: widget.business,
-                              );
-                            },
-                          ),
-                        );
-                      },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text("Продолжить",
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18)),
-                  ],
-                )),
-          ))
-        ],
-      ),
+        );
+      },
     );
   }
 }

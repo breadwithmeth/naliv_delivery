@@ -6,6 +6,7 @@ import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:story_time/story_time.dart';
 import 'package:visibility_detector/visibility_detector.dart';
+import 'package:path/path.dart' as path;
 
 class StoriesPage extends StatefulWidget {
   const StoriesPage(
@@ -46,6 +47,40 @@ class _StoriesPageState extends State<StoriesPage> {
               business: widget.business, collection_id: t_id);
         },
       ));
+    }
+  }
+
+  String _determineFileType(String url) {
+    try {
+      // Get the file extension from the URL
+      String extension = path.extension(Uri.parse(url).path).toLowerCase();
+
+      // Determine the file type based on the extension
+      switch (extension) {
+        case '.jpg':
+        case '.jpeg':
+        case '.png':
+        case '.gif':
+          return "Image";
+        case '.mp4':
+        case '.mkv':
+        case '.avi':
+          return "Video";
+        case '.mp3':
+        case '.wav':
+          return "Audio";
+        case '.pdf':
+        case '.doc':
+        case '.docx':
+          return "Document";
+        case '.zip':
+        case '.rar':
+          return "Archive";
+        default:
+          return "Unknown type";
+      }
+    } catch (e) {
+      return "Invalid URL";
     }
   }
 

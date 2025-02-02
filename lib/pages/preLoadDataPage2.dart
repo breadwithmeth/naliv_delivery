@@ -19,7 +19,7 @@ class _Preloaddatapage2State extends State<Preloaddatapage2> {
   List _addresses = [];
 
   Map _currentAddress = {};
-  List<Map> _businesses = [];
+  List _businesses = [];
   Map<String, dynamic> user = {};
   Future<bool> _getAddresses() async {
     List addresses = await getAddresses();
@@ -53,8 +53,8 @@ class _Preloaddatapage2State extends State<Preloaddatapage2> {
     });
   }
 
-  Future<List<Map>> _getBusinesses() async {
-    List<Map>? businesses = await getBusinesses();
+  Future<List> _getBusinesses() async {
+    List businesses = await getBusinesses();
     print(businesses);
     if (businesses == null) {
       return [];
@@ -66,49 +66,57 @@ class _Preloaddatapage2State extends State<Preloaddatapage2> {
     }
   }
 
+  // getInfo() {
+  //   _getUser().then((v) {
+  //     _getAddresses().then((v) {
+  //       if (user["first_name"] == null) {
+  //         Navigator.pushReplacement(
+  //           context,
+  //           CupertinoPageRoute(
+  //               builder: (context) => Finishprofilepage(user: user)),
+  //         );
+  //       } else {
+  //         if (_addresses.isEmpty) {
+  //           Navigator.pushReplacement(
+  //             context,
+  //             CupertinoPageRoute(
+  //               builder: (context) => CreateAddressPage(
+  //                 createOrder: false,
+  //                 business: null,
+  //               ),
+  //             ),
+  //           );
+  //         } else {
+  //           Navigator.pushReplacement(
+  //             context,
+  //             CupertinoPageRoute(
+  //               builder: (context) => SelectAddressPage(
+  //                 addresses: _addresses,
+  //                 currentAddress: _currentAddress,
+  //                 createOrder: false,
+  //                 business: null,
+  //               ),
+  //             ),
+
+  //           );
+  //         }
+  //       }
+  //     });
+  //   });
+  // }
   getInfo() {
-    _getUser().then((v) {
-      _getAddresses().then((v) {
-        if (user["first_name"] == null) {
-          Navigator.pushReplacement(
-            context,
-            CupertinoPageRoute(
-                builder: (context) => Finishprofilepage(user: user)),
-          );
-        } else {
-          if (_addresses.isEmpty) {
-            Navigator.pushReplacement(
-              context,
-              CupertinoPageRoute(
-                builder: (context) => CreateAddressPage(
-                  createOrder: false,
-                  business: null,
-                ),
-              ),
-            );
-          } else {
-            Navigator.pushReplacement(
-              context,
-              CupertinoPageRoute(
-                builder: (context) => SelectAddressPage(
-                  addresses: _addresses,
-                  currentAddress: _currentAddress,
-                  createOrder: false,
-                  business: null,
-                ),
-              ),
-              // CupertinoPageRoute(
-              //   builder: (context) => SelectBusinessesPage(
-              //     addresses: _addresses,
-              //     currentAddress: _currentAddress,
-              //     user: user,
-              //     businesses: _businesses,
-              //   ),
-              // ),
-            );
-          }
-        }
-      });
+    _getAddresses().then((v) {
+      Navigator.pushReplacement(
+        context,
+        CupertinoPageRoute(
+          builder: (context) => SelectAddressPage(
+            addresses: _addresses,
+            currentAddress: _currentAddress,
+            createOrder: false,
+            business: null,
+          ),
+        ),
+      );
     });
   }
 

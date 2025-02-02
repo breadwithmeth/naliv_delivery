@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/pages/createOrder.dart';
+import 'package:naliv_delivery/pages/createOrderPage2.dart';
 import 'package:naliv_delivery/shared/loadingScreen.dart';
 
 class PreLoadOrderPage extends StatefulWidget {
@@ -13,26 +13,8 @@ class PreLoadOrderPage extends StatefulWidget {
 }
 
 class _PreLoadOrderPageState extends State<PreLoadOrderPage> {
-  List items = [];
-  int localSum = 0;
-  int price = 0;
-  int taxes = 0;
   Map currentAddress = {};
   List addresses = [];
-
-  Future<void> _getCart() async {
-    Map<String, dynamic> cart = await getCart(widget.business["business_id"]);
-    print(cart);
-
-    setState(() {
-      items = cart["cart"] ?? [];
-      localSum = double.parse((cart["sum"] ?? 0.0).toString()).round();
-      // distance = double.parse((cart["distance"] ?? 0.0).toString()).round();
-      // price = (price / 100).round() * 100;
-      price = double.parse((cart["delivery"] ?? 0.0).toString()).round();
-      taxes = double.parse((cart["taxes"] ?? 0.0).toString()).round();
-    });
-  }
 
   Future<void> _getAddresses() async {
     List _addresses = await getAddresses();
@@ -56,20 +38,15 @@ class _PreLoadOrderPageState extends State<PreLoadOrderPage> {
     // TODO: implement initState
     super.initState();
     _getAddresses().then((v) {
-      _getCart().then((v) {
-        Navigator.pushReplacement(context, CupertinoPageRoute(
-          builder: (context) {
-            return CreateOrderPage(
-                business: widget.business,
-                items: items,
-                currentAddress: currentAddress,
-                addresses: addresses,
-                localSum: localSum,
-                price: price,
-                taxes: taxes);
-          },
-        ));
-      });
+      Navigator.pushReplacement(context, MaterialPageRoute(
+        builder: (context) {
+          return CreateOrderPage2(
+            business: widget.business,
+            currentAddress: currentAddress,
+            addresses: addresses,
+          );
+        },
+      ));
     });
   }
 

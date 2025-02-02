@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createAddressPage.dart';
-import 'package:naliv_delivery/pages/createOrder.dart';
 import 'package:naliv_delivery/pages/mainPage.dart';
 import 'package:naliv_delivery/pages/preLoadOrderPage.dart';
 import 'package:naliv_delivery/pages/selectBusinessesPage.dart';
@@ -28,8 +27,9 @@ class SelectAddressPage extends StatefulWidget {
 
 class _SelectAddressPageState extends State<SelectAddressPage> {
   bool _isLoading = false;
-  Future<List<Map>> _getBusinesses() async {
-    List<Map>? businesses = await getBusinesses();
+  List addresses = [];
+  Future<List> _getBusinesses() async {
+    List businesses = await getBusinesses();
     print(businesses);
     if (businesses == null) {
       return [];
@@ -45,6 +45,11 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
     determinePosition(context).then((v) {
       print(v);
     });
+    if (mounted) {
+      setState(() {
+        addresses = widget.addresses;
+      });
+    }
   }
 
   @override
@@ -146,7 +151,7 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                                                         "0")),
                                             child: Icon(
                                               Icons.location_on,
-                                              color: Colors.orangeAccent,
+                                              color: Color(0xFFEE7203),
                                               size: 40,
                                             ))
                                       ]),
@@ -191,7 +196,7 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                             ),
                             ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.deepOrange,
+                                    backgroundColor: Color(0xFFEE7203),
                                     shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.all(
                                             Radius.circular(15)))),
@@ -208,15 +213,24 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                                             business: widget.business!);
                                       }));
                                     } else {
-                                      print(v);
-                                      v.sort((a, b) => a['distance']
-                                          .compareTo(b['distance']));
+                                      // print(v);
+                                      // v.sort((a, b) => a['distance']
+                                      //     .compareTo(b['distance']));
                                       // Map closestBusijess = v.where(
                                       //   (element) {
 
                                       //   },
                                       // );
-                                      Map closestBusijess = v.first;
+
+                                      var min = v[0];
+                                      v.forEach((item) {
+                                        if (double.parse(item['distance']) <
+                                            double.parse(min['distance']))
+                                          min = item;
+                                      });
+                                      print(min['distance']);
+                                      print(v);
+                                      Map closestBusijess = min;
                                       print(closestBusijess);
                                       getUser().then((user) {
                                         Navigator.pushAndRemoveUntil(
@@ -234,16 +248,16 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                                           (Route<dynamic> route) => false,
                                         );
                                       });
-                                      // Navigator.push(context,
-                                      //     CupertinoPageRoute(
-                                      //   builder: (context) {
-                                      //     return SelectBusinessesPage(
-                                      //       businesses: v,
-                                      //       currentAddress:
-                                      //           widget.currentAddress,
-                                      //     );
-                                      //   },
-                                      // ));
+                                      Navigator.push(context,
+                                          CupertinoPageRoute(
+                                        builder: (context) {
+                                          return SelectBusinessesPage(
+                                            businesses: v,
+                                            currentAddress:
+                                                widget.currentAddress,
+                                          );
+                                        },
+                                      ));
                                       setState(() {
                                         _isLoading = false;
                                       });
@@ -286,16 +300,27 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                       )
                     : SliverToBoxAdapter(),
                 SliverPadding(
-                  padding: EdgeInsets.only(left: 30, right: 30, top: 10),
+                  padding: EdgeInsets.only(left: 0, right: 0, top: 10),
                   sliver: SliverList.builder(
-                    itemCount: widget.addresses.length,
+                    itemCount: addresses.length,
                     itemBuilder: (context, index) {
                       return Column(
                         children: [
                           ListTile(
+                            leading: IconButton(
+                                onPressed: () {
+                                  print("object");
+                                  setState(() {
+                                    addresses.removeAt(index);
+                                  });
+                                  deleteAddress(
+                                    addresses[index]["address_id"],
+                                  );
+                                },
+                                icon: Icon(Icons.close)),
+                            contentPadding: EdgeInsets.symmetric(vertical: 10),
                             onTap: () {
-                              selectAddress(
-                                      widget.addresses[index]["address_id"])
+                              selectAddress(addresses[index]["address_id"])
                                   .then((value) {
                                 getAddresses().then((addresses) {
                                   Navigator.pushReplacement(context,
@@ -320,7 +345,7 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                             trailing: Icon(Icons.keyboard_arrow_right,
                                 color: Colors.white),
                             title: Text(
-                              widget.addresses[index]["address"],
+                              addresses[index]["address"],
                               style: GoogleFonts.roboto(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
@@ -328,7 +353,7 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                               ),
                             ),
                             subtitle: Text(
-                              widget.addresses[index]["city_name"] ??
+                              addresses[index]["city_name"] ??
                                   "Этого города еще нет в базе",
                               style: GoogleFonts.roboto(
                                 fontSize: 12,
