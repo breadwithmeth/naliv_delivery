@@ -1862,7 +1862,7 @@ Future<bool?> isLiked(int item_id) async {
 }
 
 Future<Map<String, dynamic>> createOrder3(String businessId, String? delivery,
-    String? card_id, List items, bool useBonus) async {
+    String? card_id, List items, bool useBonus, String extra) async {
   // Returns null in two situations, token is null or wrong order (406)
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
@@ -1874,7 +1874,8 @@ Future<Map<String, dynamic>> createOrder3(String businessId, String? delivery,
     'business_id': businessId,
     'card_id': card_id,
     'items': items,
-    'bonus': useBonus
+    'bonus': useBonus,
+    'extra': extra
   };
 
   // if (addressId != null) {

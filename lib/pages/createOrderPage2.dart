@@ -107,12 +107,27 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
   }
 
   _createOrder() async {
+    String extra = "По заменам и возвратам:";
+
+    itemsForReplacements.forEach((i) {
+      extra = extra +
+          i["name"] +
+          "-" +
+          (i["replace"]
+              ? "Разрешена замена"
+              : "Вернуть деньги за данную позицию") +
+          "\n";
+    });
+
+    extra = extra + "\n\n\n";
+    extra = extra + _message.text;
+    print(extra);
     setState(() {
       createButtonEnabled = false;
     });
     dbm.updateCartStatusByBusinessId(int.parse(widget.business["business_id"]));
     await createOrder3(widget.business["business_id"], delivery ? "1" : "0",
-            _selectedCard, items, useBonuses)
+            _selectedCard, items, useBonuses, extra)
         .then((value) {
       if (value["status"] == "insufficent funds") {
         showDialog(
@@ -306,7 +321,7 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
                     fontSize: 12),
               ),
               subtitle: Text(
-                "Отсутствующие товары заменяются аналогами.",
+                "Отсутствующие товары заменяются аналогами, либо производится возврат денег.",
                 style: TextStyle(
                     fontWeight: FontWeight.w400,
                     color: Colors.white,
