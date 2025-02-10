@@ -1,3 +1,4 @@
+import 'package:naliv_delivery/misc/api.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'dart:async';
@@ -209,7 +210,7 @@ class DatabaseManager {
     final cartId = await getCartId(businessId);
 
     final rows = await db.rawQuery(
-      '''SELECT cart_items.*, cart_items_options.parent_amount, cart_items_options.option_name, cart_items_options.option_item_relation_id
+      '''SELECT cart_items.*, cart_items_options.parent_amount, cart_items_options.option_name, cart_items_options.option_item_relation_id, cart_items_options.price option_price
        FROM cart_items
        LEFT JOIN cart_items_options ON cart_items_options.cart_item_id = cart_items.id
        WHERE cart_items.cart_id = ?''',
@@ -222,56 +223,74 @@ class DatabaseManager {
   Future<double> getCartTotal(int businessId) async {
     final db = await database;
     final cartId = await getCartId(businessId);
+    double total = 0;
 
-    // Получаем все товары в корзине с их количеством и ценой
     final rows = await db.rawQuery(
-      '''SELECT cart_items.amount, cart_items.price, cart_items_options.price AS option_price, cart_items_options.parent_amount
+      '''SELECT cart_items.amount, cart_items.price, cart_items_options.price AS option_price, cart_items_options.parent_amount, cart_items.item_id
        FROM cart_items
        LEFT JOIN cart_items_options ON cart_items_options.cart_item_id = cart_items.id
        WHERE cart_items.cart_id = ?''',
       [cartId],
     );
 
-    double total = 0.0;
+    final cartPrices = await getCartPrice(rows);
 
-    // Суммируем стоимость всех товаров с их опциями
     for (var row in rows) {
-      final amount = row['amount'] as double;
-      final price = row['price'] as int;
-      final optionPrice =
-          row['option_price'] as int? ?? 0; // Цена опции, если она есть
-      final parentAmount = row['parent_amount'] as double? ??
-          1; // parent_amount, если он есть, по умолчанию 1
+      final amount = (row['amount'] as num).toDouble();
+      final price = (row['price'] as num).toDouble();
+      final optionPrice = (row['option_price'] as num?)?.toDouble() ?? 0.0;
+      final parentAmount = (row['parent_amount'] as num?)?.toDouble() ?? 1.0;
+      final itemId = row['item_id']?.toString() ?? '';
 
-      // Количество опций для данного товара
-      final optionCount = amount / parentAmount;
+      final optionCount = parentAmount > 0 ? amount / parentAmount : 0;
 
-      // Добавляем стоимость товара и его опций
-      // total += (price + optionPrice) * optionCount;
       total += price * amount + optionCount * optionPrice;
+
+      final itemCartParam = cartPrices.firstWhere(
+        (element) => element["item_id"].toString() == itemId,
+        orElse: () => null,
+      );
+
+      if (itemCartParam != null && itemCartParam["promotions"] != null) {
+        final baseAmount = double.tryParse(
+                    itemCartParam["promotions"]["base_amount"]?.toString() ??
+                        '0')
+                ?.toInt() ??
+            0;
+        final addAmount = double.tryParse(
+                    itemCartParam["promotions"]["add_amount"]?.toString() ??
+                        '0')
+                ?.toInt() ??
+            0;
+        print(addAmount);
+        if (baseAmount + addAmount > 0) {
+          int promoMultiplier = (amount / (baseAmount + addAmount)).toInt();
+          if (promoMultiplier >= 1) {
+            total -= (promoMultiplier * price);
+          }
+        }
+      }
     }
 
     return total;
   }
 
-
   Future<void> updateCartStatusByBusinessId(int businessId) async {
-  final db = await database;
+    final db = await database;
 
-  // Обновляем статус корзины на 1 для указанного business_id
-  final updatedCount = await db.update(
-    'carts',
-    {'status': 1},
-    where: 'business_id = ? AND status = 0',
-    whereArgs: [businessId],
-  );
+    // Обновляем статус корзины на 1 для указанного business_id
+    final updatedCount = await db.update(
+      'carts',
+      {'status': 1},
+      where: 'business_id = ? AND status = 0',
+      whereArgs: [businessId],
+    );
 
-  if (updatedCount > 0) {
-    // Уведомляем слушателей об изменении корзины
-    _cartStreamController.add(null);
+    if (updatedCount > 0) {
+      // Уведомляем слушателей об изменении корзины
+      _cartStreamController.add(null);
+    }
   }
-}
-
 
   void dispose() {
     _cartStreamController.close();

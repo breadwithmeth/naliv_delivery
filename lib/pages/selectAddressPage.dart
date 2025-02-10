@@ -38,6 +38,8 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
     }
   }
 
+  
+
   @override
   void initState() {
     // TODO: implement initState
@@ -89,7 +91,7 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                             Container(
                               child: FittedBox(
                                 child: Text(
-                                  "Текущий адрес",
+                                  "Текущий адрес     ",
                                   style: GoogleFonts.prostoOne(
                                     fontSize: 36,
                                     fontWeight: FontWeight.w400,

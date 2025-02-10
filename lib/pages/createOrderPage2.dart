@@ -13,6 +13,7 @@ import 'package:naliv_delivery/pages/selectAddressPage.dart';
 import 'package:naliv_delivery/shared/ItemCard2.dart';
 import 'package:naliv_delivery/shared/changeAmountButton.dart';
 import 'package:naliv_delivery/shared/openMainPageButton.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 class CreateOrderPage2 extends StatefulWidget {
   const CreateOrderPage2({
@@ -32,12 +33,14 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
   DatabaseManager dbm = DatabaseManager();
   List items = [];
   double sum = 0;
+  int discount = 0;
   int deliveryPrice = 0;
   bool delivery = true;
   bool createButtonEnabled = true;
   bool useBonuses = false;
   int bonuses = 0;
   bool bonusesAvailabale = false;
+  bool recPopulated = false;
   @override
   void setState(fn) {
     if (mounted) {
@@ -83,6 +86,8 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
       });
     }).then((items_t) {
       _getItemsRescByItems();
+      _getCartPrice();
+      // getTotalCartPrice(items);
     });
   }
 
@@ -106,29 +111,35 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
     });
   }
 
+  String extra = "";
+
   _createOrder() async {
-    String extra = "По заменам и возвратам:";
-
-    itemsForReplacements.forEach((i) {
-      extra = extra +
-          i["name"] +
-          "-" +
-          (i["replace"]
-              ? "Разрешена замена"
-              : "Вернуть деньги за данную позицию") +
-          "\n";
-    });
-
-    extra = extra + "\n\n\n";
-    extra = extra + _message.text;
-    print(extra);
     setState(() {
-      createButtonEnabled = false;
+      extra = "По заменам и возвратам:";
+
+      itemsForReplacements.forEach((i) {
+        extra = extra +
+            i["name"] +
+            "-" +
+            (i["replace"]
+                ? "Разрешена замена"
+                : "Вернуть деньги за данную позицию") +
+            "\n";
+      });
+
+      extra = extra + "\n\n\n";
+      extra = extra + _message.text;
     });
+
+    print(extra);
+    // setState(() {
+    //   createButtonEnabled = false;
+    // });
     dbm.updateCartStatusByBusinessId(int.parse(widget.business["business_id"]));
     await createOrder3(widget.business["business_id"], delivery ? "1" : "0",
             _selectedCard, items, useBonuses, extra)
         .then((value) {
+      print(value);
       if (value["status"] == "insufficent funds") {
         showDialog(
           barrierDismissible: false,
@@ -178,6 +189,23 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
     });
   }
 
+  _getCartPrice() {
+    getCartPrice(items).then((cartParams) {
+      for (int i = 0; i < items.length; i++) {
+        if (mounted) {
+          Map itemCartParam = cartParams.firstWhere((element) {
+            return element["item_id"].toString() ==
+                items[i]["item_id"].toString();
+          });
+          setState(() {
+            items[i]["promotion"] = itemCartParam["promotions"];
+          });
+        }
+      }
+    });
+    getTotalCartPrice(items);
+  }
+
   @override
   void initState() {
     // TODO: implement initState
@@ -187,6 +215,8 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
     _getSavedCards();
     _getDeliveryPrice();
     _getBonuses();
+    _getCartPrice();
+
     dbm.cartUpdates.listen((onData) {
       if (onData != null) {
         print("========================");
@@ -194,6 +224,9 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
         getCartItems();
         getCartSum();
         generateItemsFromReplacement();
+        _getCartPrice();
+
+        // getTotalCartPrice(items);
       }
     });
   }
@@ -223,22 +256,113 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
   List recItems = [];
 
   _getItemsRescByItems() {
-    List ids = [];
-    items.forEach((v) {
-      print("some successssss");
-      print(v);
-      print(v["item_id"]);
-      ids.add(v["item_id"]);
-    });
-
-    getItemsRescByItems(
-            widget.business["business_id"], ids.join(',').toString())
-        .then((v) {
-      print(v);
+    if (!recPopulated) {
       setState(() {
-        recItems = v["items"] ?? [];
+        recPopulated = true;
       });
-    });
+      List ids = [];
+      items.forEach((v) {
+        print("some successssss");
+        print(v);
+        print(v["item_id"]);
+        ids.add(v["item_id"]);
+      });
+
+      getItemsRescByItems(
+              widget.business["business_id"], ids.join(',').toString())
+          .then((v) {
+        print(v);
+        setState(() {
+          recItems = v["items"] ?? [];
+        });
+      });
+    }
+  }
+
+  Widget getCartItem(int index) {
+    return Container();
+  }
+
+  Widget getItemPrice(Map item) {
+    final amount = item['amount'] as double;
+    final price = item['price'] as int;
+    final optionPrice =
+        item['option_price'] as int? ?? 0; // Цена опции, если она есть
+    final parentAmount = item['parent_amount'] as double? ??
+        1; // parent_amount, если он есть, по умолчанию 1
+
+    // Количество опций для данного товара
+    final optionCount = amount / parentAmount;
+    final totalPrice = (price * amount + optionCount * optionPrice).toInt();
+    if (item["promotion"] != null) {
+      int base_amount = double.parse(item["promotion"]["base_amount"]).toInt();
+      int add_amount = double.parse(item["promotion"]["add_amount"]).toInt();
+      if ((amount / (base_amount + add_amount)).toInt() >= 1) {
+        final newTotalPrice = totalPrice -
+            (((amount / (base_amount + add_amount)).toInt() * price)).toInt();
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Text(
+              formatPrice(totalPrice),
+              strutStyle: StrutStyle(),
+              style: GoogleFonts.inter(
+                  decoration: TextDecoration.lineThrough,
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.normal),
+            ),
+            SizedBox(
+              width: 5,
+            ),
+            Text(
+              formatPrice(newTotalPrice),
+              style: GoogleFonts.inter(
+                  color: Colors.white, fontWeight: FontWeight.bold),
+            )
+          ],
+        );
+      }
+    }
+    return Text(
+      formatPrice(totalPrice),
+      style:
+          GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold),
+    );
+  }
+
+  void getTotalCartPrice(List items1) {
+    // int totalSum = 0;
+    // int discountSum = 0;
+
+    // items1.forEach((item) {
+    //   print(item);
+    //   final amount = item['amount'] as double;
+    //   final price = item['price'] as int;
+    //   final optionPrice =
+    //       item['option_price'] as int? ?? 0; // Цена опции, если она есть
+    //   final parentAmount = item['parent_amount'] as double? ??
+    //       1; // parent_amount, если он есть, по умолчанию 1
+
+    //   // Количество опций для данного товара
+    //   final optionCount = amount / parentAmount;
+    //   final totalPrice = (price * amount + optionCount * optionPrice).toInt();
+    //   totalSum = totalSum + totalPrice;
+    //   if (item["promotion"] != null) {
+    //     int base_amount =
+    //         double.parse(item["promotion"]["base_amount"]).toInt();
+    //     int add_amount = double.parse(item["promotion"]["add_amount"]).toInt();
+    //     if ((amount / (base_amount + add_amount)).toInt() >= 1) {
+    //       discountSum = discountSum +
+    //           (((amount / (base_amount + add_amount)).toInt() * price)).toInt();
+    //     }
+    //   }
+    // });
+    // print("SKIDKA");
+    // print(discountSum);
+    // setState(() {
+    //   discount = discountSum;
+    // });
   }
 
   @override
@@ -431,9 +555,15 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
                             color: Colors.white,
                             fontWeight: FontWeight.bold),
                       ),
-                      subtitle: Text(
-                        items[index]["option_name"] ?? "",
-                        style: TextStyle(fontSize: 12),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            items[index]["option_name"] ?? "",
+                            style: TextStyle(fontSize: 12),
+                          ),
+                          getItemPrice(items[index])
+                        ],
                       ),
                       trailing: Text(
                         formatQuantity(items[index]["amount"], "ед"),
@@ -903,36 +1033,45 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
                           ),
                         )
                       : Container(),
-                  Container(
-                    padding: EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                        border: Border(
-                            bottom:
-                                BorderSide(color: Colors.white, width: 0.5))),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "Итого",
-                          style: TextStyle(
-                              fontSize: 24, fontWeight: FontWeight.bold),
+                  VisibilityDetector(
+                      key: Key(
+                          "Такие ключи это поискать еще надо, потому что этот ключ не норм, это ультра норм!"),
+                      child: Container(
+                        padding: EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                            border: Border(
+                                bottom: BorderSide(
+                                    color: Colors.white, width: 0.5))),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Итого",
+                              style: TextStyle(
+                                  fontSize: 24, fontWeight: FontWeight.bold),
+                            ),
+                            delivery
+                                ? Text(
+                                    "~" +
+                                        formatPrice(sum.toInt() +
+                                            deliveryPrice.toInt() -
+                                            discount),
+                                    style: GoogleFonts.inter(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold),
+                                  )
+                                : Text(
+                                    "~" + formatPrice(sum.toInt() - discount),
+                                    style: GoogleFonts.inter(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                          ],
                         ),
-                        delivery
-                            ? Text(
-                                "~" +
-                                    formatPrice(
-                                        sum.toInt() + deliveryPrice.toInt()),
-                                style: GoogleFonts.inter(
-                                    fontSize: 24, fontWeight: FontWeight.bold),
-                              )
-                            : Text(
-                                "~" + formatPrice(sum.toInt()),
-                                style: GoogleFonts.inter(
-                                    fontSize: 24, fontWeight: FontWeight.bold),
-                              ),
-                      ],
-                    ),
-                  ),
+                      ),
+                      onVisibilityChanged: (vi) {
+                        getTotalCartPrice(items);
+                      })
                 ],
               ),
             ),
@@ -943,6 +1082,7 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
               child: ElevatedButton(
                 onPressed: createButtonEnabled && _selectedCard != null
                     ? () {
+                        print(123);
                         _createOrder();
                       }
                     : null,
@@ -955,6 +1095,13 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
                 ),
               ),
             ),
+          ),
+          SliverToBoxAdapter(
+            child: ElevatedButton(
+                onPressed: () {
+                  getTotalCartPrice(items);
+                },
+                child: Text("data")),
           ),
           SliverPadding(
               padding: EdgeInsets.only(top: 20, left: 10),

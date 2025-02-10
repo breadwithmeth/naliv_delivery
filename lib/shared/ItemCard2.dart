@@ -324,24 +324,56 @@ class _ItemCard2State extends State<ItemCard2> {
                       clipBehavior: Clip.antiAliasWithSaveLayer,
                       decoration: BoxDecoration(
                           borderRadius: BorderRadius.all(Radius.circular(15))),
-                      child: AspectRatio(
-                        aspectRatio: 1,
-                        child: CachedNetworkImage(
-                          fit: BoxFit.cover,
-                          imageUrl: widget.item["img"] ?? "/",
-                          placeholder: (context, url) => Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
+                      child: Stack(
+                        children: [
+                          AspectRatio(
+                            aspectRatio: 1,
+                            child: CachedNetworkImage(
+                              fit: BoxFit.cover,
+                              imageUrl: widget.item["img"] ?? "/",
+                              placeholder: (context, url) => Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                ),
+                              ),
+                              errorWidget: (context, url, error) =>
+                                  Icon(Icons.error),
                             ),
-                          ),
-                          errorWidget: (context, url, error) =>
-                              Icon(Icons.error),
-                        ),
 
-                        // Image.network(
-                        //   widget.item["img"] ?? "/",
-                        //   fit: BoxFit.cover,
-                        // ),
+                            // Image.network(
+                            //   widget.item["img"] ?? "/",
+                            //   fit: BoxFit.cover,
+                            // ),
+                          ),
+                          AspectRatio(
+                              aspectRatio: 1,
+                              child: Container(
+                                padding: EdgeInsets.all(10),
+                                alignment: Alignment.bottomLeft,
+                                child: widget.item["promotions"] == null
+                                    ? Container()
+                                    : Container(
+                                        padding: EdgeInsets.all(5),
+                                        decoration: BoxDecoration(
+                                            boxShadow: [
+                                              BoxShadow(
+                                                  color: Colors.black12,
+                                                  blurRadius: 5,
+                                                  offset: Offset(5, 5))
+                                            ],
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(500))),
+                                        child: Icon(
+                                          Icons.card_giftcard,
+                                          color: Colors.amber,
+                                        ),
+                                      ),
+                              )
+
+                            
+                              )
+                        ],
                       ),
                     ),
                     Container(

@@ -158,11 +158,11 @@ class _ItemPageState extends State<ItemPage> {
     });
   }
 
-  List _properties = [];
+  Map details = {};
   _getProperties() {
-    getProperties(widget.item["item_id"].toString()).then((value) {
+    getItemDetails(widget.item["item_id"].toString()).then((value) {
       setState(() {
-        _properties = value;
+        details = value;
       });
     });
   }
@@ -369,28 +369,68 @@ class _ItemPageState extends State<ItemPage> {
                         //   print(details.);
                         // },
                         child: Container(
-                          decoration: BoxDecoration(),
-                          clipBehavior: Clip.antiAliasWithSaveLayer,
-                          child: AspectRatio(
-                            aspectRatio: imageZoom ? 0.6 : 1,
-                            child: Transform.scale(
-                              origin: Offset(wOffset, hOffset),
-                              scale: imageZoom ? 2 : 1,
-                              child: CachedNetworkImage(
-                                // alignment: Alignment(wOffset, ),
-                                fit: BoxFit.cover,
-                                imageUrl: widget.item["img"] ?? "/",
-                                placeholder: (context, url) => Center(
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
+                            decoration: BoxDecoration(),
+                            clipBehavior: Clip.antiAliasWithSaveLayer,
+                            child: Stack(
+                              children: [
+                                AspectRatio(
+                                  aspectRatio: imageZoom ? 0.6 : 1,
+                                  child: Transform.scale(
+                                    origin: Offset(wOffset, hOffset),
+                                    scale: imageZoom ? 2 : 1,
+                                    child: CachedNetworkImage(
+                                      // alignment: Alignment(wOffset, ),
+                                      fit: BoxFit.cover,
+                                      imageUrl: widget.item["img"] ?? "/",
+                                      placeholder: (context, url) => Center(
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      errorWidget: (context, url, error) =>
+                                          Icon(Icons.error),
+                                    ),
                                   ),
                                 ),
-                                errorWidget: (context, url, error) =>
-                                    Icon(Icons.error),
-                              ),
-                            ),
-                          ),
-                        ),
+                                AspectRatio(
+                                    aspectRatio: imageZoom ? 0.6 : 1,
+                                    child: widget.item["promotions"] == null
+                                        ? Container()
+                                        : Container(
+                                            alignment: Alignment.bottomLeft,
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  decoration: BoxDecoration(
+                                                      color: Colors.white,
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                            color:
+                                                                Colors.black26,
+                                                            spreadRadius: 2,
+                                                            offset:
+                                                                Offset(3, 3),
+                                                            blurRadius: 2)
+                                                      ],
+                                                      borderRadius:
+                                                          BorderRadius.all(
+                                                              Radius.circular(
+                                                                  30))),
+                                                  margin: EdgeInsets.all(10),
+                                                  padding: EdgeInsets.all(10),
+                                                  child: Text(
+                                                    'Купите ${double.parse((widget.item["promotions"][0]["base_amount"] + widget.item["promotions"][0]["add_amount"]).toString()).toInt()}, платите за ${double.parse((widget.item["promotions"][0]["base_amount"]).toString()).toInt()}',
+                                                    style: GoogleFonts.inter(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: Colors.black),
+                                                  ),
+                                                )
+                                              ],
+                                            ),
+                                          )),
+                              ],
+                            )),
                       ),
                       Container(
                         padding: EdgeInsets.all(10),
@@ -447,7 +487,7 @@ class _ItemPageState extends State<ItemPage> {
                         textColor: Colors.white,
                         title: Text("Подробнее"),
                         children: [
-                          _properties.isNotEmpty
+                          details["properties"] != null
                               ? Container(
                                   padding: EdgeInsets.all(20),
                                   child: Column(
@@ -467,16 +507,18 @@ class _ItemPageState extends State<ItemPage> {
                                       ListView.builder(
                                         primary: false,
                                         shrinkWrap: true,
-                                        itemCount: _properties.length,
+                                        itemCount: details["properties"].length,
                                         itemBuilder: (context, index) {
                                           return Container(
                                             alignment: Alignment.bottomCenter,
                                             decoration: BoxDecoration(
                                               border: Border(
-                                                bottom: _properties[index]
+                                                bottom: details["properties"]
+                                                                    [index]
                                                                 ["name"] ==
                                                             null ||
-                                                        _properties[index]
+                                                        details["properties"]
+                                                                    [index]
                                                                 ["value"] ==
                                                             null
                                                     ? BorderSide.none
@@ -486,9 +528,10 @@ class _ItemPageState extends State<ItemPage> {
                                                         width: 1),
                                               ),
                                             ),
-                                            child: _properties[index]["name"] ==
+                                            child: details["properties"][index]
+                                                            ["name"] ==
                                                         null ||
-                                                    _properties[index]
+                                                    details["properties"][index]
                                                             ["value"] ==
                                                         null
                                                 ? Container()
@@ -500,14 +543,14 @@ class _ItemPageState extends State<ItemPage> {
                                                             .spaceBetween,
                                                     children: [
                                                       Flexible(
-                                                        child: Text(
-                                                            _properties[index]
-                                                                ["name"]),
+                                                        child: Text(details[
+                                                                "properties"]
+                                                            [index]["name"]),
                                                       ),
                                                       Flexible(
                                                         child: Text(
-                                                          _properties[index]
-                                                              ["value"],
+                                                          details["properties"]
+                                                              [index]["value"],
                                                           textAlign:
                                                               TextAlign.end,
                                                         ),
@@ -521,6 +564,14 @@ class _ItemPageState extends State<ItemPage> {
                                   ),
                                 )
                               : Container(),
+                          Container(
+                            padding: EdgeInsets.all(20),
+                            child: Text(
+                              details["desc"] ?? "",
+                              style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w500),
+                            ),
+                          )
                         ],
                       ),
                       addItems.length == 0

@@ -202,6 +202,31 @@ class _ItemCard2miniState extends State<ItemCard2mini> {
                               Icon(Icons.error),
                         ),
                       ),
+                      AspectRatio(
+                          aspectRatio: 16 / 11,
+                          child: Container(
+                            padding: EdgeInsets.all(10),
+                            alignment: Alignment.bottomLeft,
+                            child: widget.item["promotions"] == null
+                                ? Container()
+                                : Container(
+                                    padding: EdgeInsets.all(5),
+                                    decoration: BoxDecoration(
+                                        boxShadow: [
+                                          BoxShadow(
+                                              color: Colors.black12,
+                                              blurRadius: 5,
+                                              offset: Offset(5, 5))
+                                        ],
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(500))),
+                                    child: Icon(
+                                      Icons.card_giftcard,
+                                      color: Colors.amber,
+                                    ),
+                                  ),
+                          )),
                       currentAmount == 0
                           ? Container()
                           : Container(

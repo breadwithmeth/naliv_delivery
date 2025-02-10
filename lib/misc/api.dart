@@ -1979,3 +1979,68 @@ Future<Map<String, dynamic>> getGigaCats(
       "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
   return data;
 }
+
+Future<Map<String, dynamic>> getItemDetails(
+  String item_id,
+) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
+  if (token == null) {
+    return {};
+  }
+  Response response = await dio.post('/api/item/getItemDetails',
+      options: Options(
+        headers: {"Content-Type": "application/json", "AUTH": token},
+      ),
+      data: {
+        'item_id': item_id,
+      });
+  // var url = Uri.https(URL_API, 'api/item/geti2');
+  // var response = await client.post(
+  //   url,
+  //   headers: {"Content-Type": "application/json", "AUTH": token},
+  //   body: json.encode({'business_id': business_id}),
+  // );
+
+  // List<dynamic> list = json.decode(response.body);
+  // print(response.bodyBytes);
+  print("============================================");
+  print(response.data);
+  Map<String, dynamic> data = response.data;
+
+  return data;
+}
+
+Future<List> getCartPrice(
+  List items,
+) async {
+  print(items);
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
+  if (token == null) {
+    return [];
+  }
+  Response response = await dio.post('/api/item/getCartPrice',
+      options: Options(
+        headers: {"Content-Type": "application/json", "AUTH": token},
+      ),
+      data: {
+        'items': items,
+      });
+  // var url = Uri.https(URL_API, 'api/item/geti2');
+  // var response = await client.post(
+  //   url,
+  //   headers: {"Content-Type": "application/json", "AUTH": token},
+  //   body: json.encode({'business_id': business_id}),
+  // );
+
+  // List<dynamic> list = json.decode(response.body);
+  // print(response.bodyBytes);
+  print("============================================");
+  print(response.data);
+  List data = response.data;
+
+  return data;
+}
