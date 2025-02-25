@@ -38,8 +38,6 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
     }
   }
 
-  
-
   @override
   void initState() {
     // TODO: implement initState
@@ -153,7 +151,7 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                                                         "0")),
                                             child: Icon(
                                               Icons.location_on,
-                                              color: Color(0xFFEE7203),
+                                              color: Colors.deepOrange,
                                               size: 40,
                                             ))
                                       ]),
@@ -198,7 +196,7 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                             ),
                             ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                    backgroundColor: Color(0xFFEE7203),
+                                    backgroundColor: Colors.deepOrange,
                                     shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.all(
                                             Radius.circular(15)))),

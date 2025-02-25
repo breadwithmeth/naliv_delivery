@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/shared/itemCards.dart';
+// import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:story_time/story_time.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:path/path.dart' as path;
@@ -313,23 +313,23 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
             centerTitle: false,
             title: Text("Акция"),
           ),
-          SliverList.builder(
-            itemCount: _items.length,
-            itemBuilder: (context, index) {
-              final Map<String, dynamic> item = _items[index];
+          // SliverList.builder(
+          //   itemCount: _items.length,
+          //   itemBuilder: (context, index) {
+          //     final Map<String, dynamic> item = _items[index];
 
-              return ItemCardListTile(
-                itemId: item["item_id"],
-                element: item,
-                categoryId: "",
-                categoryName: "",
-                scroll: 0,
-                business: widget.business,
-                index: index,
-                categoryPageUpdateData: updateDataAmount,
-              );
-            },
-          )
+          //     return ItemCardListTile(
+          //       itemId: item["item_id"],
+          //       element: item,
+          //       categoryId: "",
+          //       categoryName: "",
+          //       scroll: 0,
+          //       business: widget.business,
+          //       index: index,
+          //       categoryPageUpdateData: updateDataAmount,
+          //     );
+          //   },
+          // )
         ],
       ),
     );
@@ -382,23 +382,23 @@ class _CollectionItemsPageState extends State<CollectionItemsPage> {
             centerTitle: false,
             title: Text("Подборка"),
           ),
-          SliverList.builder(
-            itemCount: _items.length,
-            itemBuilder: (context, index) {
-              final Map<String, dynamic> item = _items[index];
+          // SliverList.builder(
+          //   itemCount: _items.length,
+          //   itemBuilder: (context, index) {
+          //     final Map<String, dynamic> item = _items[index];
 
-              return ItemCardListTile(
-                itemId: item["item_id"],
-                element: item,
-                categoryId: "",
-                categoryName: "",
-                scroll: 0,
-                business: widget.business,
-                index: index,
-                categoryPageUpdateData: updateDataAmount,
-              );
-            },
-          )
+          //     return ItemCardListTile(
+          //       itemId: item["item_id"],
+          //       element: item,
+          //       categoryId: "",
+          //       categoryName: "",
+          //       scroll: 0,
+          //       business: widget.business,
+          //       index: index,
+          //       categoryPageUpdateData: updateDataAmount,
+          //     );
+          //   },
+          // )
         ],
       ),
     );

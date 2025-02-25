@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/shared/itemCards.dart';
+// import 'package:naliv_delivery/shared/itemCards.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/pages/searchResultPage.dart';
 import 'package:flutter/cupertino.dart';
@@ -105,34 +105,34 @@ class _SearchPageState extends State<SearchPage> {
             ),
           ),
         ),
-        SliverToBoxAdapter(
-          child: Container(
-            alignment: Alignment.topCenter,
-            padding: EdgeInsets.symmetric(vertical: 2),
-            decoration: BoxDecoration(
-                color: Color(0xFF121212),
-                borderRadius: BorderRadius.circular(10)),
-            child: ListView.builder(
-              primary: false,
-              shrinkWrap: true,
-              itemCount: _items.length,
-              itemBuilder: (context, index) {
-                final Map<String, dynamic> item = _items[index];
+        // SliverToBoxAdapter(
+        //   child: Container(
+        //     alignment: Alignment.topCenter,
+        //     padding: EdgeInsets.symmetric(vertical: 2),
+        //     decoration: BoxDecoration(
+        //         color: Color(0xFF121212),
+        //         borderRadius: BorderRadius.circular(10)),
+        //     child: ListView.builder(
+        //       primary: false,
+        //       shrinkWrap: true,
+        //       itemCount: _items.length,
+        //       itemBuilder: (context, index) {
+        //         final Map<String, dynamic> item = _items[index];
 
-                return ItemCardListTile(
-                  itemId: item["item_id"],
-                  element: item,
-                  categoryId: "",
-                  categoryName: "",
-                  scroll: 0,
-                  business: widget.business,
-                  index: index,
-                  categoryPageUpdateData: updateDataAmount,
-                );
-              },
-            ),
-          ),
-        )
+        //         return ItemCardListTile(
+        //           itemId: item["item_id"],
+        //           element: item,
+        //           categoryId: "",
+        //           categoryName: "",
+        //           scroll: 0,
+        //           business: widget.business,
+        //           index: index,
+        //           categoryPageUpdateData: updateDataAmount,
+        //         );
+        //       },
+        //     ),
+        //   ),
+        // )
       ],
     ));
   }

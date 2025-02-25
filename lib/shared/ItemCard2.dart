@@ -369,10 +369,7 @@ class _ItemCard2State extends State<ItemCard2> {
                                           color: Colors.amber,
                                         ),
                                       ),
-                              )
-
-                            
-                              )
+                              ))
                         ],
                       ),
                     ),

@@ -208,7 +208,7 @@ class _SelectBusinessesPageState extends State<SelectBusinessesPage> {
                         ),
                         ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFFEE7203),
+                                backgroundColor: Colors.deepOrange,
                                 shape: RoundedRectangleBorder(
                                     borderRadius:
                                         BorderRadius.all(Radius.circular(15)))),

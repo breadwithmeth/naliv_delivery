@@ -131,7 +131,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
             children: [
               isLoading
                   ? Container(
-                      color: Colors.black,
+                      color: Colors.white,
                       width: 500,
                       height: 500,
                     )
@@ -149,8 +149,8 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                   //     Padding(
                   //       padding: EdgeInsets.all(10),
                   //       child: FloatingActionButton(
-                  //         backgroundColor: Color(0xFFEE7203),
-                  //         foregroundColor: Colors.white,
+                  //         backgroundColor: Colors.deepOrange,
+                  //         foregroundColor: Colors.black,
                   //         onPressed: () {
                   //           Navigator.push(
                   //             context,
@@ -170,7 +170,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                   //   ],
                   // ),
                   drawer: Drawer(
-                      backgroundColor: Colors.black,
+                      backgroundColor: Colors.white,
                       child: SafeArea(
                           child: Column(
                         children: [
@@ -182,7 +182,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                                 style: GoogleFonts.prostoOne(
                                   fontSize: 50,
                                   fontWeight: FontWeight.w400,
-                                  color: Colors.white,
+                                  color: Colors.black,
                                 ),
                               ),
                             ),
@@ -588,7 +588,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                             ];
                           },
                           body: Scaffold(
-                            backgroundColor: Colors.black,
+                            backgroundColor: Colors.transparent,
                             floatingActionButton: CartButton(
                                 business: widget.business, user: widget.user),
                             floatingActionButtonLocation:
@@ -780,7 +780,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                                                                                     imageUrl: gigaCats[index]["c_img"] ?? "/",
                                                                                     placeholder: (context, url) => Center(
                                                                                       child: CircularProgressIndicator(
-                                                                                        color: Colors.white,
+                                                                                        color: Colors.black,
                                                                                       ),
                                                                                     ),
                                                                                     errorWidget: (context, url, error) => Icon(Icons.error),
@@ -874,10 +874,10 @@ class _DrawerMenuItemState extends State<DrawerMenuItem> {
         padding: EdgeInsets.all(15),
         decoration: const BoxDecoration(
           borderRadius: BorderRadius.only(bottomRight: Radius.circular(15)),
-          color: Colors.black,
+          color: Colors.white,
           boxShadow: [
             BoxShadow(
-                offset: Offset(5, 3), blurRadius: 5, color: Colors.black12)
+                offset: Offset(5, 3), blurRadius: 5, color: Colors.white12)
           ],
         ),
         child: Text(

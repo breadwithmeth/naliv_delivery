@@ -56,7 +56,7 @@ class _StartPageState extends State<StartPage> {
                     EdgeInsets.all(MediaQuery.of(context).size.width * 0.05),
                 // decoration: const BoxDecoration(
                 //     gradient: LinearGradient(
-                //         colors: [Colors.deepOrangeAccent, Colors.orange])),
+                //         colors: [Colors.deepOrangeAccent, Colors.deepOrange])),
                 child: Container(
                   width: MediaQuery.of(context).size.width * 0.75,
                   padding: EdgeInsets.all(15),

@@ -40,12 +40,12 @@ class _BonusWidgetState extends State<BonusWidget> {
         padding: EdgeInsets.all(0),
         clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(
-            color: Color(0xFFEE7203),
+            color: Colors.deepOrange,
             borderRadius: BorderRadius.all(Radius.circular(30))),
         child: AnimatedMeshGradient(
             colors: [
-              Colors.orangeAccent.shade700,
-              Color(0xFFEE7203),
+              Colors.deepOrangeAccent.shade700,
+              Colors.deepOrange,
               Colors.black,
               Colors.amber.shade900
             ],

@@ -7,7 +7,6 @@ import 'package:naliv_delivery/misc/databaseapi.dart';
 import 'package:naliv_delivery/pages/preLoadCategoryPage.dart';
 import 'package:naliv_delivery/shared/ItemCard2.dart';
 import 'package:naliv_delivery/shared/cartButton.dart';
-import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:naliv_delivery/shared/searchWidget.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -253,7 +252,7 @@ class _CategoryPage2State extends State<CategoryPage2>
                       context: context,
                       builder: (context) {
                         return Dialog.fullscreen(
-                          backgroundColor: Colors.black,
+                          backgroundColor: Colors.white,
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             mainAxisSize: MainAxisSize.min,
@@ -465,8 +464,8 @@ class _CategoryPage2State extends State<CategoryPage2>
             ? Container()
             : Scaffold(
                 appBar: AppBar(
-                  backgroundColor: Colors.black,
-                  surfaceTintColor: Colors.black,
+                  backgroundColor: Colors.white,
+                  surfaceTintColor: Colors.white,
                   automaticallyImplyLeading: false,
                   actions: [
                     IconButton(
@@ -528,7 +527,7 @@ class _CategoryPage2State extends State<CategoryPage2>
                       color: Colors.white,
                     ),
                     RangeSlider(
-                        activeColor: Color(0xFFEE7203),
+                        activeColor: Colors.deepOrange,
                         inactiveColor: Colors.grey,
                         labels: RangeLabels(rangeLowPrice.toString(),
                             rangeHighPrice.toString()),
@@ -596,7 +595,7 @@ class _CategoryPage2State extends State<CategoryPage2>
                                                       selectedValues.contains(
                                                               i["value_id"])
                                                           ? Colors.white
-                                                          : Colors.black,
+                                                          : Colors.white,
                                                   borderRadius:
                                                       BorderRadius.circular(
                                                           10)),

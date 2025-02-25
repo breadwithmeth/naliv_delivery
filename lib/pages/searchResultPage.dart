@@ -4,7 +4,7 @@ import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/cartPage.dart';
 import 'package:naliv_delivery/shared/ItemCard2.dart';
 import 'package:naliv_delivery/shared/bottomBar.dart';
-import 'package:naliv_delivery/shared/itemCards.dart';
+// import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:flutter/cupertino.dart';
 
 class SearchResultPage extends StatefulWidget {
@@ -50,7 +50,7 @@ class _SearchResultPageState extends State<SearchResultPage> {
       //     Padding(
       //       padding: EdgeInsets.all(10),
       //       child: FloatingActionButton(
-      //         backgroundColor: Color(0xFFEE7203),
+      //         backgroundColor: Colors.deepOrange,
       //         foregroundColor: Colors.white,
       //         onPressed: () {
       //           Navigator.push(

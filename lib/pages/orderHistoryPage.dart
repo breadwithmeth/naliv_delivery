@@ -53,9 +53,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
     if (string == "66") {
       return Colors.red;
     } else if (string == "0") {
-      return Color(0xFFEE7203);
+      return Colors.deepOrange;
     } else if (string == "1") {
-      return Colors.orange;
+      return Colors.deepOrange;
     } else if (string == "2") {
       return Colors.green;
     } else if (string == "3") {

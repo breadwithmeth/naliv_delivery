@@ -419,7 +419,7 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
                               )),
                           Flexible(
                               child: Switch(
-                            activeColor: Color(0xFFEE7203),
+                            activeColor: Colors.deepOrange,
                             value: itemsForReplacements[index]["replace"],
                             onChanged: (value) {
                               setState(() {
@@ -435,7 +435,7 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
               ],
               leading: Icon(
                 Icons.published_with_changes,
-                color: Color(0xFFEE7203),
+                color: Colors.deepOrange,
               ),
               title: Text(
                 "Пожелания по замене продукции",
@@ -499,7 +499,7 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
               },
               leading: Icon(
                 Icons.comment,
-                color: Color(0xFFEE7203),
+                color: Colors.deepOrange,
               ),
               title: Text(
                 "Сообщение для заведения",
@@ -593,8 +593,8 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
                         width: constraints.maxWidth,
                         child: CheckboxListTile(
                           checkColor: Colors.white,
-                          activeColor: Color(0xFFEE7203),
-                          // fillColor: MaterialStateProperty.all(Colors.orange),
+                          activeColor: Colors.deepOrange,
+                          // fillColor: MaterialStateProperty.all(Colors.deepOrange),
 
                           contentPadding: EdgeInsets.all(0),
                           title: Text(
@@ -668,7 +668,7 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
                                         //               currentAddress["lon"])),
                                         //       child: Icon(
                                         //         Icons.location_on,
-                                        //         color: Color(0xFFEE7203),
+                                        //         color: Colors.deepOrange,
                                         //         size: 40,
                                         //       ))
                                         // ]),
@@ -701,7 +701,7 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
                                         child: Text(
                                           "Изменить",
                                           style: TextStyle(
-                                              color: Color(0xFFEE7203),
+                                              color: Colors.deepOrange,
                                               fontWeight: FontWeight.bold),
                                         )),
                                     Text(
@@ -836,7 +836,7 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
                                     //               .business["lon"])),
                                     //       child: Icon(
                                     //         Icons.location_on,
-                                    //         color: Color(0xFFEE7203),
+                                    //         color: Colors.deepOrange,
                                     //         size: 40,
                                     //       ))
                                     // ]),
@@ -892,11 +892,12 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
                             children: [
                               Text(
                                 "Обновить",
-                                style: TextStyle(color: Colors.orangeAccent),
+                                style:
+                                    TextStyle(color: Colors.deepOrangeAccent),
                               ),
                               Icon(
                                 Icons.replay_outlined,
-                                color: Colors.orangeAccent,
+                                color: Colors.deepOrangeAccent,
                                 size: 14,
                               )
                             ],
@@ -939,7 +940,7 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
                 itemBuilder: (context, index) {
                   return RadioListTile(
                     contentPadding: EdgeInsets.all(0),
-                    activeColor: Color(0xFFEE7203),
+                    activeColor: Colors.deepOrange,
                     dense: false,
                     title: Text(
                       cards[index]["mask"],
@@ -1096,13 +1097,13 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
               ),
             ),
           ),
-          SliverToBoxAdapter(
-            child: ElevatedButton(
-                onPressed: () {
-                  getTotalCartPrice(items);
-                },
-                child: Text("data")),
-          ),
+          // SliverToBoxAdapter(
+          //   child: ElevatedButton(
+          //       onPressed: () {
+          //         getTotalCartPrice(items);
+          //       },
+          //       child: Text("data")),
+          // ),
           SliverPadding(
               padding: EdgeInsets.only(top: 20, left: 10),
               sliver: SliverToBoxAdapter(

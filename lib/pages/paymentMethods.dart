@@ -49,7 +49,9 @@ class _PaymentMethodsState extends State<PaymentMethods> {
                 onPressed: () {
                   Navigator.pushReplacement(context, CupertinoPageRoute(
                     builder: (context) {
-                      return AddNewCardPage(createOrder: false,);
+                      return AddNewCardPage(
+                        createOrder: false,
+                      );
                     },
                   ));
                 }),

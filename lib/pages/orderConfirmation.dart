@@ -6,7 +6,7 @@ import 'package:naliv_delivery/shared/openMainPageButton.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/orderPage.dart';
-import 'package:naliv_delivery/shared/itemCards.dart';
+// import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:flutter/cupertino.dart';
 
 // import 'createOrder.dart';
@@ -341,57 +341,57 @@ class _OrderConfirmationState extends State<OrderConfirmation> {
                     ],
                   ),
                 ),
-                Container(
-                  height: MediaQuery.sizeOf(context).height * 0.42,
-                  decoration: BoxDecoration(
-                    // border: Border.all(
-                    //   width: 2,
-                    //   // color: Color.fromARGB(255, 245, 245, 245),
-                    //   color: Colors.black,
-                    // ),
-                    color: Color(0xFF121212),
-                    borderRadius: const BorderRadius.all(
-                      Radius.circular(15),
-                    ),
-                  ),
-                  margin: EdgeInsets.symmetric(
-                    horizontal: 20 * globals.scaleParam,
-                    vertical: 5 * globals.scaleParam,
-                  ),
-                  padding: EdgeInsets.all(15 * globals.scaleParam),
-                  child: ListView.builder(
-                    primary: false,
-                    shrinkWrap: true,
-                    itemCount: widget.items.length,
-                    itemBuilder: (context, index) {
-                      final item = widget.items[index];
+                // Container(
+                //   height: MediaQuery.sizeOf(context).height * 0.42,
+                //   decoration: BoxDecoration(
+                //     // border: Border.all(
+                //     //   width: 2,
+                //     //   // color: Color.fromARGB(255, 245, 245, 245),
+                //     //   color: Colors.black,
+                //     // ),
+                //     color: Color(0xFF121212),
+                //     borderRadius: const BorderRadius.all(
+                //       Radius.circular(15),
+                //     ),
+                //   ),
+                //   margin: EdgeInsets.symmetric(
+                //     horizontal: 20 * globals.scaleParam,
+                //     vertical: 5 * globals.scaleParam,
+                //   ),
+                //   padding: EdgeInsets.all(15 * globals.scaleParam),
+                //   child: ListView.builder(
+                //     primary: false,
+                //     shrinkWrap: true,
+                //     itemCount: widget.items.length,
+                //     itemBuilder: (context, index) {
+                //       final item = widget.items[index];
 
-                      return Column(
-                        children: [
-                          ItemCardNoImage(
-                            element: item,
-                            itemId: item["name"],
-                            categoryId: "",
-                            categoryName: "",
-                            scroll: 0,
-                            business_id: widget.business["business_id"],
-                          ),
-                          widget.items.length - 1 != index
-                              ? Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 32 * globals.scaleParam,
-                                    vertical: 10 * globals.scaleParam,
-                                  ),
-                                  child: const Divider(
-                                    height: 0,
-                                  ),
-                                )
-                              : Container(),
-                        ],
-                      );
-                    },
-                  ),
-                ),
+                //       return Column(
+                //         children: [
+                //           ItemCardNoImage(
+                //             element: item,
+                //             itemId: item["name"],
+                //             categoryId: "",
+                //             categoryName: "",
+                //             scroll: 0,
+                //             business_id: widget.business["business_id"],
+                //           ),
+                //           widget.items.length - 1 != index
+                //               ? Padding(
+                //                   padding: EdgeInsets.symmetric(
+                //                     horizontal: 32 * globals.scaleParam,
+                //                     vertical: 10 * globals.scaleParam,
+                //                   ),
+                //                   child: const Divider(
+                //                     height: 0,
+                //                   ),
+                //                 )
+                //               : Container(),
+                //         ],
+                //       );
+                //     },
+                //   ),
+                // ),
                 Container(
                   padding: EdgeInsets.only(top: 15 * globals.scaleParam),
                   alignment: Alignment.topCenter,

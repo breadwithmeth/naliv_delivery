@@ -118,7 +118,9 @@ class _ActiveOrdersPageState extends State<ActiveOrdersPage> {
               itemBuilder: (context, index) {
                 return Container(
                   margin: EdgeInsets.all(10 * globals.scaleParam),
-                  padding: EdgeInsets.symmetric(horizontal: 10 * globals.scaleParam, vertical: 10 * globals.scaleParam),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: 10 * globals.scaleParam,
+                      vertical: 10 * globals.scaleParam),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.all(Radius.circular(15)),
                     color: Colors.white,

@@ -23,7 +23,7 @@ class _LoadingScrennState extends State<LoadingScrenn> {
                 alignment: Alignment.center,
                 child: Center(
                     child: Container(
-                    child: LoadingAnimationWidget.discreteCircle(
+                  child: LoadingAnimationWidget.discreteCircle(
                     color: Colors.white,
                     secondRingColor: Colors.grey.shade900,
                     thirdRingColor: Colors.grey,

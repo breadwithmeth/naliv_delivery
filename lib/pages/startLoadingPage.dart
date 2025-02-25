@@ -44,7 +44,9 @@ class _StartLoadingPageState extends State<StartLoadingPage> {
             width: _tick % 100,
             height: _tick % 100,
             curve: Curves.decelerate,
-            decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.all(Radius.circular(1999))),
+            decoration: BoxDecoration(
+                color: Colors.black12,
+                borderRadius: BorderRadius.all(Radius.circular(1999))),
             duration: Duration(seconds: 10),
           ),
         ),
@@ -54,7 +56,9 @@ class _StartLoadingPageState extends State<StartLoadingPage> {
             width: _tick % 200,
             height: _tick % 200,
             curve: Curves.decelerate,
-            decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.all(Radius.circular(1999))),
+            decoration: BoxDecoration(
+                color: Colors.black12,
+                borderRadius: BorderRadius.all(Radius.circular(1999))),
             duration: Duration(seconds: 2),
           ),
         ),
@@ -64,7 +68,9 @@ class _StartLoadingPageState extends State<StartLoadingPage> {
             width: _tick % 500,
             height: _tick % 500,
             curve: Curves.decelerate,
-            decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.all(Radius.circular(1999))),
+            decoration: BoxDecoration(
+                color: Colors.black12,
+                borderRadius: BorderRadius.all(Radius.circular(1999))),
             duration: Duration(seconds: 10),
           ),
         ),
@@ -74,7 +80,9 @@ class _StartLoadingPageState extends State<StartLoadingPage> {
             width: _tick % 300,
             height: _tick % 300,
             curve: Curves.decelerate,
-            decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.all(Radius.circular(1999))),
+            decoration: BoxDecoration(
+                color: Colors.black12,
+                borderRadius: BorderRadius.all(Radius.circular(1999))),
             duration: Duration(seconds: 10),
           ),
         ),

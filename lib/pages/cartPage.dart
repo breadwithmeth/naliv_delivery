@@ -126,7 +126,7 @@ class _CartPageState extends State<CartPage> {
                 },
                 child: Container(
                     decoration: BoxDecoration(
-                        color: Color(0xFFEE7203),
+                        color: Colors.deepOrange,
                         borderRadius: BorderRadius.all(Radius.circular(15))),
                     padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
                     margin: EdgeInsets.symmetric(vertical: 5, horizontal: 15),
@@ -215,7 +215,7 @@ class _CartPageState extends State<CartPage> {
                               children: [
                                 IconButton(
                                     onPressed: () {
-                                      if (items[index]["parentItemAmoint"] ==
+                                      if (items[index]["parent_amount"] ==
                                           null) {
                                         updateAmount(
                                             items[index]["amount"] -
@@ -227,7 +227,7 @@ class _CartPageState extends State<CartPage> {
                                             items[index]["amount"] -
                                                 (items[index]["quantity"] *
                                                     items[index]
-                                                        ["parentItemAmoint"]!),
+                                                        ["parent_amount"]!),
                                             index,
                                             items[index]["item_id"]);
                                       }
@@ -242,7 +242,8 @@ class _CartPageState extends State<CartPage> {
                                 ),
                                 IconButton(
                                     onPressed: () {
-                                      if (items[index]["parentItemAmoint"] ==
+                                      print(items[index]);
+                                      if (items[index]["parent_amount"] ==
                                           null) {
                                         updateAmount(
                                             items[index]["amount"] +
@@ -254,7 +255,7 @@ class _CartPageState extends State<CartPage> {
                                             items[index]["amount"] +
                                                 (items[index]["quantity"] *
                                                     items[index]
-                                                        ["parentItemAmoint"]!),
+                                                        ["parent_amount"]!),
                                             index,
                                             items[index]["item_id"]);
                                       }

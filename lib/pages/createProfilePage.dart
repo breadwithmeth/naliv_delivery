@@ -33,7 +33,7 @@ class _ProfileCreatePageState extends State<ProfileCreatePage> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            dialogBackgroundColor: Color(0xFFEE7203), // days/years gridview
+            dialogBackgroundColor: Colors.deepOrange, // days/years gridview
             textTheme: TextTheme(
               bodyMedium: TextStyle(
                 fontWeight: FontWeight.w900,

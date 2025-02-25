@@ -236,7 +236,7 @@ class _OrderListTileState extends State<OrderListTile> {
       );
     } else if (string == "0") {
       return Container(
-        color: Color(0xFFEE7203),
+        color: Colors.deepOrange,
         padding: EdgeInsets.all(5 * globals.scaleParam),
         child: Text("Заказ отправлен в магазин",
             style: TextStyle(
@@ -248,7 +248,7 @@ class _OrderListTileState extends State<OrderListTile> {
       );
     } else if (string == "1") {
       return Container(
-        color: Color(0xFFEE7203),
+        color: Colors.deepOrange,
         padding: EdgeInsets.all(5 * globals.scaleParam),
         child: Text("Ожидает сборки",
             style: TextStyle(

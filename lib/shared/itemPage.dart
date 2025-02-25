@@ -221,7 +221,7 @@ class _ItemPageState extends State<ItemPage> {
               child: Scaffold(
                 floatingActionButton: Container(
                   decoration: BoxDecoration(
-                      color: Color(0xFFEE7203),
+                      color: Colors.deepOrange,
                       borderRadius: BorderRadius.all(Radius.circular(15))),
                   child: AnimatedCrossFade(
                       firstChild: TextButton(
@@ -447,7 +447,7 @@ class _ItemPageState extends State<ItemPage> {
                           children: [
                             Container(
                               decoration: BoxDecoration(
-                                  color: Color(0xFFEE7203),
+                                  color: Colors.deepOrange,
                                   borderRadius:
                                       BorderRadius.all(Radius.circular(30))),
                               padding: EdgeInsets.all(10),
@@ -460,7 +460,9 @@ class _ItemPageState extends State<ItemPage> {
                             liked == null
                                 ? Container()
                                 : IconButton(
-                                    color: liked! ? Colors.orange : Colors.grey,
+                                    color: liked!
+                                        ? Colors.deepOrange
+                                        : Colors.grey,
                                     onPressed: () {
                                       if (liked == false) {
                                         likeItem(widget.item["item_id"]

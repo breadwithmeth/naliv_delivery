@@ -81,7 +81,7 @@ class _CartButtonState extends State<CartButton> {
               borderRadius: BorderRadius.all(Radius.circular(15))),
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFFEE7203),
+              backgroundColor: Colors.deepOrange,
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -94,7 +94,7 @@ class _CartButtonState extends State<CartButton> {
                 ),
                 Text(
                   globals.formatPrice(sum.toInt()),
-                  style:GoogleFonts.inter(
+                  style: GoogleFonts.inter(
                       color: Colors.white,
                       fontWeight: FontWeight.w900,
                       fontSize: 24),

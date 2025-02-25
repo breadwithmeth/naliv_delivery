@@ -50,9 +50,7 @@ class _PaintLogoPageState extends State<PaintLogoPage>
                 ),
               ],
             ),
-          )
-
-          ),
+          )),
     );
   }
 }

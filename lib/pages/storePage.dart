@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/shared/itemCards.dart';
+// import 'package:naliv_delivery/shared/itemCards.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '../globals.dart' as globals;
 
