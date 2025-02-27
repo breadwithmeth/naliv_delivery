@@ -84,6 +84,7 @@ class _ItemCard2State extends State<ItemCard2> {
   }
 
   addToCart({Map? option = null}) async {
+    print(widget.item);
     if (option == null) {
       await dbm
           .addToCart(
@@ -272,6 +273,7 @@ class _ItemCard2State extends State<ItemCard2> {
                                   if (parentItemAmoint == null) {
                                     updateAmount(currentAmount + quantity);
                                   } else {
+                                    print(parentItemAmoint);
                                     updateAmount(currentAmount +
                                         (quantity * parentItemAmoint!));
                                   }
