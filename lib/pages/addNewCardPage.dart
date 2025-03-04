@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/webViewAddCard.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:js' as js;
+import 'dart:html' as html;
+import 'package:webview_flutter/webview_flutter.dart';
 
 class AddNewCardPage extends StatefulWidget {
   const AddNewCardPage({super.key, required this.createOrder});
@@ -35,14 +38,17 @@ class _AddNewCardPageState extends State<AddNewCardPage> {
             child: ElevatedButton(
                 onPressed: () {
                   addNewCard().then((v) async {
+                    final url = Uri.parse(
+                        "https://chorenn.naliv.kz/api/d92lj3.php?u=" +
+                            v["user_uuid"]);
+
                     Navigator.pushReplacement(context, CupertinoPageRoute(
-                      builder: (context) {
-                        return WebViewScreen(
-                            createOrder: widget.createOrder,
-                            url: "https://chorenn.naliv.kz/api/d92lj3.php?u=" +
-                                v["user_uuid"]);
-                      },
-                    ));
+                        builder: (context) {
+                          return WebViewScreen(
+                              createOrder: widget.createOrder,
+                              url: url.toString());
+                        },
+                      ));
                   });
                 },
                 child: Row(

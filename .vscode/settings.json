@@ -6,7 +6,8 @@
     "git.mergeEditor": true,
     "java.configuration.updateBuildConfiguration": "interactive",
     "dart.useLsp ": true,
-    "dart.useLegacyAnalyzerProtocol": true
+    "dart.useLegacyAnalyzerProtocol": true,
+    "cmake.sourceDirectory": "/Users/shrvse/naliv_delivery/linux"
 
 
 }

@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
@@ -328,25 +329,21 @@ class _ItemCard2State extends State<ItemCard2> {
                           borderRadius: BorderRadius.all(Radius.circular(15))),
                       child: Stack(
                         children: [
-                          AspectRatio(
-                            aspectRatio: 1,
-                            child: CachedNetworkImage(
-                              fit: BoxFit.cover,
-                              imageUrl: widget.item["img"] ?? "/",
-                              placeholder: (context, url) => Center(
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                ),
-                              ),
-                              errorWidget: (context, url, error) =>
-                                  Icon(Icons.error),
-                            ),
-
-                            // Image.network(
-                            //   widget.item["img"] ?? "/",
-                            //   fit: BoxFit.cover,
-                            // ),
-                          ),
+                          kIsWeb
+                              ? Container()
+                              : AspectRatio(
+                                  aspectRatio: 1,
+                                  child: CachedNetworkImage(
+                                    imageUrl: widget.item["img"] ?? "/",
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                    errorWidget: (context, url, error) => Icon(
+                                      Icons.error,
+                                      color: Colors.red,
+                                    ),
+                                  )),
                           AspectRatio(
                               aspectRatio: 1,
                               child: Container(

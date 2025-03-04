@@ -11,7 +11,6 @@ import 'package:dio/dio.dart';
 
 final dio = Dio(BaseOptions(
   baseUrl: "https://chorenn.naliv.kz",
-  sendTimeout: Duration(seconds: 10),
   connectTimeout: Duration(seconds: 10),
   receiveTimeout: Duration(seconds: 10),
 ));
