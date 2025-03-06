@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/preLoadDataPage2.dart';
-import 'package:onesignal_flutter/onesignal_flutter.dart';
 import '../globals.dart' as globals;
 
 class ProfileCreatePage extends StatefulWidget {

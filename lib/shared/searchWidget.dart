@@ -16,38 +16,35 @@ class _SearchwidgetState extends State<Searchwidget> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(context, CupertinoPageRoute(
-          builder: (context) {
-            return SearchPage(business: widget.business);
-          },
-        ));
+        Navigator.push(
+          context,
+          CupertinoPageRoute(
+            builder: (context) => SearchPage(business: widget.business),
+          ),
+        );
       },
       child: Container(
-        alignment: Alignment.bottomCenter,
-        child: Container(
-          margin: EdgeInsets.symmetric(vertical: 2, horizontal: 10),
-          padding: EdgeInsets.all(10),
-          decoration: BoxDecoration(
-              color: Color(0xFF121212),
-              borderRadius: BorderRadius.all(
-                Radius.circular(100),
-              )),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.search,
-                size: 24,
+        height: 36,
+        decoration: BoxDecoration(
+          color: CupertinoColors.systemGrey6.resolveFrom(context),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              CupertinoIcons.search,
+              color: CupertinoColors.systemGrey,
+              size: 20,
+            ),
+            SizedBox(width: 6),
+            Text(
+              "Поиск",
+              style: TextStyle(
+                color: CupertinoColors.systemGrey,
               ),
-              SizedBox(
-                width: 10,
-              ),
-              Text(
-                "Поиск",
-                style: TextStyle(fontSize: 20),
-              )
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

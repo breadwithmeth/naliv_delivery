@@ -105,178 +105,215 @@ class _CartPageState extends State<CartPage> {
 
   @override
   Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      builder: (context, scrollController) {
-        return Container(
-          padding: EdgeInsets.symmetric(vertical: 15, horizontal: 5),
-          decoration: BoxDecoration(
-              color: Color(0xFF121212),
-              borderRadius: BorderRadius.all(Radius.circular(30))),
-          child: Scaffold(
-            backgroundColor: Color(0xFF121212),
-            floatingActionButton: GestureDetector(
-                onTap: () {
-                  Navigator.push(context, MaterialPageRoute(
-                    builder: (context) {
-                      return PreLoadOrderPage(
-                        business: widget.business,
-                      );
-                    },
-                  ));
-                },
-                child: Container(
-                    decoration: BoxDecoration(
-                        color: Colors.deepOrange,
-                        borderRadius: BorderRadius.all(Radius.circular(15))),
-                    padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-                    margin: EdgeInsets.symmetric(vertical: 5, horizontal: 15),
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text('Корзина'),
+      ),
+      child: SafeArea(
+        child: Stack(
+          children: [
+            // Список товаров
+            CustomScrollView(
+              physics: BouncingScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          "Продолжить",
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ))),
-            floatingActionButtonLocation:
-                FloatingActionButtonLocation.centerFloat,
-            body: ListView(
-              controller: scrollController,
-              shrinkWrap: true,
-              primary: false,
-              children: [
-                // Text(items.toString()),
-                Container(
-                  padding: EdgeInsets.all(15),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Корзина",
-                            style: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            formatPrice(sum.toInt()),
-                            style: GoogleFonts.inter(
-                                fontSize: 25, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      deliveryPrice == 0
-                          ? Container()
-                          : Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  "Доставка и сервис",
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                Text(
-                                  formatPrice(deliveryPrice),
-                                  style: GoogleFonts.inter(
-                                      fontSize: 25,
-                                      fontWeight: FontWeight.bold),
-                                )
-                              ],
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Сумма заказа',
+                              style: TextStyle(
+                                color: CupertinoColors.secondaryLabel,
+                                fontSize: 13,
+                              ),
                             ),
-                    ],
+                            SizedBox(height: 4),
+                            Text(
+                              formatPrice(sum.toInt()),
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (deliveryPrice > 0)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                'Доставка и сервис',
+                                style: TextStyle(
+                                  color: CupertinoColors.secondaryLabel,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                formatPrice(deliveryPrice),
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-                ListView.builder(
-                  primary: false,
-                  shrinkWrap: true,
-                  itemCount: items.length,
-                  physics: NeverScrollableScrollPhysics(),
-                  itemBuilder: (context, index) {
-                    return index.runtimeType == int
-                        ? ListTile(
-                            dense: false,
-                            title: Text(
-                              items[index]["name"] ?? "",
-                              style: TextStyle(fontSize: 14),
-                            ),
-                            subtitle: Text(
-                              items[index]["option_name"] ?? "",
-                              style: TextStyle(fontSize: 12),
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                    onPressed: () {
-                                      if (items[index]["parent_amount"] ==
-                                          null) {
-                                        updateAmount(
-                                            items[index]["amount"] -
-                                                items[index]["quantity"],
-                                            index,
-                                            items[index]["item_id"]);
-                                      } else {
-                                        updateAmount(
-                                            items[index]["amount"] -
-                                                (items[index]["quantity"] *
-                                                    items[index]
-                                                        ["parent_amount"]!),
-                                            index,
-                                            items[index]["item_id"]);
-                                      }
-                                    },
-                                    icon: Icon(
-                                      Icons.remove,
-                                      color: Colors.grey.shade300,
-                                    )),
-                                Text(
-                                  formatQuantity(items[index]["amount"], "ед"),
-                                  style: TextStyle(fontWeight: FontWeight.w900),
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => Column(
+                      children: [
+                        Padding(
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      items[index]["name"] ?? "",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    if (items[index]["option_name"] != null)
+                                      Text(
+                                        items[index]["option_name"],
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: CupertinoColors.secondaryLabel,
+                                        ),
+                                      ),
+                                  ],
                                 ),
-                                IconButton(
+                              ),
+                              Row(
+                                children: [
+                                  CupertinoButton(
+                                    padding: EdgeInsets.zero,
                                     onPressed: () {
-                                      print(items[index]);
                                       if (items[index]["parent_amount"] ==
                                           null) {
                                         updateAmount(
-                                            items[index]["amount"] +
-                                                items[index]["quantity"],
-                                            index,
-                                            items[index]["item_id"]);
+                                          items[index]["amount"] -
+                                              items[index]["quantity"],
+                                          index,
+                                          items[index]["item_id"],
+                                        );
                                       } else {
                                         updateAmount(
-                                            items[index]["amount"] +
-                                                (items[index]["quantity"] *
-                                                    items[index]
-                                                        ["parent_amount"]!),
-                                            index,
-                                            items[index]["item_id"]);
+                                          items[index]["amount"] -
+                                              (items[index]["quantity"] *
+                                                  items[index]
+                                                      ["parent_amount"]!),
+                                          index,
+                                          items[index]["item_id"],
+                                        );
                                       }
                                     },
-                                    icon: Icon(
-                                      Icons.add,
-                                      color: Colors.white,
-                                    )),
-                              ],
-                            ))
-                        : Container();
-                  },
+                                    child:
+                                        Icon(CupertinoIcons.minus_circle_fill),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    formatQuantity(
+                                        double.parse(
+                                            items[index]["amount"].toString()),
+                                        "ед"),
+                                    style: TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  CupertinoButton(
+                                    padding: EdgeInsets.zero,
+                                    onPressed: () {
+                                      if (items[index]["parent_amount"] ==
+                                          null) {
+                                        updateAmount(
+                                          items[index]["amount"] +
+                                              items[index]["quantity"],
+                                          index,
+                                          items[index]["item_id"],
+                                        );
+                                      } else {
+                                        updateAmount(
+                                          items[index]["amount"] +
+                                              (items[index]["quantity"] *
+                                                  items[index]
+                                                      ["parent_amount"]!),
+                                          index,
+                                          items[index]["item_id"],
+                                        );
+                                      }
+                                    },
+                                    child:
+                                        Icon(CupertinoIcons.plus_circle_fill),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        Divider(height: 1),
+                      ],
+                    ),
+                    childCount: items.length,
+                  ),
                 ),
-                SizedBox(
-                  height: 500,
-                )
+                SliverToBoxAdapter(
+                  child: SizedBox(height: 100),
+                ),
               ],
             ),
-          ),
-        );
-      },
+
+            // Кнопка оформления заказа
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 16,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: CupertinoColors.activeOrange,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      CupertinoPageRoute(
+                        builder: (context) => PreLoadOrderPage(
+                          business: widget.business,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    'Оформить заказ',
+                    style: TextStyle(
+                      color: CupertinoColors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

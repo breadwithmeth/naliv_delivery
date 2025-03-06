@@ -30,50 +30,49 @@ class _PaymentMethodsState extends State<PaymentMethods> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: CustomScrollView(
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text("Способы оплаты"),
+      ),
+      child: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            backgroundColor: Colors.black,
-            surfaceTintColor: Colors.black,
+          SliverPadding(
+            padding: EdgeInsets.all(16),
+            sliver: SliverToBoxAdapter(
+                child: Container(
+              margin: EdgeInsets.all(10),
+              child: CupertinoButton.filled(
+                  child: Text(
+                    "Добавить новую карту",
+                  ),
+                  onPressed: () {
+                    Navigator.pushReplacement(context, CupertinoPageRoute(
+                      builder: (context) {
+                        return AddNewCardPage(
+                          createOrder: false,
+                        );
+                      },
+                    ));
+                  }),
+            )),
           ),
-          SliverToBoxAdapter(
-              child: Container(
-            margin: EdgeInsets.all(10),
-            child: ElevatedButton(
-                child: Text(
-                  "Добавить новую карту",
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-                onPressed: () {
-                  Navigator.pushReplacement(context, CupertinoPageRoute(
-                    builder: (context) {
-                      return AddNewCardPage(
-                        createOrder: false,
-                      );
-                    },
-                  ));
-                }),
-          )),
-          SliverList.builder(
-            itemCount: cards.length,
-            itemBuilder: (context, index) {
-              return Container(
-                margin: EdgeInsets.all(10),
-                padding: EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                    color: Color(0xFF121212),
-                    borderRadius: BorderRadius.all(Radius.circular(15))),
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(cards[index]["mask"]),
-                      IconButton(onPressed: () {}, icon: Icon(Icons.close))
-                    ]),
-              );
-            },
-          ),
+          SliverPadding(
+            padding: EdgeInsets.all(16),
+            sliver: SliverList.builder(
+              itemCount: cards.length,
+              itemBuilder: (context, index) {
+                return Container(
+                  child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(cards[index]["mask"]),
+                        IconButton(
+                            onPressed: () {}, icon: Icon(CupertinoIcons.clear)),
+                      ]),
+                );
+              },
+            ),
+          )
         ],
       ),
     );

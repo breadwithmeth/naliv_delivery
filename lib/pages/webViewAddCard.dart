@@ -2,8 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:naliv_delivery/pages/paymentMethods.dart';
-import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
-import 'package:webview_flutter_web/webview_flutter_web.dart';
+
+// Условный импорт для веб-версии
+import 'webview_web.dart' if (dart.library.io) 'webview_mobile.dart';
 
 class WebViewScreen extends StatefulWidget {
   final String url;
@@ -17,19 +18,6 @@ class WebViewScreen extends StatefulWidget {
 
 class _WebViewScreenState extends State<WebViewScreen> {
   InAppWebViewController? webViewController;
-  late PlatformWebViewController _controller;
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    _controller = PlatformWebViewController(
-      const PlatformWebViewControllerCreationParams(),
-    )..loadRequest(
-        LoadRequestParams(
-          uri: Uri.parse(widget.url),
-        ),
-      );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,12 +26,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
         title: Text("Новая карта"),
       ),
       body: kIsWeb
-          ? PlatformWebViewWidget(
-              PlatformWebViewWidgetCreationParams(controller: _controller),
-            ).build(context)
+          ? WebViewWidget(url: widget.url) // Кастомный виджет для веб
           : InAppWebView(
-              initialUrlRequest:
-                  URLRequest(url: WebUri(widget.url)), // Use WebUri
+              initialUrlRequest: URLRequest(url: WebUri(widget.url)),
               onWebViewCreated: (controller) {
                 webViewController = controller;
               },
@@ -55,8 +40,6 @@ class _WebViewScreenState extends State<WebViewScreen> {
                   } else {
                     Navigator.pop(context);
                   }
-
-                  // Close WebView when URL changes
                 }
                 if (url != null &&
                     url.toString() == "https://chorenn.naliv.kz/success") {
@@ -75,6 +58,3 @@ class _WebViewScreenState extends State<WebViewScreen> {
     );
   }
 }
-
-
-//

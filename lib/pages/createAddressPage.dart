@@ -1,11 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/selectAddressPage.dart';
-import 'package:flutter/cupertino.dart';
 
 class CreateAddressPage extends StatefulWidget {
   const CreateAddressPage(
@@ -17,155 +15,150 @@ class CreateAddressPage extends StatefulWidget {
 }
 
 class _CreateAddressPageState extends State<CreateAddressPage> {
-  TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   List addresses = [];
   MapController mapController = MapController();
+
   Future<void> searchGeoDataByString(String search) async {
     await getGeoData(search).then((value) {
       setState(() {
         addresses = value;
       });
-      // print(value["result"]["items"]);
-      // List? _fa = value["result"]["items"];
-      print(value);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        body: Stack(
-      children: [
-        Container(
-          child: FlutterMap(
-            mapController: mapController,
-            options: MapOptions(
-              interactionOptions:
-                  InteractionOptions(flags: InteractiveFlag.none),
-              initialZoom: 16,
-              initialCenter: LatLng(0, 0),
-            ),
-            children: [
-              TileLayer(
-                tileProvider: CancellableNetworkTileProvider(),
-                tileBuilder: _darkModeTileBuilder,
-                // Display map tiles from any source
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                subdomains: ['tile0', 'tile1', 'tile2', 'tile3'],
-                // And many more recommended properties!
-              ),
-              // MarkerLayer(markers: [
-              //   Marker(
-              //       width: 80.0,
-              //       height: 80.0,
-              //       point: LatLng(double.parse(widget.currentAddress["lat"]),
-              //           double.parse(widget.currentAddress["lon"])),
-              //       child: Icon(
-              //         Icons.location_on,
-              //         color: Colors.deepOrange,
-              //         size: 40,
-              //       ))
-              // ]),
-            ],
-          ),
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text('Новый адрес'),
+        leading: CupertinoButton(
+          padding: EdgeInsets.zero,
+          child: Icon(CupertinoIcons.back),
+          onPressed: () => Navigator.pop(context),
         ),
-        SafeArea(
-            child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Container(
-                margin: EdgeInsets.only(top: 60, left: 15, right: 15),
-                padding: EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  color: Color(0xFF121212),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Row(
+      ),
+      child: Column(
+        children: [
+          Expanded(
+            child: Stack(
+              children: [
+                FlutterMap(
+                  mapController: mapController,
+                  options: MapOptions(
+                    interactionOptions:
+                        InteractionOptions(flags: InteractiveFlag.all),
+                    initialZoom: 16,
+                    initialCenter: LatLng(43.238949, 76.889709), // Алматы
+                  ),
                   children: [
-                    Flexible(
-                      child: TextFormField(
-                        onFieldSubmitted: (value) {
-                          searchGeoDataByString(value);
-                        },
-                        controller: _searchController,
-                        decoration: const InputDecoration(
-                          border:
-                              OutlineInputBorder(borderSide: BorderSide.none),
-                          hintText: 'Введите адрес',
+                    TileLayer(
+                      tileProvider: CancellableNetworkTileProvider(),
+                      tileBuilder: MediaQuery.platformBrightnessOf(context) ==
+                              Brightness.dark
+                          ? _darkModeTileBuilder
+                          : null,
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      subdomains: ['tile0', 'tile1', 'tile2', 'tile3'],
+                    ),
+                  ],
+                ),
+                SafeArea(
+                  child: Column(
+                    children: [
+                      Container(
+                        margin: EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color:
+                                  CupertinoColors.systemGrey.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: CupertinoSearchTextField(
+                            controller: _searchController,
+                            onSubmitted: searchGeoDataByString,
+                            placeholder: 'Введите адрес',
+                            backgroundColor: CupertinoColors.systemBackground,
+                            prefixIcon: Icon(CupertinoIcons.search),
+                            suffixIcon:
+                                Icon(CupertinoIcons.clear_thick_circled),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                          ),
                         ),
                       ),
-                    ),
-                    IconButton(
-                        onPressed: () {
-                          searchGeoDataByString(_searchController.text);
-
-                          FocusScope.of(context).unfocus();
-                          searchGeoDataByString(_searchController.text);
-                        },
-                        icon: Icon(Icons.arrow_forward_ios))
-                  ],
-                )),
-            addresses.length > 0
-                ? Container(
-                    height: MediaQuery.of(context).size.height * 0.5,
-                    margin: EdgeInsets.all(15),
-                    padding: EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: Color(0xFF121212),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: ListView.builder(
-                      primary: false,
-                      shrinkWrap: true,
-                      itemCount: addresses.length,
-                      itemBuilder: (context, index) {
-                        return Container(
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(
-                                color: Colors.grey.shade800,
+                      if (addresses.isNotEmpty)
+                        Expanded(
+                          child: Container(
+                            margin: EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: CupertinoColors.systemBackground,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: CupertinoColors.systemGrey
+                                      .withOpacity(0.1),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: ListView.separated(
+                                itemCount: addresses.length,
+                                separatorBuilder: (context, index) =>
+                                    Container(),
+                                itemBuilder: (context, index) {
+                                  return CupertinoListTile(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 12),
+                                    title: Text(addresses[index]["name"]),
+                                    trailing:
+                                        Icon(CupertinoIcons.right_chevron),
+                                    onTap: () {
+                                      mapController.move(
+                                        LatLng(
+                                          addresses[index]["point"]["lat"],
+                                          addresses[index]["point"]["lon"],
+                                        ),
+                                        16,
+                                      );
+                                      Navigator.pushReplacement(
+                                        context,
+                                        CupertinoPageRoute(
+                                          builder: (context) =>
+                                              ConfirmAddressPage(
+                                            currentAddress: addresses[index],
+                                            createOrder: widget.createOrder,
+                                            business: widget.business,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
                               ),
                             ),
                           ),
-                          child: ListTile(
-                            title: Text(addresses[index]["name"]),
-                            onTap: () {
-                              Navigator.pushReplacement(
-                                context,
-                                CupertinoPageRoute(
-                                  builder: (context) => ConfirmAddressPage(
-                                    currentAddress: addresses[index],
-                                    createOrder: widget.createOrder,
-                                    business: widget.business,
-                                  ),
-                                ),
-                              );
-                              print(addresses[index]["point"]);
-                              mapController.move(
-                                  LatLng(addresses[index]["point"]["lat"],
-                                      addresses[index]["point"]["lon"]),
-                                  16);
-                              // widget.onAddressSelected();
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  )
-                : Container()
-          ],
-        )),
-        SafeArea(
-            child: Container(
-          margin: EdgeInsets.only(top: 5, left: 5),
-          child: IconButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              icon: Icon(Icons.close)),
-        ))
-      ],
-    ));
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -199,11 +192,11 @@ class ConfirmAddressPage extends StatefulWidget {
 }
 
 class _ConfirmAddressPageState extends State<ConfirmAddressPage> {
-  TextEditingController name = TextEditingController();
-  TextEditingController house = TextEditingController();
-  TextEditingController entrance = TextEditingController();
-  TextEditingController floor = TextEditingController();
-  TextEditingController other = TextEditingController();
+  final TextEditingController name = TextEditingController();
+  final TextEditingController house = TextEditingController();
+  final TextEditingController entrance = TextEditingController();
+  final TextEditingController floor = TextEditingController();
+  final TextEditingController other = TextEditingController();
 
   Future<void> _createAddress() async {
     await createAddress({
@@ -220,156 +213,109 @@ class _ConfirmAddressPageState extends State<ConfirmAddressPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: CustomScrollView(
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text('Подтверждение адреса'),
+      ),
+      child: CustomScrollView(
         slivers: [
-          SliverAppBar.large(
-              expandedHeight: MediaQuery.of(context).size.height * 0.3,
-              flexibleSpace: Stack(
+          SliverToBoxAdapter(
+            child: Container(
+              height: 200,
+              child: FlutterMap(
+                options: MapOptions(
+                  interactionOptions:
+                      InteractionOptions(flags: InteractiveFlag.none),
+                  initialZoom: 18,
+                  initialCenter: LatLng(
+                    widget.currentAddress["point"]["lat"],
+                    widget.currentAddress["point"]["lon"],
+                  ),
+                ),
                 children: [
-                  FlutterMap(
-                    options: MapOptions(
-                      interactionOptions:
-                          InteractionOptions(flags: InteractiveFlag.none),
-                      initialZoom: 18,
-                      initialCenter: LatLng(
+                  TileLayer(
+                    tileBuilder: MediaQuery.platformBrightnessOf(context) ==
+                            Brightness.dark
+                        ? _darkModeTileBuilder
+                        : null,
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    subdomains: ['tile0', 'tile1', 'tile2', 'tile3'],
+                  ),
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        width: 40,
+                        height: 40,
+                        point: LatLng(
                           widget.currentAddress["point"]["lat"],
-                          widget.currentAddress["point"]["lon"]),
-                    ),
-                    children: [
-                      TileLayer(
-                        tileBuilder: _darkModeTileBuilder,
-                        // Display map tiles from any source
-                        urlTemplate:
-                            'https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
-                        subdomains: ['tile0', 'tile1', 'tile2', 'tile3'],
-                        // And many more recommended properties!
+                          widget.currentAddress["point"]["lon"],
+                        ),
+                        child: Icon(
+                          CupertinoIcons.location_solid,
+                          color: CupertinoColors.activeOrange,
+                        ),
                       ),
-                      MarkerLayer(markers: [
-                        Marker(
-                            width: 80.0,
-                            height: 80.0,
-                            point: LatLng(widget.currentAddress["point"]["lat"],
-                                widget.currentAddress["point"]["lon"]),
-                            child: Icon(
-                              Icons.location_on,
-                              color: Colors.deepOrange,
-                              size: 40,
-                            ))
-                      ]),
                     ],
                   ),
                 ],
-              )),
-          SliverToBoxAdapter(
-            child: Container(
-              margin: EdgeInsets.all(15),
-              padding: EdgeInsets.all(15),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    widget.currentAddress["name"],
-                    style: GoogleFonts.prostoOne(fontSize: 20),
-                  ),
-                ],
               ),
             ),
           ),
           SliverToBoxAdapter(
-            child: Container(
-              margin: EdgeInsets.all(15),
-              padding: EdgeInsets.all(15),
-              decoration: BoxDecoration(
-                color: Color(0xFF121212),
-                borderRadius: BorderRadius.circular(15),
-              ),
+            child: Padding(
+              padding: EdgeInsets.all(16),
               child: Column(
                 children: [
-                  TextFormField(
+                  Text(widget.currentAddress["name"]),
+                  SizedBox(height: 16),
+                  CupertinoTextField(
                     controller: entrance,
-                    decoration: InputDecoration(
-                      focusColor: Colors.white,
-                      hoverColor: Colors.white,
-                      hintText: "Вход/Подьезд",
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white),
-                      ),
-                    ),
+                    placeholder: "Вход/Подъезд",
                   ),
-                  TextFormField(
+                  SizedBox(height: 8),
+                  CupertinoTextField(
                     controller: house,
-                    decoration: InputDecoration(
-                      focusColor: Colors.white,
-                      hintText: "Офис/Кв.",
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white),
-                      ),
-                    ),
+                    placeholder: "Офис/Кв.",
                   ),
-                  TextFormField(
+                  SizedBox(height: 8),
+                  CupertinoTextField(
                     controller: floor,
-                    decoration: InputDecoration(
-                      focusColor: Colors.white,
-                      hintText: "Этаж",
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white),
-                      ),
-                    ),
+                    placeholder: "Этаж",
                   ),
-                  TextFormField(
+                  SizedBox(height: 8),
+                  CupertinoTextField(
                     controller: other,
-                    decoration: InputDecoration(
-                      focusColor: Colors.white,
-                      hintText: "Дополнительно",
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white),
-                      ),
-                    ),
-                  )
+                    placeholder: "Дополнительно",
+                  ),
+                  SizedBox(height: 16),
+                  CupertinoButton.filled(
+                    child: Text("Сохранить адрес"),
+                    onPressed: () {
+                      _createAddress().then((value) {
+                        getAddresses().then((addresses) {
+                          Navigator.pushReplacement(
+                            context,
+                            CupertinoPageRoute(
+                              builder: (context) => SelectAddressPage(
+                                addresses: addresses,
+                                currentAddress: addresses.firstWhere(
+                                  (element) => element["is_selected"] == "1",
+                                  orElse: () => {},
+                                ),
+                                createOrder: widget.createOrder,
+                                business: widget.business,
+                              ),
+                            ),
+                          );
+                        });
+                      });
+                    },
+                  ),
                 ],
               ),
             ),
           ),
-          SliverToBoxAdapter(
-              child: Container(
-            margin: EdgeInsets.all(15),
-            padding: EdgeInsets.all(15),
-            child: ElevatedButton(
-                onPressed: () {
-                  _createAddress().then((value) {
-                    getAddresses().then((addresses) {
-                      Navigator.pushReplacement(context, CupertinoPageRoute(
-                        builder: (context) {
-                          return SelectAddressPage(
-                            addresses: addresses,
-                            currentAddress: addresses.firstWhere(
-                              (element) => element["is_selected"] == "1",
-                              orElse: () {
-                                return {};
-                              },
-                            ),
-                            createOrder: widget.createOrder,
-                            business: widget.business,
-                          );
-                        },
-                      ));
-                    });
-                  });
-                },
-                child: Text(
-                  "Сохранить адрес",
-                  style: TextStyle(
-                      fontWeight: FontWeight.w700, color: Colors.white),
-                )),
-          )),
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: 1000,
-            ),
-          )
         ],
       ),
     );

@@ -1,94 +1,83 @@
-import 'package:flutter/material.dart';
-import 'package:naliv_delivery/main.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/preLoadDataPage2.dart';
-import 'package:naliv_delivery/pages/startPage.dart';
 import 'package:naliv_delivery/shared/loadingScreen.dart';
-import '../globals.dart' as globals;
-import 'package:flutter/cupertino.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage();
+  const LoginPage({super.key});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController _login = TextEditingController();
-  final TextEditingController _password = TextEditingController();
-  final TextEditingController _phone_number = TextEditingController();
-  final TextEditingController _one_time_code = TextEditingController();
+  String _number = "";
   bool _isLoading = false;
   bool isCodeSend = false;
-  String _number = "";
+
   Future<void> _getOneTimeCode() async {
-    await getOneTimeCode("+7" + _number).then(
+    await getOneTimeCode("+7$_number").then(
       (value) {
         setState(() {
           _isLoading = false;
-        });
-        print(_phone_number.text);
-        setState(() {
           isCodeSend = true;
         });
-        Navigator.pushReplacement(context, CupertinoPageRoute(
-          builder: (context) {
-            return VerifyPage(phone: "+7" + _number);
-          },
-        ));
+        Navigator.pushReplacement(
+          context,
+          CupertinoPageRoute(
+            builder: (context) => VerifyPage(phone: "+7$_number"),
+          ),
+        );
       },
     );
   }
 
-  buildNumPadDigitWidget(String digit, BoxConstraints constraints) {
+  Widget buildNumPadDigitWidget(String digit, BoxConstraints constraints) {
     return Container(
-      margin: EdgeInsets.all(5),
-      clipBehavior: Clip.hardEdge,
-      decoration:
-          BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(100))),
-      height: constraints.maxHeight * 0.2,
-      width: constraints.maxWidth * 0.3,
-      child: InkWell(
-        onTap: () {
+      margin: EdgeInsets.all(4),
+      child: CupertinoButton(
+        padding: EdgeInsets.zero,
+        child: Container(
+          height: constraints.maxHeight * 0.18,
+          width: constraints.maxWidth * 0.28,
+          decoration: BoxDecoration(
+            color:
+                CupertinoColors.secondarySystemBackground.resolveFrom(context),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Center(
+            child: Text(
+              digit,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w400,
+                color: CupertinoColors.label.resolveFrom(context),
+              ),
+            ),
+          ),
+        ),
+        onPressed: () {
           if (_number.length < 10) {
             setState(() {
               _number += digit;
             });
           }
         },
-        child: Container(
-          margin: EdgeInsets.all(5),
-          decoration: BoxDecoration(),
-          child: Center(
-            child: Text(
-              digit,
-              style: TextStyle(fontSize: 24),
-            ),
-          ),
-        ),
       ),
     );
   }
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.black,
-          surfaceTintColor: Colors.black,
-        ),
-        backgroundColor: Colors.black,
-        body: Stack(
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(),
+      child: SafeArea(
+        child: Stack(
           children: [
             Column(
               children: [
                 Flexible(
+                  flex: 2,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -97,122 +86,156 @@ class _LoginPageState extends State<LoginPage> {
                         flex: 3,
                         child: Container(
                           alignment: Alignment.center,
-                          child: Text("+7" + _number,
-                              style: TextStyle(fontSize: 24)),
+                          child: Text(
+                            "+7$_number",
+                            style: TextStyle(fontSize: 24),
+                          ),
                         ),
                       ),
                       Flexible(
-                          child: IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  _number = "";
-                                });
-                              },
-                              icon: Icon(Icons.cancel)))
+                        child: CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          onPressed: () {
+                            setState(() {
+                              _number = "";
+                            });
+                          },
+                          child: Icon(CupertinoIcons.clear_circled),
+                        ),
+                      ),
                     ],
                   ),
-                  flex: 2,
                 ),
                 Flexible(
-                    child: Container(
-                  alignment: Alignment.center,
-                  child: Text(
-                    "Введите номер телефона, для получения кода верификации",
-                    textAlign: TextAlign.center,
+                  child: Container(
+                    alignment: Alignment.center,
+                    child: Text(
+                      "Введите номер телефона, для получения кода верификации",
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                )),
+                ),
+                Spacer(
+                  flex: 3,
+                ),
                 Flexible(
-                    flex: 10,
-                    child: Container(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
+                  flex: 10,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  buildNumPadDigitWidget("1", constraints),
-                                  buildNumPadDigitWidget("2", constraints),
-                                  buildNumPadDigitWidget("3", constraints),
-                                ],
-                              ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  buildNumPadDigitWidget("4", constraints),
-                                  buildNumPadDigitWidget("5", constraints),
-                                  buildNumPadDigitWidget("6", constraints),
-                                ],
-                              ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  buildNumPadDigitWidget("7", constraints),
-                                  buildNumPadDigitWidget("8", constraints),
-                                  buildNumPadDigitWidget("9", constraints),
-                                ],
-                              ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    height: constraints.maxHeight * 0.2,
-                                    width: constraints.maxWidth * 0.3,
-                                    child: InkWell(
-                                      onTap: () {
-                                        setState(() {
-                                          if (_number.length > 0) {
-                                            _number = _number.substring(
-                                                0, _number.length - 1);
-                                          }
-                                        });
-                                      },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          border:
-                                              Border.all(color: Colors.black),
-                                        ),
-                                        child: Center(
-                                          child: Icon(Icons.arrow_back_ios_new),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  buildNumPadDigitWidget("0", constraints),
-                                  Container(
-                                    height: constraints.maxHeight * 0.2,
-                                    width: constraints.maxWidth * 0.3,
-                                    child: InkWell(
-                                      onTap: () {
-                                        setState(() {
-                                          _isLoading = true;
-                                        });
-                                        _getOneTimeCode();
-                                      },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          border:
-                                              Border.all(color: Colors.black),
-                                        ),
-                                        child: Center(
-                                            child:
-                                                Icon(Icons.arrow_forward_ios)),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              )
+                              for (var i in ["1", "2", "3"])
+                                buildNumPadDigitWidget(i, constraints),
                             ],
-                          );
-                        },
-                      ),
-                    ))
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              for (var i in ["4", "5", "6"])
+                                buildNumPadDigitWidget(i, constraints),
+                            ],
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              for (var i in ["7", "8", "9"])
+                                buildNumPadDigitWidget(i, constraints),
+                            ],
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                margin: EdgeInsets.all(4),
+                                child: CupertinoButton(
+                                  padding: EdgeInsets.zero,
+                                  child: Container(
+                                    height: constraints.maxHeight * 0.18,
+                                    width: constraints.maxWidth * 0.28,
+                                    decoration: BoxDecoration(
+                                      color: CupertinoColors
+                                          .tertiarySystemBackground
+                                          .resolveFrom(context),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: Center(
+                                      child: Icon(
+                                        CupertinoIcons.delete_left,
+                                        color: CupertinoColors.systemGrey
+                                            .resolveFrom(context),
+                                        size: 24,
+                                      ),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      if (_number.isNotEmpty) {
+                                        _number = _number.substring(
+                                            0, _number.length - 1);
+                                      }
+                                    });
+                                  },
+                                ),
+                              ),
+                              buildNumPadDigitWidget("0", constraints),
+                              Container(
+                                margin: EdgeInsets.all(4),
+                                child: CupertinoButton(
+                                  padding: EdgeInsets.zero,
+                                  child: Container(
+                                    height: constraints.maxHeight * 0.18,
+                                    width: constraints.maxWidth * 0.28,
+                                    decoration: BoxDecoration(
+                                      color: _number.length == 10
+                                          ? CupertinoColors.activeOrange
+                                          : CupertinoColors.systemGrey6
+                                              .withOpacity(0.5),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: Center(
+                                      child: Icon(
+                                        CupertinoIcons.arrow_right,
+                                        color: _number.length == 10
+                                            ? CupertinoColors.white
+                                            : CupertinoColors.systemGrey,
+                                        size: 24,
+                                      ),
+                                    ),
+                                  ),
+                                  onPressed: _number.length == 10
+                                      ? () {
+                                          setState(() {
+                                            _isLoading = true;
+                                          });
+                                          _getOneTimeCode();
+                                        }
+                                      : null,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
               ],
             ),
-            _isLoading ? LoadingScrenn() : Container()
+            if (_isLoading)
+              Container(
+                color: CupertinoColors.systemBackground.withOpacity(0.5),
+                child: Center(
+                  child: CupertinoActivityIndicator(),
+                ),
+              ),
           ],
-        ));
+        ),
+      ),
+    );
   }
 }
 
@@ -230,11 +253,10 @@ class _VerifyPageState extends State<VerifyPage> {
   _verify() {
     verify(widget.phone, _code).then((value) {
       if (value) {
-        Navigator.pushReplacement(context, CupertinoPageRoute(
-          builder: (context) {
-            return Preloaddatapage2();
-          },
-        ));
+        Navigator.pushReplacement(
+          context,
+          CupertinoPageRoute(builder: (context) => Preloaddatapage2()),
+        );
       } else {
         setState(() {
           _isLoading = false;
@@ -243,158 +265,160 @@ class _VerifyPageState extends State<VerifyPage> {
     });
   }
 
-  buildNumPadDigitWidget(String digit, BoxConstraints constraints) {
+  Widget buildNumPadDigitWidget(String digit, BoxConstraints constraints) {
     return Container(
       margin: EdgeInsets.all(5),
-      clipBehavior: Clip.hardEdge,
-      decoration:
-          BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(100))),
       height: constraints.maxHeight * 0.2,
       width: constraints.maxWidth * 0.3,
-      child: InkWell(
-        onTap: () {
+      child: CupertinoButton(
+        padding: EdgeInsets.zero,
+        child: Container(
+          height: constraints.maxHeight * 0.18,
+          width: constraints.maxWidth * 0.28,
+          decoration: BoxDecoration(
+            color:
+                CupertinoColors.secondarySystemBackground.resolveFrom(context),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Center(
+            child: Text(
+              digit,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w400,
+                color: CupertinoColors.label.resolveFrom(context),
+              ),
+            ),
+          ),
+        ),
+        onPressed: () {
           if (_code.length < 10) {
             setState(() {
               _code += digit;
             });
           }
         },
-        child: Container(
-          margin: EdgeInsets.all(5),
-          decoration: BoxDecoration(),
-          child: Center(
-            child: Text(
-              digit,
-              style: TextStyle(fontSize: 24),
-            ),
-          ),
-        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.black,
-          surfaceTintColor: Colors.black,
-        ),
-        backgroundColor: Colors.black,
-        body: Stack(
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(),
+      child: SafeArea(
+        child: Stack(
           children: [
             Column(
               children: [
                 Flexible(
+                  flex: 2,
                   child: Container(
                     alignment: Alignment.center,
-                    child: Text(_code, style: TextStyle(fontSize: 24)),
+                    child: Text(
+                      _code,
+                      style: TextStyle(fontSize: 24),
+                    ),
                   ),
-                  flex: 2,
                 ),
                 Flexible(
-                    child: Container(
-                        alignment: Alignment.center,
-                        child: TextButton(
-                          onPressed: () {},
-                          child: Text("Изменить " + widget.phone,
-                              style:
-                                  TextStyle(fontSize: 12, color: Colors.white)),
-                        ))),
-                Flexible(
-                    child: Container(
-                  alignment: Alignment.center,
-                  child: Text("Введите код"),
-                )),
-                Flexible(
-                    flex: 10,
-                    child: Container(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  buildNumPadDigitWidget("1", constraints),
-                                  buildNumPadDigitWidget("2", constraints),
-                                  buildNumPadDigitWidget("3", constraints),
-                                ],
-                              ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  buildNumPadDigitWidget("4", constraints),
-                                  buildNumPadDigitWidget("5", constraints),
-                                  buildNumPadDigitWidget("6", constraints),
-                                ],
-                              ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  buildNumPadDigitWidget("7", constraints),
-                                  buildNumPadDigitWidget("8", constraints),
-                                  buildNumPadDigitWidget("9", constraints),
-                                ],
-                              ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    height: constraints.maxHeight * 0.2,
-                                    width: constraints.maxWidth * 0.3,
-                                    child: InkWell(
-                                      onTap: () {
-                                        setState(() {
-                                          _code = "";
-                                        });
-                                      },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          border:
-                                              Border.all(color: Colors.black),
-                                        ),
-                                        child: Center(
-                                          child: Icon(Icons.close),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  buildNumPadDigitWidget("0", constraints),
-                                  Container(
-                                    height: constraints.maxHeight * 0.2,
-                                    width: constraints.maxWidth * 0.3,
-                                    child: InkWell(
-                                      onTap: () {
-                                        setState(() {
-                                          _isLoading = true;
-                                        });
-                                        // _getOneTimeCode();
-                                        _verify();
-                                      },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          border:
-                                              Border.all(color: Colors.black),
-                                        ),
-                                        child: Center(
-                                            child:
-                                                Icon(Icons.arrow_forward_ios)),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            ],
-                          );
-                        },
+                  child: Container(
+                    alignment: Alignment.center,
+                    child: CupertinoButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: Text(
+                        "Изменить ${widget.phone}",
+                        style: TextStyle(fontSize: 12),
                       ),
-                    ))
+                    ),
+                  ),
+                ),
+                Flexible(
+                  child: Container(
+                    alignment: Alignment.center,
+                    child: Text("Введите код"),
+                  ),
+                ),
+                Flexible(
+                  flex: 10,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              for (var i in ["1", "2", "3"])
+                                buildNumPadDigitWidget(i, constraints),
+                            ],
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              for (var i in ["4", "5", "6"])
+                                buildNumPadDigitWidget(i, constraints),
+                            ],
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              for (var i in ["7", "8", "9"])
+                                buildNumPadDigitWidget(i, constraints),
+                            ],
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                height: constraints.maxHeight * 0.2,
+                                width: constraints.maxWidth * 0.3,
+                                child: CupertinoButton(
+                                  padding: EdgeInsets.zero,
+                                  onPressed: () {
+                                    setState(() {
+                                      _code = "";
+                                    });
+                                  },
+                                  child: Icon(CupertinoIcons.clear),
+                                ),
+                              ),
+                              buildNumPadDigitWidget("0", constraints),
+                              Container(
+                                height: constraints.maxHeight * 0.2,
+                                width: constraints.maxWidth * 0.3,
+                                child: CupertinoButton(
+                                  padding: EdgeInsets.zero,
+                                  onPressed: () {
+                                    setState(() {
+                                      _isLoading = true;
+                                    });
+                                    _verify();
+                                  },
+                                  child: Icon(CupertinoIcons.arrow_right),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
               ],
             ),
-            _isLoading ? LoadingScrenn() : Container()
+            if (_isLoading)
+              Container(
+                color: CupertinoColors.systemBackground.withOpacity(0.5),
+                child: Center(
+                  child: CupertinoActivityIndicator(),
+                ),
+              ),
           ],
-        ));
+        ),
+      ),
+    );
   }
 }

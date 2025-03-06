@@ -1,36 +1,43 @@
 import 'dart:ui';
+import 'package:flutter/cupertino.dart';
 
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart';
-
-class LoadingScrenn extends StatefulWidget {
+class LoadingScrenn extends StatelessWidget {
   const LoadingScrenn({super.key});
 
   @override
-  State<LoadingScrenn> createState() => _LoadingScrennState();
-}
-
-class _LoadingScrennState extends State<LoadingScrenn> {
-  @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.black38,
+      color: CupertinoColors.black.withOpacity(0.4),
       child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-          child: Center(
-            child: Container(
-                alignment: Alignment.center,
-                child: Center(
-                    child: Container(
-                  child: LoadingAnimationWidget.discreteCircle(
-                    color: Colors.white,
-                    secondRingColor: Colors.grey.shade900,
-                    thirdRingColor: Colors.grey,
-                    size: MediaQuery.of(context).size.width / 10,
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Center(
+          child: Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: CupertinoColors.systemBackground.withOpacity(0.8),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CupertinoActivityIndicator(
+                  radius: 16,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Загрузка...',
+                  style: TextStyle(
+                    color: CupertinoColors.label,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
                   ),
-                ))),
-          )),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

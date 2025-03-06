@@ -1,13 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:naliv_delivery/globals.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/misc/databaseapi.dart';
 import 'package:naliv_delivery/shared/itemPage.dart';
 import 'package:vibration/vibration.dart';
-import 'package:vibration/vibration_presets.dart';
 
 class ItemCard2mini extends StatefulWidget {
   const ItemCard2mini({super.key, required this.item, required this.business});
@@ -160,19 +158,13 @@ class _ItemCard2miniState extends State<ItemCard2mini> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        showModalBottomSheet(
-            isDismissible: true,
-            enableDrag: true,
-            barrierColor: Colors.black.withValues(alpha: 0.8),
-            useSafeArea: true,
-            isScrollControlled: true,
-            context: context,
-            builder: (context) {
-              return ItemPage(
-                item: widget.item,
-                business: widget.business,
-              );
-            });
+        showCupertinoModalPopup(
+          context: context,
+          builder: (context) => ItemPage(
+            item: widget.item,
+            business: widget.business,
+          ),
+        );
       },
       child: Stack(
         children: [
@@ -181,8 +173,9 @@ class _ItemCard2miniState extends State<ItemCard2mini> {
             child: Container(
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                  color: Color(0xFF242424),
-                  borderRadius: BorderRadius.all(Radius.circular(15))),
+                color: CupertinoColors.systemGrey6.resolveFrom(context),
+                borderRadius: BorderRadius.circular(15),
+              ),
               margin: EdgeInsets.all(5),
               child: Column(
                 children: [
@@ -194,58 +187,53 @@ class _ItemCard2miniState extends State<ItemCard2mini> {
                           fit: BoxFit.cover,
                           imageUrl: widget.item["img"] ?? "/",
                           placeholder: (context, url) => Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                            ),
+                            child: CupertinoActivityIndicator(),
                           ),
                           errorWidget: (context, url, error) =>
-                              Icon(Icons.error),
+                              Icon(CupertinoIcons.exclamationmark_triangle),
                         ),
                       ),
                       AspectRatio(
-                          aspectRatio: 16 / 11,
-                          child: Container(
-                            padding: EdgeInsets.all(10),
-                            alignment: Alignment.bottomLeft,
-                            child: widget.item["promotions"] == null
-                                ? Container()
-                                : Container(
-                                    padding: EdgeInsets.all(5),
-                                    decoration: BoxDecoration(
-                                        boxShadow: [
-                                          BoxShadow(
-                                              color: Colors.black12,
-                                              blurRadius: 5,
-                                              offset: Offset(5, 5))
-                                        ],
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.all(
-                                            Radius.circular(500))),
-                                    child: Icon(
-                                      Icons.card_giftcard,
-                                      color: Colors.amber,
-                                    ),
+                        aspectRatio: 16 / 11,
+                        child: Container(
+                          padding: EdgeInsets.all(10),
+                          alignment: Alignment.bottomLeft,
+                          child: widget.item["promotions"] == null
+                              ? Container()
+                              : Container(
+                                  padding: EdgeInsets.all(5),
+                                  decoration: BoxDecoration(
+                                    color: CupertinoColors.systemBackground,
+                                    borderRadius: BorderRadius.circular(20),
                                   ),
-                          )),
-                      currentAmount == 0
-                          ? Container()
-                          : Container(
-                              alignment: Alignment.topRight,
-                              child: Container(
-                                padding: EdgeInsets.all(5),
-                                decoration: BoxDecoration(
-                                    color: Colors.amber,
-                                    borderRadius: BorderRadius.only(
-                                        bottomLeft: Radius.circular(10))),
-                                child: Text(
-                                  formatQuantity(
-                                      currentAmount, widget.item["unit"]),
-                                  style: GoogleFonts.inter(
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.black),
+                                  child: Icon(
+                                    CupertinoIcons.gift,
+                                    color: CupertinoColors.activeOrange,
+                                  ),
                                 ),
+                        ),
+                      ),
+                      if (currentAmount > 0)
+                        Container(
+                          alignment: Alignment.topRight,
+                          child: Container(
+                            padding: EdgeInsets.all(5),
+                            decoration: BoxDecoration(
+                              color: CupertinoColors.activeOrange,
+                              borderRadius: BorderRadius.only(
+                                bottomLeft: Radius.circular(10),
                               ),
-                            )
+                            ),
+                            child: Text(
+                              formatQuantity(
+                                  currentAmount, widget.item["unit"]),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: CupertinoColors.white,
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                   AspectRatio(
@@ -256,11 +244,13 @@ class _ItemCard2miniState extends State<ItemCard2mini> {
                         widget.item["name"],
                         overflow: TextOverflow.ellipsis,
                         maxLines: 2,
-                        style: GoogleFonts.roboto(
-                            fontWeight: FontWeight.bold, fontSize: 12),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
-                  )
+                  ),
                 ],
               ),
             ),

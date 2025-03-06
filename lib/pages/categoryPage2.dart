@@ -35,10 +35,19 @@ class CategoryPage2 extends StatefulWidget {
 }
 
 class _CategoryPage2State extends State<CategoryPage2>
-    with TickerProviderStateMixin, RouteAware {
-  final List<GlobalObjectKey> keyList =
-      List.generate(100, (index) => GlobalObjectKey(index));
-  late TabController _tabController;
+    with TickerProviderStateMixin {
+  // Используем ValueKey вместо GlobalObjectKey
+  final List<ValueKey> keyList =
+      List.generate(100, (index) => ValueKey('section_$index'));
+
+  // Определяем контроллеры как final
+  final ItemScrollController itemScrollController = ItemScrollController();
+  final ItemPositionsListener itemPositionsListener =
+      ItemPositionsListener.create();
+  late final TabController _tabController;
+
+  // Кэшируем предзагруженные секции
+  final List<Widget> preloadedSections = [];
   int currentIndex = 0;
   late TabController _categoryTabController;
   final List<dynamic> _tabInfoList = [];
@@ -62,6 +71,9 @@ class _CategoryPage2State extends State<CategoryPage2>
 
   List items = [];
 
+  // Добавляем контроллер для горизонтального скролла
+  final ScrollController _segmentedScrollController = ScrollController();
+
   @override
   void setState(fn) {
     if (mounted) {
@@ -69,29 +81,29 @@ class _CategoryPage2State extends State<CategoryPage2>
     }
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    routeObserver.subscribe(this, ModalRoute.of(context) as PageRoute);
-    print("dadasdasasd");
-  }
+  // @override
+  // void didChangeDependencies() {
+  //   super.didChangeDependencies();
+  //   routeObserver.subscribe(this, ModalRoute.of(context) as PageRoute);
+  //   print("dadasdasasd");
+  // }
 
-  @override
-  void didPopNext() {
-    // Covering route was popped off the navigator.
-    print("popped");
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Navigator.pushReplacement(context, CupertinoPageRoute(builder: (context) {
-        return PreLoadCategoryPage(
-          categoryId: widget.categoryId,
-          business: widget.business,
-          category: widget.category,
-          subcategories: widget.subcategories,
-          user: widget.user,
-        );
-      }));
-    });
-  }
+  // @override
+  // void didPopNext() {
+  //   // Covering route was popped off the navigator.
+  //   print("popped");
+  //   WidgetsBinding.instance.addPostFrameCallback((_) {
+  //     Navigator.pushReplacement(context, CupertinoPageRoute(builder: (context) {
+  //       return PreLoadCategoryPage(
+  //         categoryId: widget.categoryId,
+  //         business: widget.business,
+  //         category: widget.category,
+  //         subcategories: widget.subcategories,
+  //         user: widget.user,
+  //       );
+  //     }));
+  //   });
+  // }
 
   initPriceRange() {
     int lowestPricet = widget.items[0]["price"];
@@ -126,518 +138,538 @@ class _CategoryPage2State extends State<CategoryPage2>
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    initPriceRange();
-    setState(() {
-      items = widget.items;
-      _tabController = TabController(
-          vsync: this,
-          length: widget.subcategories.length,
-          initialIndex: currentIndex);
-      // _tabController.addListener(() {
-      //   _tabController.animateTo(_tabController.index);
-      // });
-    });
 
-    itemPositionsListener.itemPositions.addListener(() {
-      print(currentOffset);
-      final positions = itemPositionsListener.itemPositions.value;
-      final visibleIndex = positions
-          .where((ItemPosition position) => position.itemTrailingEdge > 0)
-          .map((ItemPosition position) => position.index)
-          .toList();
-      if (visibleIndex.isNotEmpty) {
-        if (currentIndex != visibleIndex[0]) {
-          print(visibleIndex[0]);
-          setState(() {
-            currentIndex = visibleIndex[0];
-          });
-          _tabController.animateTo(visibleIndex[0]);
-        }
+    _tabController = TabController(
+      vsync: this,
+      length: widget.subcategories.length,
+      initialIndex: currentIndex,
+    );
+
+    // Предзагружаем секции после инициализации
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _preloadAllSections();
+        _setupScrollListener();
       }
     });
+
+    initPriceRange();
     _getPropertiesForCat();
+  }
+
+  // Добавляем метод для предзагрузки всех секций
+  void _preloadAllSections() {
+    if (!mounted) return;
+
+    setState(() {
+      preloadedSections.clear(); // Очищаем старые секции
+
+      for (int index = 0; index < widget.subcategories.length; index++) {
+        List subitems = _getSubitems(index);
+
+        if (subitems.isEmpty) {
+          preloadedSections.add(SizedBox(
+            key: keyList[index],
+            height: 1,
+          ));
+          continue;
+        }
+
+        preloadedSections.add(
+          Column(
+            key: keyList[index],
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  widget.subcategories[index]["name"],
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: GridView.builder(
+                  key: ValueKey('grid_$index'),
+                  physics: NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.75,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                  ),
+                  itemCount: subitems.length,
+                  itemBuilder: (context, index2) => ItemCard2(
+                    key: ValueKey('item_${index}_$index2'),
+                    item: subitems[index2],
+                    business: widget.business,
+                  ),
+                ),
+              ),
+              SizedBox(height: 16),
+            ],
+          ),
+        );
+      }
+    });
+  }
+
+  // Обновляем метод scrollToCategory
+  void scrollToCategory(int index) {
+    if (!mounted) return;
+
+    setState(() => currentIndex = index);
+
+    // Прокручиваем сегменты
+    _scrollToSelectedSegment(index);
+
+    // Прокручиваем список товаров
+    itemScrollController.scrollTo(
+      index: index,
+      duration: Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  // Обновляем метод _setupScrollListener
+  void _setupScrollListener() {
+    if (!mounted) return;
+
+    itemPositionsListener.itemPositions.addListener(() {
+      if (!mounted) return;
+
+      final positions = itemPositionsListener.itemPositions.value.toList();
+      if (positions.isEmpty) return;
+
+      positions.sort((a, b) => a.itemLeadingEdge.compareTo(b.itemLeadingEdge));
+      final firstVisibleIndex = positions.first.index;
+
+      if (currentIndex != firstVisibleIndex && mounted) {
+        setState(() {
+          currentIndex = firstVisibleIndex;
+          if (_tabController.index != firstVisibleIndex) {
+            _tabController.animateTo(firstVisibleIndex);
+            _scrollToSelectedSegment(firstVisibleIndex);
+          }
+        });
+      }
+    });
+  }
+
+  // Обновим метод _scrollToSelectedSegment
+  void _scrollToSelectedSegment(int index) {
+    if (!mounted) return;
+
+    // Задержка для корректного получения размеров
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Получаем ширину экрана
+      final screenWidth = MediaQuery.of(context).size.width;
+
+      // Примерная ширина одного сегмента
+      final segmentWidth = screenWidth / 3;
+
+      // Вычисляем позицию для центрирования
+      final offset =
+          (segmentWidth * index) - (screenWidth / 3) + (segmentWidth / 1);
+
+      // Безопасная анимация скролла
+      if (_segmentedScrollController.hasClients) {
+        _segmentedScrollController.animateTo(
+          offset.clamp(0, _segmentedScrollController.position.maxScrollExtent),
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
-    // TODO: implement dispose
+    _segmentedScrollController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
-  final ItemScrollController itemScrollController = ItemScrollController();
-  final ScrollOffsetController scrollOffsetController =
-      ScrollOffsetController();
-  final ItemPositionsListener itemPositionsListener =
-      ItemPositionsListener.create();
-  final ScrollOffsetListener scrollOffsetListener =
-      ScrollOffsetListener.create();
-
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Scaffold(
-          floatingActionButton:
-              CartButton(business: widget.business, user: widget.user),
-          floatingActionButtonLocation:
-              FloatingActionButtonLocation.centerFloat,
-          // floatingActionButton: Column(
-          //   mainAxisAlignment: MainAxisAlignment.end,
-          //   crossAxisAlignment: CrossAxisAlignment.center,
-          //   children: [
-          //     searchItems == null
-          //         ? Container()
-          //         : Padding(
-          //             padding: EdgeInsets.all(10),
-          //             child: FloatingActionButton(
-          //               backgroundColor: Colors.red,
-          //               foregroundColor: Colors.white,
-          //               onPressed: () {
-          //                 setState(() {
-          //                   searchItems = null;
-          //                   selectedValues = [];
-          //                 });
-          //               },
-          //               child: Icon(Icons.filter_list_off),
-          //             ),
-          //           ),
-          //     Padding(
-          //         padding: EdgeInsets.all(10),
-          //         child:
-          //             ),
-          //     // context.mounted ? BottomBar() : Container(),
-          //   ],
-          // ),
-          appBar: AppBar(
-            title: Searchwidget(business: widget.business),
-            backgroundColor: Colors.black,
-            surfaceTintColor: Colors.black,
-            bottom: searchItems == null
-                ? TabBar(
-                    labelColor: Colors.white,
-                    indicatorColor: Colors.white,
-                    isScrollable: true,
-                    controller: _tabController,
-                    tabs: [
-                        for (var i in widget.subcategories)
-                          GestureDetector(
-                              onTap: () {
-                                if (mounted) {
-                                  itemScrollController.scrollTo(
-                                      index: widget.subcategories.indexOf(i),
-                                      duration: Durations.medium1);
-                                }
-                                if (mounted) {
-                                  itemScrollController.scrollTo(
-                                      index: widget.subcategories.indexOf(i),
-                                      duration: Durations.medium1);
-                                }
-                              },
-                              child: Container(
-                                padding: EdgeInsets.all(5),
-                                child: Text(
-                                  i["name"],
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        // Убираем стандартный нижний бордер
+        border: null,
+        middle: Text(widget.category["c_name"]),
+      ),
+      child: Stack(
+        children: [
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                // Добавляем сегментированный контроль после навбара
+                if (widget.subcategories.length >= 2)
+                  Container(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color:
+                          CupertinoColors.systemBackground.resolveFrom(context),
+                      border: Border(
+                        bottom: BorderSide(
+                          color: CupertinoColors.separator.resolveFrom(context),
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: SingleChildScrollView(
+                      controller: _segmentedScrollController,
+                      scrollDirection: Axis.horizontal,
+                      padding: EdgeInsets.symmetric(
+                          horizontal:
+                              MediaQuery.of(context).size.width / 2 - 60),
+                      child: CupertinoSegmentedControl<int>(
+                        selectedColor:
+                            CupertinoColors.activeOrange.resolveFrom(context),
+                        borderColor: CupertinoColors.transparent,
+                        unselectedColor: CupertinoColors.systemBackground
+                            .resolveFrom(context),
+                        onValueChanged: (index) {
+                          scrollToCategory(index);
+                          _scrollToSelectedSegment(index);
+                        },
+                        groupValue: currentIndex,
+                        children: {
+                          for (var i = 0; i < widget.subcategories.length; i++)
+                            i: Container(
+                              width: MediaQuery.of(context).size.width / 3,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              child: Text(
+                                widget.subcategories[i]["name"],
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
                                 ),
-                              ))
-                      ])
-                : PreferredSize(
-                    preferredSize: Size.fromHeight(10), child: Container()),
-            actions: [
-              IconButton(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) {
-                        return Dialog.fullscreen(
-                          backgroundColor: Colors.white,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  IconButton(
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                      },
-                                      icon: Icon(Icons.close))
-                                ],
+                                maxLines: 2,
                               ),
-                              ListTile(
-                                trailing: Icon(Icons.arrow_upward),
-                                title: Text("По возрастанию цены"),
-                                onTap: () {
-                                  Navigator.pop(context);
-
-                                  Navigator.pushReplacement(context,
-                                      CupertinoPageRoute(builder: (context) {
-                                    return CategoryPage2(
-                                      categoryId: widget.categoryId,
-                                      business: widget.business,
-                                      category: widget.category,
-                                      subcategories: widget.subcategories,
-                                      items: widget.items,
-                                      user: widget.user,
-                                      priceIncrease: true,
-                                    );
-                                  }));
-                                },
-                              ),
-                              ListTile(
-                                trailing: Icon(Icons.arrow_downward),
-                                title: Text("По убыванию цены"),
-                                onTap: () {
-                                  Navigator.pop(context);
-                                  Navigator.pushReplacement(context,
-                                      CupertinoPageRoute(builder: (context) {
-                                    return CategoryPage2(
-                                      categoryId: widget.categoryId,
-                                      business: widget.business,
-                                      category: widget.category,
-                                      subcategories: widget.subcategories,
-                                      items: widget.items,
-                                      user: widget.user,
-                                      priceIncrease: false,
-                                    );
-                                  }));
-                                },
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    );
-                  },
-                  icon: Icon(Icons.sort)),
-              IconButton(
-                icon: Icon(Icons.filter_list_rounded),
-                onPressed: () {
-                  setState(() {
-                    showFilters = !showFilters;
-                  });
-                  // showCupertinoDialog(
-                  //   context: context,
-                  //   builder: (context) {
-                  //     return StatefulBuilder(
-                  //       builder: (context, setState) {
-                  //         return ;
-                  //       },
-                  //     );
-                  //   },
-                  // );
-                },
-              )
-            ],
+                            )
+                        },
+                      ),
+                    ),
+                  ),
+                // Список товаров
+                Expanded(
+                  child: preloadedSections.isEmpty
+                      ? Center(child: CupertinoActivityIndicator())
+                      : ScrollablePositionedList.builder(
+                          physics: BouncingScrollPhysics(),
+                          itemScrollController: itemScrollController,
+                          itemPositionsListener: itemPositionsListener,
+                          itemCount: preloadedSections.length,
+                          itemBuilder: (context, index) =>
+                              preloadedSections[index],
+                        ),
+                ),
+              ],
+            ),
           ),
-          backgroundColor: Colors.black,
-          body: searchItems == null
-              ? ScrollablePositionedList.builder(
-                  shrinkWrap: true,
-                  physics: ClampingScrollPhysics(),
-                  itemCount: widget.subcategories.length,
-                  itemBuilder: (context, index) {
-                    List subitems = items.where((element) {
-                      return element["category_id"].toString() ==
-                          widget.subcategories[index]["category_id"].toString();
-                    }).toList();
+          // Кнопка корзины
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: MediaQuery.of(context).padding.bottom + 16,
+            child: CartButton(
+              business: widget.business,
+              user: {},
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                    void updateDataAmount(List newCart, int index) {
-                      subitems[index]["cart"] = newCart;
-                    }
+  Widget _buildItemCard(Map<String, dynamic> item) {
+    // return item["price"] >= rangeLowPrice && item["price"] <= rangeHighPrice
+    //     ? ItemCard2(
+    //         item: item,
+    //         business: widget.business,
+    //       )
+    //     : SizedBox.shrink();
+    return ItemCard2(
+      item: item,
+      business: widget.business,
+    );
+  }
 
-                    if (widget.priceIncrease) {
-                      subitems.sort((a, b) {
-                        return a["price"].compareTo(b["price"]);
-                      });
-                    } else {
-                      subitems.sort((a, b) {
-                        return b["price"].compareTo(a["price"]);
-                      });
-                    }
-
-                    return subitems.length == 0
-                        ? Container()
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              VisibilityDetector(
-                                key: GlobalKey(),
-                                child: Container(
-                                  padding: EdgeInsets.all(15),
-                                  child: Text(
-                                    widget.subcategories[index]["name"],
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                onVisibilityChanged: (info) {
-                                  if (currentIndex != index) {
-                                    if (info.visibleFraction == 0.5) {
-                                      setState(() {
-                                        currentIndex = index;
-                                      });
-                                      _tabController.animateTo(index);
-                                    }
-                                  }
-                                },
-                              ),
-                              Container(
-                                decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(20),
-                                    color: Colors.black),
-                                padding: EdgeInsets.all(15),
-                                child: GridView.builder(
-                                  gridDelegate:
-                                      SliverGridDelegateWithFixedCrossAxisCount(
-                                          childAspectRatio: 8 / 12,
-                                          mainAxisSpacing: 10,
-                                          crossAxisSpacing: 10,
-                                          crossAxisCount: 2),
-                                  primary: false,
-                                  shrinkWrap: true,
-                                  itemCount: subitems.length,
-                                  itemBuilder: (context, index2) {
-                                    final Map<String, dynamic> item =
-                                        subitems[index2];
-
-                                    return rangeLowPrice <= item["price"] &&
-                                            item["price"] <= rangeHighPrice
-                                        ? (searchItems == null
-                                            ? ItemCard2(
-                                                item: item,
-                                                business: widget.business,
-                                              )
-                                            : searchItems!.contains(
-                                                    item["item_id"].toString())
-                                                ? ItemCard2(
-                                                    item: item,
-                                                    business: widget.business,
-                                                  )
-                                                : Container())
-                                        : Container();
-                                  },
-                                ),
-                              )
-                            ],
-                          );
-                  },
-                  itemScrollController: itemScrollController,
-                  scrollOffsetController: scrollOffsetController,
-                  itemPositionsListener: itemPositionsListener,
-                  scrollOffsetListener: scrollOffsetListener,
-                )
-              : GridView.builder(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      childAspectRatio: 8 / 12,
-                      mainAxisSpacing: 10,
-                      crossAxisSpacing: 10,
-                      crossAxisCount: 2),
-                  primary: false,
-                  shrinkWrap: true,
-                  itemCount: widget.items.length,
-                  itemBuilder: (context, index2) {
-                    final Map<String, dynamic> item = widget.items[index2];
-                    return rangeLowPrice <= item["price"] &&
-                            item["price"] <= rangeHighPrice
-                        ? (searchItems == null
-                            ? ItemCard2(
-                                item: item,
-                                business: widget.business,
-                              )
-                            : searchItems!.contains(item["item_id"].toString())
-                                ? ItemCard2(
-                                    item: item,
-                                    business: widget.business,
-                                  )
-                                : Container())
-                        : Container();
-                  },
-                ),
+  void _showSortOptions() {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => CupertinoActionSheet(
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _sortItems(ascending: true);
+            },
+            child: Text('По возрастанию цены'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _sortItems(ascending: false);
+            },
+            child: Text('По убыванию цены'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Отмена'),
         ),
-        !showFilters
-            ? Container()
-            : Scaffold(
-                appBar: AppBar(
-                  backgroundColor: Colors.white,
-                  surfaceTintColor: Colors.white,
-                  automaticallyImplyLeading: false,
-                  actions: [
-                    IconButton(
-                      icon: Icon(Icons.close),
-                      onPressed: () {
-                        setState(() {
-                          showFilters = false;
-                        });
-                      },
-                    )
-                  ],
-                ),
-                bottomNavigationBar: Container(
-                  padding: EdgeInsets.all(10),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      selectedValues.length > 0
-                          ? getItemsByPropertiesValues(selectedValues)
-                              .then((v) {
-                              setState(() {
-                                searchItems = v;
-                                showFilters = false;
-                              });
-                            })
-                          : setState(() {
-                              // searchItems = widget.items;
-                              showFilters = false;
-                            });
-                      // setState(() {
-                      //   searchItems = widget.items.where((element) {
-                      //     List valuesl = values.where((value) {
-                      //       return selectedValues.contains(value["value_id"]);
-                      //     }).toList();
-                      //     List itemValues = valuesl.where((value) {
-                      //       return element["item_id"] == value["item_id"];
-                      //     }).toList();
-                      //     return itemValues.length == valuesl.length;
-                      //   }).toList();
-                      //   showFilters = false;
-                      // });
+      ),
+    );
+  }
+
+  List _getSubitems(int index) {
+    return widget.items.where((item) {
+      return item["category_id"].toString() ==
+          widget.subcategories[index]["category_id"].toString();
+    }).toList();
+  }
+
+  void _sortItems({required bool ascending}) {
+    setState(() {
+      items.sort((a, b) {
+        if (ascending) {
+          return (a["price"] as num).compareTo(b["price"] as num);
+        } else {
+          return (b["price"] as num).compareTo(a["price"] as num);
+        }
+      });
+    });
+  }
+
+  Widget _buildSearchResults() {
+    return GridView.builder(
+      padding: EdgeInsets.all(16),
+      physics: BouncingScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.75,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+      ),
+      itemCount: searchItems!.length,
+      itemBuilder: (context, index) => _buildItemCard(searchItems![index]),
+    );
+  }
+
+  Widget _buildFiltersOverlay() {
+    return Container(
+      color: CupertinoColors.systemBackground,
+      child: Column(
+        children: [
+          CupertinoNavigationBar(
+            middle: Text('Фильтры'),
+            trailing: CupertinoButton(
+              padding: EdgeInsets.zero,
+              child: Icon(CupertinoIcons.clear),
+              onPressed: () => setState(() => showFilters = false),
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              physics: BouncingScrollPhysics(),
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Диапазон цен',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('${rangeLowPrice.round()} ₸'),
+                      Text('${rangeHighPrice.round()} ₸'),
+                    ],
+                  ),
+                  CupertinoSlider(
+                    min: lowestPrice.toDouble(),
+                    max: highestPrice.toDouble(),
+                    value: rangeHighPrice.toDouble(),
+                    onChanged: (value) {
+                      setState(() {
+                        rangeHighPrice = value.round();
+                      });
                     },
-                    child: Text("Применить"),
+                  ),
+                  SizedBox(height: 24),
+                  if (properties.isNotEmpty) ...[
+                    Text(
+                      'Свойства',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    ...properties.map((property) {
+                      return _buildPropertyFilter(property);
+                    }).toList(),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(
+                  color: CupertinoColors.separator,
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: CupertinoButton(
+                    onPressed: _resetFilters,
+                    child: Text('Сбросить'),
                   ),
                 ),
-                body: SingleChildScrollView(
-                    // margin: EdgeInsets.only(top: 10, bottom: 1000),
-                    child: Column(
-                  children: [
-                    ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            items.sort((a, b) {
-                              return a["price"].compareTo(b["price"]);
-                            });
-                          });
-                        },
-                        child: Text("Цена")),
-                    Divider(
-                      color: Colors.white,
-                    ),
-                    RangeSlider(
-                        activeColor: Colors.deepOrange,
-                        inactiveColor: Colors.grey,
-                        labels: RangeLabels(rangeLowPrice.toString(),
-                            rangeHighPrice.toString()),
-                        min: lowestPrice.toDouble(),
-                        max: highestPrice.toDouble(),
-                        values: RangeValues(rangeLowPrice.toDouble(),
-                            rangeHighPrice.toDouble()),
-                        onChanged: (rv) {
-                          setState(() {
-                            rangeLowPrice = rv.start.toInt();
-                            rangeHighPrice = rv.end.toInt();
-                          });
-                        }),
-                    Text("Цена от: $rangeLowPrice до: $rangeHighPrice"),
-                    ListView.builder(
-                      primary: false,
-                      shrinkWrap: true,
-                      itemCount: properties.length,
-                      itemBuilder: (context, index) {
-                        List valuesl = values.where((value) {
-                          return value["property_id"] ==
-                              properties[index]["property_id"];
-                        }).toList();
-                        return valuesl.length == 0
-                            ? Container()
-                            : Container(
-                                padding: EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                    border: Border(
-                                        bottom: BorderSide(
-                                            color: Colors.white, width: 1))),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      properties[index]["name"],
-                                      style: TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    Wrap(
-                                      direction: Axis.horizontal,
-                                      children: [
-                                        for (var i in valuesl)
-                                          GestureDetector(
-                                            onTap: () {
-                                              setState(() {
-                                                if (selectedValues
-                                                    .contains(i["value_id"])) {
-                                                  selectedValues
-                                                      .remove(i["value_id"]);
-                                                } else {
-                                                  selectedValues
-                                                      .add(i["value_id"]);
-                                                }
-                                              });
-                                              print(selectedValues);
-                                            },
-                                            child: Container(
-                                              padding: EdgeInsets.all(10),
-                                              margin: EdgeInsets.all(5),
-                                              decoration: BoxDecoration(
-                                                  color:
-                                                      selectedValues.contains(
-                                                              i["value_id"])
-                                                          ? Colors.white
-                                                          : Colors.white,
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                          10)),
-                                              child: Text(
-                                                i["value"],
-                                                style: TextStyle(
-                                                    color: valuesl
-                                                                .where((val) {
-                                                                  return selectedValues
-                                                                      .contains(
-                                                                          val["value_id"]);
-                                                                })
-                                                                .toList()
-                                                                .length ==
-                                                            0
-                                                        ? Colors.white
-                                                        : Colors.grey.shade900),
-                                              ),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                    // ListView.builder(
-                                    //   primary: false,
-                                    //   shrinkWrap: true,
-                                    //   itemCount: valuesl.length,
-                                    //   itemBuilder: (context, index2) {
-                                    //     return Text(valuesl[index2]["value"]);
-                                    //   },
-                                    // )
-                                  ],
-                                ),
-                              );
-                      },
-                    ),
-                    SizedBox(
-                      height: 500,
-                    )
-                  ],
-                )),
-              )
+                SizedBox(width: 16),
+                Expanded(
+                  child: CupertinoButton.filled(
+                    onPressed: _applyFilters,
+                    child: Text('Применить'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPropertyFilter(Map property) {
+    List propertyValues = values.where((value) {
+      return value["property_id"] == property["property_id"].toString();
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          property["name"],
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: propertyValues.map((value) {
+            bool isSelected = selectedValues.contains(value["value_id"]);
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  if (isSelected) {
+                    selectedValues.remove(value["value_id"]);
+                  } else {
+                    selectedValues.add(value["value_id"]);
+                  }
+                });
+              },
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? CupertinoColors.activeBlue
+                      : CupertinoColors.systemGrey6,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  value["name"],
+                  style: TextStyle(
+                    color: isSelected
+                        ? CupertinoColors.white
+                        : CupertinoColors.label,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        SizedBox(height: 16),
       ],
     );
+  }
+
+  void _resetFilters() {
+    setState(() {
+      rangeLowPrice = lowestPrice;
+      rangeHighPrice = highestPrice;
+      selectedValues.clear();
+    });
+  }
+
+  void _applyFilters() {
+    setState(() {
+      showFilters = false;
+      items = widget.items.where((item) {
+        bool priceInRange =
+            item["price"] >= rangeLowPrice && item["price"] <= rangeHighPrice;
+
+        if (!priceInRange) return false;
+
+        if (selectedValues.isEmpty) return true;
+
+        return item["values"].any((value) => selectedValues.contains(value));
+      }).toList();
+    });
+  }
+}
+
+// Добавьте этот класс для работы SliverPersistentHeader
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  _SliverAppBarDelegate({
+    required this.minHeight,
+    required this.maxHeight,
+    required this.child,
+  });
+
+  final double minHeight;
+  final double maxHeight;
+  final Widget child;
+
+  @override
+  double get minExtent => minHeight;
+
+  @override
+  double get maxExtent => maxHeight;
+
+  @override
+  Widget build(context, shrinkOffset, overlapsContent) {
+    return SizedBox.expand(child: child);
+  }
+
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return maxHeight != oldDelegate.maxHeight ||
+        minHeight != oldDelegate.minHeight ||
+        child != oldDelegate.child;
   }
 }

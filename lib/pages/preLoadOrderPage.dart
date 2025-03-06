@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/createOrderPage2.dart';
 import 'package:naliv_delivery/shared/loadingScreen.dart';
@@ -23,7 +22,6 @@ class _PreLoadOrderPageState extends State<PreLoadOrderPage> {
       if (element["is_selected"] == "1") {
         setState(() {
           currentAddress = element;
-          print(currentAddress);
         });
       }
     }
@@ -35,29 +33,33 @@ class _PreLoadOrderPageState extends State<PreLoadOrderPage> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    _getAddresses().then((v) {
-      Navigator.pushReplacement(context, MaterialPageRoute(
-        builder: (context) {
-          return CreateOrderPage2(
+    _getAddresses().then((_) {
+      Navigator.pushReplacement(
+        context,
+        CupertinoPageRoute(
+          builder: (context) => CreateOrderPage2(
             business: widget.business,
             currentAddress: currentAddress,
             addresses: addresses,
-          );
-        },
-      ));
+          ),
+        ),
+      );
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          // children: [Text(localSum.toString())],
-          children: [LoadingScrenn()],
+    return CupertinoPageScaffold(
+      backgroundColor: CupertinoColors.systemBackground,
+      child: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              LoadingScrenn(),
+            ],
+          ),
         ),
       ),
     );

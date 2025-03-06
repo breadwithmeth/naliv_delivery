@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:naliv_delivery/misc/databaseapi.dart';
 import 'package:naliv_delivery/pages/cartPage.dart';
 import '../globals.dart' as globals;
@@ -27,34 +28,7 @@ class _CartButtonState extends State<CartButton> {
   double sum = 0;
 
   @override
-  void setState(fn) {
-    if (mounted) {
-      super.setState(fn);
-    }
-  }
-
-  getCartSum() async {
-    await dbm.getCartTotal(int.parse(widget.business["business_id"])).then((v) {
-      setState(() {
-        sum = v;
-      });
-    });
-  }
-
-  getCartItems() async {
-    await dbm
-        .getAllItemsInCart(int.parse(widget.business["business_id"]))
-        .then((v) {
-      print(v);
-      setState(() {
-        items = v;
-      });
-    });
-  }
-
-  @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     getCartItems();
     getCartSum();
@@ -64,68 +38,87 @@ class _CartButtonState extends State<CartButton> {
     });
   }
 
-  @override
-  void dispose() {
-    // TODO: implement dispose
-    super.dispose();
+  getCartSum() async {
+    await dbm.getCartTotal(int.parse(widget.business["business_id"])).then((v) {
+      setState(() => sum = v);
+    });
+  }
+
+  getCartItems() async {
+    await dbm
+        .getAllItemsInCart(int.parse(widget.business["business_id"]))
+        .then((v) {
+      setState(() => items = v);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedCrossFade(
-        alignment: Alignment.bottomCenter,
-        firstChild: Container(),
-        secondChild: Container(
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-              borderRadius: BorderRadius.all(Radius.circular(15))),
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.deepOrange,
+      alignment: Alignment.bottomCenter,
+      firstChild: Container(),
+      secondChild: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+            decoration: BoxDecoration(
+              color: CupertinoColors.activeOrange,
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                Text(
-                  "Открыть корзину",
-                  style: GoogleFonts.roboto(
-                      color: Colors.white, fontWeight: FontWeight.w900),
-                ),
-                Text(
-                  globals.formatPrice(sum.toInt()),
-                  style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 24),
-                )
-              ],
+            child: CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: () {
+                showCupertinoModalBottomSheet(
+                  context: context,
+                  backgroundColor:
+                      CupertinoColors.systemBackground.withOpacity(0),
+                  expand: true,
+                  enableDrag: true,
+                  builder: (context) => CartPage(
+                    business: widget.business,
+                    user: widget.user,
+                  ),
+                );
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        CupertinoIcons.shopping_cart,
+                        color: CupertinoColors.white,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Корзина',
+                        style: TextStyle(
+                          color: CupertinoColors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 17,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    globals.formatPrice(sum.toInt()),
+                    style: TextStyle(
+                      color: CupertinoColors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 17,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            onPressed: () {
-              showModalBottomSheet(
-                useSafeArea: true,
-                showDragHandle: false,
-                enableDrag: false,
-                isScrollControlled: true,
-                context: context,
-                builder: (context) {
-                  return CartPage(business: widget.business, user: widget.user);
-                },
-              );
-              // Navigator.push(
-              //   context,
-              //   CupertinoPageRoute(
-              //     builder: (context) {
-              //       return PreLoadCartPage(business: widget.business);
-              //     },
-              //   ),
-              // );
-            },
           ),
         ),
-        crossFadeState: items.length == 0
-            ? CrossFadeState.showFirst
-            : CrossFadeState.showSecond,
-        duration: Durations.long1);
+      ),
+      crossFadeState:
+          items.isEmpty ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+      duration: Duration(milliseconds: 300),
+    );
   }
 }

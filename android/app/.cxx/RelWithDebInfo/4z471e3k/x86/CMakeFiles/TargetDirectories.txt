@@ -1,0 +1,2 @@
+/Users/shrvse/naliv_delivery/android/app/.cxx/RelWithDebInfo/4z471e3k/x86/CMakeFiles/edit_cache.dir
+/Users/shrvse/naliv_delivery/android/app/.cxx/RelWithDebInfo/4z471e3k/x86/CMakeFiles/rebuild_cache.dir

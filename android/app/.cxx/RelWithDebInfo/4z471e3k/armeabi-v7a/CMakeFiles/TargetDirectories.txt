@@ -1,0 +1,2 @@
+/Users/shrvse/naliv_delivery/android/app/.cxx/RelWithDebInfo/4z471e3k/armeabi-v7a/CMakeFiles/edit_cache.dir
+/Users/shrvse/naliv_delivery/android/app/.cxx/RelWithDebInfo/4z471e3k/armeabi-v7a/CMakeFiles/rebuild_cache.dir

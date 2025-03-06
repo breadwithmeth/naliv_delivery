@@ -1,18 +1,17 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/categoryPage2.dart';
-import 'package:naliv_delivery/shared/loadingScreen.dart';
 
 class PreLoadCategoryPage extends StatefulWidget {
-  const PreLoadCategoryPage(
-      {super.key,
-      required this.business,
-      this.categoryId,
-      required this.category,
-      required this.subcategories,
-      required this.user});
+  const PreLoadCategoryPage({
+    super.key,
+    required this.business,
+    this.categoryId,
+    required this.category,
+    required this.subcategories,
+    required this.user,
+  });
+
   final Map<dynamic, dynamic> business;
   final String? categoryId;
   final Map category;
@@ -24,6 +23,12 @@ class PreLoadCategoryPage extends StatefulWidget {
 }
 
 class _PreLoadCategoryPageState extends State<PreLoadCategoryPage> {
+  @override
+  void initState() {
+    super.initState();
+    pushCategoryPage();
+  }
+
   pushCategoryPage() {
     getItemsMain3(
             widget.business["business_id"], widget.category["c_id"].toString())
@@ -46,14 +51,17 @@ class _PreLoadCategoryPageState extends State<PreLoadCategoryPage> {
   }
 
   @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    pushCategoryPage();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return LoadingScrenn();
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text(widget.category["name"] ?? "Загрузка"),
+      ),
+      // child: Text(widget.subcategories.toString()),
+      child: Center(
+        child: CupertinoActivityIndicator(
+          radius: 15,
+        ),
+      ),
+    );
   }
 }

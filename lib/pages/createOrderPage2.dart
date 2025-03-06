@@ -33,6 +33,8 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
   DatabaseManager dbm = DatabaseManager();
   List items = [];
   double sum = 0;
+  double sum2 = 0;
+
   int discount = 0;
   int deliveryPrice = 0;
   bool delivery = true;
@@ -99,14 +101,6 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
     await getDeliveyPrice(widget.business["business_id"]).then((v) {
       setState(() {
         deliveryPrice = double.parse(v["price"]).toInt();
-      });
-    });
-  }
-
-  getCartSum() async {
-    await dbm.getCartTotal(int.parse(widget.business["business_id"])).then((v) {
-      setState(() {
-        sum = v;
       });
     });
   }
@@ -189,44 +183,90 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
     });
   }
 
-  _getCartPrice() {
-    getCartPrice(items).then((cartParams) {
-      for (int i = 0; i < items.length; i++) {
-        if (mounted) {
-          Map itemCartParam = cartParams.firstWhere((element) {
-            return element["item_id"].toString() ==
-                items[i]["item_id"].toString();
-          });
-          setState(() {
-            items[i]["promotion"] = itemCartParam["promotions"];
-          });
+  _getCartPrice() async {
+    print("222222222");
+    print(items.toString());
+    await getCartPrice(items).then((cartParams) {
+      if (mounted) {
+        double totalSum = 0;
+        // Обновляем данные для каждого товара
+        for (var i = 0; i < items.length; i++) {
+          // Находим параметры товара из ответа API
+          Map? itemCartParam = cartParams.firstWhere(
+            (element) =>
+                element["item_id"].toString() == items[i]["item_id"].toString(),
+            orElse: () => null,
+          );
+
+          if (itemCartParam != null) {
+            print(itemCartParam.toString());
+            setState(() {
+              // Обновляем акции если они есть
+              items[i]["promotion"] = itemCartParam["promotions"];
+
+              final amount = items[i]["amount"] as double;
+              final price = double.parse(itemCartParam["price"].toString());
+              // Если есть акция, считаем с учетом акции
+              if (itemCartParam["promotions"] != null) {
+                final baseAmount =
+                    double.parse(itemCartParam["promotions"]["base_amount"]);
+                final addAmount =
+                    double.parse(itemCartParam["promotions"]["add_amount"]);
+                final setSize = baseAmount + addAmount;
+
+                if (amount >= setSize) {
+                  final sets = (amount / setSize).floor();
+                  final remainder = amount % setSize;
+
+                  // Акционная цена
+                  final promoPrice =
+                      (sets * baseAmount * price) + (remainder * price);
+                  totalSum += promoPrice;
+                } else {
+                  totalSum += price * amount;
+                }
+              } else {
+                totalSum += price * amount;
+              }
+
+              List options = items[i]["options"];
+              if (options != null) {
+                options.forEach((option) {
+                  if (option["price"] != null) {
+                    final optionPrice = option["price"] as double;
+                    final parentAmount = items[i]["parent_amount"] as double? ??
+                        1.0; // parent_amount, если он есть, по умолчанию 1
+                    final optionCount = amount / parentAmount;
+                    totalSum += (optionPrice * optionCount).toInt();
+                  }
+                });
+              }
+            });
+          }
         }
+
+        // Обновляем общую сумму
+        setState(() {
+          sum2 = totalSum;
+        });
       }
     });
-    getTotalCartPrice(items);
   }
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     getCartItems();
-    getCartSum();
     _getSavedCards();
     _getDeliveryPrice();
     _getBonuses();
     _getCartPrice();
 
     dbm.cartUpdates.listen((onData) {
-      if (onData != null) {
-        print("========================");
-        print(onData);
+      if (onData != null && mounted) {
         getCartItems();
-        getCartSum();
         generateItemsFromReplacement();
         _getCartPrice();
-
-        // getTotalCartPrice(items);
       }
     });
   }
@@ -332,821 +372,575 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
   }
 
   void getTotalCartPrice(List items1) {
-    // int totalSum = 0;
-    // int discountSum = 0;
+    int totalSum = 0;
+    int discountSum = 0;
 
-    // items1.forEach((item) {
-    //   print(item);
-    //   final amount = item['amount'] as double;
-    //   final price = item['price'] as int;
-    //   final optionPrice =
-    //       item['option_price'] as int? ?? 0; // Цена опции, если она есть
-    //   final parentAmount = item['parent_amount'] as double? ??
-    //       1; // parent_amount, если он есть, по умолчанию 1
+    items1.forEach((item) {
+      // Базовая цена и количество
+      final amount = item['amount'] as double;
+      final price = item['price'] as int;
 
-    //   // Количество опций для данного товара
-    //   final optionCount = amount / parentAmount;
-    //   final totalPrice = (price * amount + optionCount * optionPrice).toInt();
-    //   totalSum = totalSum + totalPrice;
-    //   if (item["promotion"] != null) {
-    //     int base_amount =
-    //         double.parse(item["promotion"]["base_amount"]).toInt();
-    //     int add_amount = double.parse(item["promotion"]["add_amount"]).toInt();
-    //     if ((amount / (base_amount + add_amount)).toInt() >= 1) {
-    //       discountSum = discountSum +
-    //           (((amount / (base_amount + add_amount)).toInt() * price)).toInt();
-    //     }
-    //   }
-    // });
-    // print("SKIDKA");
-    // print(discountSum);
-    // setState(() {
-    //   discount = discountSum;
-    // });
+      // Считаем базовую стоимость позиции
+      int itemTotal = (price * amount).toInt();
+
+      // Добавляем стоимость опций
+      if (item["options"] != null) {
+        (item["options"] as List).forEach((option) {
+          if (option["price"] != null) {
+            final optionPrice = option["price"] as int;
+            final parentAmount = item["parent_amount"] as double? ?? 1.0;
+            final optionCount = amount / parentAmount;
+            itemTotal += (optionPrice * optionCount).toInt();
+          }
+        });
+      }
+
+      totalSum += itemTotal;
+
+      // Считаем скидку по акции если она есть
+      if (item["promotion"] != null) {
+        final baseAmount = double.parse(item["promotion"]["base_amount"]);
+        final addAmount = double.parse(item["promotion"]["add_amount"]);
+        final setSize = baseAmount + addAmount;
+
+        if (amount >= setSize) {
+          final sets = (amount / setSize).floor();
+          final remainder = amount % setSize;
+
+          // Акционная цена
+          final promoPrice = (sets * baseAmount * price) + (remainder * price);
+
+          // Скидка - разница между обычной и акционной ценой
+          discountSum += itemTotal - promoPrice.toInt();
+        }
+      }
+    });
+
+    setState(() {
+      sum = totalSum.toDouble();
+      discount = discountSum;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFF121212),
-      body: CustomScrollView(
+    return CupertinoPageScaffold(
+      backgroundColor: CupertinoColors.systemBackground,
+      navigationBar: CupertinoNavigationBar(
+        middle: Text(widget.business["name"]),
+      ),
+      child: CustomScrollView(
+        physics: BouncingScrollPhysics(),
         slivers: [
-          SliverAppBar(
-            backgroundColor: Colors.black,
-            centerTitle: false,
-            title: Text(
-              widget.business["name"],
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
+          // Секция замены продукции
           SliverToBoxAdapter(
-            child: ExpansionTile(
-              onExpansionChanged: (value) {
-                generateItemsFromReplacement();
-              },
-              children: [
-                ListView.builder(
-                  primary: false,
-                  shrinkWrap: true,
-                  physics: ClampingScrollPhysics(),
-                  itemCount: itemsForReplacements.length,
-                  itemBuilder: (context, index) {
-                    return Container(
-                      margin: EdgeInsets.all(5),
-                      padding: EdgeInsets.all(5),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Flexible(
-                              flex: 2,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  itemsForReplacements[index]["replace"]
-                                      ? Text(
-                                          "Замена",
-                                          style: TextStyle(
-                                              color: Colors.green,
-                                              fontWeight: FontWeight.w900),
-                                        )
-                                      : Text("Возврат",
-                                          style: TextStyle(
-                                              color: Colors.red,
-                                              fontWeight: FontWeight.w900)),
-                                  Text(itemsForReplacements[index]["name"]
-                                      .toString())
-                                ],
-                              )),
-                          Flexible(
-                              child: Switch(
-                            activeColor: Colors.deepOrange,
-                            value: itemsForReplacements[index]["replace"],
-                            onChanged: (value) {
-                              setState(() {
-                                itemsForReplacements[index]["replace"] = value;
-                              });
-                            },
-                          ))
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ],
-              leading: Icon(
-                Icons.published_with_changes,
-                color: Colors.deepOrange,
-              ),
-              title: Text(
-                "Пожелания по замене продукции",
-                style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    fontSize: 12),
-              ),
-              subtitle: Text(
-                "Отсутствующие товары заменяются аналогами, либо производится возврат денег.",
-                style: TextStyle(
-                    fontWeight: FontWeight.w400,
-                    color: Colors.white,
-                    fontSize: 12),
-              ),
-              // trailing: Icon(Icons.arrow_forward_ios_sharp),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: ListTile(
-              onTap: () {
-                showModalBottomSheet(
-                  useSafeArea: true,
-                  backgroundColor: Color(0xFF121212),
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (context) {
-                    return DraggableScrollableSheet(
-                      initialChildSize: 0.7,
-                      minChildSize: 0.7,
-                      maxChildSize: 0.8,
-                      builder: (context, scrollController) {
-                        return Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                IconButton(
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                    },
-                                    icon: Icon(Icons.close))
-                              ],
-                            ),
-                            Container(
-                              padding: EdgeInsets.all(10),
-                              child: TextField(
-                                decoration: InputDecoration(
-                                    border: OutlineInputBorder()),
-                                maxLines: 10,
-                                controller: _message,
-                              ),
-                            )
-                          ],
-                        );
-                      },
-                    );
-                  },
-                );
-              },
-              leading: Icon(
-                Icons.comment,
-                color: Colors.deepOrange,
-              ),
-              title: Text(
-                "Сообщение для заведения",
-                style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    fontSize: 12),
-              ),
-              subtitle: Text(
-                "Специальные пожелания, особенности доставки.",
-                style: TextStyle(
-                    fontWeight: FontWeight.w400,
-                    color: Colors.white,
-                    fontSize: 12),
-              ),
-              trailing: Icon(Icons.arrow_forward_ios_sharp),
-            ),
-          ),
-          SliverPadding(
-            padding: EdgeInsets.only(left: 10, top: 20, bottom: 0),
-            sliver: SliverToBoxAdapter(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
+            child: Container(
+              margin: EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+              child: CupertinoListSection.insetGrouped(
+                backgroundColor: CupertinoColors.systemBackground,
                 children: [
-                  Text(
-                    "Товары в заказе",
-                    style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        fontSize: 24),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: EdgeInsets.all(10),
-            sliver: SliverList.builder(
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                return Container(
-                  decoration: BoxDecoration(
-                      border: Border(
-                          bottom: BorderSide(color: Colors.white, width: 0.3))),
-                  child: ListTile(
-                      contentPadding: EdgeInsets.all(0),
-                      dense: false,
-                      title: Text(
-                        items[index]["name"],
-                        style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            items[index]["option_name"] ?? "",
-                            style: TextStyle(fontSize: 12),
-                          ),
-                          getItemPrice(items[index])
-                        ],
-                      ),
-                      trailing: Text(
-                        formatQuantity(items[index]["amount"], "ед"),
-                        style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            fontSize: 16),
-                      )),
-                );
-              },
-            ),
-          ),
-          SliverPadding(
-            padding: EdgeInsets.all(10),
-            sliver: SliverToBoxAdapter(
-                child: AnimatedContainer(
-              duration: Duration(milliseconds: 300),
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.all(Radius.circular(15)),
-                  color: Color(0xFF121212)),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      return Container(
-                        width: constraints.maxWidth,
-                        child: CheckboxListTile(
-                          checkColor: Colors.white,
-                          activeColor: Colors.deepOrange,
-                          // fillColor: MaterialStateProperty.all(Colors.deepOrange),
-
-                          contentPadding: EdgeInsets.all(0),
-                          title: Text(
-                            delivery ? "Доставка" : "Самовывоз",
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 24),
-                          ),
-                          value: delivery,
-                          onChanged: (bool? value) {
-                            setState(() {
-                              delivery = value!;
-                            });
-                          },
-                          checkboxShape: CircleBorder(),
-                          // secondary: delivery
-                          //     ? Icon(
-                          //         Icons.delivery_dining,
-                          //         size: 24,
-                          //       )
-                          //     : Icon(Icons.directions_walk_outlined),
-                        ),
+                  CupertinoListTile(
+                    leading: Icon(
+                      CupertinoIcons.arrow_2_circlepath,
+                      color: CupertinoColors.activeOrange,
+                    ),
+                    title: Text('Пожелания по замене'),
+                    subtitle: Text('Отсутствующие товары заменяются аналогами'),
+                    trailing: CupertinoListTileChevron(),
+                    onTap: () {
+                      // Показываем sheet с опциями замены
+                      showCupertinoModalPopup(
+                        context: context,
+                        builder: (context) => _buildReplacementOptions(),
                       );
                     },
                   ),
-                  AnimatedCrossFade(
-                      firstChild: Container(
-                          child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Flexible(
-                              child: Container(
-                                  clipBehavior: Clip.hardEdge,
-                                  decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.all(
-                                          Radius.circular(10))),
-                                  child: AspectRatio(
-                                    aspectRatio: 1,
-                                    child: FlutterMap(
-                                      options: MapOptions(
-                                        interactionOptions: InteractionOptions(
-                                            flags: InteractiveFlag.none),
-                                        initialZoom: 18,
-                                        initialCenter: LatLng(
-                                            double.parse(
-                                                widget.currentAddress["lat"]),
-                                            double.parse(
-                                                widget.currentAddress["lon"])),
-                                      ),
-                                      children: [
-                                        TileLayer(
-                                          // Display map tiles from any source
-                                          urlTemplate:
-                                              'https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
-                                          subdomains: [
-                                            'tile0',
-                                            'tile1',
-                                            'tile2',
-                                            'tile3'
-                                          ],
-                                          // And many more recommended properties!
-                                        ),
-                                        // MarkerLayer(markers: [
-                                        //   Marker(
-                                        //       width: 80.0,
-                                        //       height: 80.0,
-                                        //       point: LatLng(
-                                        //           double.parse(
-                                        //               currentAddress["lat"]),
-                                        //           double.parse(
-                                        //               currentAddress["lon"])),
-                                        //       child: Icon(
-                                        //         Icons.location_on,
-                                        //         color: Colors.deepOrange,
-                                        //         size: 40,
-                                        //       ))
-                                        // ]),
-                                      ],
-                                    ),
-                                  ))),
-                          Flexible(
-                            flex: 2,
-                            child: Container(
-                                padding: EdgeInsets.only(left: 10),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    GestureDetector(
-                                        onTap: () {
-                                          Navigator.pushReplacement(context,
-                                              CupertinoPageRoute(
-                                            builder: (context) {
-                                              return SelectAddressPage(
-                                                addresses: widget.addresses,
-                                                currentAddress:
-                                                    widget.currentAddress,
-                                                createOrder: true,
-                                                business: widget.business,
-                                              );
-                                            },
-                                          ));
-                                        },
-                                        child: Text(
-                                          "Изменить",
-                                          style: TextStyle(
-                                              color: Colors.deepOrange,
-                                              fontWeight: FontWeight.bold),
-                                        )),
-                                    Text(
-                                      widget.currentAddress["address"],
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 16),
-                                    ),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.max,
-                                      children: [
-                                        Flexible(
-                                            child: Text(
-                                          "Квартира/Офис: ",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w400,
-                                              fontSize: 12),
-                                        )),
-                                        Flexible(
-                                            child: Text(
-                                          widget.currentAddress["apartment"]
-                                              .toString(),
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 12),
-                                        ))
-                                      ],
-                                    ),
-                                    Row(
-                                      children: [
-                                        Flexible(
-                                            child: Text(
-                                          "Подъезд/Вход: ",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w400,
-                                              fontSize: 12),
-                                        )),
-                                        Flexible(
-                                            child: Text(
-                                          widget.currentAddress["entrance"]
-                                              .toString(),
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 12),
-                                        ))
-                                      ],
-                                    ),
-                                    Row(
-                                      children: [
-                                        Flexible(
-                                            child: Text(
-                                          "Этаж: ",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w400,
-                                              fontSize: 12),
-                                        )),
-                                        Flexible(
-                                            child: Text(
-                                          widget.currentAddress["floor"]
-                                              .toString(),
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 12),
-                                        ))
-                                      ],
-                                    ),
-                                    Row(
-                                      children: [
-                                        Flexible(
-                                            child: Text(
-                                          "Прочее: ",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w400,
-                                              fontSize: 12),
-                                        )),
-                                        Flexible(
-                                            child: Text(
-                                          widget.currentAddress["other"]
-                                              .toString(),
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 12),
-                                        ))
-                                      ],
-                                    ),
-                                  ],
-                                )),
-                          )
-                        ],
-                      )),
-                      secondChild: Container(
-                          child: Column(
-                        children: [
-                          AspectRatio(
-                              aspectRatio: 21 / 9,
-                              child: Container(
-                                clipBehavior: Clip.hardEdge,
-                                decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(10))),
-                                child: FlutterMap(
-                                  options: MapOptions(
-                                    interactionOptions: InteractionOptions(
-                                        flags: InteractiveFlag.none),
-                                    initialZoom: 18,
-                                    initialCenter: LatLng(
-                                        double.parse(widget.business["lat"]),
-                                        double.parse(widget.business["lon"])),
-                                  ),
-                                  children: [
-                                    TileLayer(
-                                      // Display map tiles from any source
-                                      urlTemplate:
-                                          'https://{s}.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
-                                      subdomains: [
-                                        'tile0',
-                                        'tile1',
-                                        'tile2',
-                                        'tile3'
-                                      ],
-                                      // And many more recommended properties!
-                                    ),
-                                    // MarkerLayer(markers: [
-                                    //   Marker(
-                                    //       width: 80.0,
-                                    //       height: 80.0,
-                                    //       point: LatLng(
-                                    //           double.parse(
-                                    //               widget.business["lat"]),
-                                    //           double.parse(widget
-                                    //               .business["lon"])),
-                                    //       child: Icon(
-                                    //         Icons.location_on,
-                                    //         color: Colors.deepOrange,
-                                    //         size: 40,
-                                    //       ))
-                                    // ]),
-                                  ],
-                                ),
-                              )),
-                          Divider(
-                            color: Colors.transparent,
-                          ),
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  "${widget.business["name"]} ${widget.business["address"]}",
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              )
-                            ],
-                          ),
-                        ],
-                      )),
-                      crossFadeState: delivery
-                          ? CrossFadeState.showFirst
-                          : CrossFadeState.showSecond,
-                      duration: Durations.medium1)
                 ],
-              ),
-            )),
-          ),
-          SliverPadding(
-              padding: EdgeInsets.all(10),
-              sliver: SliverToBoxAdapter(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Метод оплаты",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 24),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            _getSavedCards();
-                          },
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Обновить",
-                                style:
-                                    TextStyle(color: Colors.deepOrangeAccent),
-                              ),
-                              Icon(
-                                Icons.replay_outlined,
-                                color: Colors.deepOrangeAccent,
-                                size: 14,
-                              )
-                            ],
-                          ),
-                        )
-                      ],
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(context, CupertinoPageRoute(
-                          builder: (context) {
-                            return AddNewCardPage(
-                              createOrder: true,
-                            );
-                          },
-                        ));
-                      },
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.add_card,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                          Text(
-                            " Добавить карту",
-                            style: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.bold),
-                          )
-                        ],
-                      ),
-                    )
-                  ],
-                ),
-              )),
-          SliverPadding(
-              padding: EdgeInsets.all(10),
-              sliver: SliverList.builder(
-                itemCount: cards.length,
-                itemBuilder: (context, index) {
-                  return RadioListTile(
-                    contentPadding: EdgeInsets.all(0),
-                    activeColor: Colors.deepOrange,
-                    dense: false,
-                    title: Text(
-                      cards[index]["mask"],
-                      style: TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                    groupValue: _selectedCard,
-                    value: cards[index]["card_id"],
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedCard = value;
-                      });
-                    },
-                  );
-                },
-              )),
-          SliverPadding(
-            padding: EdgeInsets.all(0),
-            sliver: SliverToBoxAdapter(
-              child: SwitchListTile(
-                activeColor: Colors.amber,
-                value: useBonuses,
-                onChanged: bonusesAvailabale
-                    ? (value) {
-                        setState(() {
-                          useBonuses = value;
-                        });
-                      }
-                    : null,
-                title: Text(
-                  "Использовать бонусы",
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text("Доступно для оплаты " +
-                    ((sum / 100 * 30).toInt() > bonuses
-                            ? bonuses
-                            : (sum / 100 * 30).toInt())
-                        .toString() +
-                    " б."),
               ),
             ),
           ),
-          SliverPadding(
-            padding: EdgeInsets.all(10),
-            sliver: SliverToBoxAdapter(
-              child: Column(
+
+          // Секция комментария
+          SliverToBoxAdapter(
+            child: Container(
+              margin: EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+              child: CupertinoListSection.insetGrouped(
+                backgroundColor: CupertinoColors.systemBackground,
                 children: [
-                  Container(
-                    padding: EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                        border: Border(
-                            bottom:
-                                BorderSide(color: Colors.white, width: 0.5))),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "Корзина",
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          formatPrice(sum.toInt()),
-                          style: GoogleFonts.inter(
-                              fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                      ],
+                  CupertinoListTile(
+                    leading: Icon(
+                      CupertinoIcons.chat_bubble_text,
+                      color: CupertinoColors.activeOrange,
                     ),
+                    title: Text('Сообщение для заведения'),
+                    subtitle:
+                        Text('Специальные пожелания, особенности доставки'),
+                    trailing: CupertinoListTileChevron(),
+                    onTap: () => _showMessageSheet(context),
                   ),
-                  delivery
-                      ? Container(
-                          padding: EdgeInsets.all(5),
-                          decoration: BoxDecoration(
-                              border: Border(
-                                  bottom: BorderSide(
-                                      color: Colors.white, width: 0.5))),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "Доставка, комиссия",
-                                style: TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.bold),
-                              ),
-                              Text(
-                                formatPrice(deliveryPrice.toInt()),
-                                style: GoogleFonts.inter(
-                                    fontSize: 16, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        )
-                      : Container(),
-                  VisibilityDetector(
-                      key: Key(
-                          "Такие ключи это поискать еще надо, потому что этот ключ не норм, это ультра норм!"),
-                      child: Container(
-                        padding: EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                            border: Border(
-                                bottom: BorderSide(
-                                    color: Colors.white, width: 0.5))),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              "Итого",
-                              style: TextStyle(
-                                  fontSize: 24, fontWeight: FontWeight.bold),
-                            ),
-                            delivery
-                                ? Text(
-                                    "~" +
-                                        formatPrice(sum.toInt() +
-                                            deliveryPrice.toInt() -
-                                            discount),
-                                    style: GoogleFonts.inter(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold),
-                                  )
-                                : Text(
-                                    "~" + formatPrice(sum.toInt() - discount),
-                                    style: GoogleFonts.inter(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                          ],
-                        ),
-                      ),
-                      onVisibilityChanged: (vi) {
-                        getTotalCartPrice(items);
-                      })
                 ],
               ),
             ),
           ),
-          SliverPadding(
-            padding: EdgeInsets.all(10),
-            sliver: SliverToBoxAdapter(
-              child: ElevatedButton(
-                onPressed: createButtonEnabled && _selectedCard != null
-                    ? () {
-                        print(123);
-                        _createOrder();
-                      }
-                    : null,
-                child: Text(
-                  "Перейти к оплате",
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 20),
-                ),
-              ),
-            ),
-          ),
-          // SliverToBoxAdapter(
-          //   child: ElevatedButton(
-          //       onPressed: () {
-          //         getTotalCartPrice(items);
-          //       },
-          //       child: Text("data")),
-          // ),
-          SliverPadding(
-              padding: EdgeInsets.only(top: 20, left: 10),
-              sliver: SliverToBoxAdapter(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "На основе вашего заказа",
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
-                    ),
-                  ],
-                ),
-              )),
-          SliverPadding(
-            padding: EdgeInsets.only(top: 0, left: 10, right: 10, bottom: 10),
-            sliver: SliverToBoxAdapter(
-              child: GridView.builder(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    childAspectRatio: 8 / 12,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    crossAxisCount: 2),
-                primary: false,
-                shrinkWrap: true,
-                itemCount: recItems.length,
-                itemBuilder: (context, index2) {
-                  final Map<String, dynamic> item = recItems[index2];
-                  return ItemCard2(
-                    item: item,
-                    business: widget.business,
-                  );
-                },
+
+          // Секция товаров
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Товары в заказе',
+                style:
+                    CupertinoTheme.of(context).textTheme.navLargeTitleTextStyle,
               ),
             ),
           ),
           SliverToBoxAdapter(
-            child: SizedBox(
-              height: 500,
+            child: Container(
+              margin: EdgeInsets.symmetric(horizontal: 16),
+              child: CupertinoListSection.insetGrouped(
+                children: items
+                    .map((item) => Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CupertinoListTile(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              title: Text(
+                                item["name"],
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              trailing: Container(
+                                constraints: BoxConstraints(maxWidth: 110),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      formatQuantity(item["amount"], "ед"),
+                                      style: TextStyle(
+                                        color: CupertinoColors.secondaryLabel,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    SizedBox(width: 6),
+                                    if (item["promotion"] != null) ...[
+                                      // Если есть акция, показываем старую и новую цену
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            formatPrice(item["price"] *
+                                                item["amount"].toInt()),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              decoration:
+                                                  TextDecoration.lineThrough,
+                                              color: CupertinoColors
+                                                  .secondaryLabel,
+                                            ),
+                                          ),
+                                          Text(
+                                            _calculatePromotionPrice(item),
+                                            style: TextStyle(
+                                              color:
+                                                  CupertinoColors.activeOrange,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ] else
+                                      Text(
+                                        formatPrice(item["price"] *
+                                            item["amount"].toInt()),
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            // Отображаем все опции из массива options
+                            if (item["options"] != null)
+                              ...(item["options"] as List)
+                                  .map((option) => Padding(
+                                        padding:
+                                            EdgeInsets.fromLTRB(12, 0, 12, 8),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                option["option_name"],
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: CupertinoColors
+                                                      .secondaryLabel,
+                                                ),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            if (option["price"] != null)
+                                              Text(
+                                                "+ ${formatPrice((option["price"] * (item["amount"] / (item["parent_amount"] ?? 1))).toInt())}",
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: CupertinoColors
+                                                      .secondaryLabel,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ))
+                                  .toList(),
+                            if (item["promotion"] != null)
+                              Padding(
+                                padding: EdgeInsets.fromLTRB(12, 0, 12, 8),
+                                child: Text(
+                                  "Акция ${item["promotion"]["name"]}",
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: CupertinoColors.activeOrange,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ))
+                    .toList(),
+              ),
+            ),
+          ),
+
+          // Способ получения
+          SliverToBoxAdapter(
+            child: Container(
+              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: CupertinoListSection.insetGrouped(
+                header: Text('Способ получения'),
+                children: [
+                  CupertinoListTile(
+                    leading: Icon(
+                      delivery
+                          ? CupertinoIcons.cube_box
+                          : CupertinoIcons.person_crop_circle,
+                      color: CupertinoColors.activeOrange,
+                    ),
+                    title: Text(delivery ? 'Доставка' : 'Самовывоз'),
+                    trailing: CupertinoSwitch(
+                      value: delivery,
+                      onChanged: (value) => setState(() => delivery = value),
+                      activeColor: CupertinoColors.activeOrange,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Адрес и карта
+          if (delivery) _buildDeliverySection() else _buildPickupSection(),
+
+          // Способ оплаты
+          SliverToBoxAdapter(
+            child: Container(
+              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: CupertinoListSection.insetGrouped(
+                header: Text('Способ оплаты'),
+                footer: Text('Выберите карту для оплаты заказа'),
+                children: [
+                  ...cards
+                      .map((card) => CupertinoListTile(
+                            title: Text(card["mask"]),
+                            trailing: _selectedCard == card["card_id"]
+                                ? Icon(CupertinoIcons.checkmark_circle_fill,
+                                    color: CupertinoColors.activeOrange)
+                                : null,
+                            onTap: () =>
+                                setState(() => _selectedCard = card["card_id"]),
+                          ))
+                      .toList(),
+                  CupertinoListTile(
+                    leading: Icon(CupertinoIcons.plus_circle,
+                        color: CupertinoColors.activeOrange),
+                    title: Text('Добавить карту'),
+                    onTap: () => Navigator.push(
+                      context,
+                      CupertinoPageRoute(
+                        builder: (context) => AddNewCardPage(createOrder: true),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Итоговая сумма
+          SliverToBoxAdapter(
+            child: Container(
+              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: CupertinoListSection.insetGrouped(
+                children: [
+                  CupertinoListTile(
+                    title: Text('Корзина'),
+                    trailing: Text(formatPrice(
+                        sum2.toInt())), // Используем sum2 из getCartTotal
+                  ),
+                  if (delivery)
+                    CupertinoListTile(
+                      title: Text('Доставка'),
+                      trailing: Text(formatPrice(deliveryPrice)),
+                    ),
+                  CupertinoListTile(
+                    title: Text(
+                      'Итого',
+                      style: CupertinoTheme.of(context)
+                          .textTheme
+                          .navLargeTitleTextStyle,
+                    ),
+                    trailing: Text(
+                      formatPrice(delivery
+                          ? sum2.toInt() + deliveryPrice
+                          : sum2.toInt()),
+                      style: CupertinoTheme.of(context)
+                          .textTheme
+                          .navLargeTitleTextStyle,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Кнопка оплаты
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: CupertinoButton.filled(
+                onPressed: createButtonEnabled && _selectedCard != null
+                    ? _createOrder
+                    : null,
+                child: Text('Перейти к оплате'),
+              ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildReplacementOptions() {
+    return CupertinoActionSheet(
+      title: Text('Настройки замены'),
+      message: Text('Выберите действие для каждого товара при его отсутствии'),
+      actions: [
+        Container(
+          height: MediaQuery.of(context).size.height * 0.6,
+          child: CupertinoScrollbar(
+            child: ListView.builder(
+              itemCount: itemsForReplacements.length,
+              itemBuilder: (context, index) {
+                final item = itemsForReplacements[index];
+                return Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: CupertinoColors.separator,
+                        width: 0.5,
+                      ),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item["name"],
+                        style: CupertinoTheme.of(context).textTheme.textStyle,
+                      ),
+                      SizedBox(height: 8),
+                      CupertinoSlidingSegmentedControl<bool>(
+                        groupValue: item["replace"],
+                        children: {
+                          true: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16),
+                            child: Text('Заменить'),
+                          ),
+                          false: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16),
+                            child: Text('Вернуть'),
+                          ),
+                        },
+                        onValueChanged: (value) {
+                          setState(() {
+                            item["replace"] = value;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ],
+      cancelButton: CupertinoActionSheetAction(
+        child: Text('Готово'),
+        onPressed: () => Navigator.pop(context),
+      ),
+    );
+  }
+
+  void _showMessageSheet(BuildContext context) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => AnimatedPadding(
+        duration: Duration(milliseconds: 300),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: CupertinoActionSheet(
+          title: Text('Сообщение'),
+          message: Column(
+            children: [
+              CupertinoTextField(
+                controller: _message,
+                placeholder: 'Введите сообщение...',
+                maxLines: 5,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Готово'),
+              isDefaultAction: true,
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Отмена'),
+            isDestructiveAction: true,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeliverySection() {
+    return SliverToBoxAdapter(
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: CupertinoListSection.insetGrouped(
+          header: Text('Адрес доставки'),
+          children: [
+            CupertinoListTile(
+              leading: Icon(
+                CupertinoIcons.location_solid,
+                color: CupertinoColors.activeOrange,
+              ),
+              title: Text(
+                widget.currentAddress["address"] ?? "Выберите адрес",
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 15),
+              ),
+              subtitle: widget.currentAddress["comment"] != null &&
+                      widget.currentAddress["comment"].toString().isNotEmpty
+                  ? Text(
+                      widget.currentAddress["comment"],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: CupertinoColors.secondaryLabel,
+                      ),
+                    )
+                  : null,
+              trailing: Icon(
+                CupertinoIcons.chevron_right,
+                color: CupertinoColors.systemGrey3,
+              ),
+              onTap: () async {
+                final result = await Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                    builder: (context) => SelectAddressPage(
+                      addresses: widget.addresses,
+                      currentAddress: widget.currentAddress,
+                      createOrder: true,
+                      business: widget.business,
+                    ),
+                  ),
+                );
+                if (result != null) {
+                  setState(() {
+                    widget.currentAddress.clear();
+                    widget.currentAddress.addAll(result);
+                  });
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPickupSection() {
+    return SliverToBoxAdapter(
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: CupertinoListSection.insetGrouped(
+          header: Text('Адрес самовывоза'),
+          children: [
+            CupertinoListTile(
+              leading: Icon(
+                CupertinoIcons.building_2_fill,
+                color: CupertinoColors.activeOrange,
+              ),
+              title: Text(widget.business["address"]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _calculatePromotionPrice(Map item) {
+    final amount = item["amount"].toDouble();
+    final price = item["price"];
+    final promotion = item["promotion"];
+
+    if (promotion != null) {
+      final baseAmount = double.parse(promotion["base_amount"]);
+      final addAmount = double.parse(promotion["add_amount"]);
+      final setSize = baseAmount + addAmount;
+
+      if (amount >= setSize) {
+        final sets = (amount / setSize).floor();
+        final remainder = amount % setSize;
+
+        // Цена с учетом акции
+        final promotionPrice =
+            (sets * baseAmount * price) + (remainder * price);
+        return formatPrice(promotionPrice.toInt());
+      }
+    }
+
+    return formatPrice((price * amount).toInt());
   }
 }

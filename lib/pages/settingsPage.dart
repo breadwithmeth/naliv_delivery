@@ -1,11 +1,11 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/loginPage.dart';
 import '../globals.dart' as globals;
-import 'package:flutter/cupertino.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -20,312 +20,152 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   void dispose() {
-    if (_timer != null) {
-      _timer!.cancel();
-    }
+    _timer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFF121212),
-      appBar: AppBar(
-        backgroundColor: Color(0xFF121212),
-        surfaceTintColor: Colors.transparent,
-        title: Text(
-          "Настройки",
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text('Настройки'),
+        trailing: CupertinoButton(
+          padding: EdgeInsets.zero,
+          child: Icon(CupertinoIcons.xmark),
+          onPressed: () => Navigator.pop(context),
         ),
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: const Icon(Icons.close),
-          )
-        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 15),
-        child: ListView(
-          children: [
-            SizedBox(
-              height: 50 * globals.scaleParam,
-            ),
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.all(Radius.circular(15)),
-                color: Color(0xFF121212),
-              ),
-              child: TextButton(
-                onPressed: () {
-                  if (_timer != null) {
-                    _timer!.cancel();
-                  }
-                  seconds = 10;
-                  showDialog(
-                    context: context,
-                    builder: (context) {
-                      return StatefulBuilder(
-                        builder: (context, setStateAlert) {
-                          if (_timer != null) {
-                            _timer!.cancel();
-                          }
-                          _timer = Timer(
-                            Duration(seconds: 1),
-                            () {
-                              if (seconds > 0) {
-                                setStateAlert(() {
-                                  seconds--;
-                                });
-                              } else {
-                                _timer!.cancel();
-                              }
-                            },
-                          );
-                          return AlertDialog(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            title: Text(
-                              "Удалить аккаунт?",
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontVariations: <FontVariation>[
-                                  FontVariation('wght', 800)
+      child: SafeArea(
+        child: CustomScrollView(
+          physics: BouncingScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    CupertinoListSection.insetGrouped(
+                      children: [
+                        CupertinoListTile(
+                          title: Text('Выйти из аккаунта'),
+                          trailing: Icon(
+                            CupertinoIcons.right_chevron,
+                            color: CupertinoColors.systemGrey3,
+                          ),
+                          onTap: () {
+                            showCupertinoDialog(
+                              context: context,
+                              builder: (context) => CupertinoAlertDialog(
+                                title: Text('Выйти из аккаунта?'),
+                                content: Text('Вы действительно хотите выйти?'),
+                                actions: [
+                                  CupertinoDialogAction(
+                                    isDefaultAction: false,
+                                    child: Text('Отмена'),
+                                    onPressed: () => Navigator.pop(context),
+                                  ),
+                                  CupertinoDialogAction(
+                                    isDestructiveAction: true,
+                                    child: Text('Выйти'),
+                                    onPressed: () {
+                                      logout().whenComplete(() {
+                                        Navigator.pushAndRemoveUntil(
+                                          context,
+                                          CupertinoPageRoute(
+                                            builder: (context) => LoginPage(),
+                                          ),
+                                          (route) => false,
+                                        );
+                                      });
+                                    },
+                                  ),
                                 ],
-                                fontSize: 42 * globals.scaleParam,
                               ),
+                            );
+                          },
+                        ),
+                        CupertinoListTile(
+                          title: Text(
+                            'Удалить аккаунт',
+                            style: TextStyle(
+                              color: CupertinoColors.destructiveRed,
                             ),
-                            content: Padding(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 20 * globals.scaleParam),
-                              child: Text(
-                                "Удаление приведёт к потере всех данных.\nЭто безвозвратное действие!",
-                                textAlign: TextAlign.start,
-                                style: TextStyle(
-                                  color: Colors.red,
-                                  fontVariations: <FontVariation>[
-                                    FontVariation('wght', 800)
-                                  ],
-                                  fontSize: 38 * globals.scaleParam,
-                                ),
-                              ),
-                            ),
-                            actions: [
-                              Row(
-                                children: [
-                                  Flexible(
-                                    fit: FlexFit.tight,
-                                    child: TextButton(
+                          ),
+                          trailing: Icon(
+                            CupertinoIcons.right_chevron,
+                            color: CupertinoColors.systemGrey3,
+                          ),
+                          onTap: () {
+                            showCupertinoDialog(
+                              context: context,
+                              builder: (context) => StatefulBuilder(
+                                builder: (context, setStateAlert) {
+                                  _timer?.cancel();
+                                  _timer = Timer(
+                                    Duration(seconds: 1),
+                                    () {
+                                      if (seconds > 0) {
+                                        setStateAlert(() => seconds--);
+                                      } else {
+                                        _timer?.cancel();
+                                      }
+                                    },
+                                  );
+
+                                  return CupertinoAlertDialog(
+                                    title: Text('Удалить аккаунт?'),
+                                    content: Column(
+                                      children: [
+                                        Text(
+                                          'Удаление приведёт к потере всех данных.\nЭто действие нельзя отменить!',
+                                          style: TextStyle(
+                                              color: CupertinoColors
+                                                  .destructiveRed),
+                                        ),
+                                      ],
+                                    ),
+                                    actions: [
+                                      CupertinoDialogAction(
+                                        isDefaultAction: true,
+                                        child: Text('Отмена'),
+                                        onPressed: () => Navigator.pop(context),
+                                      ),
+                                      CupertinoDialogAction(
+                                        isDestructiveAction: true,
                                         onPressed: seconds > 0
                                             ? null
                                             : () {
                                                 logout();
-                                                Timer(
-                                                    const Duration(seconds: 5),
-                                                    () {
-                                                  Navigator.pushReplacement(
-                                                      context,
-                                                      CupertinoPageRoute(
-                                                    builder: (context) {
-                                                      return const Main();
-                                                    },
-                                                  ));
+                                                deleteAccount().then((_) {
+                                                  Navigator.pushAndRemoveUntil(
+                                                    context,
+                                                    CupertinoPageRoute(
+                                                      builder: (context) =>
+                                                          Main(),
+                                                    ),
+                                                    (route) => false,
+                                                  );
                                                 });
-                                                deleteAccount().then((value) {
-                                                  Navigator.pushReplacement(
-                                                      context,
-                                                      CupertinoPageRoute(
-                                                          builder: ((context) {
-                                                    return const Main();
-                                                  })));
-                                                });
-                                                Navigator.pushReplacement(
-                                                    context, CupertinoPageRoute(
-                                                  builder: (context) {
-                                                    return const Main();
-                                                  },
-                                                ));
                                               },
                                         child: Text(
                                           seconds > 0
-                                              ? "Да (${seconds.toString()})"
-                                              : "Да",
-                                          style: TextStyle(
-                                            color: seconds > 0
-                                                ? Colors.grey
-                                                : Colors.red,
-                                            fontVariations: <FontVariation>[
-                                              FontVariation('wght', 800)
-                                            ],
-                                            fontSize: 48 * globals.scaleParam,
-                                          ),
-                                        )),
-                                  ),
-                                  Flexible(
-                                    fit: FlexFit.tight,
-                                    child: TextButton(
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                      },
-                                      child: Text(
-                                        "Нет",
-                                        style: TextStyle(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurface,
-                                          fontVariations: <FontVariation>[
-                                            FontVariation('wght', 800)
-                                          ],
-                                          fontSize: 48 * globals.scaleParam,
+                                              ? 'Удалить (${seconds}с)'
+                                              : 'Удалить',
                                         ),
                                       ),
-                                    ),
-                                  ),
-                                ],
+                                    ],
+                                  );
+                                },
                               ),
-                            ],
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Удалить аккаунт",
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontVariations: <FontVariation>[
-                          FontVariation('wght', 800)
-                        ],
-                        fontSize: 42 * globals.scaleParam,
-                      ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
-            SizedBox(
-              height: 25 * globals.scaleParam,
-            ),
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.all(Radius.circular(15)),
-                color: Color(0xFF121212),
-              ),
-              child: TextButton(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) {
-                      return AlertDialog.adaptive(
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(10)),
-                        ),
-                        title: Text(
-                          "Вы точно хотите выйти из аккаунта?",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                            fontVariations: <FontVariation>[
-                              FontVariation('wght', 800)
-                            ],
-                            fontSize: 42 * globals.scaleParam,
-                          ),
-                        ),
-                        actionsAlignment: MainAxisAlignment.center,
-                        actions: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Flexible(
-                                fit: FlexFit.tight,
-                                child: TextButton(
-                                  onPressed: () {
-                                    logout().whenComplete(
-                                      () {
-                                        Navigator.pushAndRemoveUntil(
-                                          context,
-                                          CupertinoPageRoute(
-                                            builder: (context) =>
-                                                const LoginPage(),
-                                          ),
-                                          (route) => false,
-                                        );
-                                      },
-                                    );
-                                  },
-                                  child: Text(
-                                    "Да",
-                                    style: TextStyle(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
-                                      fontVariations: <FontVariation>[
-                                        FontVariation('wght', 800)
-                                      ],
-                                      fontSize: 48 * globals.scaleParam,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Flexible(
-                                fit: FlexFit.tight,
-                                child: TextButton(
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                  },
-                                  child: Text(
-                                    "Нет",
-                                    style: TextStyle(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
-                                      fontVariations: <FontVariation>[
-                                        FontVariation('wght', 800)
-                                      ],
-                                      fontSize: 48 * globals.scaleParam,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                  // setState(() {});
-                  // print(123);
-                  // logout();
-                  // Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(
-                  //   builder: (context) {
-                  //     return const LoginPage();
-                  //   },
-                  // ));
-                },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Выйти",
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontVariations: <FontVariation>[
-                          FontVariation('wght', 800)
-                        ],
-                        fontSize: 42 * globals.scaleParam,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
           ],
         ),
       ),

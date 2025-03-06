@@ -2,11 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/pages/webViewAddCard.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:js' as js;
-import 'dart:html' as html;
-import 'package:webview_flutter/webview_flutter.dart';
+
 
 class AddNewCardPage extends StatefulWidget {
   const AddNewCardPage({super.key, required this.createOrder});

@@ -1,8 +1,6 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/shared/ItemCard2.dart';
-// import 'package:naliv_delivery/shared/itemCards.dart';
 
 class PopularItemsPage extends StatefulWidget {
   const PopularItemsPage({super.key, required this.business});
@@ -14,9 +12,6 @@ class PopularItemsPage extends StatefulWidget {
 
 class _PopularItemsPageState extends State<PopularItemsPage> {
   List _items = [];
-  void updateDataAmount(List newCart, int index) {
-    _items[index]["cart"] = newCart;
-  }
 
   Future<void> _getItems() async {
     await getItemsPopular(
@@ -30,46 +25,46 @@ class _PopularItemsPageState extends State<PopularItemsPage> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _getItems();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFF121212),
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            backgroundColor: Colors.black,
-            surfaceTintColor: Colors.black,
-            floating: false,
-            pinned: true,
-            centerTitle: false,
-            title: Text("Популярные товары"),
-          ),
-          SliverToBoxAdapter(
-            child: GridView.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  childAspectRatio: 8 / 12,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  crossAxisCount: 2),
-              primary: false,
-              shrinkWrap: true,
-              itemCount: _items.length,
-              itemBuilder: (context, index2) {
-                final Map<String, dynamic> item = _items[index2];
-
-                return ItemCard2(
-                  item: item,
-                  business: widget.business,
-                );
-              },
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text('Популярные товары'),
+      ),
+      child: SafeArea(
+        child: CustomScrollView(
+          physics: BouncingScrollPhysics(),
+          slivers: [
+            SliverPadding(
+              padding: EdgeInsets.all(16),
+              sliver: SliverGrid(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.75,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => ItemCard2(
+                    item: _items[index],
+                    business: widget.business,
+                  ),
+                  childCount: _items.length,
+                ),
+              ),
             ),
-          )
-        ],
+            // Отступ для безопасной зоны внизу
+            SliverPadding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).padding.bottom,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
