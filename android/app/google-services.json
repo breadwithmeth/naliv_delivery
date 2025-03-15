@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "491619971507",
+    "project_id": "naliv-web",
+    "storage_bucket": "naliv-web.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:491619971507:android:ead0a8a0a86dc317261bc6",
+        "android_client_info": {
+          "package_name": "com.naliv.delivery"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB2v2JMjQ0kBEIeQnpWmtaiTodrIa4WYKM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

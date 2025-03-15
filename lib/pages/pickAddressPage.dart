@@ -170,7 +170,7 @@ class _PickAddressPageState extends State<PickAddressPage> {
                   borderRadius: BorderRadius.all(Radius.circular(15)))),
           onPressed: () {
             if (_location == null) {
-              print("LOCATION WAS NULL, SO GETGEOLOCATION IS STARTED");
+              //print("LOCATION WAS NULL, SO GETGEOLOCATION IS STARTED");
               _getGeolocation().whenComplete(() {
                 _getCities().then((value) {
                   _getAddresses().whenComplete(() {

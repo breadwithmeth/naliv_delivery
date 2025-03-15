@@ -29,7 +29,7 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
   List addresses = [];
   Future<List> _getBusinesses() async {
     List businesses = await getBusinesses();
-    print(businesses);
+    //print(businesses);
     if (businesses == null) {
       return [];
     } else {
@@ -42,7 +42,7 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
     // TODO: implement initState
     super.initState();
     determinePosition(context).then((v) {
-      print(v);
+      //print(v);
     });
     if (mounted) {
       setState(() {
@@ -172,7 +172,7 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                                     business: widget.business!);
                               }));
                             } else {
-                              // print(v);
+                              // //print(v);
                               // v.sort((a, b) => a['distance']
                               //     .compareTo(b['distance']));
                               // Map closestBusijess = v.where(
@@ -186,10 +186,10 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                                 if (double.parse(item['distance']) <
                                     double.parse(min['distance'])) min = item;
                               });
-                              print(min['distance']);
-                              print(v);
+                              //print(min['distance']);
+                              //print(v);
                               Map closestBusijess = min;
-                              print(closestBusijess);
+                              //print(closestBusijess);
                               getUser().then((user) {
                                 Navigator.pushAndRemoveUntil(
                                   context,

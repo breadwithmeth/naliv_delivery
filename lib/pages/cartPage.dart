@@ -33,7 +33,7 @@ class _CartPageState extends State<CartPage> {
         .updateAmount(
             int.parse(widget.business["business_id"]), item_id, newAmount)
         .then((v) {
-      print(v);
+      //print(v);
       setState(() {
         items[index] = v;
       });
@@ -60,11 +60,11 @@ class _CartPageState extends State<CartPage> {
   }
 
   getCartItems() async {
-    print("checl");
+    //print("checl");
     await dbm
         .getAllItemsInCart(int.parse(widget.business["business_id"]))
         .then((v) {
-      print(v);
+      //print(v);
       List _items = [];
       v.forEach((e) {
         _items.add(Map.from(e));

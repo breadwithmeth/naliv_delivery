@@ -20,7 +20,7 @@ class _OpenMainPageState extends State<OpenMainPage> {
   Map<String, dynamic> user = {};
   Future<List> _getBusinesses() async {
     List businesses = await getBusinesses();
-    print(businesses);
+    //print(businesses);
     if (businesses == null) {
       return [];
     } else {
@@ -30,7 +30,7 @@ class _OpenMainPageState extends State<OpenMainPage> {
 
   Future<bool> _getAddresses() async {
     List addresses = await getAddresses();
-    print(addresses);
+    //print(addresses);
     if (addresses.isEmpty) {
       setState(() {
         _currentAddress = {};
@@ -66,10 +66,10 @@ class _OpenMainPageState extends State<OpenMainPage> {
                     if (double.parse(item['distance']) <
                         double.parse(min['distance'])) min = item;
                   });
-                  print(min['distance']);
-                  print(v);
+                  //print(min['distance']);
+                  //print(v);
                   Map closestBusijess = min;
-                  print(closestBusijess);
+                  //print(closestBusijess);
                   getUser().then((user) {
                     Navigator.pushAndRemoveUntil(
                       context,

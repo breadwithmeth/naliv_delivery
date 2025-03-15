@@ -3,7 +3,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'dart:convert';
 
+// Типизированная модель корзины
+typedef CartModel = Map<String, dynamic>;
+typedef CartItemModel = Map<String, dynamic>;
+typedef CartOptionModel = Map<String, dynamic>;
+
 class DatabaseManager {
+  static const String _cartsKey = 'carts';
+  static const String _cartItemsKey = 'cart_items';
+  static const String _cartItemOptionsKey = 'cart_items_options';
+
+  // Статусы корзины
+  static const int cartStatusActive = 0;
+  static const int cartStatusCompleted = 1;
+
   static final DatabaseManager _instance = DatabaseManager._internal();
 
   factory DatabaseManager() => _instance;
@@ -18,13 +31,22 @@ class DatabaseManager {
   Future<SharedPreferences> get _prefs async =>
       await SharedPreferences.getInstance();
 
-  Future<int> getCartId(int businessId) async {
+  Future<List<dynamic>> _getStorageList(String key) async {
     final prefs = await _prefs;
-    final carts = prefs.getString('carts') ?? '[]';
-    final List<dynamic> cartList = jsonDecode(carts);
+    return jsonDecode(prefs.getString(key) ?? '[]');
+  }
 
+  Future<void> _saveStorageList(String key, List<dynamic> data) async {
+    final prefs = await _prefs;
+    await prefs.setString(key, jsonEncode(data));
+  }
+
+  Future<int> getCartId(int businessId) async {
+    final List<dynamic> cartList = await _getStorageList(_cartsKey);
     final cart = cartList.firstWhere(
-      (cart) => cart['status'] == 0 && cart['business_id'] == businessId,
+      (cart) =>
+          cart['status'] == cartStatusActive &&
+          cart['business_id'] == businessId,
       orElse: () => null,
     );
 
@@ -32,14 +54,13 @@ class DatabaseManager {
       final newCart = {
         "id": cartList.length + 1,
         "business_id": businessId,
-        "status": 0,
+        "status": cartStatusActive,
       };
       cartList.add(newCart);
-      prefs.setString('carts', jsonEncode(cartList));
-      return newCart['id']!;
-    } else {
-      return cart['id'];
+      await _saveStorageList(_cartsKey, cartList);
+      return newCart['id'] as int;
     }
+    return cart['id'];
   }
 
   Future<Map<String, dynamic>?> addToCart(
@@ -53,63 +74,93 @@ class DatabaseManager {
     String? img, {
     List<Map>? options,
   }) async {
-    final prefs = await _prefs;
     final cartId = await getCartId(businessId);
+    final List<dynamic> cartItemList = await _getStorageList(_cartItemsKey);
 
-    final cartItems = prefs.getString('cart_items') ?? '[]';
-    final List<dynamic> cartItemList = jsonDecode(cartItems);
-
-    final cartItem = cartItemList.firstWhere(
-      (item) => item['item_id'] == itemId && item['cart_id'] == cartId,
-      orElse: () => null,
+    int cartItemId = await _getOrCreateCartItem(
+      cartItemList,
+      cartId,
+      itemId,
+      amount,
+      inStock,
+      price,
+      name,
+      quantity,
+      img,
+      options,
     );
 
-    int? cartItemId;
-
-    if (cartItem == null) {
-      cartItemId = cartItemList.length + 1;
-      final newItem = {
-        "id": cartItemId,
-        "item_id": itemId,
-        "amount": amount,
-        "cart_id": cartId,
-        "in_stock": inStock,
-        "price": price,
-        "name": name,
-        "img": img ?? "",
-        "quantity": quantity,
-        "parent_amount": options != null && options.isNotEmpty
-            ? options.first["parent_item_amount"]
-            : null,
-      };
-      cartItemList.add(newItem);
-    } else {
-      cartItemId = cartItem['id'];
-      cartItem['amount'] = amount;
-    }
-
-    prefs.setString('cart_items', jsonEncode(cartItemList));
+    await _saveStorageList(_cartItemsKey, cartItemList);
 
     if (options != null && options.isNotEmpty) {
-      final cartItemOptions = prefs.getString('cart_items_options') ?? '[]';
-      final List<dynamic> cartItemOptionList = jsonDecode(cartItemOptions);
-
-      for (var option in options) {
-        cartItemOptionList.add({
-          "cart_item_id": cartItemId,
-          "option_item_relation_id": option["relation_id"],
-          "cart_id": cartId,
-          "parent_amount": option["parent_item_amount"],
-          "option_name": option["name"],
-          "price": option["price"],
-        });
-      }
-
-      prefs.setString('cart_items_options', jsonEncode(cartItemOptionList));
+      await _saveCartItemOptions(cartId, cartItemId, options);
     }
 
     _cartStreamController.add({"item_id": itemId});
     return cartItemList.firstWhere((item) => item['id'] == cartItemId);
+  }
+
+  Future<int> _getOrCreateCartItem(
+    List<dynamic> cartItemList,
+    int cartId,
+    int itemId,
+    double amount,
+    double inStock,
+    int price,
+    String name,
+    double quantity,
+    String? img,
+    List<Map>? options,
+  ) async {
+    final existingItem = cartItemList.firstWhere(
+      (item) => item['item_id'] == itemId && item['cart_id'] == cartId,
+      orElse: () => null,
+    );
+
+    if (existingItem != null) {
+      existingItem['amount'] = amount;
+      return existingItem['id'];
+    }
+
+    final newItemId = cartItemList.length + 1;
+    cartItemList.add({
+      "id": newItemId,
+      "item_id": itemId,
+      "amount": amount,
+      "cart_id": cartId,
+      "in_stock": inStock,
+      "price": price,
+      "name": name,
+      "img": img ?? "",
+      "quantity": quantity,
+      "parent_amount": options?.isNotEmpty == true
+          ? options!.first["parent_item_amount"]
+          : null,
+    });
+
+    return newItemId;
+  }
+
+  Future<void> _saveCartItemOptions(
+    int cartId,
+    int cartItemId,
+    List<Map> options,
+  ) async {
+    final List<dynamic> cartItemOptionList =
+        await _getStorageList(_cartItemOptionsKey);
+
+    for (var option in options) {
+      cartItemOptionList.add({
+        "cart_item_id": cartItemId,
+        "option_item_relation_id": option["relation_id"],
+        "cart_id": cartId,
+        "parent_amount": option["parent_item_amount"],
+        "option_name": option["name"],
+        "price": option["price"],
+      });
+    }
+
+    await _saveStorageList(_cartItemOptionsKey, cartItemOptionList);
   }
 
   Future<Map<String, dynamic>?> getCartItemByItemId(
@@ -239,6 +290,43 @@ class DatabaseManager {
       cart['status'] = 1;
       prefs.setString('carts', jsonEncode(cartList));
       _cartStreamController.add(null);
+    }
+  }
+
+  Future<void> clearCart(int businessId) async {
+    final cartId = await getCartId(businessId);
+
+    // Удаляем элементы корзины и их опции
+    await Future.wait([
+      _removeCartItems(cartId),
+      _removeCartItemOptions(cartId),
+      _updateCartStatus(cartId),
+    ]);
+
+    _cartStreamController.add(null);
+  }
+
+  Future<void> _removeCartItems(int cartId) async {
+    final List<dynamic> items = await _getStorageList(_cartItemsKey);
+    items.removeWhere((item) => item['cart_id'] == cartId);
+    await _saveStorageList(_cartItemsKey, items);
+  }
+
+  Future<void> _removeCartItemOptions(int cartId) async {
+    final List<dynamic> options = await _getStorageList(_cartItemOptionsKey);
+    options.removeWhere((option) => option['cart_id'] == cartId);
+    await _saveStorageList(_cartItemOptionsKey, options);
+  }
+
+  Future<void> _updateCartStatus(int cartId) async {
+    final List<dynamic> carts = await _getStorageList(_cartsKey);
+    final cart = carts.firstWhere(
+      (cart) => cart['id'] == cartId,
+      orElse: () => null,
+    );
+    if (cart != null) {
+      cart['status'] = cartStatusCompleted;
+      await _saveStorageList(_cartsKey, carts);
     }
   }
 

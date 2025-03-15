@@ -25,10 +25,10 @@ class _AddressesPageState extends State<AddressesPage>
   //     builder: (context) {
   //       return GestureDetector(
   //         onTap: () {
-  //           print(object)
+  //           //print(object)
   //         },
   //         onVerticalDragUpdate: (details) {
-  //           print(details);
+  //           //print(details);
   //         },
   //         child: Container(
   //           height: 100,
@@ -441,7 +441,7 @@ class _AddressesPageState extends State<AddressesPage>
                                           .toString()
                                           .split(' ')[0]);
 
-                                      print(value);
+                                      //print(value);
                                       setState(() {
                                         _selectedAddress = LatLng(lat, lon);
                                         _isAddressPicked = true;

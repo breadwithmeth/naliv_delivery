@@ -17,7 +17,7 @@ class _ActiveOrdersPageState extends State<ActiveOrdersPage> {
   Future<void> getOrders() async {
     getActiveOrders().then(
       (value) {
-        print(value);
+        //print(value);
         if (value != null) {
           setState(() {
             activeOrders = value;

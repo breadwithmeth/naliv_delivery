@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/orderDetailsSheet.dart';
 import 'package:naliv_delivery/pages/orderInfoPage.dart';
 import '../globals.dart' as globals;
 import 'package:naliv_delivery/misc/api.dart';
@@ -16,7 +17,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
   List _orders = [];
   Future<List<dynamic>> _getOrders() async {
     List<dynamic> orders = await getOrders();
-    print(orders);
+    //print(orders);
     setState(() {
       _orders = orders.reversed.toList();
     });
@@ -31,37 +32,43 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
     return format.format(parsedData);
   }
 
-  String getOrderStatusFormat(String string) {
-    if (string == "66") {
-      return "Заказ ожидает оплаты";
-    } else if (string == "0") {
-      return "Заказ отправлен в магазин";
-    } else if (string == "1") {
-      return "Заказ ожидает сборки";
-    } else if (string == "2") {
-      return "Заказ собран";
-    } else if (string == "3") {
-      return "Заказ забрал курьер";
-    } else if (string == "4") {
-      return "Заказ доставлен";
-    } else {
-      return "Неизвестный статус";
-    }
-  }
-
-  Color getOrderColorStatusFormat(String string) {
-    if (string == "66") {
-      return Colors.red;
-    } else if (string == "0") {
-      return Colors.deepOrange;
-    } else if (string == "1") {
-      return Colors.deepOrange;
-    } else if (string == "2") {
-      return Colors.green;
-    } else if (string == "3") {
-      return Colors.blue;
-    } else {
-      return Colors.white;
+  Map<String, dynamic> _getStatusInfo(String status) {
+    switch (status) {
+      case "66":
+        return {
+          'text': "Ожидает оплаты",
+          'color': CupertinoColors.systemRed,
+        };
+      case "0":
+        return {
+          'text': "Отправлен в магазин",
+          'color': CupertinoColors.activeOrange,
+        };
+      case "1":
+        return {
+          'text': "Ожидает сборки",
+          'color': CupertinoColors.activeOrange,
+        };
+      case "2":
+        return {
+          'text': "Собран",
+          'color': CupertinoColors.systemGreen,
+        };
+      case "3":
+        return {
+          'text': "У курьера",
+          'color': CupertinoColors.activeBlue,
+        };
+      case "4":
+        return {
+          'text': "Доставлен",
+          'color': CupertinoColors.systemGreen,
+        };
+      default:
+        return {
+          'text': "Неизвестный статус",
+          'color': CupertinoColors.systemGrey,
+        };
     }
   }
 
@@ -74,162 +81,153 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
-        floatingActionButton: FloatingActionButton(
-            onPressed: () {},
-            child: IconButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                icon: Icon(
-                  Icons.close,
-                  color: Colors.white,
-                ))),
-        body: SafeArea(
-            child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: kToolbarHeight * 1,
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text('История заказов'),
+        trailing: CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: () => Navigator.pop(context),
+          child: Icon(CupertinoIcons.xmark_circle_fill),
+        ),
+      ),
+      child: ListView.builder(
+        padding: EdgeInsets.only(top: 90),
+        itemCount: _orders.length,
+        itemBuilder: (context, index) {
+          final order = _orders[index];
+          final statusInfo = _getStatusInfo(order["order_status"]);
+
+          return GestureDetector(
+            onTap: () {
+              showCupertinoModalPopup(
+                context: context,
+                builder: (context) => Container(
+                  height: MediaQuery.of(context).size.height * 0.7,
+                  decoration: BoxDecoration(
+                    color:
+                        CupertinoColors.systemBackground.resolveFrom(context),
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(20)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: CupertinoColors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: Offset(0, -5),
+                      ),
+                    ],
+                  ),
+                  child: OrderDetailsSheet(order: order),
+                ),
+              );
+            },
+            child: Container(
+              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: CupertinoColors.secondarySystemBackground
+                    .resolveFrom(context),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: CupertinoColors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                    left: BorderSide(
+                      color: statusInfo['color'],
+                      width: 4,
+                    ),
+                  ),
+                ),
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "#${order['order_uuid']}",
+                          style: TextStyle(
+                            color: CupertinoColors.systemGrey,
+                            fontSize: 13,
+                          ),
+                        ),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusInfo['color'].withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            statusInfo['text'],
+                            style: TextStyle(
+                              color: statusInfo['color'],
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      order['b_name'].toString(),
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      order['b_address'].toString(),
+                      style: TextStyle(
+                        color: CupertinoColors.systemGrey,
+                      ),
+                    ),
+                    if (order["order_status"] == "66") ...[
+                      SizedBox(height: 12),
+                      CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: () async {
+                          final paymentData =
+                              await getPaymentPageForUnpaidOrder(
+                            order["order_id"],
+                          );
+                          // Handle payment...
+                        },
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: CupertinoColors.systemRed.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'Оплатить',
+                            style: TextStyle(
+                              color: CupertinoColors.systemRed,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
-            SliverList.builder(
-              itemCount: _orders.length,
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    showBottomSheet(
-                      constraints: BoxConstraints(
-                          minHeight: double.infinity,
-                          maxHeight: double.infinity),
-                      context: context,
-                      builder: (context) {
-                        return OrderInfoPage(
-                          orderId: _orders[index]["order_id"].toString(),
-                          // clientDeliveryInfo: {
-                          //   "a_name": _orders[index]["a_name"],
-                          //   "a_address": _orders[index]["a_address"]
-                          // },
-                        );
-                      },
-                    );
-                  },
-                  child: Card(
-                      clipBehavior: Clip.antiAlias,
-                      color: Color(0xFF121212),
-                      child: Column(
-                        children: [
-                          Container(
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  left: BorderSide(
-                                    color: getOrderColorStatusFormat(
-                                        _orders[index]["order_status"]),
-                                    width: 10,
-                                  ),
-                                ),
-                              ),
-                              padding: EdgeInsets.all(10),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Flexible(
-                                    flex: 2,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Text(
-                                              "#${_orders[index]['order_uuid']}",
-                                              style: TextStyle(
-                                                  fontSize: 10,
-                                                  color: Colors.grey),
-                                            ),
-                                          ],
-                                        ),
-                                        Row(
-                                          children: [
-                                            Text(
-                                              _orders[index]['b_name']
-                                                  .toString(),
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 20,
-                                                  color: Colors.white),
-                                            ),
-                                          ],
-                                        ),
-                                        Row(
-                                          children: [
-                                            Text(
-                                              _orders[index]['b_address']
-                                                  .toString(),
-                                              style: TextStyle(
-                                                  fontSize: 16,
-                                                  color: Colors.white),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Flexible(
-                                      child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(getOrderStatusFormat(
-                                          _orders[index]["order_status"])),
-                                      _orders[index]["order_status"] == "66"
-                                          ? TextButton(
-                                              onPressed: () {
-                                                getPaymentPageForUnpaidOrder(
-                                                        _orders[index]
-                                                            ["order_id"])
-                                                    .then((v) {
-                                                  // Navigator.push(
-                                                  //   context,
-                                                  //   CupertinoPageRoute(
-                                                  //     builder: (context) =>
-                                                  //         WebViewCardPayPage(
-                                                  //       htmlString: v["data"],
-                                                  //     ),
-                                                  //   ),
-                                                  // );
-                                                });
-                                              },
-                                              child: Container(
-                                                padding: EdgeInsets.all(5),
-                                                decoration: BoxDecoration(
-                                                    // color: Colors.white,
-                                                    borderRadius:
-                                                        BorderRadius.all(
-                                                            Radius.circular(
-                                                                5))),
-                                                child: Text(
-                                                  "Оплатить",
-                                                  style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: Colors.redAccent),
-                                                ),
-                                              ))
-                                          : Container(),
-                                    ],
-                                  ))
-                                ],
-                              )),
-                        ],
-                      )),
-                );
-              },
-            ),
-          ],
-        )));
+          );
+        },
+      ),
+    );
   }
 }

@@ -85,13 +85,13 @@ class _CategoryPage2State extends State<CategoryPage2>
   // void didChangeDependencies() {
   //   super.didChangeDependencies();
   //   routeObserver.subscribe(this, ModalRoute.of(context) as PageRoute);
-  //   print("dadasdasasd");
+  //   //print("dadasdasasd");
   // }
 
   // @override
   // void didPopNext() {
   //   // Covering route was popped off the navigator.
-  //   print("popped");
+  //   //print("popped");
   //   WidgetsBinding.instance.addPostFrameCallback((_) {
   //     Navigator.pushReplacement(context, CupertinoPageRoute(builder: (context) {
   //       return PreLoadCategoryPage(
@@ -128,7 +128,7 @@ class _CategoryPage2State extends State<CategoryPage2>
   _getPropertiesForCat() {
     getPropertiesForCategory(widget.categoryId!, widget.business["business_id"])
         .then((value) {
-      print(value);
+      //print(value);
       setState(() {
         values = value!["values"];
         properties = value!["properties"];

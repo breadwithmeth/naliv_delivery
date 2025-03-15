@@ -34,7 +34,7 @@ class _CheckCourierPageState extends State<CheckCourierPage> {
 
   _getCourierLocation() async {
     Map? _data = await getCourierLocation(widget.order["order_id"]);
-    print(_data);
+    //print(_data);
     if (_data != null) {
       setState(() {
         data = _data;

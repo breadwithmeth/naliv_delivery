@@ -1,10 +1,1 @@
-{
-  "hosting": {
-    "public": "build/web",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ]
-  }
-}
+{"hosting":{"public":"build/web","ignore":["firebase.json","**/.*","**/node_modules/**"]},"flutter":{"platforms":{"android":{"default":{"projectId":"naliv-web","appId":"1:491619971507:android:ead0a8a0a86dc317261bc6","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"naliv-web","appId":"1:491619971507:ios:b473b07db03c8f27261bc6","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"macos":{"default":{"projectId":"naliv-web","appId":"1:491619971507:ios:b473b07db03c8f27261bc6","uploadDebugSymbols":false,"fileOutput":"macos/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"naliv-web","configurations":{"android":"1:491619971507:android:ead0a8a0a86dc317261bc6","ios":"1:491619971507:ios:b473b07db03c8f27261bc6","macos":"1:491619971507:ios:b473b07db03c8f27261bc6","web":"1:491619971507:web:e0c77254d82c5304261bc6"}}}}}}

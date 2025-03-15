@@ -14,7 +14,7 @@ class _PaymentMethodsState extends State<PaymentMethods> {
   List cards = [];
   _getSavedCards() {
     getSavedCards().then((v) {
-      print(v);
+      //print(v);
       setState(() {
         cards = v;
       });

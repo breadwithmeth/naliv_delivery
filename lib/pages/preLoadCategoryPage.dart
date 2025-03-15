@@ -33,7 +33,7 @@ class _PreLoadCategoryPageState extends State<PreLoadCategoryPage> {
     getItemsMain3(
             widget.business["business_id"], widget.category["c_id"].toString())
         .then((value) {
-      print(value);
+      //print(value);
       Navigator.pushReplacement(context, CupertinoPageRoute(
         builder: (context) {
           return CategoryPage2(

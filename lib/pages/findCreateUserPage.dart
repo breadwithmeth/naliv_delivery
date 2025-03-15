@@ -64,7 +64,7 @@
 //                     setState(() {
 //                       isClientReady = false;
 //                       realNumber = phone.completeNumber;
-//                       print(phone.completeNumber);
+//                       //print(phone.completeNumber);
 //                     });
 //                   },
 //                 ),
@@ -79,7 +79,7 @@
 //                       isSearchInProgress = false;
 //                     });
 //                     if (value.isEmpty) {
-//                       print("SOMETHING GONE WRONG");
+//                       //print("SOMETHING GONE WRONG");
 //                     } else {
 //                       setState(() {
 //                         client = value;

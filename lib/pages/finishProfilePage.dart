@@ -122,7 +122,7 @@ class _FinishprofilepageState extends State<Finishprofilepage>
                             onTap: _first_name.text.length > 2 &&
                                     _last_name.text.length > 2
                                 ? () {
-                                    print(1);
+                                    //print(1);
                                     _pageViewController.nextPage(
                                         duration: Durations.medium4,
                                         curve: Curves.slowMiddle);
@@ -229,7 +229,7 @@ class _FinishprofilepageState extends State<Finishprofilepage>
                         child: GestureDetector(
                             onTap: day != null && month != null && year != null
                                 ? () {
-                                    print(1);
+                                    //print(1);
                                     _pageViewController.nextPage(
                                         duration: Durations.medium4,
                                         curve: Curves.slowMiddle);
@@ -340,7 +340,7 @@ class _FinishprofilepageState extends State<Finishprofilepage>
                             onTap: !(male || female)
                                 ? null
                                 : () async {
-                                    print(1);
+                                    //print(1);
                                     if (_last_name.text.isNotEmpty &&
                                         _first_name.text.isNotEmpty &&
                                         year != null &&
@@ -353,7 +353,7 @@ class _FinishprofilepageState extends State<Finishprofilepage>
                                           _last_name.text,
                                           male ? "1" : "2");
                                       if (isfinished) {
-                                        print(123);
+                                        //print(123);
                                         Navigator.pushReplacement(context,
                                             CupertinoPageRoute(
                                           builder: (context) {

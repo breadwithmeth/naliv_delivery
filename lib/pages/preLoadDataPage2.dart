@@ -23,7 +23,7 @@ class _Preloaddatapage2State extends State<Preloaddatapage2> {
   Map<String, dynamic> user = {};
   Future<bool> _getAddresses() async {
     List addresses = await getAddresses();
-    print(addresses);
+    //print(addresses);
     if (addresses.isEmpty) {
       setState(() {
         _currentAddress = {};
@@ -55,7 +55,7 @@ class _Preloaddatapage2State extends State<Preloaddatapage2> {
 
   Future<List> _getBusinesses() async {
     List businesses = await getBusinesses();
-    print(businesses);
+    //print(businesses);
     if (businesses == null) {
       return [];
     } else {

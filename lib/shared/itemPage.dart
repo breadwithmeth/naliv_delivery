@@ -66,7 +66,7 @@ class _ItemPageState extends State<ItemPage> {
         .updateAmount(int.parse(widget.business["business_id"]),
             widget.item["item_id"], newAmount)
         .then((v) {
-      print(v);
+      //print(v);
       setState(() {
         if (v == null) {
           currentAmount = 0;
@@ -94,7 +94,7 @@ class _ItemPageState extends State<ItemPage> {
               widget.item["img"] ?? "/")
           .then((v) {
         setState(() {
-          print(v);
+          //print(v);
           if (v == null) {
             currentAmount = 0;
             parentItemAmoint = null;
@@ -117,7 +117,7 @@ class _ItemPageState extends State<ItemPage> {
           widget.item["img"] ?? "/",
           options: [option!]).then((v) {
         setState(() {
-          print(v);
+          //print(v);
           if (v == null) {
             currentAmount = 0;
             parentItemAmoint = null;
@@ -149,8 +149,8 @@ class _ItemPageState extends State<ItemPage> {
     getAdditions(widget.business["business_id"],
             widget.item["category_id"].toString())
         .then((value) {
-      print("===========");
-      print(value);
+      //print("===========");
+      //print(value);
       setState(() {
         addItems = value["items"] ?? [];
         addItems.shuffle();
@@ -182,7 +182,7 @@ class _ItemPageState extends State<ItemPage> {
     dbm.cartUpdates.listen((onData) {
       if (onData != null) {
         if (onData!["item_id"] == widget.item["item_id"]) {
-          print(onData);
+          //print(onData);
           getCurrentAmount();
         }
       }
@@ -472,7 +472,7 @@ class _ItemPageState extends State<ItemPage> {
         height: MediaQuery.of(context).size.height * 0.7,
         padding: EdgeInsets.only(top: 12),
         decoration: BoxDecoration(
-          color: CupertinoColors.systemBackground,
+          color: CupertinoColors.systemBackground.resolveFrom(context),
           borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
         ),
         child: Column(
@@ -482,7 +482,7 @@ class _ItemPageState extends State<ItemPage> {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: CupertinoColors.systemGrey4,
+                color: CupertinoColors.systemGrey4.resolveFrom(context),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -504,7 +504,7 @@ class _ItemPageState extends State<ItemPage> {
                     onPressed: () => Navigator.pop(context),
                     child: Icon(
                       CupertinoIcons.xmark_circle_fill,
-                      color: CupertinoColors.systemGrey2,
+                      color: CupertinoColors.systemGrey2.resolveFrom(context),
                     ),
                   ),
                 ],
@@ -526,7 +526,8 @@ class _ItemPageState extends State<ItemPage> {
                           options![index]["name"] ?? "Варианты",
                           style: TextStyle(
                             fontSize: 13,
-                            color: CupertinoColors.secondaryLabel,
+                            color: CupertinoColors.secondaryLabel
+                                .resolveFrom(context),
                           ),
                         ),
                       ),
@@ -559,7 +560,8 @@ class _ItemPageState extends State<ItemPage> {
                                           Text(
                                             option["name"],
                                             style: TextStyle(
-                                              color: CupertinoColors.label,
+                                              color: CupertinoColors.label
+                                                  .resolveFrom(context),
                                               fontSize: 16,
                                             ),
                                           ),
@@ -571,7 +573,8 @@ class _ItemPageState extends State<ItemPage> {
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 color: CupertinoColors
-                                                    .secondaryLabel,
+                                                    .secondaryLabel
+                                                    .resolveFrom(context),
                                               ),
                                             ),
                                           ],
@@ -584,14 +587,16 @@ class _ItemPageState extends State<ItemPage> {
                                         vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: CupertinoColors.systemGrey6,
+                                        color: CupertinoColors.systemGrey6
+                                            .resolveFrom(context),
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
                                         '${option["parent_item_amount"]} шт',
                                         style: TextStyle(
                                           fontSize: 13,
-                                          color: CupertinoColors.secondaryLabel,
+                                          color: CupertinoColors.secondaryLabel
+                                              .resolveFrom(context),
                                         ),
                                       ),
                                     ),

@@ -41,7 +41,7 @@ class _PermissionPageState extends State<PermissionPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    print('AppLifecycleState: $state');
+    //print('AppLifecycleState: $state');
     // if (state == AppLifecycleState.resumed) {
     //   Navigator.pushReplacement(context, CupertinoPageRoute(
     //     builder: (context) {

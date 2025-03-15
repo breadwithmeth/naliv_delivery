@@ -19,6 +19,7 @@ import 'package:naliv_delivery/pages/selectBusinessesPage.dart';
 import 'package:naliv_delivery/pages/settingsPage.dart';
 import 'package:naliv_delivery/pages/storiesPage.dart';
 import 'package:naliv_delivery/pages/supportPage.dart';
+import 'package:naliv_delivery/shared/activeOrders.dart';
 import 'package:naliv_delivery/shared/bonus.dart';
 import 'package:naliv_delivery/shared/bottomBar.dart';
 import 'package:naliv_delivery/shared/cartButton.dart';
@@ -66,7 +67,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
       });
     });
     // getItems2(widget.business["business_id"]).then((value) {
-    //   print(value);
+    //   //print(value);
     //   setState(() {
     //     categories = value["categories"];
     //   });
@@ -76,7 +77,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   _getGigaCats() {
     getGigaCats(widget.business["business_id"]).then((v) {
       setState(() {
-        print(v);
+        //print(v);
         gigaCats = v["categories"];
       });
     });
@@ -405,6 +406,9 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                         child: BonusWidget(),
                       ),
 
+                      // Активные заказы
+                      ActiveOrdersWidget(),
+
                       // Карточка магазина
                       _buildCurrentShopCard(),
                       // Истории
@@ -631,8 +635,8 @@ Widget _buildCategoryHeader(
     List<dynamic> categories,
     List<dynamic> gigacats,
     List subcategories) {
-  print("==================");
-  print(category);
+  //print("==================");
+  //print(category);
   return Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [

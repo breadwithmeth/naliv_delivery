@@ -42,8 +42,8 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
   void setCurrentCity() {
     if (widget.currentPosition != null) {
       widget.cities.forEach((city) {
-        print(city);
-        print(city["name"]);
+        //print(city);
+        //print(city["name"]);
 
         if (double.parse(city["x1"]) < widget.currentPosition!.latitude &&
             double.parse(city["x2"]) > widget.currentPosition!.latitude &&
@@ -52,9 +52,9 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
           setState(() {
             _currentCity = city["name"];
           });
-          print("========================================================");
+          //print("========================================================");
         } else {
-          print("+++++++++++++++++++++++++++++++++++++++++++");
+          //print("+++++++++++++++++++++++++++++++++++++++++++");
         }
       });
     }
@@ -70,7 +70,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
               primary: false,
               itemCount: widget.cities.length,
               itemBuilder: (context, index) {
-                print(index);
+                //print(index);
                 return TextButton(
                   onPressed: () {
                     setState(() {
@@ -112,7 +112,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
 
   Future<void> searchGeoData(double lon, double lat) async {
     await getGeoDataByCoord(lat, lon).then((value) {
-      // print(value);
+      // //print(value);
       List objects = value;
 
       // double lat = double.parse(
@@ -129,11 +129,11 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
   }
 
   Future<void> searchGeoDataByString(String search) async {
-    print(search);
+    //print(search);
     await getGeoData(_currentCity + " " + search).then((value) {
-      // print(value["result"]["items"]);
+      // //print(value["result"]["items"]);
       // List? _fa = value["result"]["items"];
-      print(value);
+      //print(value);
       setState(() {
         foundAddresses = [];
         foundAddresses = value;
@@ -257,7 +257,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                                     showDialog(
                                       context: context,
                                       builder: (context) {
-                                        print(foundAddresses.length);
+                                        //print(foundAddresses.length);
                                         return AlertDialog(
                                           backgroundColor: Colors.white,
                                           title: const Text("Выберите адрес"),
@@ -733,7 +733,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
                               showDialog(
                                 context: context,
                                 builder: (context) {
-                                  print(foundAddresses.length);
+                                  //print(foundAddresses.length);
                                   return AlertDialog(
                                     backgroundColor: Colors.white,
                                     title: Text("Выберите адрес"),
@@ -899,7 +899,7 @@ class _PickOnMapPageState extends State<PickOnMapPage> {
           Listener(
             behavior: HitTestBehavior.translucent,
             onPointerDown: (details) {
-              print("HELLO");
+              //print("HELLO");
               addressFocus.unfocus();
             },
             child: Container(

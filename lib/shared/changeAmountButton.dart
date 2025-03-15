@@ -69,7 +69,7 @@ class _ChangeamountbuttonState extends State<Changeamountbutton> {
         .updateAmount(int.parse(widget.business["business_id"]),
             widget.item["item_id"], newAmount)
         .then((v) {
-      print(v);
+      //print(v);
       setState(() {
         if (v == null) {
           currentAmount = 0;
@@ -95,7 +95,7 @@ class _ChangeamountbuttonState extends State<Changeamountbutton> {
     dbm.cartUpdates.listen((onData) {
       if (onData != null) {
         if (onData!["item_id"] == widget.item["item_id"]) {
-          print(onData);
+          //print(onData);
           getCurrentAmount();
         }
       }

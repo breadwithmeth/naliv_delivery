@@ -52,15 +52,15 @@
 //     //           ),
 //     //         ),
 //     //       ).then((value) {
-//     //         print("===================OFFSET===================");
+//     //         //print("===================OFFSET===================");
 
 //     //         // updateItemCard(itemsWidget
 //     //         //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
-//     //         // print("индекс");
+//     //         // //print("индекс");
 
-//     //         // print(itemsWidget
+//     //         // //print(itemsWidget
 //     //         //     .indexWhere((_gd) => _gd.key == Key(element["item_id"])));
-//     //         // print("индекс");
+//     //         // //print("индекс");
 //     //         // setState(() {
 //     //         //   // itemsWidget[itemsWidget.indexWhere(
 //     //         //   //         (_gd) => _gd.key == Key(element["item_id"]))] =
@@ -85,7 +85,7 @@
 
 //   @override
 //   void initState() {
-//     
+//
 //     super.initState();
 //     _getItems();
 //     _setAnimationController();

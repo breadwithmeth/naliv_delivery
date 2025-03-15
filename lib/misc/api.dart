@@ -77,7 +77,7 @@ Future<String?> getToken() async {
     return null;
   }
   globals.setToken(token);
-  print(token);
+  //print(token);
   return token;
 }
 
@@ -87,7 +87,7 @@ Future<bool> setToken(Map data) async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.setString('token', data['token']);
   final token = prefs.getString('token') ?? false;
-  print(token);
+  //print(token);
   return token == false ? false : true;
 }
 
@@ -95,16 +95,16 @@ Future<bool> setAgreement() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.setBool('is_agree', true);
   final token = prefs.getBool('is_agree') ?? false;
-  print(token);
+  //print(token);
   return token == false ? false : true;
 }
 
 Future<bool> getAgreement() async {
   final prefs = await SharedPreferences.getInstance();
   bool? token = prefs.getBool('is_agree');
-  print(123);
+  //print(123);
 
-  print(token);
+  //print(token);
   if (token == true) {
     return true;
   } else {
@@ -120,7 +120,7 @@ Future<bool> register(String login, String password, String name) async {
     headers: {"Content-Type": "application/json"},
   );
   jsonDecode(response.body);
-  print(response.statusCode);
+  //print(response.statusCode);
   if (response.statusCode == 201) {
     return true;
   } else {
@@ -139,7 +139,7 @@ Future<bool> login(String login, String password) async {
   if (response.statusCode == 202) {
     await SharedPreferences.getInstance();
     setToken(data);
-    print(data['token']);
+    //print(data['token']);
 
     return true;
   } else {
@@ -163,7 +163,7 @@ Future<bool> setCityAuto(double lat, double lon) async {
     headers: {"Content-Type": "application/json", "AUTH": token},
   );
   jsonDecode(response.body);
-  print(response.statusCode);
+  //print(response.statusCode);
   if (response.statusCode == 201) {
     return true;
   } else {
@@ -204,7 +204,7 @@ Future<List> getBusinesses() async {
 
   // // List<dynamic> list = json.decode(response.body);
   // List<Map> data = List.from(json.decode(utf8.decode(response.bodyBytes)));
-  // print(data);
+  // //print(data);
   Response response = await dio.post('/api/item/getBusinesses2',
       options: Options(
         headers: {"Content-Type": "application/json", "AUTH": token},
@@ -227,7 +227,7 @@ Future<bool> setCurrentStore(String businessId) async {
     headers: {"Content-Type": "application/json", "AUTH": token},
   );
   var data = jsonDecode(response.body);
-  print(response.statusCode);
+  //print(response.statusCode);
   if (data == true) {
     return true;
   } else {
@@ -250,7 +250,7 @@ Future<List> getCategories(String business_id,
 
   // // List<dynamic> list = json.decode(response.body);
   // List data = json.decode(utf8.decode(response.bodyBytes));
-  // print(data);
+  // //print(data);
 
   Response response = await dio.post('/api/category/get',
       data: {"business_id": business_id, "all": "true"},
@@ -299,11 +299,11 @@ Future<Map?> getItemsMain(int page, String business_id,
     );
   }
 
-  print(jsonBody);
-  print(queryBody);
+  //print(jsonBody);
+  //print(queryBody);
 
   // List<dynamic> list = json.decode(response.body);
-  print(utf8.decode(response.bodyBytes));
+  //print(utf8.decode(response.bodyBytes));
   if (utf8.decode(response.bodyBytes) == "") {
     return {};
   } else {
@@ -350,11 +350,11 @@ Future<Map> getItemsMain3(String business_id, [String? categoryId]) async {
   //   );
   // }
 
-  // print(jsonBody);
-  // print(queryBody);
+  // //print(jsonBody);
+  // //print(queryBody);
 
   // List<dynamic> list = json.decode(response.body);
-  // print(utf8.decode(response.bodyBytes));
+  // //print(utf8.decode(response.bodyBytes));
   Map data = response.data;
   return data;
 }
@@ -399,11 +399,11 @@ Future<Map?> getItemsMain2(int page, String business_id,
     );
   }
 
-  print(jsonBody);
-  print(queryBody);
+  //print(jsonBody);
+  //print(queryBody);
 
   // List<dynamic> list = json.decode(response.body);
-  print(utf8.decode(response.bodyBytes));
+  //print(utf8.decode(response.bodyBytes));
   if (utf8.decode(response.bodyBytes) == "") {
     return {};
   } else {
@@ -432,7 +432,7 @@ Future<List> getItems(String categoryId, int page, {Map? filters}) async {
   print(json
       .encode({'category_id': categoryId, 'filters': filters, "page": page}));
   // List<dynamic> list = json.decode(response.body);
-  print(utf8.decode(response.bodyBytes));
+  //print(utf8.decode(response.bodyBytes));
   List data = json.decode(utf8.decode(response.bodyBytes));
   return data;
 }
@@ -451,7 +451,7 @@ Future<Map> getFilters(String categoryId) async {
     body: json.encode({'category_id': categoryId}),
   );
   // List<dynamic> list = json.decode(response.body);
-  print(utf8.decode(response.bodyBytes));
+  //print(utf8.decode(response.bodyBytes));
   Map data = json.decode(utf8.decode(response.bodyBytes));
   return data;
 }
@@ -473,7 +473,7 @@ Future<Map<String, dynamic>> getItem(dynamic itemId, String business_id,
   );
   // List<dynamic> list = json.decode(response.body);
   Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
-  print(data);
+  //print(data);
   if (data.isEmpty) {
     return {};
   } else {
@@ -486,7 +486,7 @@ Future<List?> changeCartItem(dynamic itemId, double amount, String businessId,
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
   String? token = prefs.getString('token');
-  print("ADD TO CARD");
+  //print("ADD TO CARD");
   if (token == null) {
     return null;
   }
@@ -507,7 +507,7 @@ Future<List?> changeCartItem(dynamic itemId, double amount, String businessId,
       }
     }
   }
-  print(options);
+  //print(options);
   if (options.length == 0) {
     response = await client.post(
       url,
@@ -519,7 +519,7 @@ Future<List?> changeCartItem(dynamic itemId, double amount, String businessId,
       headers: {"Content-Type": "application/json", "AUTH": token},
     );
   } else {
-    print(options);
+    //print(options);
     response = await client.post(
       url,
       body: json.encode({
@@ -568,7 +568,7 @@ Future<String?> removeFromCart(String itemId) async {
   } else {
     data = null;
   }
-  print(response.statusCode);
+  //print(response.statusCode);
   return data;
 }
 
@@ -587,7 +587,7 @@ Future<Map<String, dynamic>> getCart(String businessId) async {
   );
 
   // List<dynamic> list = json.decode(response.body);
-  print(response.bodyBytes);
+  //print(response.bodyBytes);
   Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
   print(
       "DATA FROM GETCART IN API.DART__ DATA FROM GETCART IN API.DART__ DATA FROM GETCART IN API.DART");
@@ -632,7 +632,7 @@ Future<String?> dislikeItem(String itemId) async {
   } else {
     data = null;
   }
-  print(response.statusCode);
+  //print(response.statusCode);
   return data;
 }
 
@@ -655,7 +655,7 @@ Future<String?> likeItem(String itemId) async {
   } else {
     data = null;
   }
-  print(response.statusCode);
+  //print(response.statusCode);
   return data;
 }
 
@@ -672,10 +672,10 @@ Future<List> getLiked() async {
     headers: {"Content-Type": "application/json", "AUTH": token},
     body: json.encode({}),
   );
-  print(utf8.decode(response.bodyBytes));
+  //print(utf8.decode(response.bodyBytes));
   // List<dynamic> list = json.decode(response.body);
   List data = json.decode(utf8.decode(response.bodyBytes));
-  print(data);
+  //print(data);
   return data;
 }
 
@@ -694,7 +694,7 @@ Future<Map<String, dynamic>?> getUser() async {
 
   // // List<dynamic> list = json.decode(response.body);
   // Map<String, dynamic>? data = json.decode(utf8.decode(response.bodyBytes));
-  // print(data);
+  // //print(data);
   Response response = await dio.post('/api/user/get',
       options: Options(
         headers: {"Content-Type": "application/json", "AUTH": token},
@@ -719,7 +719,7 @@ Future<List> getAddresses() async {
   //   headers: {"Content-Type": "application/json", "AUTH": token},
   //   body: json.encode({}),
   // );
-  // print(utf8.decode(response.bodyBytes));
+  // //print(utf8.decode(response.bodyBytes));
   // // List<dynamic> list = json.decode(response.body);
   // List data = json.decode(utf8.decode(response.bodyBytes));
 
@@ -826,8 +826,8 @@ Future<Map<String, dynamic>> createOrder(
   );
 
   // List<dynamic> list = json.decode(response.body);
-  print(json.encode(response.statusCode));
-  print(response.body);
+  //print(json.encode(response.statusCode));
+  //print(response.body);
   int data = response.statusCode;
   if (data == 200) {
     return {"status": true, "data": utf8.decode(response.bodyBytes)};
@@ -855,8 +855,8 @@ Future<List<dynamic>> getOrders([String orderId = ""]) async {
     body: orderId != "" ? json.encode({"order_id": orderId}) : null,
   );
 
-  print(json.encode(response.statusCode));
-  print(response.body);
+  //print(json.encode(response.statusCode));
+  //print(response.body);
   int data = response.statusCode;
   if (json.decode(response.body) is List) {
     if (data == 200) {
@@ -899,7 +899,7 @@ Future<bool> logout() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.setString('token', "000");
   final token = prefs.getString('token') ?? false;
-  print(token);
+  //print(token);
   return token == false ? false : true;
 }
 
@@ -934,7 +934,7 @@ Future<bool> getOneTimeCode(String phoneNumber) async {
     headers: {"Content-Type": "application/json"},
   );
   Map<String, dynamic>? data = json.decode(utf8.decode(response.bodyBytes));
-  print(data);
+  //print(data);
   if (data == null) {
     return false;
   } else {
@@ -961,7 +961,7 @@ Future<bool> verify(String phoneNumber, String code) async {
   // Map<String, dynamic>? data = json.decode(utf8.decode(response.bodyBytes));
   var data = jsonDecode(response.body);
 
-  print(data);
+  //print(data);
   if (data == null) {
     return false;
   } else {
@@ -990,7 +990,7 @@ Future<List> getGeoData(String search) async {
     /// here is the response if api call time out
     /// you can show snackBar here or where you handle api call
   });
-  print(response.body);
+  //print(response.body);
   list = json.decode(response.body);
 
   return list;
@@ -1068,8 +1068,8 @@ Future<Map<String, dynamic>> getCreateUser(String phoneNumber) async {
   );
 
   Map<String, dynamic> result = json.decode(response.body);
-  print(json.encode(response.statusCode));
-  print(response.body);
+  //print(json.encode(response.statusCode));
+  //print(response.body);
   return result;
 }
 
@@ -1091,8 +1091,8 @@ Future<List<dynamic>> getUserAddresses(String userID) async {
   );
 
   List<dynamic> result = json.decode(response.body);
-  print(json.encode(response.statusCode));
-  print(response.body);
+  //print(json.encode(response.statusCode));
+  //print(response.body);
   return result;
 }
 
@@ -1139,8 +1139,8 @@ Future<List<dynamic>> getCities() async {
   );
 
   List<dynamic> result = json.decode(response.body);
-  print(json.encode(response.statusCode));
-  print(response.body);
+  //print(json.encode(response.statusCode));
+  //print(response.body);
   return result;
 }
 
@@ -1158,7 +1158,7 @@ Future<bool> changeName(String name) async {
     headers: {"Content-Type": "application/json", "AUTH": token},
   );
   var data = jsonDecode(response.body);
-  print(response.statusCode);
+  //print(response.statusCode);
   if (data["result"] == "true") {
     return true;
   } else {
@@ -1180,7 +1180,7 @@ Future<String> getPaymentHTML() async {
     headers: {"Content-Type": "application/json", "AUTH": token},
   );
   // var data = json.decode(utf8.decode(response.bodyBytes));
-  print(response.statusCode);
+  //print(response.statusCode);
   return utf8.decode(response.bodyBytes);
 }
 
@@ -1202,8 +1202,8 @@ Future<Map> getBonuses() async {
   );
 
   Map<String, dynamic> result = json.decode(response.body) ?? {};
-  print(json.encode(response.statusCode));
-  print(response.body);
+  //print(json.encode(response.statusCode));
+  //print(response.body);
   return result;
 }
 
@@ -1225,8 +1225,8 @@ Future<Map> getOrderDetails(String order_id) async {
   );
 
   Map<String, dynamic> result = json.decode(response.body) ?? {};
-  print(json.encode(response.statusCode));
-  print(response.body);
+  //print(json.encode(response.statusCode));
+  //print(response.body);
   return result;
 }
 
@@ -1251,8 +1251,8 @@ Future<Map<String, dynamic>> getPaymentPageForUnpaidOrder(
   );
 
   // List<dynamic> list = json.decode(response.body);
-  print(json.encode(response.statusCode));
-  print(response.body);
+  //print(json.encode(response.statusCode));
+  //print(response.body);
   int data = response.statusCode;
   if (data == 200) {
     return {"status": true, "data": utf8.decode(response.bodyBytes)};
@@ -1280,7 +1280,7 @@ Future<bool> setIdOneSignal(String id) async {
     headers: {"Content-Type": "application/json", "AUTH": token},
   );
   var data = jsonDecode(response.body);
-  print(response.statusCode);
+  //print(response.statusCode);
   if (data["result"] == "true") {
     return true;
   } else {
@@ -1308,7 +1308,7 @@ Future<Map<String, dynamic>> getItems2(String business_id) async {
   // );
 
   // List<dynamic> list = json.decode(response.body);
-  // print(response.bodyBytes);
+  // //print(response.bodyBytes);
   Map<String, dynamic> data = json.decode(utf8.decode(response.data));
   print(
       "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
@@ -1330,7 +1330,7 @@ Future<Map<String, dynamic>> getItemsPopular(String business_id) async {
   );
 
   // List<dynamic> list = json.decode(response.body);
-  print(response.body);
+  //print(response.body);
   Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
   print(
       "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
@@ -1352,7 +1352,7 @@ Future<Map<String, dynamic>> getItemsNew(String business_id) async {
   );
 
   // List<dynamic> list = json.decode(response.body);
-  print(response.body);
+  //print(response.body);
   Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
   print(
       "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
@@ -1375,7 +1375,7 @@ Future<Map<String, dynamic>> getItemsRecs(
   );
 
   // List<dynamic> list = json.decode(response.body);
-  print(response.body);
+  //print(response.body);
   Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
   print(
       "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
@@ -1398,7 +1398,7 @@ Future<Map<String, dynamic>> getItemsSearch(
   );
 
   // List<dynamic> list = json.decode(response.body);
-  print(response.body);
+  //print(response.body);
   Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
   print(
       "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
@@ -1421,7 +1421,7 @@ Future<Map<String, dynamic>> getItemsCategory(
   );
 
   // List<dynamic> list = json.decode(response.body);
-  print(response.body);
+  //print(response.body);
   Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
   print(
       "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
@@ -1449,7 +1449,7 @@ Future<bool> finishProfile(String name, String date, String first_name,
     headers: {"Content-Type": "application/json", "AUTH": token},
   );
   var data = jsonDecode(response.body);
-  print(response.statusCode);
+  //print(response.statusCode);
   if (data["result"] == true) {
     return true;
   } else {
@@ -1472,7 +1472,7 @@ Future<Map<String, dynamic>?> getCourierLocation(String order_id) async {
   );
 
   // List<dynamic> list = json.decode(response.body);
-  print(response.bodyBytes);
+  //print(response.bodyBytes);
   Map<String, dynamic>? data = json.decode(utf8.decode(response.bodyBytes));
 
   return data;
@@ -1496,8 +1496,8 @@ Future<List<dynamic>> getSavedCards() async {
   );
 
   List<dynamic> result = json.decode(response.body) ?? [];
-  print(json.encode(response.statusCode));
-  print(response.body);
+  //print(json.encode(response.statusCode));
+  //print(response.body);
   return result;
 }
 
@@ -1519,8 +1519,8 @@ Future<List<dynamic>> getProperties(String item_id) async {
   );
 
   List<dynamic> result = json.decode(response.body) ?? [];
-  print(json.encode(response.statusCode));
-  print(response.body);
+  //print(json.encode(response.statusCode));
+  //print(response.body);
   return result;
 }
 
@@ -1540,7 +1540,7 @@ Future<Map<String, dynamic>?> getPropertiesForCategory(
   );
 
   // List<dynamic> list = json.decode(response.body);
-  print(response.bodyBytes);
+  //print(response.bodyBytes);
   Map<String, dynamic>? data = json.decode(utf8.decode(response.bodyBytes));
 
   return data;
@@ -1564,8 +1564,8 @@ Future<List<dynamic>> getItemsByPropertiesValues(List values) async {
   );
 
   List<dynamic> result = json.decode(response.body) ?? [];
-  print(json.encode(response.statusCode));
-  print(response.body);
+  //print(json.encode(response.statusCode));
+  //print(response.body);
   return result;
 }
 
@@ -1586,7 +1586,7 @@ Future<Map<String, dynamic>> getItemsCart(String business_id) async {
   );
 
   // List<dynamic> list = json.decode(response.body);
-  print(response.body);
+  //print(response.body);
   Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
   print(
       "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
@@ -1601,7 +1601,7 @@ Future<Map> changeCartItemByCartItemId(
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
   String? token = prefs.getString('token');
-  print("ADD TO CARD");
+  //print("ADD TO CARD");
   if (token == null) {
     return {};
   }
@@ -1628,7 +1628,7 @@ Future<Map> getStories(
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
   String? token = prefs.getString('token');
-  print("ADD TO CARD");
+  //print("ADD TO CARD");
   if (token == null) {
     return {};
   }
@@ -1664,7 +1664,7 @@ Future<Map<String, dynamic>> getItemsPromotion(
   );
 
   // List<dynamic> list = json.decode(response.body);
-  print(response.body);
+  //print(response.body);
   Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
   print(
       "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
@@ -1688,7 +1688,7 @@ Future<Map<String, dynamic>> getItemsCollection(
   );
 
   // List<dynamic> list = json.decode(response.body);
-  print(response.body);
+  //print(response.body);
   Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
   print(
       "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
@@ -1716,7 +1716,7 @@ Future<Map<String, dynamic>> getAdditions(
   );
 
   // List<dynamic> list = json.decode(response.body);
-  print(response.body);
+  //print(response.body);
   Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
   print(
       "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
@@ -1738,7 +1738,7 @@ Future<Map<String, dynamic>> addNewCard() async {
   );
 
   // List<dynamic> list = json.decode(response.body);
-  print(response.body);
+  //print(response.body);
   Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
 
   return data;
@@ -1774,8 +1774,8 @@ Future<Map<String, dynamic>> createOrder2(String businessId, String? addressId,
   );
 
   // List<dynamic> list = json.decode(response.body);
-  print(json.encode(response.statusCode));
-  print(response.body);
+  //print(json.encode(response.statusCode));
+  //print(response.body);
   int data = response.statusCode;
   Map<String, dynamic> d = json.decode(utf8.decode(response.bodyBytes));
   return d;
@@ -1806,10 +1806,10 @@ Future<Map<String, dynamic>> pay(String order_id, String card_id) async {
   );
 
   // List<dynamic> list = json.decode(response.body);
-  print(json.encode(response.statusCode));
+  //print(json.encode(response.statusCode));
   int data = response.statusCode;
   Map<String, dynamic> d = json.decode(utf8.decode(response.bodyBytes));
-  print(d);
+  //print(d);
   return d;
 }
 
@@ -1833,7 +1833,7 @@ Future<Map> getDeliveyPrice(String business_id) async {
   // );
 
   // List<dynamic> list = json.decode(response.body);
-  print(response.data);
+  //print(response.data);
   Map data = response.data;
 
   return data;
@@ -1869,13 +1869,16 @@ Future<Map<String, dynamic>> createOrder3(String businessId, String? delivery,
   if (token == null) {
     return {"status": null};
   }
+  print(items);
   Map body = {
     'business_id': businessId,
-    'card_id': card_id,
     'items': items,
     'bonus': useBonus,
     'extra': extra
   };
+
+  print(body.toString());
+  print("123123123123123123");
 
   // if (addressId != null) {
   //   body.addAll({"address_id": addressId});
@@ -1884,7 +1887,7 @@ Future<Map<String, dynamic>> createOrder3(String businessId, String? delivery,
     body.addAll({"delivery": delivery});
   }
 
-  var url = Uri.https(URL_API, 'api/item/createOrder3');
+  var url = Uri.https(URL_API, 'api/item/createOrder4');
   var response = await client.post(
     url,
     headers: {"Content-Type": "application/json", "AUTH": token},
@@ -1892,7 +1895,8 @@ Future<Map<String, dynamic>> createOrder3(String businessId, String? delivery,
   );
 
   // List<dynamic> list = json.decode(response.body);
-  print(json.encode(response.statusCode));
+  //print(json.encode(response.statusCode));
+  //print(response.body);
   print(response.body);
   int data = response.statusCode;
   Map<String, dynamic> d = json.decode(utf8.decode(response.bodyBytes));
@@ -1920,9 +1924,9 @@ Future<Map<String, dynamic>> getItemsRescByItems(
   // );
 
   // List<dynamic> list = json.decode(response.body);
-  // print(response.bodyBytes);
-  print("============================================");
-  print(response.data);
+  // //print(response.bodyBytes);
+  //print("============================================");
+  //print(response.data);
   Map<String, dynamic> data = response.data;
   print(
       "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
@@ -1970,9 +1974,9 @@ Future<Map<String, dynamic>> getGigaCats(
   // );
 
   // List<dynamic> list = json.decode(response.body);
-  // print(response.bodyBytes);
-  print("============================================");
-  print(response.data);
+  // //print(response.bodyBytes);
+  //print("============================================");
+  //print(response.data);
   Map<String, dynamic> data = response.data;
   print(
       "не ну это пиздец какой то конечно оно грузит 10 секунд за то как грузит");
@@ -2003,9 +2007,9 @@ Future<Map<String, dynamic>> getItemDetails(
   // );
 
   // List<dynamic> list = json.decode(response.body);
-  // print(response.bodyBytes);
-  print("============================================");
-  print(response.data);
+  // //print(response.bodyBytes);
+  //print("============================================");
+  //print(response.data);
   Map<String, dynamic> data = response.data;
 
   return data;
@@ -2014,7 +2018,7 @@ Future<Map<String, dynamic>> getItemDetails(
 Future<List> getCartPrice(
   List items,
 ) async {
-  print(items);
+  //print(items);
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
   String? token = prefs.getString('token');
@@ -2036,10 +2040,42 @@ Future<List> getCartPrice(
   // );
 
   // List<dynamic> list = json.decode(response.body);
-  // print(response.bodyBytes);
-  print("============================================");
-  print(response.data);
+  // //print(response.bodyBytes);
+  //print("============================================");
+  //print(response.data);
   List data = response.data;
 
   return data;
+}
+
+Future<Map<String, dynamic>> getOrderDetails2(String orderId) async {
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token');
+
+    if (token == null) {
+      return {};
+    }
+
+    Response response = await dio.post(
+      '/api/item/getOrderDetails2',
+      data: {'order_id': orderId},
+      options: Options(
+        headers: {
+          "Content-Type": "application/json",
+          "AUTH": token,
+        },
+      ),
+    );
+
+    if (response.statusCode == 200) {
+      return response.data;
+    } else {
+      throw Exception('Ошибка при получении деталей заказа');
+    }
+  } catch (e) {
+    //print('Ошибка при получении деталей заказа: $e');
+    return {};
+  }
 }
