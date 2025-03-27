@@ -1874,7 +1874,8 @@ Future<Map<String, dynamic>> createOrder3(String businessId, String? delivery,
     'business_id': businessId,
     'items': items,
     'bonus': useBonus,
-    'extra': extra
+    'extra': extra,
+    'card_id': card_id,
   };
 
   print(body.toString());
