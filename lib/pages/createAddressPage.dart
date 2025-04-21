@@ -21,8 +21,31 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
 
   Future<void> searchGeoDataByString(String search) async {
     await getGeoData(search).then((value) {
+      print(value);
+      List formattedAddresses = [];
+
+      for (var item in value) {
+        var geoData = item["metaDataProperty"]["GeocoderMetaData"];
+        var address = geoData["Address"];
+
+        // Получаем координаты из точки
+        var point = item["Point"]["pos"].split(" ");
+
+        formattedAddresses.add({
+          "name": address["formatted"], // Форматированный адрес
+          "full_address": geoData["text"], // Полный текст адреса
+          "components": address["Components"], // Компоненты адреса
+          "point": {
+            "lat": double.parse(point[1]), // Широта
+            "lon": double.parse(point[0]), // Долгота
+          },
+          "precision": geoData["precision"], // Точность геокодирования
+          "kind": geoData["kind"], // Тип объекта (дом, улица и т.д.)
+        });
+      }
+
       setState(() {
-        addresses = value;
+        addresses = formattedAddresses;
       });
     });
   }
@@ -31,7 +54,10 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
-        middle: Text('Новый адрес'),
+        middle:
+            Text('Новый адрес', style: TextStyle(fontWeight: FontWeight.w600)),
+        backgroundColor: CupertinoColors.systemBackground.withOpacity(0.8),
+        border: null,
         leading: CupertinoButton(
           padding: EdgeInsets.zero,
           child: Icon(CupertinoIcons.back),
@@ -74,9 +100,9 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                           boxShadow: [
                             BoxShadow(
                               color:
-                                  CupertinoColors.systemGrey.withOpacity(0.1),
-                              blurRadius: 10,
-                              offset: Offset(0, 4),
+                                  CupertinoColors.systemGrey.withOpacity(0.15),
+                              blurRadius: 15,
+                              offset: Offset(0, 5),
                             ),
                           ],
                         ),
@@ -85,45 +111,144 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
                           child: CupertinoSearchTextField(
                             controller: _searchController,
                             onSubmitted: searchGeoDataByString,
-                            placeholder: 'Введите адрес',
+                            placeholder: 'Введите название улицы или район',
                             backgroundColor: CupertinoColors.systemBackground,
-                            prefixIcon: Icon(CupertinoIcons.search),
-                            suffixIcon:
-                                Icon(CupertinoIcons.clear_thick_circled),
+                            prefixIcon: Icon(
+                              CupertinoIcons.search,
+                              color: CupertinoColors.activeBlue,
+                            ),
+                            suffixIcon: Icon(
+                              CupertinoIcons.clear_circled_solid,
+                              color: CupertinoColors.systemGrey,
+                            ),
                             padding: EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 12),
+                                horizontal: 16, vertical: 14),
+                            style: TextStyle(fontSize: 16),
                           ),
                         ),
                       ),
                       if (addresses.isNotEmpty)
                         Expanded(
                           child: Container(
-                            margin: EdgeInsets.symmetric(horizontal: 16),
+                            margin: EdgeInsets.fromLTRB(16, 0, 16, 16),
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: CupertinoColors.systemBackground,
+                              borderRadius: BorderRadius.circular(16),
+                              color: CupertinoColors.systemBackground
+                                  .resolveFrom(context),
                               boxShadow: [
                                 BoxShadow(
                                   color: CupertinoColors.systemGrey
-                                      .withOpacity(0.1),
-                                  blurRadius: 10,
-                                  offset: Offset(0, 4),
+                                      .withOpacity(0.15),
+                                  blurRadius: 15,
+                                  offset: Offset(0, 5),
                                 ),
                               ],
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(16),
                               child: ListView.separated(
+                                padding: EdgeInsets.symmetric(vertical: 8),
                                 itemCount: addresses.length,
-                                separatorBuilder: (context, index) =>
-                                    Container(),
+                                separatorBuilder: (context, index) => Container(
+                                  height: 1,
+                                ),
                                 itemBuilder: (context, index) {
                                   return CupertinoListTile(
                                     padding: EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 12),
-                                    title: Text(addresses[index]["name"]),
-                                    trailing:
-                                        Icon(CupertinoIcons.right_chevron),
+                                      horizontal: 16,
+                                      vertical:
+                                          12, // Уменьшил отступ для компактности
+                                    ),
+                                    leadingToTitle:
+                                        16, // Увеличил отступ между иконкой и текстом
+                                    leading: Container(
+                                      padding: EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: CupertinoColors.activeBlue
+                                            .withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(
+                                        CupertinoIcons.location_solid,
+                                        color: CupertinoColors.activeBlue,
+                                        size: 20,
+                                      ),
+                                    ),
+                                    title: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        // Страна и город
+                                        Text(
+                                          [
+                                            addresses[index]["components"]
+                                                .firstWhere(
+                                                    (c) =>
+                                                        c["kind"] == "country",
+                                                    orElse: () =>
+                                                        {"name": ""})["name"],
+                                            addresses[index]["components"]
+                                                .firstWhere(
+                                                    (c) =>
+                                                        c["kind"] == "locality",
+                                                    orElse: () =>
+                                                        {"name": ""})["name"],
+                                          ]
+                                              .where((e) => e.isNotEmpty)
+                                              .join(", "),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: CupertinoColors.systemGrey,
+                                          ),
+                                        ),
+                                        SizedBox(height: 2),
+                                        // Основной адрес из компонентов
+                                        Text(
+                                          [
+                                            addresses[index]["components"]
+                                                .firstWhere(
+                                                    (c) =>
+                                                        c["kind"] == "street",
+                                                    orElse: () =>
+                                                        {"name": ""})["name"],
+                                            addresses[index]["components"]
+                                                .firstWhere(
+                                                    (c) => c["kind"] == "house",
+                                                    orElse: () =>
+                                                        {"name": ""})["name"],
+                                          ]
+                                              .where((e) => e.isNotEmpty)
+                                              .join(", "),
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        // Дополнительная информация о районе если есть
+                                        if (addresses[index]["components"].any(
+                                            (c) => c["kind"] == "district"))
+                                          Text(
+                                            addresses[index]["components"]
+                                                .firstWhere((c) =>
+                                                    c["kind"] ==
+                                                    "district")["name"],
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: CupertinoColors.systemGrey,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    trailing: Padding(
+                                      padding: EdgeInsets.only(
+                                          left: 8), // Отступ от текста
+                                      child: Icon(
+                                        CupertinoIcons.chevron_right,
+                                        color: CupertinoColors.systemGrey,
+                                      ),
+                                    ),
                                     onTap: () {
                                       mapController.move(
                                         LatLng(
