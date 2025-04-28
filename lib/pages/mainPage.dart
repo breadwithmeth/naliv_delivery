@@ -3,12 +3,10 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:naliv_delivery/agreements/offer.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/misc/databaseapi.dart';
 
-import 'package:naliv_delivery/misc/databaseapi.dart';
 import 'package:naliv_delivery/pages/newItemsPage.dart';
 import 'package:naliv_delivery/pages/orderHistoryPage.dart';
 import 'package:naliv_delivery/pages/paymentMethods.dart';
@@ -21,11 +19,9 @@ import 'package:naliv_delivery/pages/storiesPage.dart';
 import 'package:naliv_delivery/pages/supportPage.dart';
 import 'package:naliv_delivery/shared/activeOrders.dart';
 import 'package:naliv_delivery/shared/bonus.dart';
-import 'package:naliv_delivery/shared/bottomBar.dart';
 import 'package:naliv_delivery/shared/cartButton.dart';
 import 'package:naliv_delivery/shared/itemCard2mini.dart';
 import 'package:naliv_delivery/shared/searchWidget.dart';
-import 'package:naliv_delivery/shared/navBarWidgets.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({
@@ -329,135 +325,214 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-        navigationBar: CupertinoNavigationBar(
-          padding:
-              EdgeInsetsDirectional.only(start: 16, top: 5, bottom: 5, end: 16),
-          middle: Container(
-            padding: EdgeInsets.symmetric(horizontal: 8),
-            child: Searchwidget(business: widget.business),
-          ),
-          // backgroundColor:
-          //     CupertinoColors.systemBackground.resolveFrom(context),
-          border: null,
-          trailing: _buildMenuButton(),
+      navigationBar: CupertinoNavigationBar(
+        padding:
+            EdgeInsetsDirectional.only(start: 16, top: 8, bottom: 8, end: 16),
+        middle: Container(
+          padding: EdgeInsets.symmetric(horizontal: 8),
+          child: Searchwidget(business: widget.business),
         ),
-        child: SafeArea(
-            bottom: false,
-            child: Stack(
-              children: [
-                SingleChildScrollView(
-                  physics: BouncingScrollPhysics(),
+        backgroundColor: CupertinoColors.systemBackground.resolveFrom(context),
+        border: null,
+        trailing: _buildMenuButton(),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Stack(
+          children: [
+            CustomScrollView(
+              physics: AlwaysScrollableScrollPhysics(),
+              slivers: [
+                CupertinoSliverRefreshControl(
+                  onRefresh: () async {
+                    await _getStories();
+                    await _getCategories();
+                    await _getAddresses();
+                    await _getGigaCats();
+                  },
+                ),
+                SliverToBoxAdapter(
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Адрес
-                      Container(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: CupertinoColors.systemGrey6
-                                .resolveFrom(context),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: GestureDetector(
-                            onTap: () => _navigateToAddressSelection(),
-                            child: Row(
-                              children: [
-                                Icon(CupertinoIcons.location, size: 20),
-                                SizedBox(width: 8),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Адрес доставки',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: CupertinoColors.systemGrey,
-                                        ),
-                                      ),
-                                      SizedBox(height: 2),
-                                      Text(
-                                        widget.currentAddress["address"] ??
-                                            "Выберите адрес",
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Icon(CupertinoIcons.chevron_down, size: 16),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
+                      // Адрес доставки с анимацией
+                      _buildAddressSection(),
 
-                      // Бонусы
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
+                      // Бонусы с тенями
+                      Container(
+                        margin:
+                            EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color:
+                                  CupertinoColors.systemGrey.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
                         child: BonusWidget(),
                       ),
 
                       // Активные заказы
                       ActiveOrdersWidget(),
 
-                      // Карточка магазина
+                      // Карточка магазина с улучшенной анимацией
                       _buildCurrentShopCard(),
-                      // Истории
-                      if (stories.isNotEmpty) _buildStoriesSection(),
+
+                      // Истории с плавной анимацией
+                      if (stories.isNotEmpty)
+                        AnimatedOpacity(
+                          opacity: stories.isEmpty ? 0.0 : 1.0,
+                          duration: Duration(milliseconds: 500),
+                          child: _buildStoriesSection(),
+                        ),
+
                       // Быстрые действия
                       _buildQuickActionsSection(),
-                      // Категории
-                      Padding(
-                        padding: EdgeInsets.fromLTRB(16, 24, 16, 16),
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
-                          itemCount: gigaCats.length,
-                          itemBuilder: (context, index) {
-                            return _buildCategorySection(
-                              context,
-                              gigaCats[index],
-                              widget.business,
-                              categories,
-                              gigaCats,
-                              categories.where((element) {
-                                return element["parent_category"] ==
-                                    gigaCats[index]["c_id"].toString();
-                              }).toList(),
-                            );
-                          },
-                        ),
-                      ),
-                      // Отступ внизу
+
+                      // Категории с анимированным появлением
+                      _buildCategoriesSection(),
+
                       SizedBox(height: 100),
                     ],
                   ),
                 ),
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: MediaQuery.of(context).padding.bottom + 16,
-                  child: CartButton(
-                    business: widget.business,
-                    user: {},
-                  ),
-                ),
               ],
-            )
-            // bottomNavigationBar: CartButton(
-            //   business: widget.business,
-            //   user: widget.user,
-            // ),
-            ));
+            ),
+
+            // Кнопка корзины
+            _buildCartButton(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddressSection() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: CupertinoButton(
+        padding: EdgeInsets.zero,
+        onPressed: _navigateToAddressSelection,
+        child: Container(
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: CupertinoColors.systemGrey6.resolveFrom(context),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: CupertinoColors.systemGrey5.resolveFrom(context),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: CupertinoColors.activeBlue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  CupertinoIcons.location,
+                  color: CupertinoColors.activeBlue,
+                  size: 20,
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Адрес доставки',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: CupertinoColors.systemGrey,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      widget.currentAddress["address"] ?? "Выберите адрес",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: CupertinoColors.label.resolveFrom(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                CupertinoIcons.chevron_down,
+                size: 16,
+                color: CupertinoColors.systemGrey,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCartButton() {
+    return Positioned(
+      left: 16,
+      right: 16,
+      bottom: MediaQuery.of(context).padding.bottom + 16,
+      child: CartButton(
+        business: widget.business,
+        user: {},
+      ),
+    );
+  }
+
+  Widget _buildCategoriesSection() {
+    return Container(
+      margin: EdgeInsets.only(top: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 24),
+            child: Text(
+              "Категории",
+              style: TextStyle(
+                fontSize: 34,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.5,
+                color: CupertinoColors.label.resolveFrom(context),
+              ),
+            ),
+          ),
+          ListView.builder(
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+            itemCount: gigaCats.length,
+            itemBuilder: (context, index) {
+              return Container(
+                margin: EdgeInsets.only(bottom: 32),
+                child: _buildCategorySection(
+                  context,
+                  gigaCats[index],
+                  widget.business,
+                  categories,
+                  gigaCats,
+                  categories.where((element) {
+                    return element["parent_category"] ==
+                        gigaCats[index]["c_id"].toString();
+                  }).toList(),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildMenuButton() {
@@ -635,56 +710,109 @@ Widget _buildCategoryHeader(
     List<dynamic> categories,
     List<dynamic> gigacats,
     List subcategories) {
-  //print("==================");
-  //print(category);
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Text(
-        category["c_name"] ?? "",
-        style: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.w600,
+  return GestureDetector(
+    onTap: () {
+      Navigator.push(
+        context,
+        CupertinoPageRoute(
+          builder: (context) => PreLoadCategoryPage(
+            category: category,
+            business: business,
+            subcategories: subcategories,
+            user: user,
+          ),
         ),
-      ),
-      CupertinoButton(
-        padding: EdgeInsets.zero,
-        onPressed: () {
-          Navigator.push(
-            context,
-            CupertinoPageRoute(
-              builder: (context) => PreLoadCategoryPage(
-                category: category,
-                business: business,
-                subcategories: subcategories,
-                user: user,
-              ),
+      );
+    },
+    child: Container(
+      margin: EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            category["c_name"] ?? "",
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.5,
+              color: CupertinoColors.label.resolveFrom(context),
             ),
-          );
-        },
-        child: Row(
-          children: [
-            Text('Все'),
-            Icon(CupertinoIcons.right_chevron),
-          ],
-        ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: CupertinoColors.activeOrange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: CupertinoButton(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: Row(
+                children: [
+                  Text(
+                    'Все',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: CupertinoColors.activeOrange,
+                    ),
+                  ),
+                  SizedBox(width: 2),
+                  Icon(
+                    CupertinoIcons.chevron_right,
+                    size: 14,
+                    color: CupertinoColors.activeOrange,
+                  ),
+                ],
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                    builder: (context) => PreLoadCategoryPage(
+                      category: category,
+                      business: business,
+                      subcategories: subcategories,
+                      user: user,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
-    ],
+    ),
   );
 }
 
 Widget _buildCategoryItems(List items, Map category, Map business) {
-  return SizedBox(
-    height: 150,
+  return Container(
+    height: 220, // Увеличили высоту
+    margin: EdgeInsets.only(top: 16),
     child: ListView.builder(
+      padding: EdgeInsets.symmetric(horizontal: 16),
       scrollDirection: Axis.horizontal,
       itemCount: items.length > 10 ? 10 : items.length,
       itemBuilder: (context, index) {
-        return Padding(
-          padding: EdgeInsets.only(right: 8),
-          child: ItemCard2mini(
-            item: items[index],
-            business: business,
+        return Container(
+          width: 160, // Фиксированная ширина карточки
+          margin: EdgeInsets.only(right: 12),
+          decoration: BoxDecoration(
+            color: CupertinoColors.systemBackground.resolveFrom(context),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: CupertinoColors.systemGrey.withOpacity(0.1),
+                blurRadius: 10,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: ItemCard2mini(
+              item: items[index],
+              business: business,
+            ),
           ),
         );
       },

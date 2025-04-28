@@ -326,7 +326,11 @@ class _VerifyPageState extends State<VerifyPage> {
                     alignment: Alignment.center,
                     child: CupertinoButton(
                       onPressed: () {
-                        Navigator.pop(context);
+                        Navigator.pushReplacement(
+                            context,
+                            CupertinoPageRoute(
+                              builder: (context) => LoginPage(),
+                            ));
                       },
                       child: Text(
                         "Изменить ${widget.phone}",

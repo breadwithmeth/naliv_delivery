@@ -158,13 +158,12 @@ class _ItemCard2miniState extends State<ItemCard2mini> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        showCupertinoModalPopup(
-          context: context,
-          builder: (context) => ItemPage(
+        Navigator.push(context, CupertinoPageRoute(builder: (context) {
+          return ItemPage(
             item: widget.item,
             business: widget.business,
-          ),
-        );
+          );
+        }));
       },
       child: Stack(
         children: [

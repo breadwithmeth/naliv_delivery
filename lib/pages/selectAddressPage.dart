@@ -55,15 +55,32 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
-        middle: Text('Выбор адреса'),
-        leading: CupertinoButton(
-          padding: EdgeInsets.zero,
-          child: Icon(CupertinoIcons.back),
-          onPressed: () => Navigator.pop(context),
+        middle: Text(
+          'Выбор адреса',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+          ),
         ),
+        backgroundColor: CupertinoColors.systemBackground.resolveFrom(context),
+        border: null,
+        // leading: CupertinoButton(
+        //   padding: EdgeInsets.zero,
+        //   child: Icon(CupertinoIcons.back),
+        //   onPressed: () => Navigator.pop(context),
+        // ),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
-          child: Icon(CupertinoIcons.add),
+          child: Container(
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: CupertinoColors.activeBlue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              CupertinoIcons.add,
+              color: CupertinoColors.activeBlue,
+            ),
+          ),
           onPressed: () {
             Navigator.push(
               context,
@@ -85,78 +102,129 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (widget.currentAddress["lat"] != null) ...[
-                    SizedBox(height: 8),
-                    // Карта
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: SizedBox(
-                        height: 200,
-                        child: FlutterMap(
-                          options: MapOptions(
-                            interactionOptions: InteractionOptions(
-                              flags: InteractiveFlag.none,
-                            ),
-                            initialZoom: 18,
-                            initialCenter: LatLng(
-                              double.parse(widget.currentAddress["lat"] ?? "0"),
-                              double.parse(widget.currentAddress["lon"] ?? "0"),
-                            ),
+                    SizedBox(height: 16),
+                    // Карта с тенью
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: CupertinoColors.systemGrey.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
                           ),
-                          children: [
-                            TileLayer(
-                              tileBuilder:
-                                  MediaQuery.platformBrightnessOf(context) ==
-                                          Brightness.dark
-                                      ? _darkModeTileBuilder
-                                      : null,
-                              urlTemplate:
-                                  'https://{s}.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
-                              subdomains: ['tile0', 'tile1', 'tile2', 'tile3'],
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: SizedBox(
+                          height: 200,
+                          child: FlutterMap(
+                            options: MapOptions(
+                              interactionOptions: InteractionOptions(
+                                flags: InteractiveFlag.none,
+                              ),
+                              initialZoom: 18,
+                              initialCenter: LatLng(
+                                double.parse(
+                                    widget.currentAddress["lat"] ?? "0"),
+                                double.parse(
+                                    widget.currentAddress["lon"] ?? "0"),
+                              ),
                             ),
-                            MarkerLayer(
-                              markers: [
-                                Marker(
-                                  width: 40,
-                                  height: 40,
-                                  point: LatLng(
-                                    double.parse(
-                                        widget.currentAddress["lat"] ?? "0"),
-                                    double.parse(
-                                        widget.currentAddress["lon"] ?? "0"),
+                            children: [
+                              TileLayer(
+                                tileBuilder:
+                                    MediaQuery.platformBrightnessOf(context) ==
+                                            Brightness.dark
+                                        ? _darkModeTileBuilder
+                                        : null,
+                                urlTemplate:
+                                    'https://{s}.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
+                                subdomains: [
+                                  'tile0',
+                                  'tile1',
+                                  'tile2',
+                                  'tile3'
+                                ],
+                              ),
+                              MarkerLayer(
+                                markers: [
+                                  Marker(
+                                    width: 40,
+                                    height: 40,
+                                    point: LatLng(
+                                      double.parse(
+                                          widget.currentAddress["lat"] ?? "0"),
+                                      double.parse(
+                                          widget.currentAddress["lon"] ?? "0"),
+                                    ),
+                                    child: Icon(
+                                      CupertinoIcons.location_solid,
+                                      color: CupertinoColors.activeOrange,
+                                    ),
                                   ),
-                                  child: Icon(
-                                    CupertinoIcons.location_solid,
-                                    color: CupertinoColors.activeOrange,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                    SizedBox(height: 16),
-                    Text(
-                      "Текущий адрес",
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w600,
+                    SizedBox(height: 24),
+
+                    // Текущий адрес
+                    Container(
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: CupertinoColors.systemBackground
+                            .resolveFrom(context),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: CupertinoColors.systemGrey.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
                       ),
-                    ),
-                    Text(
-                      widget.currentAddress["city_name"] ??
-                          "Этого города еще нет в базе",
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    Text(
-                      widget.currentAddress["address"] ?? "",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Текущий адрес",
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w600,
+                              color: CupertinoColors.label.resolveFrom(context),
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            widget.currentAddress["city_name"] ??
+                                "Этого города еще нет в базе",
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: CupertinoColors.secondaryLabel
+                                  .resolveFrom(context),
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            widget.currentAddress["address"] ?? "",
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w500,
+                              color: CupertinoColors.label.resolveFrom(context),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     SizedBox(height: 24),
-                    SizedBox(
+
+                    // Кнопка продолжить
+                    Container(
                       width: double.infinity,
                       child: CupertinoButton.filled(
                         borderRadius: BorderRadius.circular(12),
@@ -219,76 +287,159 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                             }
                           });
                         },
-                        child: Text("Продолжить"),
+                        child: Text(
+                          "Продолжить",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
-                    SizedBox(height: 24),
+                    SizedBox(height: 32),
                   ],
-                  Text(
-                    "Сохраненные адреса",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
+
+                  // Сохраненные адреса
+                  Padding(
+                    padding: EdgeInsets.only(left: 16, bottom: 16),
+                    child: Text(
+                      "Сохраненные адреса",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: CupertinoColors.label,
+                      ),
                     ),
                   ),
-                  SizedBox(height: 16),
-                  ...addresses
-                      .map((address) => Column(
+
+                  // Список адресов
+                  Container(
+                    decoration: BoxDecoration(
+                      color:
+                          CupertinoColors.systemBackground.resolveFrom(context),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: CupertinoColors.systemGrey.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Column(
+                        children: addresses.map((address) {
+                          return Column(
                             children: [
                               CupertinoListTile(
+                                padding: EdgeInsets.all(16),
                                 leading: Container(
-                                  alignment: Alignment.center,
-                                  child: Icon(CupertinoIcons.location),
+                                  padding: EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: CupertinoColors.activeBlue
+                                        .withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    CupertinoIcons.location,
+                                    color: CupertinoColors.activeBlue,
+                                    size: 20,
+                                  ),
                                 ),
                                 title: Text(
                                   address["address"],
-                                  style: TextStyle(fontWeight: FontWeight.w500),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 16,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 2,
                                 ),
                                 subtitle: Text(
                                   address["city_name"] ??
                                       "Этого города еще нет в базе",
+                                  style: TextStyle(
+                                    color: CupertinoColors.secondaryLabel
+                                        .resolveFrom(context),
+                                    fontSize: 14,
+                                  ),
                                 ),
-                                trailing: CupertinoButton(
-                                  padding: EdgeInsets.zero,
-                                  child: Icon(CupertinoIcons.clear_circled),
-                                  onPressed: () {
-                                    setState(() {
-                                      addresses.remove(address);
-                                    });
-                                    deleteAddress(address["address_id"]);
-                                  },
+                                trailing: Icon(
+                                  CupertinoIcons.chevron_right,
+                                  color: CupertinoColors.systemGrey3
+                                      .resolveFrom(context),
+                                  size: 20,
                                 ),
-                                onTap: () {
-                                  selectAddress(address["address_id"]).then(
-                                      (value) =>
-                                          getAddresses().then((addresses) {
-                                            Navigator.pushReplacement(
-                                              context,
-                                              CupertinoPageRoute(
-                                                builder: (context) =>
-                                                    SelectAddressPage(
-                                                  addresses: addresses,
-                                                  currentAddress:
-                                                      addresses.firstWhere(
-                                                    (element) =>
-                                                        element[
-                                                            "is_selected"] ==
-                                                        "1",
-                                                    orElse: () => {},
-                                                  ),
-                                                  createOrder:
-                                                      widget.createOrder,
-                                                  business: widget.business,
-                                                ),
-                                              ),
-                                            );
-                                          }));
+                                onTap: () async {
+                                  setState(() {
+                                    _isLoading =
+                                        true; // Показываем индикатор загрузки
+                                  });
+
+                                  try {
+                                    await selectAddress(address["address_id"]);
+                                    final addresses = await getAddresses();
+
+                                    if (mounted) {
+                                      Navigator.pushReplacement(
+                                        context,
+                                        CupertinoPageRoute(
+                                          builder: (context) =>
+                                              SelectAddressPage(
+                                            addresses: addresses,
+                                            currentAddress:
+                                                addresses.firstWhere(
+                                              (element) =>
+                                                  element["is_selected"] == "1",
+                                              orElse: () => {},
+                                            ),
+                                            createOrder: widget.createOrder,
+                                            business: widget.business,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      showCupertinoDialog(
+                                        context: context,
+                                        builder: (context) =>
+                                            CupertinoAlertDialog(
+                                          title: Text('Ошибка'),
+                                          content:
+                                              Text('Не удалось выбрать адрес'),
+                                          actions: [
+                                            CupertinoDialogAction(
+                                              child: Text('OK'),
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }
+                                  } finally {
+                                    if (mounted) {
+                                      setState(() {
+                                        _isLoading =
+                                            false; // Скрываем индикатор загрузки
+                                      });
+                                    }
+                                  }
                                 },
                               ),
-                              Divider(height: 1),
+                              if (address != addresses.last)
+                                Divider(
+                                  height: 1,
+                                  indent: 60,
+                                ),
                             ],
-                          ))
-                      .toList(),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 32),
                 ],
               ),
             ),

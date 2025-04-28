@@ -68,185 +68,321 @@ class _SelectBusinessesPageState extends State<SelectBusinessesPage> {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      // navigationBar: CupertinoNavigationBar(
-      //   trailing: BonusWidget(),
-      // ),
+      navigationBar: CupertinoNavigationBar(
+        // enableBackgroundFilterBlur: false,
+        // automaticBackgroundVisibility: false,
+        middle: Text(
+          'Выбор магазина',
+          style: GoogleFonts.manrope(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: CupertinoColors.systemBackground.resolveFrom(context),
+        border: null,
+      ),
       child: Stack(
         children: [
           SafeArea(
             child: CustomScrollView(
+              physics: BouncingScrollPhysics(),
               slivers: [
                 SliverPadding(
-                  padding: EdgeInsets.only(left: 30, right: 30, top: 10),
+                  padding: EdgeInsets.all(16),
                   sliver: SliverToBoxAdapter(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.max,
                       children: [
+                        // Заголовок
                         Container(
-                          child: FittedBox(
-                            child: Text(
-                              "Бар-Маркеты \nНалив/Градусы24",
-                              style: GoogleFonts.manrope(
-                                fontSize: 1000,
-                                fontWeight: FontWeight.w400,
-                              ),
+                          margin: EdgeInsets.only(bottom: 24),
+                          child: Text(
+                            "Бар-Маркеты\nНалив/Градусы24",
+                            style: GoogleFonts.manrope(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w700,
+                              height: 1.2,
                             ),
                           ),
                         ),
-                        SizedBox(height: 16),
-                        Stack(
-                          children: [
-                            AspectRatio(
-                              aspectRatio: 1,
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(15),
-                                child: Image.network(
-                                  _closestBusiness["img"],
-                                  fit: BoxFit.cover,
-                                ),
+
+                        // Карточка ближайшего магазина
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    CupertinoColors.systemGrey.withOpacity(0.1),
+                                blurRadius: 20,
+                                offset: Offset(0, 4),
                               ),
-                            ),
-                            Positioned(
-                              top: 15,
-                              left: 15,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 5),
-                                decoration: BoxDecoration(
-                                    color: CupertinoColors.activeGreen,
-                                    borderRadius: BorderRadius.circular(15)),
-                                child: Text(
-                                  "Быстрая доставка",
-                                  style: GoogleFonts.manrope(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            )
-                          ],
-                        ),
-                        SizedBox(height: 16),
-                        Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              // Изображение магазина
+                              Stack(
                                 children: [
-                                  Text(
-                                    _closestBusiness["name"],
-                                    style: GoogleFonts.manrope(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w600,
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: AspectRatio(
+                                      aspectRatio: 16 / 9,
+                                      child: Image.network(
+                                        _closestBusiness["img"],
+                                        fit: BoxFit.cover,
+                                      ),
                                     ),
                                   ),
-                                  Text(
-                                    _closestBusiness["address"],
-                                    style: GoogleFonts.manrope(
-                                      fontSize: 14,
+                                  Positioned(
+                                    top: 12,
+                                    left: 12,
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: CupertinoColors.activeGreen,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            CupertinoIcons.time,
+                                            color: CupertinoColors.white,
+                                            size: 14,
+                                          ),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            "Быстрая доставка",
+                                            style: GoogleFonts.manrope(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: CupertinoColors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ],
+                              ),
+
+                              // Информация о магазине
+                              Container(
+                                padding: EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: CupertinoColors.systemBackground
+                                      .resolveFrom(context),
+                                  borderRadius: BorderRadius.vertical(
+                                    bottom: Radius.circular(16),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                _closestBusiness["name"],
+                                                style: GoogleFonts.manrope(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              SizedBox(height: 4),
+                                              Text(
+                                                _closestBusiness["address"],
+                                                style: GoogleFonts.manrope(
+                                                  fontSize: 14,
+                                                  color: CupertinoColors
+                                                      .systemGrey
+                                                      .resolveFrom(context),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              "${(double.parse(_closestBusiness["delivery_price"]).toInt())}₸",
+                                              style: GoogleFonts.manrope(
+                                                fontSize: 24,
+                                                fontWeight: FontWeight.w600,
+                                                color:
+                                                    CupertinoColors.activeBlue,
+                                              ),
+                                            ),
+                                            Text(
+                                              "~${(double.parse(_closestBusiness["distance"]).toInt())}м",
+                                              style: GoogleFonts.manrope(
+                                                fontSize: 14,
+                                                color:
+                                                    CupertinoColors.systemGrey,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 16),
+                                    CupertinoButton.filled(
+                                      padding: EdgeInsets.symmetric(
+                                          vertical: 16, horizontal: 15),
+                                      borderRadius: BorderRadius.circular(12),
+                                      onPressed: () =>
+                                          routeToMainPage(_closestBusiness),
+                                      child: Text(
+                                        "Продолжить",
+                                        style: GoogleFonts.manrope(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Разделитель с другими магазинами
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: Row(
+                            children: [
+                              Expanded(child: Container()),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 16),
+                                child: Text(
+                                  "Другие магазины",
+                                  style: GoogleFonts.manrope(
+                                    fontSize: 14,
+                                    color: CupertinoColors.systemGrey
+                                        .resolveFrom(context),
+                                  ),
+                                ),
+                              ),
+                              Expanded(child: Container()),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Список других магазинов
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  sliver: SliverList.builder(
+                    itemCount: widget.businesses.length,
+                    itemBuilder: (context, index) {
+                      return Container(
+                        margin: EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: CupertinoColors.systemBackground
+                              .resolveFrom(context),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color:
+                                  CupertinoColors.systemGrey.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: CupertinoButton(
+                          padding: EdgeInsets.all(12),
+                          onPressed: () =>
+                              routeToMainPage(widget.businesses[index]),
+                          child: Row(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  widget.businesses[index]["img"],
+                                  width: 64,
+                                  height: 64,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      widget.businesses[index]["name"],
+                                      style: GoogleFonts.manrope(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      widget.businesses[index]["address"],
+                                      style: GoogleFonts.manrope(
+                                        fontSize: 14,
+                                        color: CupertinoColors.systemGrey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    "${(double.parse(_closestBusiness["delivery_price"]).toInt())}₸",
+                                    "${(double.parse(widget.businesses[index]["delivery_price"]).toInt())}₸",
                                     style: GoogleFonts.manrope(
-                                      fontSize: 24,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: CupertinoColors.activeBlue,
                                     ),
                                   ),
                                   Text(
-                                    "~${(double.parse(_closestBusiness["distance"]).toInt())}м",
+                                    "~${(double.parse(widget.businesses[index]["distance"]).toInt())}м",
                                     style: GoogleFonts.manrope(
-                                      fontSize: 14,
+                                      fontSize: 12,
+                                      color: CupertinoColors.systemGrey,
                                     ),
                                   ),
                                 ],
                               ),
-                            ]),
-                        SizedBox(height: 16),
-                        CupertinoButton.filled(
-                          onPressed: () => routeToMainPage(_closestBusiness),
-                          child: Text(
-                            "Продолжить",
-                            style: GoogleFonts.manrope(
-                              fontSize: 24,
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 16),
-                        GestureDetector(
-                          onTap: () {
-                            // Scroll to list
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                "Другие отделения",
-                                style: GoogleFonts.manrope(
-                                  fontSize: 14,
-                                ),
-                              ),
-                              Icon(
-                                CupertinoIcons.chevron_down,
-                              ),
                             ],
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-                ),
-                SliverPadding(
-                  padding: EdgeInsets.all(30),
-                  sliver: SliverList.builder(
-                    itemCount: widget.businesses.length,
-                    itemBuilder: (context, index) {
-                      return CupertinoListTile(
-                        onTap: () => routeToMainPage(widget.businesses[index]),
-                        trailing: Text(
-                          "${(double.parse(widget.businesses[index]["delivery_price"]).toInt())}₸",
-                          style: GoogleFonts.manrope(
-                            fontSize: 16,
-                          ),
-                        ),
-                        leading: ClipRRect(
-                          borderRadius: BorderRadius.circular(5),
-                          child: Image.network(
-                            widget.businesses[index]["img"],
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        title: Text(
-                          widget.businesses[index]["name"],
-                          style: GoogleFonts.manrope(
-                            fontSize: 24,
-                          ),
-                        ),
-                        subtitle: Text(
-                          widget.businesses[index]["address"],
-                          style: GoogleFonts.manrope(
-                            fontSize: 14,
                           ),
                         ),
                       );
                     },
                   ),
-                )
+                ),
               ],
             ),
           ),
+
+          // Индикатор загрузки
           if (_isLoading)
             Container(
               color: CupertinoColors.black.withOpacity(0.5),
               child: Center(
-                child: CupertinoActivityIndicator(),
+                child: CupertinoActivityIndicator(
+                  radius: 16,
+                  color: CupertinoColors.white,
+                ),
               ),
             ),
         ],

@@ -1,6 +1,9 @@
+import 'dart:ui';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:naliv_delivery/main.dart';
 import 'package:naliv_delivery/misc/api.dart';
 import 'package:naliv_delivery/misc/databaseapi.dart';
@@ -299,9 +302,15 @@ class _CategoryPage2State extends State<CategoryPage2>
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
-        // Убираем стандартный нижний бордер
+        middle: Text(
+          widget.category["c_name"],
+          style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: CupertinoColors.label.resolveFrom(context)),
+        ),
+        backgroundColor: CupertinoColors.systemBackground.resolveFrom(context),
         border: null,
-        middle: Text(widget.category["c_name"]),
       ),
       child: Stack(
         children: [
@@ -309,82 +318,158 @@ class _CategoryPage2State extends State<CategoryPage2>
             bottom: false,
             child: Column(
               children: [
-                // Добавляем сегментированный контроль после навбара
+                // Улучшенный сегментированный контроль
                 if (widget.subcategories.length >= 2)
                   Container(
-                    padding: EdgeInsets.symmetric(vertical: 8),
+                    height: 56,
                     decoration: BoxDecoration(
                       color:
                           CupertinoColors.systemBackground.resolveFrom(context),
-                      border: Border(
-                        bottom: BorderSide(
-                          color: CupertinoColors.separator.resolveFrom(context),
-                          width: 0.5,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                              CupertinoColors.systemGrey6.resolveFrom(context),
+                          offset: Offset(0, 1),
+                          blurRadius: 0,
                         ),
-                      ),
+                      ],
                     ),
                     child: SingleChildScrollView(
                       controller: _segmentedScrollController,
                       scrollDirection: Axis.horizontal,
                       padding: EdgeInsets.symmetric(
-                          horizontal:
-                              MediaQuery.of(context).size.width / 2 - 60),
-                      child: CupertinoSegmentedControl<int>(
-                        selectedColor:
-                            CupertinoColors.activeOrange.resolveFrom(context),
-                        borderColor: CupertinoColors.transparent,
-                        unselectedColor: CupertinoColors.systemBackground
-                            .resolveFrom(context),
-                        onValueChanged: (index) {
-                          scrollToCategory(index);
-                          _scrollToSelectedSegment(index);
-                        },
-                        groupValue: currentIndex,
-                        children: {
-                          for (var i = 0; i < widget.subcategories.length; i++)
-                            i: Container(
-                              width: MediaQuery.of(context).size.width / 3,
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        children: List.generate(
+                          widget.subcategories.length,
+                          (i) => Padding(
+                            padding: EdgeInsets.only(right: 8),
+                            child: CupertinoButton(
                               padding: EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
+                                horizontal: 16,
+                                vertical: 8,
                               ),
+                              borderRadius: BorderRadius.circular(20),
+                              color: currentIndex == i
+                                  ? CupertinoTheme.of(context).primaryColor
+                                  : CupertinoColors.systemGrey6,
+                              onPressed: () {
+                                scrollToCategory(i);
+                                _scrollToSelectedSegment(i);
+                                HapticFeedback.lightImpact();
+                              },
                               child: Text(
                                 widget.subcategories[i]["name"],
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w500,
+                                  color: currentIndex == i
+                                      ? CupertinoColors.white
+                                      : CupertinoColors.systemGrey2,
                                 ),
-                                maxLines: 2,
                               ),
-                            )
-                        },
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                // Список товаров
+
+                // Улучшенный список товаров
                 Expanded(
                   child: preloadedSections.isEmpty
-                      ? Center(child: CupertinoActivityIndicator())
+                      ? Center(
+                          child: CupertinoActivityIndicator(
+                            radius: 14,
+                          ),
+                        )
                       : ScrollablePositionedList.builder(
                           physics: BouncingScrollPhysics(),
                           itemScrollController: itemScrollController,
                           itemPositionsListener: itemPositionsListener,
                           itemCount: preloadedSections.length,
-                          itemBuilder: (context, index) =>
-                              preloadedSections[index],
+                          itemBuilder: (context, index) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: EdgeInsets.fromLTRB(20, 24, 20, 16),
+                                  child: Text(
+                                    widget.subcategories[index]["name"],
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: -0.5,
+                                      color: CupertinoColors.label
+                                          .resolveFrom(context),
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 16),
+                                  child: GridView.builder(
+                                    shrinkWrap: true,
+                                    physics: NeverScrollableScrollPhysics(),
+                                    gridDelegate:
+                                        SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 2,
+                                      childAspectRatio: 0.75,
+                                      mainAxisSpacing: 16,
+                                      crossAxisSpacing: 16,
+                                    ),
+                                    itemCount: _getSubitems(index).length,
+                                    itemBuilder: (context, itemIndex) =>
+                                        AnimatedOpacity(
+                                      opacity: 1.0,
+                                      duration: Duration(milliseconds: 300),
+                                      curve: Curves.easeInOut,
+                                      child: ItemCard2(
+                                        item: _getSubitems(index)[itemIndex],
+                                        business: widget.business,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: 24),
+                              ],
+                            );
+                          },
                         ),
                 ),
               ],
             ),
           ),
-          // Кнопка корзины
+
+          // Улучшенная кнопка корзины
           Positioned(
             left: 16,
             right: 16,
             bottom: MediaQuery.of(context).padding.bottom + 16,
-            child: CartButton(
-              business: widget.business,
-              user: {},
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.systemBackground.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: CupertinoColors.black.withOpacity(0.1),
+                        blurRadius: 20,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: CartButton(
+                    business: widget.business,
+                    user: {},
+                  ),
+                ),
+              ),
             ),
           ),
         ],

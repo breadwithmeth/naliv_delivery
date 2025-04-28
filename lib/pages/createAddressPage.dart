@@ -20,49 +20,101 @@ class _CreateAddressPageState extends State<CreateAddressPage> {
   MapController mapController = MapController();
 
   Future<void> searchGeoDataByString(String search) async {
-    await getGeoData(search).then((value) {
-      print(value);
+    // Показываем индикатор загрузки, если нужно
+    // setState(() { _isLoading = true; });
+
+    try {
+      final value = await getGeoData(search);
+      print(
+          'API Response (count: ${value.length}):'); // Логируем количество полученных адресов
+      // print(value); // Можно раскомментировать для детального просмотра ответа
+
       List formattedAddresses = [];
 
       for (var item in value) {
-        var geoData = item["metaDataProperty"]["GeocoderMetaData"];
-        var address = geoData["Address"];
+        try {
+          // Проверяем наличие необходимых ключей перед доступом
+          if (item != null &&
+              item["metaDataProperty"] != null &&
+              item["metaDataProperty"]["GeocoderMetaData"] != null &&
+              item["metaDataProperty"]["GeocoderMetaData"]["Address"] != null &&
+              item["Point"] != null &&
+              item["Point"]["pos"] != null) {
+            var geoData = item["metaDataProperty"]["GeocoderMetaData"];
+            var address = geoData["Address"];
+            var pointData = item["Point"]["pos"].split(" ");
 
-        // Получаем координаты из точки
-        var point = item["Point"]["pos"].split(" ");
-
-        formattedAddresses.add({
-          "name": address["formatted"], // Форматированный адрес
-          "full_address": geoData["text"], // Полный текст адреса
-          "components": address["Components"], // Компоненты адреса
-          "point": {
-            "lat": double.parse(point[1]), // Широта
-            "lon": double.parse(point[0]), // Долгота
-          },
-          "precision": geoData["precision"], // Точность геокодирования
-          "kind": geoData["kind"], // Тип объекта (дом, улица и т.д.)
-        });
+            // Дополнительная проверка на корректность координат
+            if (pointData.length == 2) {
+              formattedAddresses.add({
+                "name": address["formatted"] ??
+                    "Адрес не указан", // Добавляем ?? для безопасности
+                "full_address": geoData["text"] ?? "Полный адрес не указан",
+                "components":
+                    address["Components"] ?? [], // Пустой список по умолчанию
+                "point": {
+                  "lat": double.tryParse(pointData[1]) ??
+                      0.0, // Безопасное преобразование
+                  "lon": double.tryParse(pointData[0]) ?? 0.0,
+                },
+                "precision": geoData["precision"] ?? "unknown",
+                "kind": geoData["kind"] ?? "unknown",
+              });
+            } else {
+              print('Skipping item due to invalid point data: $item');
+            }
+          } else {
+            print('Skipping item due to missing keys: $item');
+          }
+        } catch (e, stackTrace) {
+          // Логируем ошибку и элемент, который ее вызвал
+          print('Error processing address item: $e');
+          print('Problematic item: $item');
+          print('Stack trace: $stackTrace');
+          // Можно решить, пропускать ли этот элемент или остановить обработку
+        }
       }
 
-      setState(() {
-        addresses = formattedAddresses;
-      });
-    });
+      print(
+          'Formatted Addresses Count: ${formattedAddresses.length}'); // Логируем количество успешно обработанных
+
+      // Обновляем состояние только если виджет все еще активен
+      if (mounted) {
+        setState(() {
+          addresses = formattedAddresses;
+          // _isLoading = false; // Скрываем индикатор загрузки
+        });
+      }
+    } catch (error, stackTrace) {
+      // Обрабатываем ошибку самого запроса getGeoData
+      print('Error fetching or processing geo data: $error');
+      print('Stack trace: $stackTrace');
+      if (mounted) {
+        setState(() {
+          addresses = []; // Очищаем список в случае ошибки
+          // _isLoading = false; // Скрываем индикатор загрузки
+        });
+        // Можно показать сообщение об ошибке пользователю
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    print(
+        'Can pop: ${Navigator.canPop(context)}'); // Добавьте эту строку для отладки
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         middle:
             Text('Новый адрес', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: CupertinoColors.systemBackground.withOpacity(0.8),
         border: null,
-        leading: CupertinoButton(
-          padding: EdgeInsets.zero,
-          child: Icon(CupertinoIcons.back),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: true,
+        // leading: CupertinoButton(
+        //   padding: EdgeInsets.zero,
+        //   child: Icon(CupertinoIcons.back),
+        //   onPressed: () => Navigator.pop(context),
+        // ),
       ),
       child: Column(
         children: [

@@ -53,8 +53,8 @@ class _ItemPageState extends State<ItemPage> {
           currentAmount = 0;
           parentItemAmoint = null;
         } else {
-          currentAmount = v["amount"];
-          parentItemAmoint = v["parent_amount"];
+          currentAmount = double.parse(v["amount"].toString());
+          parentItemAmoint = double.parse(v["parent_amount"].toString());
         }
         cartItem = v;
       });
