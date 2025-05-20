@@ -15,6 +15,13 @@ final dio = Dio(BaseOptions(
   receiveTimeout: Duration(seconds: 10),
 ));
 
+
+
+
+
+
+
+
 //var URL_API = '10.8.0.3';
 
 // var URL_API = '192.168.0.164:8080';

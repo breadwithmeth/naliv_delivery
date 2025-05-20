@@ -158,6 +158,9 @@ class _AddNewCardPageState extends State<AddNewCardPage> {
           _isLoading = false;
         });
       }
+
+      // В методе где происходит успешное добавление карты
+      // Navigator.pop(context, true); // Возвращаем true при успехе
     }).catchError((error) {
       // Обработка ошибки
       if (mounted) {

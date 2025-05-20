@@ -707,12 +707,19 @@ class _CreateOrderPage2State extends State<CreateOrderPage2> {
                     leading: Icon(CupertinoIcons.plus_circle,
                         color: CupertinoColors.activeOrange),
                     title: Text('Добавить карту'),
-                    onTap: () => Navigator.push(
-                      context,
-                      CupertinoPageRoute(
-                        builder: (context) => AddNewCardPage(createOrder: true),
-                      ),
-                    ),
+                    onTap: () async { // Добавляем async
+                      final result = await Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (context) => AddNewCardPage(createOrder: true),
+                        ),
+                      );
+                      
+                      // После возвращения обновляем список карт
+                      if (result == true) { // Если карта была успешно добавлена
+                        _getSavedCards(); // Обновляем список карт
+                      }
+                    },
                   ),
                 ],
               ),

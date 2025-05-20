@@ -297,149 +297,221 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                     ),
                     SizedBox(height: 32),
                   ],
-
-                  // Сохраненные адреса
-                  Padding(
-                    padding: EdgeInsets.only(left: 16, bottom: 16),
-                    child: Text(
-                      "Сохраненные адреса",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: CupertinoColors.label,
+                  if (addresses.isEmpty)
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              color:
+                                  CupertinoColors.activeBlue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(60),
+                            ),
+                            child: Icon(
+                              CupertinoIcons.location_circle,
+                              size: 60,
+                              color: CupertinoColors.activeBlue,
+                            ),
+                          ),
+                          SizedBox(height: 24),
+                          Text(
+                            'Нет сохраненных адресов',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: CupertinoColors.label.resolveFrom(context),
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Добавьте свой первый адрес доставки',
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: CupertinoColors.secondaryLabel
+                                  .resolveFrom(context),
+                            ),
+                          ),
+                          SizedBox(height: 32),
+                          CupertinoButton.filled(
+                            borderRadius: BorderRadius.circular(12),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                CupertinoPageRoute(
+                                  builder: (context) => CreateAddressPage(
+                                    createOrder: widget.createOrder,
+                                    business: widget.business,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(CupertinoIcons.add, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Добавить адрес',
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else ...[
+                    // Сохраненные адреса
+                    Padding(
+                      padding: EdgeInsets.only(left: 16, bottom: 16),
+                      child: Text(
+                        "Сохраненные адреса",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: CupertinoColors.label.resolveFrom(context),
+                        ),
                       ),
                     ),
-                  ),
 
-                  // Список адресов
-                  Container(
-                    decoration: BoxDecoration(
-                      color:
-                          CupertinoColors.systemBackground.resolveFrom(context),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: CupertinoColors.systemGrey.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Column(
-                        children: addresses.map((address) {
-                          return Column(
-                            children: [
-                              CupertinoListTile(
-                                padding: EdgeInsets.all(16),
-                                leading: Container(
-                                  padding: EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: CupertinoColors.activeBlue
-                                        .withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
+                    // Список адресов
+                    Container(
+                      decoration: BoxDecoration(
+                        color: CupertinoColors.systemBackground
+                            .resolveFrom(context),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: CupertinoColors.systemGrey.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Column(
+                          children: addresses.map((address) {
+                            return Column(
+                              children: [
+                                CupertinoListTile(
+                                  padding: EdgeInsets.all(16),
+                                  leading: Container(
+                                    padding: EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: CupertinoColors.activeBlue
+                                          .withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      CupertinoIcons.location,
+                                      color: CupertinoColors.activeBlue,
+                                      size: 20,
+                                    ),
                                   ),
-                                  child: Icon(
-                                    CupertinoIcons.location,
-                                    color: CupertinoColors.activeBlue,
+                                  title: Text(
+                                    address["address"],
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 16,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 2,
+                                  ),
+                                  subtitle: Text(
+                                    address["city_name"] ??
+                                        "Этого города еще нет в базе",
+                                    style: TextStyle(
+                                      color: CupertinoColors.secondaryLabel
+                                          .resolveFrom(context),
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  trailing: Icon(
+                                    CupertinoIcons.chevron_right,
+                                    color: CupertinoColors.systemGrey3
+                                        .resolveFrom(context),
                                     size: 20,
                                   ),
-                                ),
-                                title: Text(
-                                  address["address"],
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 16,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 2,
-                                ),
-                                subtitle: Text(
-                                  address["city_name"] ??
-                                      "Этого города еще нет в базе",
-                                  style: TextStyle(
-                                    color: CupertinoColors.secondaryLabel
-                                        .resolveFrom(context),
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                trailing: Icon(
-                                  CupertinoIcons.chevron_right,
-                                  color: CupertinoColors.systemGrey3
-                                      .resolveFrom(context),
-                                  size: 20,
-                                ),
-                                onTap: () async {
-                                  setState(() {
-                                    _isLoading =
-                                        true; // Показываем индикатор загрузки
-                                  });
+                                  onTap: () async {
+                                    setState(() {
+                                      _isLoading =
+                                          true; // Показываем индикатор загрузки
+                                    });
 
-                                  try {
-                                    await selectAddress(address["address_id"]);
-                                    final addresses = await getAddresses();
+                                    try {
+                                      await selectAddress(
+                                          address["address_id"]);
+                                      final addresses = await getAddresses();
 
-                                    if (mounted) {
-                                      Navigator.pushReplacement(
-                                        context,
-                                        CupertinoPageRoute(
-                                          builder: (context) =>
-                                              SelectAddressPage(
-                                            addresses: addresses,
-                                            currentAddress:
-                                                addresses.firstWhere(
-                                              (element) =>
-                                                  element["is_selected"] == "1",
-                                              orElse: () => {},
+                                      if (mounted) {
+                                        Navigator.pushReplacement(
+                                          context,
+                                          CupertinoPageRoute(
+                                            builder: (context) =>
+                                                SelectAddressPage(
+                                              addresses: addresses,
+                                              currentAddress:
+                                                  addresses.firstWhere(
+                                                (element) =>
+                                                    element["is_selected"] ==
+                                                    "1",
+                                                orElse: () => {},
+                                              ),
+                                              createOrder: widget.createOrder,
+                                              business: widget.business,
                                             ),
-                                            createOrder: widget.createOrder,
-                                            business: widget.business,
                                           ),
-                                        ),
-                                      );
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        showCupertinoDialog(
+                                          context: context,
+                                          builder: (context) =>
+                                              CupertinoAlertDialog(
+                                            title: Text('Ошибка'),
+                                            content: Text(
+                                                'Не удалось выбрать адрес'),
+                                            actions: [
+                                              CupertinoDialogAction(
+                                                child: Text('OK'),
+                                                onPressed: () =>
+                                                    Navigator.pop(context),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }
+                                    } finally {
+                                      if (mounted) {
+                                        setState(() {
+                                          _isLoading =
+                                              false; // Скрываем индикатор загрузки
+                                        });
+                                      }
                                     }
-                                  } catch (e) {
-                                    if (mounted) {
-                                      showCupertinoDialog(
-                                        context: context,
-                                        builder: (context) =>
-                                            CupertinoAlertDialog(
-                                          title: Text('Ошибка'),
-                                          content:
-                                              Text('Не удалось выбрать адрес'),
-                                          actions: [
-                                            CupertinoDialogAction(
-                                              child: Text('OK'),
-                                              onPressed: () =>
-                                                  Navigator.pop(context),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    }
-                                  } finally {
-                                    if (mounted) {
-                                      setState(() {
-                                        _isLoading =
-                                            false; // Скрываем индикатор загрузки
-                                      });
-                                    }
-                                  }
-                                },
-                              ),
-                              if (address != addresses.last)
-                                Divider(
-                                  height: 1,
-                                  indent: 60,
+                                  },
                                 ),
-                            ],
-                          );
-                        }).toList(),
+                                if (address != addresses.last)
+                                  Divider(
+                                    height: 1,
+                                    indent: 60,
+                                  ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
                       ),
                     ),
-                  ),
-                  SizedBox(height: 32),
+                    SizedBox(height: 32),
+                  ],
                 ],
               ),
             ),

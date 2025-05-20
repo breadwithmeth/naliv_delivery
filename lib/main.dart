@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:naliv_delivery/misc/databaseapi.dart';
 import 'package:naliv_delivery/pages/mainPage.dart';
+import 'package:naliv_delivery/pages/noInternetPage.dart';
 import 'package:naliv_delivery/pages/paintLogoPage.dart';
 import 'package:naliv_delivery/pages/preLoadDataPage2.dart';
 import '../globals.dart' as globals;
@@ -13,14 +14,16 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:connectivity_plus/connectivity_plus.dart'; // Импортируем пакет
+
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
 Future<void> main() async {
-WidgetsFlutterBinding.ensureInitialized();
-await Firebase.initializeApp(
-  options: DefaultFirebaseOptions.currentPlatform,
-);
-   runApp(const Main());
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  runApp(const Main());
 }
 
 class Main extends StatefulWidget {
@@ -33,11 +36,29 @@ class Main extends StatefulWidget {
 class _MainState extends State<Main> {
   Widget _redirect = PaintLogoPage();
   DatabaseManager dbm = DatabaseManager();
-
+  bool _hasInternet = true;
   @override
   void initState() {
     super.initState();
+    _monitorConnectivity();
     _checkAuth();
+  }
+
+  void _monitorConnectivity() {
+    // Проверяем текущее состояние подключения
+    Connectivity().checkConnectivity().then((result) {
+      if (result == ConnectivityResult.none) {
+        setState(() {
+          _hasInternet = false; // Нет подключения
+          _redirect = NoInternetPage(
+              onRetry: _checkAuth); // Показать страницу без интернета
+        });
+      } else {
+        setState(() {
+          _hasInternet = true; // Есть подключение
+        });
+      }
+    });
   }
 
   Future<void> _checkAuth() async {

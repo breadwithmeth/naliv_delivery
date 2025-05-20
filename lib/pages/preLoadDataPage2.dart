@@ -43,16 +43,7 @@ class _Preloaddatapage2State extends State<Preloaddatapage2> {
     }
   }
 
-  Future<void> _getUser() async {
-    await getUser().then((value) {
-      setState(() {
-        if (value != null) {
-          user = value;
-        }
-      });
-    });
-  }
-
+ 
   Future<List> _getBusinesses() async {
     List businesses = await getBusinesses();
     //print(businesses);

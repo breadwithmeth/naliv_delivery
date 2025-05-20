@@ -51,6 +51,112 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   List stories = [];
   List gigaCats = [];
   DatabaseManager dbm = DatabaseManager();
+  Future<void> _getUser() async {
+    await getUser().then((value) {
+      if (value != null && (value['name'] == null || value['name'].isEmpty)) {
+        _showNameInputDialog();
+      }
+    });
+  }
+
+  void _showNameInputDialog() {
+    final TextEditingController nameController = TextEditingController();
+    bool isLoading = false;
+
+    showCupertinoDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return CupertinoAlertDialog(
+              title: Text('Введите ваше имя'),
+              content: Column(
+                children: [
+                  SizedBox(height: 16),
+                  CupertinoTextField(
+                    controller: nameController,
+                    placeholder: 'Имя',
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.systemGrey6,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    autofocus: true,
+                  ),
+                ],
+              ),
+              actions: [
+                if (isLoading)
+                  Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CupertinoActivityIndicator(),
+                    ),
+                  )
+                else
+                  CupertinoDialogAction(
+                    isDefaultAction: true,
+                    onPressed: () async {
+                      final name = nameController.text.trim();
+                      if (name.isEmpty) {
+                        showCupertinoDialog(
+                          context: context,
+                          builder: (context) => CupertinoAlertDialog(
+                            title: Text('Ошибка'),
+                            content: Text('Пожалуйста, введите ваше имя'),
+                            actions: [
+                              CupertinoDialogAction(
+                                child: Text('OK'),
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                            ],
+                          ),
+                        );
+                        return;
+                      }
+
+                      setState(() {
+                        isLoading = true;
+                      });
+
+                      try {
+                        await changeName(name); // Используем функцию changeName
+
+                        if (mounted) {
+                          Navigator.pop(context);
+                        }
+                      } catch (e) {
+                        setState(() {
+                          isLoading = false;
+                        });
+
+                        if (mounted) {
+                          showCupertinoDialog(
+                            context: context,
+                            builder: (context) => CupertinoAlertDialog(
+                              title: Text('Ошибка'),
+                              content: Text('Не удалось сохранить имя'),
+                              actions: [
+                                CupertinoDialogAction(
+                                  child: Text('OK'),
+                                  onPressed: () => Navigator.pop(context),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    child: Text('Сохранить'),
+                  ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 
   _getCategories() {
     getCategories(widget.business["business_id"]).then((value) {
@@ -112,6 +218,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     _getCategories();
     _getAddresses();
     _getGigaCats();
+    _getUser();
     WidgetsBinding.instance.addPostFrameCallback((_) {});
   }
 
@@ -786,7 +893,7 @@ Widget _buildCategoryHeader(
 
 Widget _buildCategoryItems(List items, Map category, Map business) {
   return Container(
-    height: 220, // Увеличили высоту
+    height: 180, // Увеличили высоту
     margin: EdgeInsets.only(top: 16),
     child: ListView.builder(
       padding: EdgeInsets.symmetric(horizontal: 16),
