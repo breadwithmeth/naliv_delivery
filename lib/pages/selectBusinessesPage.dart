@@ -96,7 +96,7 @@ class _SelectBusinessesPageState extends State<SelectBusinessesPage> {
                         Container(
                           margin: EdgeInsets.only(bottom: 24),
                           child: Text(
-                            "Бар-Маркеты\nНалив/Градусы24",
+                            "vezu",
                             style: GoogleFonts.manrope(
                               fontSize: 32,
                               fontWeight: FontWeight.w700,

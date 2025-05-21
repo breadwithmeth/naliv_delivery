@@ -92,7 +92,7 @@ class _MainState extends State<Main> {
 
     return CupertinoApp(
       navigatorObservers: [routeObserver],
-      title: "Налив/Градусы24",
+      title: "vezu",
       localizationsDelegates: const [
         GlobalCupertinoLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

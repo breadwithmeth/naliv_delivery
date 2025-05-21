@@ -227,7 +227,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
       context: context,
       builder: (BuildContext context) => CupertinoActionSheet(
         title: Text(
-          'Налив/Градусы24',
+          'vezu',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w600,
@@ -490,15 +490,15 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       _buildCurrentShopCard(),
 
                       // Истории с плавной анимацией
-                      if (stories.isNotEmpty)
-                        AnimatedOpacity(
-                          opacity: stories.isEmpty ? 0.0 : 1.0,
-                          duration: Duration(milliseconds: 500),
-                          child: _buildStoriesSection(),
-                        ),
+                      // if (stories.isNotEmpty)
+                      //   AnimatedOpacity(
+                      //     opacity: stories.isEmpty ? 0.0 : 1.0,
+                      //     duration: Duration(milliseconds: 500),
+                      //     child: _buildStoriesSection(),
+                      //   ),
 
                       // Быстрые действия
-                      _buildQuickActionsSection(),
+                      // _buildQuickActionsSection(),
 
                       // Категории с анимированным появлением
                       _buildCategoriesSection(),
@@ -673,67 +673,19 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
           ),
         );
       },
-      child: Container(
-        margin: EdgeInsets.all(16),
-        height: 160,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: CupertinoColors.systemGrey.withOpacity(0.1),
-              blurRadius: 10,
-              offset: Offset(0, 4),
-            ),
-          ],
+      child: CupertinoListTile(
+        subtitle: Text(
+          widget.business["address"],
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            color: CupertinoColors.label.resolveFrom(context),
+          ),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Stack(
-            children: [
-              CachedNetworkImage(
-                imageUrl: widget.business["img"],
-                fit: BoxFit.cover,
-                width: double.infinity,
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      CupertinoColors.black.withOpacity(0),
-                      CupertinoColors.black.withOpacity(0.8),
-                    ],
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 16,
-                left: 16,
-                right: 16,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.business["name"],
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w600,
-                        color: CupertinoColors.white,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      widget.business["address"],
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: CupertinoColors.white.withOpacity(0.8),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        title: Text(
+          'Адрес сборки',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            color: CupertinoColors.label.resolveFrom(context),
           ),
         ),
       ),

@@ -43,7 +43,7 @@ class StartPage extends StatelessWidget {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
-                                      "Налив/Градусы24",
+                                      "vezu",
                                       textAlign: TextAlign.center,
                                       style: GoogleFonts.unbounded(
                                         fontSize: 24,

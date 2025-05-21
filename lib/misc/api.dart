@@ -15,13 +15,6 @@ final dio = Dio(BaseOptions(
   receiveTimeout: Duration(seconds: 10),
 ));
 
-
-
-
-
-
-
-
 //var URL_API = '10.8.0.3';
 
 // var URL_API = '192.168.0.164:8080';
@@ -1971,9 +1964,7 @@ Future<Map<String, dynamic>> getGigaCats(
       options: Options(
         headers: {"Content-Type": "application/json", "AUTH": token},
       ),
-      data: {
-        'business_id': business_id,
-      });
+      data: {'business_id': business_id, 'age_restricted': true});
   // var url = Uri.https(URL_API, 'api/item/geti2');
   // var response = await client.post(
   //   url,
