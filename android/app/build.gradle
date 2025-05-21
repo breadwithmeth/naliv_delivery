@@ -39,7 +39,7 @@ android {
         applicationId "com.naliv.delivery"
         minSdkVersion 21
         targetSdkVersion flutter.targetSdkVersion
-        versionCode 122
+        versionCode 123
         versionName "1.1.23"
     }
 
