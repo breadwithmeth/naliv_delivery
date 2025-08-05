@@ -36,7 +36,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.naliv.vezu"
+        applicationId "com.naliv.delivery"
         minSdkVersion 21
         targetSdkVersion flutter.targetSdkVersion
         versionCode 123

@@ -1,20 +1,12 @@
 import 'dart:async';
-import 'dart:ui';
-import 'package:flutter/cupertino.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:naliv_delivery/misc/databaseapi.dart';
-import 'package:naliv_delivery/pages/mainPage.dart';
-import 'package:naliv_delivery/pages/noInternetPage.dart';
-import 'package:naliv_delivery/pages/paintLogoPage.dart';
-import 'package:naliv_delivery/pages/preLoadDataPage2.dart';
-import '../globals.dart' as globals;
-import 'package:naliv_delivery/misc/api.dart';
-import 'package:naliv_delivery/pages/startPage.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/bottomMenu.dart';
+import 'package:naliv_delivery/utils/location_service.dart';
+import 'package:naliv_delivery/utils/cart_provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
 import 'firebase_options.dart';
-import 'package:connectivity_plus/connectivity_plus.dart'; // Импортируем пакет
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
@@ -23,7 +15,13 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const Main());
+
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => CartProvider(),
+      child: const Main(),
+    ),
+  );
 }
 
 class Main extends StatefulWidget {
@@ -33,136 +31,95 @@ class Main extends StatefulWidget {
   State<Main> createState() => _MainState();
 }
 
-class _MainState extends State<Main> {
-  Widget _redirect = PaintLogoPage();
-  DatabaseManager dbm = DatabaseManager();
-  bool _hasInternet = true;
+class _MainState extends State<Main> with LocationMixin {
+  // Данные загруженные из API
+
   @override
   void initState() {
     super.initState();
-    _monitorConnectivity();
-    _checkAuth();
-  }
-
-  void _monitorConnectivity() {
-    // Проверяем текущее состояние подключения
-    Connectivity().checkConnectivity().then((result) {
-      if (result == ConnectivityResult.none) {
-        setState(() {
-          _hasInternet = false; // Нет подключения
-          _redirect = NoInternetPage(
-              onRetry: _checkAuth); // Показать страницу без интернета
-        });
-      } else {
-        setState(() {
-          _hasInternet = true; // Есть подключение
-        });
-      }
+    // Инициализируем корзину после создания виджета
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<CartProvider>(context, listen: false).loadCart();
     });
-  }
-
-  Future<void> _checkAuth() async {
-    String? token = await getToken();
-    if (token != null) {
-      setState(() {
-        _redirect = Preloaddatapage2();
-      });
-    } else {
-      setState(() {
-        _redirect = const StartPage();
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    FlutterView view = WidgetsBinding.instance.platformDispatcher.views.first;
-
-    if (view.display.size.width + view.display.size.height >= 2560 + 1600) {
-      globals.scaleParam = (view.display.size.shortestSide / 720) * 0.3;
-    } else if (view.display.size.width + view.display.size.height >=
-        1920 + 1080) {
-      globals.scaleParam = (view.display.size.shortestSide / 720) * 0.3;
-    } else if (view.display.size.width + view.display.size.height >=
-        (1560 + 720)) {
-      globals.scaleParam = (view.display.size.shortestSide / 720) * 0.4;
-    } else {
-      globals.scaleParam = 0.5;
-    }
-
-    return CupertinoApp(
-      navigatorObservers: [routeObserver],
-      title: "vezu",
-      localizationsDelegates: const [
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        DefaultCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('ru'),
-        Locale('en'),
-      ],
-      theme: CupertinoThemeData(
-        applyThemeToAll: true,
-        brightness:
-            MediaQueryData.fromView(View.of(context)).platformBrightness,
-        primaryColor: CupertinoColors.activeOrange,
-        primaryContrastingColor: CupertinoColors.label,
-        scaffoldBackgroundColor:
-            CupertinoColors.systemBackground.resolveFrom(context),
-        barBackgroundColor: CupertinoColors.systemGrey6.resolveFrom(context),
-        textTheme: CupertinoTextThemeData(
-          // Заголовок навигации
-          navTitleTextStyle: GoogleFonts.unbounded(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.3,
-            color: CupertinoColors.label,
+    return MaterialApp(
+        navigatorObservers: [routeObserver],
+        title: "Налив/Градусы24",
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('ru'),
+          Locale('en'),
+        ],
+        theme: ThemeData(
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
           ),
-          // Основной текст
-          textStyle: GoogleFonts.manrope(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            letterSpacing: -0.2,
-            color: CupertinoColors.label,
+          useMaterial3: true,
+          brightness: Brightness.light,
+          scaffoldBackgroundColor: Color(0xffF9F9F9),
+          appBarTheme: AppBarTheme(
+            backgroundColor: Color(0xffF9F9F9),
+            foregroundColor: Colors.black,
           ),
-          // Кнопки действий
-          actionTextStyle: GoogleFonts.unbounded(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            letterSpacing: -0.2,
-            color: CupertinoColors.activeOrange,
+          colorScheme: const ColorScheme.light(
+            surface: Color(0xFFF5F5F5),
+            onSurface: Colors.black,
+            primaryContainer: Colors.white,
+            primary: Colors.black,
+            onPrimary: Colors.white,
+            surfaceDim: Colors.white,
+            secondary: Color(0xFFFF6900),
+            // onSecondaryContainer: Color(0xFF363636),
+            secondaryContainer: Color(0xFFff991c),
           ),
-          // Текст в навигации
-          navActionTextStyle: GoogleFonts.unbounded(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            letterSpacing: -0.2,
-            color: CupertinoColors.activeOrange,
-          ),
-          // Большие заголовки
-          navLargeTitleTextStyle: GoogleFonts.unbounded(
-            fontSize: 32,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.5,
-            color: CupertinoColors.label,
-          ),
-          // Табуляция
-          tabLabelTextStyle: GoogleFonts.manrope(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.1,
-            color: CupertinoColors.label,
+          textTheme: const TextTheme(
+            bodyMedium: TextStyle(color: Colors.black),
           ),
         ),
-      ),
-      debugShowCheckedModeBanner: false,
-      home: _redirect,
-    );
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
+        darkTheme: ThemeData(
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+          useMaterial3: true,
+          brightness: Brightness.dark,
+          appBarTheme: AppBarTheme(
+            backgroundColor: Color(0xFF0a0a0a),
+            surfaceTintColor: Color(0xFF0a0a0a),
+            foregroundColor: Colors.white,
+          ),
+          scaffoldBackgroundColor: Color(0xFF0a0a0a),
+          colorScheme: const ColorScheme.dark(
+              surfaceDim: Colors.white10,
+              surface: Color(0xFF151515),
+              onSurface: Colors.white,
+              primaryContainer: Color(0xFF363636),
+              primary: Colors.white,
+              secondaryContainer: Color(0xFFff991c),
+              secondary: Color(0xFFFF6900),
+              onPrimary: Colors.black),
+          textTheme: const TextTheme(
+            bodyMedium: TextStyle(color: Colors.white),
+          ),
+        ),
+        debugShowCheckedModeBanner: false,
+        home: BottomMenu());
   }
 }
