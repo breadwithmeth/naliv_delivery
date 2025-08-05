@@ -106,7 +106,6 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
 
   /// Автоматически выбирает ближайший магазин если доступна геолокация
   void _autoSelectNearestBusiness() {
-    
     if (_selectedBusiness == null &&
         _userPosition != null &&
         _businesses.isNotEmpty) {
@@ -514,11 +513,11 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       case 2:
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Корзина'),
+            title: const Text('Избранное'),
           ),
           body: const Center(
             child: Text(
-              'Корзина удалена из проекта',
+              'Скоро',
               style: TextStyle(fontSize: 18),
             ),
           ),

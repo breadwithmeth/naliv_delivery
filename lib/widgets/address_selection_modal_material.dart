@@ -360,10 +360,17 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
           ),
           TextButton(
             child: const Text('Выбрать вручную'),
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(context).pop();
-              // Фокусируемся на поле поиска
-              _searchFocusNode.requestFocus();
+              // Открываем MapAddressPage для ручного выбора адреса
+              // Используем координаты Алматы по умолчанию
+              await Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => MapAddressPage(
+                  initialLat: 43.2220,
+                  initialLon: 76.8512,
+                  onAddressSelected: widget.onAddressSelected,
+                ),
+              ));
             },
           ),
         ],

@@ -31,8 +31,15 @@ class _ItemOptionsDialogState extends State<ItemOptionsDialog> {
         }
       }
     }
-    // Устанавливаем начальное количество 0
-    quantity = 0.0;
+    // Устанавливаем начальное количество равным step-у
+    double step = 1.0;
+    if (selectedOptions.isNotEmpty) {
+      final first = selectedOptions.values.first;
+      if (first != null) {
+        step = first.parentItemAmount.toDouble();
+      }
+    }
+    quantity = step;
   }
 
   @override
@@ -145,6 +152,7 @@ class _ItemOptionsDialogState extends State<ItemOptionsDialog> {
                             step = first.parentItemAmount.toDouble();
                           }
                         }
+                        // Не позволяем уменьшить ниже одного шага
                         if (quantity > step) {
                           setState(() => quantity = quantity - step);
                         }
@@ -160,7 +168,20 @@ class _ItemOptionsDialogState extends State<ItemOptionsDialog> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        quantity.toStringAsFixed(0),
+                        () {
+                          // Получаем текущий step
+                          double step = 1.0;
+                          if (selectedOptions.isNotEmpty) {
+                            final first = selectedOptions.values.first;
+                            if (first != null) {
+                              step = first.parentItemAmount.toDouble();
+                            }
+                          }
+                          // Если step != 1.0, показываем дробные значения
+                          return step == 1.0
+                              ? quantity.toStringAsFixed(0)
+                              : quantity.toStringAsFixed(2);
+                        }(),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,

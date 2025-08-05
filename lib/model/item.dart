@@ -23,6 +23,9 @@ class Item {
   final int? visible;
   final int? amount;
 
+  // Шаг изменения количества (для товаров без опций)
+  final double? stepQuantity;
+
   // Дополнительные функции
   final List<ItemOption>? options;
   final List<ItemPromotion>? promotions;
@@ -39,12 +42,27 @@ class Item {
     this.businessId,
     this.visible,
     this.amount,
+    this.stepQuantity,
     this.options,
     this.promotions,
   });
 
   /// Создание из JSON API
   factory Item.fromJson(Map<String, dynamic> json) {
+    final stepQuantityValue = _parseDouble(json['step_quantity']) ??
+        _parseDouble(json['quantity_step']) ??
+        _parseDouble(json['parent_item_amount']);
+
+    // Debug вывод для отладки
+    print('=== Item.fromJson DEBUG ===');
+    print('Item ID: ${json['item_id']}');
+    print('Name: ${json['name']}');
+    print('step_quantity: ${json['step_quantity']}');
+    print('quantity_step: ${json['quantity_step']}');
+    print('parent_item_amount: ${json['parent_item_amount']}');
+    print('Parsed stepQuantity: $stepQuantityValue');
+    print('===========================');
+
     return Item(
       itemId: _parseInt(json['item_id']),
       name: json['name'] ?? '',
@@ -59,6 +77,7 @@ class Item {
       businessId: _parseInt(json['business_id']),
       visible: _parseInt(json['visible']),
       amount: _parseInt(json['amount']),
+      stepQuantity: stepQuantityValue,
       options: json['options'] != null
           ? (json['options'] as List)
               .map((option) => ItemOption.fromJson(option))
@@ -78,10 +97,41 @@ class Item {
   /// Создание из CategoryItem (для миграции существующего кода)
   factory Item.fromCategoryItem(dynamic categoryItem) {
     if (categoryItem is Map<String, dynamic>) {
+      print('=== Item.fromCategoryItem (Map) DEBUG ===');
+      print('Item ID: ${categoryItem['item_id']}');
+      print('Name: ${categoryItem['name']}');
+      print('step_quantity: ${categoryItem['step_quantity']}');
+      print('quantity_step: ${categoryItem['quantity_step']}');
+      print('parent_item_amount: ${categoryItem['parent_item_amount']}');
+      print('==========================================');
       return Item.fromJson(categoryItem);
     }
 
+    print('=== Item.fromCategoryItem (Object) DEBUG ===');
+    print('Item ID: ${categoryItem.itemId}');
+    print('Name: ${categoryItem.name}');
+    print('CategoryItem stepQuantity: ${categoryItem.stepQuantity}');
+    print(
+        'Has options: ${categoryItem.options != null && categoryItem.options!.isNotEmpty}');
+    print('=============================================');
+
     // Если это объект CategoryItem, конвертируем его поля
+    // Сначала пробуем взять stepQuantity из CategoryItem
+    double? stepQuantity = categoryItem.stepQuantity;
+
+    // Если stepQuantity нет, пробуем извлечь из опций
+    if (stepQuantity == null &&
+        categoryItem.options != null &&
+        categoryItem.options!.isNotEmpty) {
+      final firstOption = categoryItem.options!.first;
+      if (firstOption.variants != null && firstOption.variants!.isNotEmpty) {
+        stepQuantity = firstOption.variants!.first.parentItemAmount.toDouble();
+        print('Found stepQuantity from options: $stepQuantity');
+      }
+    }
+
+    print('Final stepQuantity: $stepQuantity');
+
     return Item(
       itemId: categoryItem.itemId ?? 0,
       name: categoryItem.name ?? '',
@@ -94,6 +144,7 @@ class Item {
           ? ItemCategory.fromApiCategory(categoryItem.category)
           : null,
       visible: categoryItem.visible,
+      stepQuantity: stepQuantity,
       options: categoryItem.options != null
           ? (categoryItem.options as List?)
               ?.map((opt) => ItemOption.fromCategoryItemOption(opt))
@@ -121,6 +172,7 @@ class Item {
       if (businessId != null) 'business_id': businessId,
       if (visible != null) 'visible': visible,
       if (amount != null) 'amount': amount,
+      if (stepQuantity != null) 'step_quantity': stepQuantity,
       if (options != null)
         'options': options!.map((option) => option.toJson()).toList(),
       if (promotions != null)
@@ -172,6 +224,23 @@ class Item {
 
   /// Проверяет, есть ли опции
   bool get hasOptions => options != null && options!.isNotEmpty;
+
+  /// Получает эффективный stepQuantity
+  /// Если у товара нет опций и задан stepQuantity, используем его
+  /// Если есть опции, используем parent_item_amount из первой опции
+  /// По умолчанию возвращает 1.0
+  double get effectiveStepQuantity {
+    // Если у товара есть опции, используем parent_item_amount из первой опции
+    if (hasOptions) {
+      final firstOption = options!.first;
+      if (firstOption.optionItems.isNotEmpty) {
+        return firstOption.optionItems.first.parentItemAmount.toDouble();
+      }
+    }
+
+    // Если нет опций, используем stepQuantity из товара или 1.0 по умолчанию
+    return stepQuantity ?? 1.0;
+  }
 
   @override
   String toString() {

@@ -362,9 +362,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
       total += deliveryCost;
     }
 
+    // Максимум 25% от суммы заказа можно оплатить бонусами
+    final maxBonusUsage = total * 0.25;
     final availableBonuses =
         (_bonusData!['data']['totalBonuses'] as num?)?.toDouble() ?? 0.0;
-    return availableBonuses > total ? total : availableBonuses;
+
+    // Возвращаем меньшее из: доступные бонусы, максимально допустимое использование (25%), или полная сумма
+    return [availableBonuses, maxBonusUsage, total]
+        .reduce((a, b) => a < b ? a : b);
   }
 
   /// Построить подзаголовок с информацией о бонусах
@@ -385,10 +390,32 @@ class _CheckoutPageState extends State<CheckoutPage> {
         ? bonusHistory.first['timestamp'] ?? ''
         : '';
 
+    // Рассчитываем максимальную сумму для использования бонусов (25% от заказа)
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final cartTotal = cartProvider.getTotalPrice();
+    double orderTotal = cartTotal;
+    if (_deliveryType == 'DELIVERY' && _deliveryData != null) {
+      final deliveryCost =
+          (_deliveryData!['delivery_cost'] as num?)?.toDouble() ?? 0.0;
+      orderTotal += deliveryCost;
+    }
+    final maxBonusUsage = orderTotal * 0.25;
+    final availableToUse =
+        totalBonuses > maxBonusUsage ? maxBonusUsage : totalBonuses;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Доступно: $totalBonuses бонусов'),
+        if (orderTotal > 0)
+          Text(
+            'Можно использовать: ${availableToUse.toStringAsFixed(0)} ₸ ',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         if (latestBonusAmount > 0)
           Text(
             'Последнее: +$latestBonusAmount ₸ ${_formatBonusDate(latestBonusDate)}',
@@ -558,7 +585,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 margin: const EdgeInsets.symmetric(vertical: 4),
                 child: ListTile(
                   title: Text(item.name),
-                  subtitle: Text('x${item.quantity.toStringAsFixed(0)}'),
+                  subtitle: Text(
+                      'x${item.stepQuantity == 1.0 ? item.quantity.toStringAsFixed(0) : item.quantity.toStringAsFixed(2)}'),
                   trailing: Text('${item.totalPrice.toStringAsFixed(0)} ₸'),
                 ),
               );

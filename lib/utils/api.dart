@@ -5,7 +5,7 @@ import '../model/item.dart' as ItemModel;
 
 /// Класс для работы с API
 class ApiService {
-  static const String baseUrl = 'http://localhost:3000/api';
+  static const String baseUrl = 'https://naliv-b-jue85.ondigitalocean.app/api';
   // Ключ для хранения токена аутентификации
   static const String _authTokenKey = 'auth_token';
 
@@ -879,7 +879,7 @@ class ApiService {
       if (response.statusCode == 200) {
         // Декодируем JSON ответ
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
-
+        print(jsonResponse.toString());
         print('📦 Ответ API товаров категории: $jsonResponse');
 
         // Проверяем успешность запроса
@@ -1020,9 +1020,11 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        print('Response from generateAddCardLink: $jsonResponse');
         if (jsonResponse['success'] == true && jsonResponse['data'] is Map) {
           final data = jsonResponse['data'] as Map<String, dynamic>;
-          return data['redirect_url'] as String?;
+          // API возвращает addCardLink, а не redirect_url
+          return data['addCardLink'] as String?;
         } else {
           print(
               'API generateAddCardLink error: ${jsonResponse['error']?['message']}');
@@ -1910,6 +1912,7 @@ class CategoryItem {
   final String? code;
   final ItemCategory category;
   final int visible;
+  final double? stepQuantity;
   final List<CategoryItemOption>? options;
   final List<CategoryItemPromotion>? promotions;
 
@@ -1922,6 +1925,7 @@ class CategoryItem {
     this.code,
     required this.category,
     required this.visible,
+    this.stepQuantity,
     this.options,
     this.promotions,
   });
@@ -1936,6 +1940,9 @@ class CategoryItem {
       code: json['code'],
       category: ItemCategory.fromJson(json['category'] ?? {}),
       visible: ApiService._parseInt(json['visible']),
+      stepQuantity: ApiService._parseDouble(json['quantity_step']) ??
+          ApiService._parseDouble(json['step_quantity']) ??
+          ApiService._parseDouble(json['parent_item_amount']),
       options: json['options'] != null
           ? (json['options'] as List)
               .map((option) => CategoryItemOption.fromJson(option))
@@ -1959,6 +1966,7 @@ class CategoryItem {
       if (code != null) 'code': code,
       'category': category.toJson(),
       'visible': visible,
+      if (stepQuantity != null) 'quantity_step': stepQuantity,
       if (options != null)
         'options': options!.map((option) => option.toJson()).toList(),
       if (promotions != null)

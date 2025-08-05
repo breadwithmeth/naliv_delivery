@@ -50,6 +50,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> {
 
   Future<void> _addCard() async {
     final link = await ApiService.generateAddCardLink();
+    print('Generated link for adding card: $link');
     if (link != null) {
       final uri = Uri.parse(link);
       if (await canLaunchUrl(uri)) {
