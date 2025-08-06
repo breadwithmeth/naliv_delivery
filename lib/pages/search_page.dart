@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../utils/api.dart';
+import '../utils/business_provider.dart';
 import '../shared/product_card.dart';
 import '../model/item.dart' as ItemModel;
 
@@ -23,7 +25,11 @@ class _SearchPageState extends State<SearchPage> {
       _error = null;
     });
     try {
-      final items = await ApiService.searchItemsTyped(query);
+      final businessProvider =
+          Provider.of<BusinessProvider>(context, listen: false);
+      final businessId = businessProvider.selectedBusinessId;
+      final items =
+          await ApiService.searchItemsTyped(query, businessId: businessId);
       setState(() {
         _results = items;
       });
@@ -110,7 +116,7 @@ class _SearchPageState extends State<SearchPage> {
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.7,
+        childAspectRatio: 0.6,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
@@ -130,9 +136,9 @@ class _SearchPageState extends State<SearchPage> {
           decoration: const InputDecoration(
             hintText: 'Поиск товаров...',
             border: InputBorder.none,
-            hintStyle: TextStyle(color: Colors.white70),
+            // hintStyle: TextStyle(colorf: Colors.white70),
           ),
-          style: const TextStyle(color: Colors.white),
+          // style: const TextStyle(color: Colors.white),
           textInputAction: TextInputAction.search,
           onSubmitted: _search,
         ),

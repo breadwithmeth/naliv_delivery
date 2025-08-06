@@ -424,10 +424,16 @@ class ApiService {
   }
 
   /// Поиск товаров по имени
-  static Future<List<Map<String, dynamic>>?> searchItems(String name) async {
+  static Future<List<Map<String, dynamic>>?> searchItems(String name,
+      {int? businessId}) async {
     try {
+      final queryParams = {'name': name};
+      if (businessId != null) {
+        queryParams['business_id'] = businessId.toString();
+      }
+
       final uri = Uri.parse('$baseUrl/items/search').replace(
-        queryParameters: {'name': name},
+        queryParameters: queryParams,
       );
       final response = await http.get(
         uri,
@@ -454,9 +460,10 @@ class ApiService {
   }
 
   /// Поиск товаров по имени (типизированная версия unified)
-  static Future<List<ItemModel.Item>?> searchItemsTyped(String name) async {
+  static Future<List<ItemModel.Item>?> searchItemsTyped(String name,
+      {int? businessId}) async {
     try {
-      final data = await searchItems(name);
+      final data = await searchItems(name, businessId: businessId);
       if (data != null) {
         return data.map((json) => ItemModel.Item.fromJson(json)).toList();
       }
