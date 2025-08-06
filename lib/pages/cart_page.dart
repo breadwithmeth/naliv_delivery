@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/checkout_page.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/utils/api.dart';
+import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:provider/provider.dart';
 import '../utils/cart_provider.dart';
 
@@ -9,15 +10,39 @@ class CartPage extends StatelessWidget {
   static const routeName = '/cart';
 
   const CartPage({Key? key}) : super(key: key);
-
   @override
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
+    final businessProvider = Provider.of<BusinessProvider>(context);
     final items = cartProvider.items;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Корзина'),
+        actions: [
+          // IconButton(
+          //   icon: const Icon(Icons.bug_report),
+          //   onPressed: () {
+          //     print('Debugging info: ${businessProvider.selectedBusiness}');
+          //   },
+          // ),
+        ],
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Корзина'),
+            if (businessProvider.selectedBusinessName != null)
+              Text(
+                businessProvider.selectedBusiness != null
+                    ? '${businessProvider.selectedBusiness!["name"].toString()} - ${businessProvider.selectedBusiness!["address"].toString()}'
+                    : 'Выберите магазин',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.normal,
+                  color: Colors.grey,
+                ),
+              ),
+          ],
+        ),
       ),
       body: items.isEmpty
           ? const Center(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/bottomMenu.dart';
 import 'package:naliv_delivery/utils/location_service.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
+import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
@@ -17,8 +18,11 @@ Future<void> main() async {
   );
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => CartProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => BusinessProvider()),
+      ],
       child: const Main(),
     ),
   );

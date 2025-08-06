@@ -4,6 +4,7 @@ import '../model/item.dart' as ItemModel;
 import '../utils/cart_provider.dart';
 import '../models/cart_item.dart';
 import '../widgets/item_options_dialog.dart';
+import '../pages/product_detail_page.dart';
 
 class ProductCard extends StatelessWidget {
   final ItemModel.Item item;
@@ -463,21 +464,11 @@ class ProductCard extends StatelessWidget {
         ),
       ),
       onTap: () {
-        print('=== DEBUG INFO ===');
-        print('Item ID: ${item.itemId}');
-        print('Item Name: ${item.name}');
-        print('stepQuantity: ${item.stepQuantity}');
-        print('effectiveStepQuantity: ${item.effectiveStepQuantity}');
-        print('hasOptions: ${item.hasOptions}');
-        if (item.hasOptions && item.options!.isNotEmpty) {
-          final firstOption = item.options!.first;
-          print('First option items count: ${firstOption.optionItems.length}');
-          if (firstOption.optionItems.isNotEmpty) {
-            print(
-                'First option item parentItemAmount: ${firstOption.optionItems.first.parentItemAmount}');
-          }
-        }
-        print('==================');
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ProductDetailPage(item: item),
+          ),
+        );
       },
     );
   }

@@ -71,6 +71,13 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Очистить всю корзину
+  void clearCart() {
+    _items.clear();
+    _saveCart();
+    notifyListeners();
+  }
+
   /// Обновить количество товара, удалит при <=0
   void updateQuantity(int itemId, double newQuantity,
       [List<Map<String, dynamic>>? variants]) {

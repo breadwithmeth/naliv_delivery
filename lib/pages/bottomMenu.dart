@@ -6,8 +6,11 @@ import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/pages/mainPage.dart';
 import 'package:naliv_delivery/pages/profile_page.dart';
 import 'package:naliv_delivery/utils/api.dart';
+import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/cartFloatingButton.dart';
+import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/location_service.dart';
+import 'package:provider/provider.dart';
 import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/utils/address_storage_service.dart';
@@ -56,6 +59,9 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
 
   /// Загружает список бизнесов из API
   Future<void> _loadBusinesses() async {
+    // CartProvider cartProvider =
+    //     Provider.of<CartProvider>(context, listen: false);
+    // cartProvider.clearCart(); // Очищаем корзину при загрузке бизнесов
     setState(() {
       _isLoadingBusinesses = true;
     });
@@ -73,7 +79,12 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
         print('Загружено ${_businesses.length} бизнесов');
 
         // Автоматически выбираем ближайший магазин если есть геолокация
-        _autoSelectNearestBusiness();
+        _selectedBusiness =
+            Provider.of<BusinessProvider>(context, listen: false)
+                .selectedBusiness;
+        if (_selectedBusiness == null) {
+          _autoSelectNearestBusiness();
+        }
 
         // Выводим информацию о пагинации
         if (data['pagination'] != null) {
@@ -101,6 +112,10 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       _selectedBusiness = business;
     });
 
+    // Обновляем BusinessProvider
+    Provider.of<BusinessProvider>(context, listen: false)
+        .setSelectedBusiness(business);
+
     // Акции загружаются в MainPage при выборе магазина
   }
 
@@ -114,6 +129,11 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
         setState(() {
           _selectedBusiness = nearest;
         });
+
+        // Обновляем BusinessProvider
+        Provider.of<BusinessProvider>(context, listen: false)
+            .setSelectedBusiness(nearest);
+
         print('Автоматически выбран ближайший магазин: ${nearest['name']}');
       }
     }

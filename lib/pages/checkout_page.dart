@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:provider/provider.dart';
 import '../utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/address_storage_service.dart';
@@ -102,10 +103,19 @@ class _CheckoutPageState extends State<CheckoutPage> {
       );
       return;
     }
+
+    
     // TODO: Собрать тело заказа из выбранного адреса и корзины
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
+    if (businessProvider.selectedBusiness == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Пожалуйста, выберите магазин')),
+      );
+      return;
+    }
     final body = <String, dynamic>{
-      'business_id': 1,
+      'business_id': businessProvider.selectedBusiness!['id'],
       'street':
           _selectedAddress?['street'] ?? _selectedAddress?['address'] ?? '',
       'house': _selectedAddress?['house'] ?? '-',
@@ -154,8 +164,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
     print(_selectedAddress);
     if (_selectedAddress == null) return;
     print("адрес выбран");
+    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
+    if (businessProvider.selectedBusiness == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Пожалуйста, выберите магазин')),
+      );
+      return;
+    }
     // Предполагаем, что в _selectedAddress есть ключ 'address_id'
-    const businessId = 1; // TODO: заменить реальным ID бизнеса
+    final businessId = businessProvider.selectedBusiness!['id'];
     final data = await ApiService.calculateDeliveryByAddress(
       businessId: businessId,
       lat: _selectedAddress!['lat'],
@@ -340,7 +357,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       final availableBonuses =
           (_bonusData!['data']['totalBonuses'] as num?)?.toDouble() ?? 0.0;
       final bonusToUse = availableBonuses > total ? total : availableBonuses;
-      total -= bonusToUse;
+      total -= _getUsedBonuses();
     }
 
     return total;
@@ -452,6 +469,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
+    final businessProvider = Provider.of<BusinessProvider>(context);
     final total = cartProvider.getTotalPrice();
     return Scaffold(
       appBar: AppBar(title: const Text('Оформление заказа')),
@@ -460,6 +478,29 @@ class _CheckoutPageState extends State<CheckoutPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Отображение выбранного магазина
+            if (businessProvider.selectedBusiness != null)
+              Card(
+                child: ListTile(
+                  leading: Icon(
+                    Icons.store,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  title: Text(businessProvider.selectedBusinessName ??
+                      'Неизвестный магазин'),
+                  subtitle: Text(
+                      businessProvider.selectedBusiness!["address"] ??
+                          'Неизвестный магазин'),
+                  // trailing: const Icon(Icons.keyboard_arrow_right),
+                  // onTap: () {
+                  //   // Возвращаемся на главную страницу для смены магазина
+                  //   Navigator.of(context).pop();
+                  // },
+                ),
+              ),
+            if (businessProvider.selectedBusiness != null)
+              const SizedBox(height: 16),
+
             Row(
                 mainAxisAlignment: MainAxisAlignment.start,
                 mainAxisSize: MainAxisSize.max,

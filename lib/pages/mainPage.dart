@@ -4,12 +4,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:naliv_delivery/utils/address_storage_service.dart';
+import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
+import 'package:provider/provider.dart';
 import '../utils/location_service.dart';
 import '../utils/api.dart';
 import '../shared/product_card.dart';
 import '../model/item.dart' as ItemModel;
 import 'promotion_items_page.dart';
+import 'order_detail_page.dart';
 
 class MainPage extends StatefulWidget {
   final List<Map<String, dynamic>> businesses;
@@ -140,6 +143,13 @@ class _MainPageState extends State<MainPage> {
 
   /// Автоматически выбирает ближайший магазин при смене адреса
   void _autoSelectNearestBusiness() {
+    // Если уже есть выбранный магазин, не меняем его автоматически
+    if (widget.selectedBusiness != null) {
+      print(
+          '✅ Магазин уже выбран: ${widget.selectedBusiness!['name']}, автоматический выбор пропущен');
+      return;
+    }
+
     if (_selectedAddress != null &&
         _selectedAddress!['lat'] != null &&
         _selectedAddress!['lon'] != null) {
@@ -153,26 +163,20 @@ class _MainPageState extends State<MainPage> {
       final nearestBusiness = _findNearestBusiness(currentLat, currentLon);
 
       if (nearestBusiness != null) {
-        // Проверим, не выбран ли уже этот магазин
-        if (widget.selectedBusiness == null ||
-            widget.selectedBusiness!['id'] != nearestBusiness['id']) {
-          print(
-              '🏪 Автоматически выбран ближайший магазин: ${nearestBusiness['name']}');
-          print(
-              '   Расстояние: ${(nearestBusiness['distance'] / 1000).toStringAsFixed(2)} км');
+        print(
+            '🏪 Автоматически выбран ближайший магазин: ${nearestBusiness['name']}');
+        print(
+            '   Расстояние: ${(nearestBusiness['distance'] / 1000).toStringAsFixed(2)} км');
 
-          // Важно: вызываем onBusinessSelected для обновления состояния в родительском виджете
-          widget.onBusinessSelected(nearestBusiness);
+        // Важно: вызываем onBusinessSelected для обновления состояния в родительском виджете
+        widget.onBusinessSelected(nearestBusiness);
 
-          // Показываем уведомление пользователю после небольшой задержки
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              _showNearestBusinessNotification(nearestBusiness);
-            }
-          });
-        } else {
-          print('✅ Ближайший магазин уже выбран: ${nearestBusiness['name']}');
-        }
+        // Показываем уведомление пользователю после небольшой задержки
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _showNearestBusinessNotification(nearestBusiness);
+          }
+        });
       } else {
         print('❌ Не удалось найти ближайший магазин');
       }
@@ -219,6 +223,77 @@ class _MainPageState extends State<MainPage> {
         ),
       ),
     );
+  }
+
+  /// Обрабатывает выбор магазина с проверкой корзины
+  Future<void> _handleBusinessSelection(Map<String, dynamic> business) async {
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+
+    // Проверяем, есть ли товары в корзине
+    if (cartProvider.items.isNotEmpty) {
+      // Проверяем, отличается ли выбранный магазин от текущего
+      final currentBusinessId = widget.selectedBusiness?['id'] ??
+          widget.selectedBusiness?['business_id'] ??
+          widget.selectedBusiness?['businessId'];
+      final newBusinessId =
+          business['id'] ?? business['business_id'] ?? business['businessId'];
+
+      if (currentBusinessId != newBusinessId) {
+        // Показываем предупреждение
+        final bool? shouldClear = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext dialogContext) {
+            return AlertDialog(
+              title: const Text('Смена магазина'),
+              content: const Text(
+                  'При смене магазина все товары из корзины будут удалены. Продолжить?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Отмена'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error,
+                  ),
+                  child: const Text('Очистить корзину'),
+                ),
+              ],
+            );
+          },
+        );
+
+        if (shouldClear == true) {
+          // Очищаем корзину
+          cartProvider.clearCart();
+
+          // Показываем уведомление
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Корзина очищена'),
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+
+          // Выбираем новый магазин
+          widget.onBusinessSelected(business);
+          Navigator.of(context).pop();
+        }
+        // Если пользователь отменил, ничего не делаем
+      } else {
+        // Тот же магазин, просто закрываем диалог
+        Navigator.of(context).pop();
+      }
+    } else {
+      // Корзина пуста, просто выбираем магазин
+      widget.onBusinessSelected(business);
+      Navigator.of(context).pop();
+    }
   }
 
   /// Загружает акции для выбранного магазина
@@ -639,8 +714,7 @@ class _MainPageState extends State<MainPage> {
                               ),
                               child: TextButton(
                                 onPressed: () {
-                                  widget.onBusinessSelected(business);
-                                  Navigator.of(context).pop();
+                                  _handleBusinessSelection(business);
                                 },
                                 child: Container(
                                   width: double.infinity,
@@ -1177,141 +1251,176 @@ class _MainPageState extends State<MainPage> {
     final itemsSummary = order['items_summary'] as Map<String, dynamic>?;
     final costSummary = order['cost_summary'] as Map<String, dynamic>?;
 
-    return Container(
-      margin:
-          EdgeInsets.only(bottom: index < _activeOrders.length - 1 ? 12 : 0),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => OrderDetailPage(
+              order: order,
+            ),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin:
+            EdgeInsets.only(bottom: index < _activeOrders.length - 1 ? 12 : 0),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+          ),
         ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Заголовок заказа
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Заказ #${order['order_id']}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Заголовок заказа
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Заказ #${order['order_id']}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (business != null)
+                        Text(
+                          business['name'] ?? 'Неизвестный магазин',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
+                  ),
+                  if (currentStatus != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _parseColor(currentStatus['status_color'])
+                            .withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: _parseColor(currentStatus['status_color']),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        currentStatus['status_description'] ?? 'Неизвестно',
+                        style: TextStyle(
+                          color: _parseColor(currentStatus['status_color']),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                    if (business != null)
-                      Text(
-                        business['name'] ?? 'Неизвестный магазин',
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // Информация о доставке
+              if (deliveryAddress != null) ...[
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        deliveryAddress['address'] ?? 'Адрес не указан',
                         style: TextStyle(
                           fontSize: 14,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
+                    ),
                   ],
                 ),
-                if (currentStatus != null)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: _parseColor(currentStatus['status_color'])
-                          .withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: _parseColor(currentStatus['status_color']),
-                        width: 1,
-                      ),
-                    ),
-                    child: Text(
-                      currentStatus['status_description'] ?? 'Неизвестно',
-                      style: TextStyle(
-                        color: _parseColor(currentStatus['status_color']),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+                const SizedBox(height: 8),
               ],
-            ),
 
-            const SizedBox(height: 12),
-
-            // Информация о доставке
-            if (deliveryAddress != null) ...[
-              Row(
-                children: [
-                  Icon(
-                    Icons.location_on,
-                    size: 16,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      deliveryAddress['address'] ?? 'Адрес не указан',
+              // Информация о товарах
+              if (itemsSummary != null) ...[
+                Row(
+                  children: [
+                    Icon(
+                      Icons.shopping_bag,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Товаров: ${itemsSummary['items_count'] ?? 0} (${itemsSummary['total_amount'] ?? 0} шт.)',
                       style: TextStyle(
                         fontSize: 14,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-            ],
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
 
-            // Информация о товарах
-            if (itemsSummary != null) ...[
+              // Сумма заказа
+              if (costSummary != null)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Сумма заказа:',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      '${costSummary['total_sum']} ₸',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+
+              // Индикатор того, что заказ кликабельный
+              const SizedBox(height: 8),
               Row(
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Icon(
-                    Icons.shopping_bag,
-                    size: 16,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  Text(
+                    'Нажмите для подробностей',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.primary,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
                   const SizedBox(width: 4),
-                  Text(
-                    'Товаров: ${itemsSummary['items_count'] ?? 0} (${itemsSummary['total_amount'] ?? 0} шт.)',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 12,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
             ],
-
-            // Сумма заказа
-            if (costSummary != null)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Сумма заказа:',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  Text(
-                    '${costSummary['total_sum']} ₸',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ],
-              ),
-          ],
+          ),
         ),
       ),
     );

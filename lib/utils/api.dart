@@ -5,7 +5,9 @@ import '../model/item.dart' as ItemModel;
 
 /// Класс для работы с API
 class ApiService {
-  static const String baseUrl = 'https://naliv-b-jue85.ondigitalocean.app/api';
+  // static const String baseUrl = 'https://naliv-b-jue85.ondigitalocean.app/api';
+  static const String baseUrl = 'http://localhost:3000/api';
+
   // Ключ для хранения токена аутентификации
   static const String _authTokenKey = 'auth_token';
 
