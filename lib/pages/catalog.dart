@@ -198,7 +198,7 @@ class _CatalogState extends State<Catalog> {
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 3,
-                        childAspectRatio: 1,
+                        childAspectRatio: 0.8,
                         crossAxisSpacing: 8,
                         mainAxisSpacing: 8,
                       ),
@@ -206,58 +206,52 @@ class _CatalogState extends State<Catalog> {
                         final cat = cats[index];
                         print(cat);
                         return GestureDetector(
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => CategoryPage(
-                                  category: Category.fromJson(cat),
-                                  allCategories: cats
-                                      .map((c) => Category.fromJson(c))
-                                      .toList(),
-                                  businessId: widget.businessId,
-                                ),
-                              ),
-                            );
-                          },
-                          child: GridTile(
-                              child: Container(
-                                clipBehavior: Clip.antiAliasWithSaveLayer,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12),
-                                  color: Theme.of(context).colorScheme.surface,
-                                ),
-                                child: Image.network(cat['img'] ?? '',
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                  return const Icon(Icons.error, size: 48);
-                                }),
-                              ),
-                              footer: Container(
-                                clipBehavior: Clip.antiAliasWithSaveLayer,
-                                padding:
-                                    const EdgeInsets.only(top: 20, bottom: 4),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.only(
-                                    bottomLeft: Radius.circular(12),
-                                    bottomRight: Radius.circular(12),
-                                  ),
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.transparent,
-                                      Colors.black87,
-                                    ],
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => CategoryPage(
+                                    category: Category.fromJson(cat),
+                                    allCategories: cats
+                                        .map((c) => Category.fromJson(c))
+                                        .toList(),
+                                    businessId: widget.businessId,
                                   ),
                                 ),
-                                child: Text(cat['name'] ?? '',
+                              );
+                            },
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                AspectRatio(
+                                  aspectRatio: 4 / 3,
+                                  child: Container(
+                                    clipBehavior: Clip.antiAliasWithSaveLayer,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(5),
+                                      color:
+                                          Theme.of(context).colorScheme.surface,
+                                    ),
+                                    child: Image.network(cat['img'] ?? '',
+                                        fit: BoxFit.cover, errorBuilder:
+                                            (context, error, stackTrace) {
+                                      return const Icon(Icons.error, size: 48);
+                                    }),
+                                  ),
+                                ),
+                                Container(
+                                  padding: EdgeInsets.all(3),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    cat['name'] ?? '',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    )),
-                              )),
-                        );
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 12),
+                                    maxLines: 2,
+                                  ),
+                                ),
+                              ],
+                            ));
                       },
                     ),
                   ],

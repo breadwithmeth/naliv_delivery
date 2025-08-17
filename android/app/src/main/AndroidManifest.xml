@@ -12,7 +12,35 @@
 				<action android:name="android.intent.action.MAIN" />
 				<category android:name="android.intent.category.LAUNCHER" />
 			</intent-filter>
+			<!-- Intent filter for handling notification clicks -->
+			<intent-filter android:autoVerify="true">
+				<action android:name="android.intent.action.VIEW" />
+				<category android:name="android.intent.category.DEFAULT" />
+				<category android:name="android.intent.category.BROWSABLE" />
+				<data android:scheme="naliv" />
+			</intent-filter>
 		</activity>
+		
+		<!-- Firebase Cloud Messaging Service -->
+		<service
+			android:name="io.flutter.plugins.firebase.messaging.FlutterFirebaseMessagingService"
+			android:exported="false">
+			<intent-filter>
+				<action android:name="com.google.firebase.MESSAGING_EVENT" />
+			</intent-filter>
+		</service>
+		
+		<!-- Firebase Messaging default values -->
+		<meta-data
+			android:name="com.google.firebase.messaging.default_notification_icon"
+			android:resource="@drawable/ic_notification" />
+		<meta-data
+			android:name="com.google.firebase.messaging.default_notification_color"
+			android:resource="@color/notification_color" />
+		<meta-data
+			android:name="com.google.firebase.messaging.default_notification_channel_id"
+			android:value="naliv_orders" />
+		
 		<!--
 		Don't delete the meta-data below.
 		This is used by the Flutter tool to generate GeneratedPluginRegistrant.java

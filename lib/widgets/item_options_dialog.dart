@@ -316,7 +316,7 @@ class _ItemOptionsDialogState extends State<ItemOptionsDialog> {
   String _getOptionItemName(ItemModel.ItemOptionItem optionItem) {
     // Здесь можно добавить логику для получения названия опции
     // Пока возвращаем ID товара
-    return 'Опция ${optionItem.itemId}';
+    return 'Опция ${optionItem.itemId} - ${optionItem.item_name}';
   }
 
   double _calculateTotalPrice() {

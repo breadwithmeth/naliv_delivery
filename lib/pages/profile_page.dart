@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 import '../utils/api.dart';
+import '../services/agreement_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -200,6 +201,58 @@ class _ProfilePageState extends State<ProfilePage> {
                         .toList(),
                   ),
                 ),
+
+                // Раздел настроек (только для разработки/отладки)
+                Card(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  elevation: 1,
+                  child: ExpansionTile(
+                    leading: const Icon(Icons.settings),
+                    title: Text('Настройки разработчика',
+                        style: Theme.of(context).textTheme.titleMedium),
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.description),
+                        title: const Text('Сбросить согласие с офертой'),
+                        subtitle: const Text('Для тестирования экрана оферты'),
+                        onTap: () async {
+                          await AgreementService.resetAllAgreements();
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'Согласия сброшены. Перезапустите приложение.'),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.info),
+                        title: const Text('Проверить статус согласий'),
+                        onTap: () async {
+                          final isAccepted =
+                              await AgreementService.isOfferAccepted();
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Оферта ${isAccepted ? "принята" : "не принята"}',
+                                ),
+                                backgroundColor:
+                                    isAccepted ? Colors.green : Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
                 const SizedBox(height: 16),
               ],
             ),

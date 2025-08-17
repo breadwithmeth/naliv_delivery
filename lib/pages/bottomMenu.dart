@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/cart_page.dart';
 import 'package:naliv_delivery/pages/catalog.dart';
+import 'package:naliv_delivery/pages/likedPage.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/pages/mainPage.dart';
 import 'package:naliv_delivery/pages/profile_page.dart';
@@ -489,9 +490,7 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isActive
-              ? Colors.grey.withValues(alpha: 0.2)
-              : Colors.transparent,
+          color: isActive ? Colors.orange : Colors.transparent,
           borderRadius: BorderRadius.circular(25),
         ),
         child: Icon(
@@ -531,16 +530,10 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
               _selectedBusiness?['businessId'],
         );
       case 2:
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Избранное'),
-          ),
-          body: const Center(
-            child: Text(
-              'Скоро',
-              style: TextStyle(fontSize: 18),
-            ),
-          ),
+        return LikedPage(
+          businessId: _selectedBusiness?['id'] ??
+              _selectedBusiness?['business_id'] ??
+              _selectedBusiness?['businessId'],
         );
       case 3:
         return CartPage();

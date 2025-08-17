@@ -404,7 +404,8 @@ class ItemOption {
 class ItemOptionItem {
   final int relationId;
   final int itemId;
-  final String priceType; // "ADD" | "REPLACE"
+  final String priceType;
+  final String item_name; // Добавлено поле для имени товара
   final double price;
   final int parentItemAmount;
 
@@ -412,6 +413,7 @@ class ItemOptionItem {
     required this.relationId,
     required this.itemId,
     required this.priceType,
+    required this.item_name,
     required this.price,
     required this.parentItemAmount,
   });
@@ -421,6 +423,7 @@ class ItemOptionItem {
       relationId: Item._parseInt(json['relation_id']),
       itemId: Item._parseInt(json['item_id']),
       priceType: json['price_type'] ?? '',
+      item_name: json['item_name'] ?? '', // Добавлено поле для имени товара
       price: Item._parseDouble(json['price']) ?? 0.0,
       parentItemAmount: Item._parseInt(json['parent_item_amount']),
     );
@@ -437,6 +440,8 @@ class ItemOptionItem {
       relationId: categoryOptionItem.relationId,
       itemId: categoryOptionItem.itemId,
       priceType: categoryOptionItem.priceType,
+      item_name:
+          categoryOptionItem.item_name ?? '', // Добавлено поле для имени товара
       price: categoryOptionItem.price,
       parentItemAmount: categoryOptionItem.parentItemAmount,
     );

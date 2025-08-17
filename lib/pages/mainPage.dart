@@ -9,10 +9,9 @@ import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
 import 'package:provider/provider.dart';
 import '../utils/location_service.dart';
 import '../utils/api.dart';
-import '../shared/product_card.dart';
-import '../model/item.dart' as ItemModel;
 import 'promotion_items_page.dart';
 import 'order_detail_page.dart';
+import 'categoryPage.dart';
 
 class MainPage extends StatefulWidget {
   final List<Map<String, dynamic>> businesses;
@@ -46,11 +45,14 @@ class _MainPageState extends State<MainPage> {
   List<Promotion> _promotions = [];
   bool _isLoadingPromotions = false;
   String? _promotionsError;
-  // Индексы раскрытых акций
-  final Set<int> _expandedPromo = {};
 
   // Состояние для бонусов
   Map<String, dynamic>? _bonusData;
+
+  // Состояние для категорий
+  List<Map<String, dynamic>> _categories = [];
+  bool _isLoadingCategories = false;
+  String? _categoriesError;
 
   // Состояние для активных заказов
   List<Map<String, dynamic>> _activeOrders = [];
@@ -412,6 +414,57 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
+  /// Загрузить категории товаров
+  Future<void> _loadCategories() async {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoadingCategories = true;
+      _categoriesError = null;
+    });
+
+    try {
+      // Получаем ID выбранного магазина
+      int? businessId;
+      if (widget.selectedBusiness != null) {
+        businessId = widget.selectedBusiness!['id'] ??
+            widget.selectedBusiness!['business_id'] ??
+            widget.selectedBusiness!['businessId'];
+
+        print('🔄 Загружаем категории для магазина ID: $businessId');
+      }
+
+      // Загружаем категории из API
+      final categoriesData = await ApiService.getCategories(
+        businessId: businessId,
+      );
+
+      if (mounted) {
+        if (categoriesData != null) {
+          setState(() {
+            _categories = categoriesData;
+            _isLoadingCategories = false;
+          });
+          print('✅ Загружено категорий: ${_categories.length}');
+        } else {
+          setState(() {
+            _categories = [];
+            _isLoadingCategories = false;
+          });
+          print('⚠️ Категории не найдены');
+        }
+      }
+    } catch (e) {
+      print('❌ Ошибка загрузки категорий: $e');
+      if (mounted) {
+        setState(() {
+          _categoriesError = 'Ошибка загрузки категорий: $e';
+          _isLoadingCategories = false;
+        });
+      }
+    }
+  }
+
   Map<String, dynamic>? _selectedAddress;
 
   @override
@@ -447,6 +500,7 @@ class _MainPageState extends State<MainPage> {
     // Загружаем акции если магазин уже выбран
     if (widget.selectedBusiness != null) {
       _loadPromotions();
+      _loadCategories(); // Также загружаем категории если магазин выбран
     }
 
     // Загружаем бонусы пользователя
@@ -492,12 +546,16 @@ class _MainPageState extends State<MainPage> {
     if (widget.selectedBusiness != oldWidget.selectedBusiness) {
       if (widget.selectedBusiness != null) {
         _loadPromotions();
+        _loadCategories(); // Загружаем категории для нового магазина
       } else {
-        // Очищаем акции если магазин не выбран
+        // Очищаем акции и категории если магазин не выбран
         setState(() {
           _promotions = [];
           _isLoadingPromotions = false;
           _promotionsError = null;
+          _categories = [];
+          _isLoadingCategories = false;
+          _categoriesError = null;
         });
       }
     }
@@ -891,242 +949,297 @@ class _MainPageState extends State<MainPage> {
         slivers: [
           SliverAppBar(
             pinned: true,
-            expandedHeight: 120,
-            // backgroundColor: Theme.of(context).colorScheme.surface,
-            actions: [
-              // IconButton(
-              //   icon: Icon(
-              //     Icons.edit_location,
-              //     color: Theme.of(context).colorScheme.onSurface,
-              //   ),
-              //   onPressed: _showAddressSelectionModal,
-              // ),
-            ],
-            flexibleSpace: LayoutBuilder(
-              builder: (context, constraints) {
-                var top = constraints.biggest.height;
-                bool isCollapsed =
-                    top <= kToolbarHeight + MediaQuery.of(context).padding.top;
-                return FlexibleSpaceBar(
-                  // Иконка в заголовке при свёрнутом AppBar
-                  title: isCollapsed ? const Icon(Icons.location_on) : null,
-                  background: Container(
-                    decoration: BoxDecoration(
-                        // gradient: LinearGradient(
-                        //   colors: [
-                        //     Theme.of(context)
-                        //         .colorScheme
-                        //         .primary
-                        //         .withOpacity(0.2),
-                        //     Colors.transparent,
-                        //   ],
-                        //   begin: Alignment.topCenter,
-                        //   end: Alignment.bottomCenter,
-                        // ),
-                        ),
-                    child: Align(
-                        alignment: Alignment.bottomLeft,
-                        child: GestureDetector(
-                          onTap: _showAddressSelectionModal,
-                          child: Card(
-                            margin: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            color: Theme.of(context)
-                                .colorScheme
-                                .surfaceVariant
-                                .withOpacity(0.9),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.location_on,
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      _selectedAddress != null
-                                          ? '${_selectedAddress!['address']}${(_selectedAddress!['apartment'] ?? '').isNotEmpty ? ', кв. ${_selectedAddress!['апартамент']}' : ''}${(_selectedAddress!['entrance'] ?? '').isNotEmpty ? ', пд. ${_selectedAddress!['entrance']}' : ''}'
-                                          : 'Ваш адрес',
-                                      style:
-                                          Theme.of(context).textTheme.bodyLarge,
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 2,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        )),
-                  ),
-                  titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
-                );
-              },
-            ),
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            shadowColor: Colors.transparent,
+            forceElevated: false,
+            toolbarHeight: 0,
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 children: [
-                  // Секция выбранного магазина
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color:
-                          Theme.of(context).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Выбранный магазин",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
+                  if (widget.selectedBusiness != null) ...[
+                    _buildPromotionsHeroCarousel(),
+                  ],
+                  // Адрес и магазин: компактный ряд из двух плиток
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Адрес доставки
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: _showAddressSelectionModal,
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              // border: Border.all(
+                              //   color: Theme.of(context)
+                              //       .colorScheme
+                              //       .outline
+                              //       .withOpacity(0.2),
+                              //   width: 1.0,
+                              // ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          if (widget.isLoadingBusinesses)
-                            const Row(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                CircularProgressIndicator(),
-                                SizedBox(width: 8),
-                                Text('Загрузка магазинов...'),
-                              ],
-                            )
-                          else if (selectedBusiness != null)
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        selectedBusiness['name'] ??
-                                            'Без названия',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w500,
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Доставка по адресу',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.2,
                                         ),
                                       ),
-                                    ),
-                                    _buildDistanceInfo(),
-                                  ],
-                                ),
-                                if (selectedBusiness['address'] != null)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 4),
-                                    child: Text(
-                                      selectedBusiness['address'],
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        _selectedAddress != null
+                                            ? _selectedAddress!['address']
+                                            : 'Выберите адрес доставки',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                          height: 1.15,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 3,
                                       ),
-                                    ),
+                                    ],
                                   ),
+                                ),
+                                // Container(
+                                //   padding: const EdgeInsets.all(4),
+                                //   decoration: BoxDecoration(
+                                //     color: Theme.of(context)
+                                //         .colorScheme
+                                //         .secondary
+                                //         .withOpacity(0.12),
+                                //     borderRadius: BorderRadius.circular(8),
+                                //   ),
+                                //   child: Icon(
+                                //     Icons.keyboard_arrow_down,
+                                //     size: 18,
+                                //   ),
+                                // ),
                               ],
-                            )
-                          else
-                            Text(
-                              'Магазин не выбран',
-                              style: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                              ),
                             ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        Theme.of(context).colorScheme.primary,
-                                    foregroundColor:
-                                        Theme.of(context).colorScheme.onPrimary,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Магазин
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: widget.businesses.isNotEmpty &&
+                                  !widget.isLoadingBusinesses
+                              ? _showBusinessSelector
+                              : null,
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(12),
+                              // border: Border.all(
+                              //   color: Theme.of(context)
+                              //       .colorScheme
+                              //       .outline
+                              //       .withOpacity(0.2),
+                              //   width: 1.0,
+                              // ),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // Container(
+                                //   padding: const EdgeInsets.all(8),
+                                //   decoration: BoxDecoration(
+                                //     color:
+                                //         Theme.of(context).colorScheme.surface,
+                                //     borderRadius: BorderRadius.circular(10),
+                                //   ),
+                                //   child: Icon(
+                                //     Icons.store,
+                                //     color:
+                                //         Theme.of(context).colorScheme.secondary,
+                                //     size: 18,
+                                //   ),
+                                // ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (widget.isLoadingBusinesses)
+                                        Text(
+                                          'Загрузка магазинов...',
+                                          style: TextStyle(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .secondary
+                                                .withOpacity(0.8),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 0.2,
+                                          ),
+                                        )
+                                      else if (selectedBusiness != null) ...[
+                                        Text(
+                                          'Магазин',
+                                          style: TextStyle(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .secondary
+                                                .withOpacity(0.8),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 0.2,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                selectedBusiness['name'] ??
+                                                    'Магазин',
+                                                style: TextStyle(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  height: 1.15,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            // const SizedBox(width: 8),
+                                            // _buildDistanceInfo(),
+                                          ],
+                                        ),
+                                        if (selectedBusiness['address'] !=
+                                            null) ...[
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            selectedBusiness['address'],
+                                            style: TextStyle(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w500,
+                                              height: 1.25,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 2,
+                                          ),
+                                        ],
+                                      ] else
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              'Магазин для заказа',
+                                              style: TextStyle(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .secondary
+                                                    .withOpacity(0.8),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                letterSpacing: 0.2,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'Выберите магазин',
+                                              style: TextStyle(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w700,
+                                                height: 1.15,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                    ],
                                   ),
-                                  onPressed: widget.businesses.isNotEmpty &&
-                                          !widget.isLoadingBusinesses
-                                      ? _showBusinessSelector
-                                      : null,
-                                  icon: const Icon(Icons.store, size: 18),
-                                  label: const Text('Выбрать магазин'),
                                 ),
-                              ),
-                              if (selectedBusiness != null) ...[
-                                const SizedBox(width: 12),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Theme.of(context)
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context)
                                         .colorScheme
-                                        .surfaceContainerHigh,
-                                    foregroundColor:
-                                        Theme.of(context).colorScheme.onSurface,
-                                    elevation: 0,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 12, horizontal: 16),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      side: BorderSide(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .outline
-                                            .withOpacity(0.3),
-                                      ),
-                                    ),
+                                        .secondary
+                                        .withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
-                                  onPressed: _showBusinessSelector,
-                                  child: const Icon(Icons.swap_horiz, size: 18),
+                                  child: Icon(
+                                    Icons.keyboard_arrow_down,
+                                    color:
+                                        Theme.of(context).colorScheme.secondary,
+                                    size: 18,
+                                  ),
                                 ),
                               ],
-                            ],
+                            ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
+
+                  // Hero карусель акций
 
                   // Бонусная карта
                   if (_bonusData != null && _bonusData!['success'] == true) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     _buildBonusCard(),
+                  ],
+
+                  // Категории товаров
+                  if (_categories.isNotEmpty ||
+                      _isLoadingCategories ||
+                      _categoriesError != null) ...[
+                    const SizedBox(height: 12),
+                    _buildCategoriesSection(),
                   ],
 
                   // Активные заказы
                   if (_activeOrders.isNotEmpty ||
                       _isLoadingActiveOrders ||
                       _activeOrdersError != null) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     _buildActiveOrdersSection(),
-                  ],
-
-                  // Секция акций
-                  if (widget.selectedBusiness != null) ...[
-                    const SizedBox(height: 16),
-                    _buildPromotionsSection(),
                   ],
                 ],
               ),
             ),
+          ),
+          SliverToBoxAdapter(
+            child: const SizedBox(height: 500),
           ),
         ],
       ),
@@ -1249,7 +1362,6 @@ class _MainPageState extends State<MainPage> {
     final currentStatus = order['current_status'] as Map<String, dynamic>?;
     final deliveryAddress = order['delivery_address'] as Map<String, dynamic>?;
     final itemsSummary = order['items_summary'] as Map<String, dynamic>?;
-    final costSummary = order['cost_summary'] as Map<String, dynamic>?;
 
     return InkWell(
       onTap: () {
@@ -1341,7 +1453,9 @@ class _MainPageState extends State<MainPage> {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        deliveryAddress['address'] ?? 'Адрес не указан',
+                        deliveryAddress["address_id"] == 1
+                            ? 'Самовывоз'
+                            : (deliveryAddress['address'] ?? 'Адрес не указан'),
                         style: TextStyle(
                           fontSize: 14,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -1376,27 +1490,27 @@ class _MainPageState extends State<MainPage> {
               ],
 
               // Сумма заказа
-              if (costSummary != null)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Сумма заказа:',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    Text(
-                      '${costSummary['total_sum']} ₸',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
+              // if (costSummary != null)
+              //   Row(
+              //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              //     children: [
+              //       const Text(
+              //         'Сумма заказа:',
+              //         style: TextStyle(
+              //           fontSize: 14,
+              //           fontWeight: FontWeight.w500,
+              //         ),
+              //       ),
+              //       Text(
+              //         '${costSummary['total_sum']} ₸',
+              //         style: TextStyle(
+              //           fontSize: 16,
+              //           fontWeight: FontWeight.w600,
+              //           color: Theme.of(context).colorScheme.primary,
+              //         ),
+              //       ),
+              //     ],
+              //   ),
 
               // Индикатор того, что заказ кликабельный
               const SizedBox(height: 8),
@@ -1439,415 +1553,169 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
-  /// Строит секцию с акциями
-  Widget _buildPromotionsSection() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Container(
-        padding: const EdgeInsets.only(top: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.local_offer,
-                  color: Theme.of(context).colorScheme.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  "Акции и предложения",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (_isLoadingPromotions)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(width: 12),
-                      Text('Загрузка акций...'),
-                    ],
-                  ),
-                ),
-              )
-            else if (_promotionsError != null)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        color: Theme.of(context).colorScheme.error,
-                        size: 24,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _promotionsError!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                          fontSize: 14,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: _loadPromotions,
-                        child: const Text('Повторить'),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else if (_promotions.isEmpty)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.local_offer_outlined,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        size: 32,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'В данный момент нет активных акций',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              Column(
-                children: [
-                  // Показываем до 3 акций
-                  for (int i = 0; i < _promotions.length && i < 3; i++)
-                    _buildPromotionCard(_promotions[i], i),
-
-                  if (_promotions.length > 3) ...[
-                    const SizedBox(height: 12),
-                    Center(
-                      child: TextButton.icon(
-                        onPressed: () {
-                          // TODO: Открыть страницу всех акций
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Переход к странице всех акций'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.arrow_forward, size: 16),
-                        label: Text('Смотреть все (${_promotions.length})'),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Строит карточку акции
-  Widget _buildPromotionCard(Promotion promotion, int index) {
-    return InkWell(
-      onTap: () {
-        // Определяем ID магазина для передачи в страницу товаров акции
-        final int? bizId = widget.selectedBusiness != null
-            ? (widget.selectedBusiness!['id'] as int?) ??
-                (widget.selectedBusiness!['businessId'] as int?)
-            : null;
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => PromotionItemsPage(
-            promotionId: promotion.marketingPromotionId,
-            promotionName: promotion.name,
-            businessId: bizId!,
-          ),
-        ));
-      },
-      child: Container(
-        margin: EdgeInsets.only(bottom: index < 2 ? 12 : 0),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(5),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Иконка или изображение акции
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.local_offer,
-                      color: Theme.of(context).colorScheme.primary,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-
-                  // Информация об акции
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Название акции
-                        Text(
-                          promotion.name ?? 'Акция без названия',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-
-                        // Количество товаров в акции
-                        Text(
-                          'Товаров в акции: ${promotion.itemsCount}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-
-                        // Срок действия
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.access_time,
-                              size: 12,
-                              color: promotion.daysLeft <= 3
-                                  ? Theme.of(context).colorScheme.error
-                                  : Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              promotion.daysLeft == 0
-                                  ? 'Последний день!'
-                                  : promotion.daysLeft == 1
-                                      ? 'Остался 1 день'
-                                      : 'Осталось ${promotion.daysLeft} дней',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: promotion.daysLeft <= 3
-                                    ? Theme.of(context).colorScheme.error
-                                    : Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                fontWeight: promotion.daysLeft <= 3
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-              // Детали акции (если есть)
-              if (promotion.details.isNotEmpty) ...[
-                // Container(
-                //   padding: const EdgeInsets.all(8),
-                //   decoration: BoxDecoration(
-                //     color: Theme.of(context)
-                //         .colorScheme
-                //         .primaryContainer
-                //         .withValues(alpha: 0.3),
-                //     borderRadius: BorderRadius.circular(6),
-                //   ),
-                //   child: Column(
-                //     crossAxisAlignment: CrossAxisAlignment.start,
-                //     children: [
-                //       for (int i = 0; i < promotion.details.length && i < 2; i++)
-                //         Padding(
-                //           padding: EdgeInsets.only(bottom: i < 1 ? 4 : 0),
-                //           child: _buildPromotionDetail(promotion.details[i]),
-                //         ),
-                //       if (promotion.details.length > 2)
-                //         Text(
-                //           '... и еще ${promotion.details.length - 2}',
-                //           style: TextStyle(
-                //             fontSize: 11,
-                //             color: Theme.of(context).colorScheme.onSurfaceVariant,
-                //             fontStyle: FontStyle.italic,
-                //           ),
-                //         ),
-                //     ],
-                //   ),
-                // ),
-                // Товары в акции
-                // Товары в акции: показываем 2 или все в Wrap
-                Builder(
-                  builder: (context) {
-                    final details = promotion.details;
-                    final isExpanded = _expandedPromo.contains(index);
-                    final visibleCount = isExpanded
-                        ? details.length
-                        : (details.length < 2 ? details.length : 2);
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: List.generate(visibleCount, (i) {
-                            final detail = details[i];
-                            if (detail.item != null) {
-                              return SizedBox(
-                                width: 150,
-                                height: 250,
-                                child: ProductCard(
-                                  item: ItemModel.Item.fromJson(
-                                      detail.item!.toJson()),
-                                ),
-                              );
-                            }
-                            return const SizedBox.shrink();
-                          }),
-                        ),
-                        if (details.length > 2)
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () {
-                                setState(() {
-                                  if (isExpanded)
-                                    _expandedPromo.remove(index);
-                                  else
-                                    _expandedPromo.add(index);
-                                });
-                              },
-                              child:
-                                  Text(isExpanded ? 'Скрыть' : 'Показать все'),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-// ignore: unused_element
-  Widget _buildPromotionDetail(PromotionDetail detail) {
-    String detailText = '';
-    IconData detailIcon = Icons.local_offer;
-
-    switch (detail.type) {
-      case 'DISCOUNT':
-        if (detail.discount != null) {
-          detailText =
-              'Скидка ${detail.discount!.toStringAsFixed(0)}% на ${detail.name}';
-          detailIcon = Icons.percent;
-        }
-        break;
-      case 'SUBTRACT':
-        if (detail.baseAmount != null && detail.addAmount != null) {
-          detailText =
-              '${detail.baseAmount} + ${detail.addAmount} = ${detail.baseAmount! + detail.addAmount!} ${detail.name}';
-          detailIcon = Icons.add;
-        }
-        break;
-      default:
-        detailText = detail.name;
-    }
-
-    return Row(
+  /// Строит hero карусель акций
+  Widget _buildPromotionsHeroCarousel() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          detailIcon,
-          size: 12,
-          color: Theme.of(context).colorScheme.primary,
-        ),
-        const SizedBox(width: 4),
-        Expanded(
-          child: Text(
-            detailText,
-            style: TextStyle(
-              fontSize: 11,
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+        // Заголовок секции
+
+        // Hero карусель
+        SizedBox(
+          height: 150, // Высота hero баннеров
+          child: _buildPromotionsCarousel(),
         ),
       ],
     );
   }
 
-  /// Форматировать дату бонуса
-  String _formatBonusDate(String timestamp) {
-    try {
-      final date = DateTime.parse(timestamp);
-      final now = DateTime.now();
-      final difference = now.difference(date);
-
-      if (difference.inDays == 0) {
-        return 'Сегодня';
-      } else if (difference.inDays == 1) {
-        return 'Вчера';
-      } else if (difference.inDays < 7) {
-        return '${difference.inDays} дн. назад';
-      } else {
-        return '${date.day}.${date.month.toString().padLeft(2, '0')}';
-      }
-    } catch (e) {
-      return '';
+  /// Строит карусель акций
+  Widget _buildPromotionsCarousel() {
+    if (_isLoadingPromotions) {
+      return const Center(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 12),
+            Text('Загрузка акций...'),
+          ],
+        ),
+      );
     }
+
+    if (_promotionsError != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              color: Theme.of(context).colorScheme.error,
+              size: 24,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Ошибка загрузки акций',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _loadPromotions,
+              child: const Text('Повторить'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_promotions.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.local_offer_outlined,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              size: 32,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'В данный момент нет активных акций',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Горизонтальная карусель акций
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 0),
+      itemCount: _promotions.length,
+      itemBuilder: (context, index) {
+        return Container(
+          // width: MediaQuery.of(context).size.width *
+          //     0.6, // Ширина каждого hero баннера
+          // margin:
+          //     EdgeInsets.only(right: index < _promotions.length - 1 ? 16 : 0),
+          child: _buildPromotionHeroBanner(_promotions[index], index),
+        );
+      },
+    );
+  }
+
+  /// Строит hero баннер акции
+  Widget _buildPromotionHeroBanner(Promotion promotion, int index) {
+    return AspectRatio(
+      aspectRatio: 4 / 3,
+      child: InkWell(
+          onTap: () {
+            // Определяем ID магазина для передачи в страницу товаров акции
+            final int? bizId = widget.selectedBusiness != null
+                ? (widget.selectedBusiness!['id'] as int?) ??
+                    (widget.selectedBusiness!['businessId'] as int?)
+                : null;
+
+            if (bizId != null) {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => PromotionItemsPage(
+                  promotionId: promotion.marketingPromotionId,
+                  promotionName: promotion.name,
+                  businessId: bizId,
+                ),
+              ));
+            }
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  // BoxShadow(
+                  //   color: Theme.of(context).colorScheme.primary.withAlpha(30),
+                  //   blurRadius: 2,
+                  //   offset: const Offset(0, 2),
+                  // ),
+                ],
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    clipBehavior: Clip.hardEdge,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: AspectRatio(
+                      aspectRatio: 2 / 1,
+                      child: Image.network(
+                        promotion.cover ?? '',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    promotion.name ?? 'Акция без названия',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.normal,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ))),
+    );
   }
 
   void _showBarcodeModal(String cardUuid) {
@@ -1919,9 +1787,6 @@ class _MainPageState extends State<MainPage> {
     final latestBonusAmount = bonusHistory != null && bonusHistory.isNotEmpty
         ? bonusHistory.first['amount'] ?? 0
         : 0;
-    final latestBonusDate = bonusHistory != null && bonusHistory.isNotEmpty
-        ? bonusHistory.first['timestamp'] ?? ''
-        : '';
 
     return GestureDetector(
       onTap: () {
@@ -1931,166 +1796,434 @@ class _MainPageState extends State<MainPage> {
       },
       child: Container(
         width: double.infinity,
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Theme.of(context).colorScheme.primary,
-              Theme.of(context).colorScheme.primary.withOpacity(0.8),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
           ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Row(
+          children: [
+            // Иконка и название
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.card_giftcard,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // Основная информация
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Бонусная карта',
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.onPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  Icon(
-                    Icons.card_giftcard,
-                    color: Theme.of(context).colorScheme.onPrimary,
-                    size: 24,
+                  const SizedBox(height: 2),
+                  Text(
+                    'Нажмите для показа штрихкода',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Общий баланс',
-                          style: TextStyle(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onPrimary
-                                .withOpacity(0.8),
-                            fontSize: 12,
-                          ),
-                        ),
-                        Text(
-                          '$totalBonuses ₸',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
+            ),
+
+            // Баланс
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '$totalBonuses ₸',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
-                  if (latestBonusAmount > 0) ...[
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          'Последнее начисление',
-                          style: TextStyle(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onPrimary
-                                .withOpacity(0.8),
-                            fontSize: 10,
-                          ),
-                        ),
-                        Text(
-                          '+$latestBonusAmount ₸',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        if (latestBonusDate.isNotEmpty)
-                          Text(
-                            _formatBonusDate(latestBonusDate),
-                            style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onPrimary
-                                  .withOpacity(0.7),
-                              fontSize: 9,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Номер карты',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
-                          ),
-                        ),
-                        Icon(
-                          Icons.qr_code,
-                          size: 16,
-                          color: Colors.grey[500],
-                        ),
-                      ],
+                if (latestBonusAmount > 0)
+                  Text(
+                    '+$latestBonusAmount ₸',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      cardUuid,
-                      style: TextStyle(
-                        color: Colors.grey[800],
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Нажмите для показа штрихкода',
-                      style: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 10,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ],
+                  ),
+              ],
+            ),
+
+            // Стрелка
+            const SizedBox(width: 8),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Строит секцию с категориями товаров
+  Widget _buildCategoriesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Заголовок
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Row(
+            children: [
+              Icon(
+                Icons.category,
+                color: Theme.of(context).colorScheme.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                "Категории",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
         ),
+        SizedBox(
+          height: 8,
+        ),
+
+        // Горизонтальная сетка категорий
+        SizedBox(
+          height: 160, // Высота для 2 рядов
+          child: _buildCategoriesGrid(),
+        ),
+      ],
+    );
+  }
+
+  /// Строит горизонтальную сетку категорий
+  Widget _buildCategoriesGrid() {
+    if (_isLoadingCategories) {
+      return const Center(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 12),
+            Text('Загрузка категорий...'),
+          ],
+        ),
+      );
+    }
+
+    if (_categoriesError != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              color: Theme.of(context).colorScheme.error,
+              size: 24,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Ошибка загрузки категорий',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _loadCategories,
+              child: const Text('Повторить'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_categories.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.category_outlined,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              size: 32,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Категории не найдены',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Вычисляем ширину элемента
+    const itemWidth = 120.0;
+    const itemHeight = 120.0;
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: SizedBox(
+        height: itemHeight,
+        // width: columnsCount * (itemWidth + 8), // ширина + отступ
+        child: GridView.builder(
+          scrollDirection: Axis.horizontal,
+          physics: const NeverScrollableScrollPhysics(),
+          shrinkWrap: true,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2, // 2 ряда
+            childAspectRatio: itemWidth / itemHeight,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+          ),
+          itemCount: _categories.length,
+          itemBuilder: (context, index) {
+            return _buildCategoryCard(_categories[index]);
+          },
+        ),
       ),
     );
+  }
+
+  /// Строит карточку категории
+  Widget _buildCategoryCard(Map<String, dynamic> category) {
+    final categoryName = category['name'] ?? 'Без названия';
+
+    // Определяем иконку и цвет на основе названия категории
+    final iconAndColor = _getCategoryIconAndColor(categoryName);
+
+    return InkWell(
+      onTap: () {
+        // Получаем ID выбранного магазина
+        final businessId = widget.selectedBusiness?['id'] ??
+            widget.selectedBusiness?['business_id'] ??
+            widget.selectedBusiness?['businessId'];
+
+        if (businessId != null) {
+          // Создаем объект Category из данных
+          final categoryObj = Category.fromJson(category);
+
+          // Навигация в CategoryPage
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => CategoryPage(
+              category: categoryObj,
+              allCategories:
+                  _categories.map((cat) => Category.fromJson(cat)).toList(),
+              businessId: businessId,
+            ),
+          ));
+        } else {
+          // Показываем сообщение если магазин не выбран
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Сначала выберите магазин'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        height: 120,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            // Иконка категории
+            Container(
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color:
+                        Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                  ),
+                ),
+                child: AspectRatio(
+                  aspectRatio: 4 / 3,
+                  child: Image.network(
+                    category["img"] ?? '',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(
+                        iconAndColor['icon'],
+                        color: iconAndColor['color'],
+                        size: 24,
+                      );
+                    },
+                  ),
+                )),
+
+            // Название категории
+            Text(
+              categoryName,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+
+            // Количество товаров
+            // if (itemsCount > 0)
+            //   Text(
+            //     '$itemsCount',
+            //     style: TextStyle(
+            //       fontSize: 10,
+            //       color: Theme.of(context).colorScheme.onSurfaceVariant,
+            //     ),
+            //   ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Возвращает иконку и цвет для категории на основе названия
+  Map<String, dynamic> _getCategoryIconAndColor(String categoryName) {
+    final lowerName = categoryName.toLowerCase();
+
+    // Алкоголь
+    if (lowerName.contains('алкоголь') ||
+        lowerName.contains('вино') ||
+        lowerName.contains('пиво') ||
+        lowerName.contains('водка') ||
+        lowerName.contains('виски') ||
+        lowerName.contains('коньяк')) {
+      return {
+        'icon': Icons.wine_bar,
+        'color': const Color(0xFFE91E63),
+      };
+    }
+
+    // Сигареты
+    if (lowerName.contains('сигарет') ||
+        lowerName.contains('табак') ||
+        lowerName.contains('курение')) {
+      return {
+        'icon': Icons.smoking_rooms,
+        'color': const Color(0xFF9C27B0),
+      };
+    }
+
+    // Сладости
+    if (lowerName.contains('сладост') ||
+        lowerName.contains('конфет') ||
+        lowerName.contains('шоколад') ||
+        lowerName.contains('торт') ||
+        lowerName.contains('печенье')) {
+      return {
+        'icon': Icons.cake,
+        'color': const Color(0xFF795548),
+      };
+    }
+
+    // Напитки
+    if (lowerName.contains('напитк') ||
+        lowerName.contains('сок') ||
+        lowerName.contains('вода') ||
+        lowerName.contains('газировка') ||
+        lowerName.contains('лимонад')) {
+      return {
+        'icon': Icons.local_drink,
+        'color': const Color(0xFF2196F3),
+      };
+    }
+
+    // Фрукты и овощи
+    if (lowerName.contains('фрукт') ||
+        lowerName.contains('овощ') ||
+        lowerName.contains('ягод') ||
+        lowerName.contains('зелен')) {
+      return {
+        'icon': Icons.eco,
+        'color': const Color(0xFF4CAF50),
+      };
+    }
+
+    // Снеки
+    if (lowerName.contains('снек') ||
+        lowerName.contains('чипс') ||
+        lowerName.contains('сухарик') ||
+        lowerName.contains('орех')) {
+      return {
+        'icon': Icons.lunch_dining,
+        'color': const Color(0xFFFF9800),
+      };
+    }
+
+    // Молочные продукты
+    if (lowerName.contains('молочн') ||
+        lowerName.contains('молоко') ||
+        lowerName.contains('кефир') ||
+        lowerName.contains('йогурт') ||
+        lowerName.contains('сыр')) {
+      return {
+        'icon': Icons.local_cafe,
+        'color': const Color(0xFF00BCD4),
+      };
+    }
+
+    // Мясо и рыба
+    if (lowerName.contains('мясо') ||
+        lowerName.contains('рыба') ||
+        lowerName.contains('колбас') ||
+        lowerName.contains('сосиск')) {
+      return {
+        'icon': Icons.restaurant,
+        'color': const Color(0xFFFF5722),
+      };
+    }
+
+    // Хлеб и выпечка
+    if (lowerName.contains('хлеб') ||
+        lowerName.contains('выпечк') ||
+        lowerName.contains('булочк') ||
+        lowerName.contains('батон')) {
+      return {
+        'icon': Icons.bakery_dining,
+        'color': const Color(0xFF8BC34A),
+      };
+    }
+
+    // По умолчанию
+    return {
+      'icon': Icons.category,
+      'color': Theme.of(context).colorScheme.primary,
+    };
   }
 }

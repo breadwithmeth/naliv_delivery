@@ -5,8 +5,8 @@ import '../model/item.dart' as ItemModel;
 
 /// Класс для работы с API
 class ApiService {
-  // static const String baseUrl = 'https://naliv-b-jue85.ondigitalocean.app/api';
-  static const String baseUrl = 'http://localhost:3000/api';
+  static const String baseUrl = 'https://njt25.naliv.kz/api';
+  // static const String baseUrl = 'http://localhost:3000/api';
 
   // Ключ для хранения токена аутентификации
   static const String _authTokenKey = 'auth_token';
@@ -20,6 +20,56 @@ class ApiService {
       return double.tryParse(value);
     }
     return null;
+  }
+
+  /// Получить понравившиеся пользователю товары
+  /// GET /api/users/liked-items?business_id=&page=&limit=
+  static Future<Map<String, dynamic>?> getLikedItems({
+    required int businessId,
+    int page = 1,
+    int limit = 20,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString(_authTokenKey);
+      if (token == null) {
+        print('API getLikedItems: no auth token');
+        return null;
+      }
+
+      final uri = Uri.parse('$baseUrl/users/liked-items').replace(
+        queryParameters: {
+          'business_id': businessId.toString(),
+          'page': page.toString(),
+          'limit': limit.toString(),
+        },
+      );
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        if (jsonResponse['success'] == true) {
+          return jsonResponse['data'];
+        } else {
+          print('API getLikedItems error: ${jsonResponse['message']}');
+          return null;
+        }
+      } else {
+        print('HTTP Error getLikedItems: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Network Error getLikedItems: $e');
+      return null;
+    }
   }
 
   /// Безопасное преобразование в int
@@ -400,6 +450,7 @@ class ApiService {
         },
         body: json.encode(body),
       );
+      print(body);
 
       final Map<String, dynamic> jsonResponse = json.decode(response.body);
 
@@ -1224,6 +1275,75 @@ class ApiService {
     }
     return null;
   }
+
+  /// Отправить FCM токен на сервер
+  /// [fcmToken] - Firebase Cloud Messaging токен
+  /// Возвращает true при успешной отправке
+  static Future<bool> updateFCMToken(String fcmToken) async {
+    final token = await getAuthToken();
+    if (token == null) {
+      print('API updateFCMToken: no auth token');
+      return false;
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/users/fcm-token'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({'fcmToken': fcmToken}),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        if (jsonResponse['success'] == true) {
+          print('✅ FCM токен успешно отправлен на сервер');
+          return true;
+        } else {
+          print('❌ Ошибка API updateFCMToken: ${jsonResponse['message']}');
+        }
+      } else {
+        print('❌ HTTP Error updateFCMToken: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Network Error updateFCMToken: $e');
+    }
+    return false;
+  }
+
+  /// Удалить FCM токен с сервера (при выходе из аккаунта)
+  /// Возвращает true при успешном удалении
+  static Future<bool> removeFCMToken() async {
+    final token = await getAuthToken();
+    if (token == null) {
+      print('API removeFCMToken: no auth token');
+      return false;
+    }
+
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/users/fcm-token'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print('✅ FCM токен успешно удален с сервера');
+        return true;
+      } else {
+        print('❌ HTTP Error removeFCMToken: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Network Error removeFCMToken: $e');
+    }
+    return false;
+  }
 }
 
 /// Модель для адреса
@@ -1526,6 +1646,7 @@ class Item {
   final int categoryId;
   final int businessId;
   final int amount;
+  final bool is_liked; // По умолчанию не лайкнут
   final List<ItemOption>? options;
 
   Item({
@@ -1535,6 +1656,7 @@ class Item {
     this.image,
     this.description,
     required this.categoryId,
+    required this.is_liked,
     required this.businessId,
     required this.amount,
     this.options,
@@ -1550,6 +1672,7 @@ class Item {
       categoryId: ApiService._parseInt(json['category_id']),
       businessId: ApiService._parseInt(json['business_id']),
       amount: ApiService._parseInt(json['amount']),
+      is_liked: json['is_liked'] ?? false, // По умолчанию не лайкнут
       options: json['options'] != null
           ? (json['options'] as List)
               .map((option) => ItemOption.fromJson(option))
@@ -1628,6 +1751,8 @@ class ItemOptionItem {
   final int relationId;
   final int itemId;
   final String priceType; // "ADD" | "REPLACE"
+  final String item_name;
+
   final double price;
   final int parentItemAmount;
 
@@ -1635,6 +1760,7 @@ class ItemOptionItem {
     required this.relationId,
     required this.itemId,
     required this.priceType,
+    required this.item_name,
     required this.price,
     required this.parentItemAmount,
   });
@@ -1644,6 +1770,7 @@ class ItemOptionItem {
       relationId: ApiService._parseInt(json['relation_id']),
       itemId: ApiService._parseInt(json['item_id']),
       priceType: json['price_type'] ?? '',
+      item_name: json['item_name'] ?? '',
       price: ApiService._parseDouble(json['price']) ?? 0.0,
       parentItemAmount: ApiService._parseInt(json['parent_item_amount']),
     );
@@ -2136,6 +2263,7 @@ class CategoryItemVariant {
   final int relationId;
   final int itemId;
   final String priceType; // "add" | "replace"
+  final String? item_name; // может быть null, если не указано
   final double price;
   final int parentItemAmount;
 
@@ -2143,6 +2271,7 @@ class CategoryItemVariant {
     required this.relationId,
     required this.itemId,
     required this.priceType,
+    required this.item_name,
     required this.price,
     required this.parentItemAmount,
   });
@@ -2152,6 +2281,7 @@ class CategoryItemVariant {
       relationId: ApiService._parseInt(json['relation_id']),
       itemId: ApiService._parseInt(json['item_id']),
       priceType: json['price_type'] ?? 'add',
+      item_name: json['item_name'], // может быть null
       price: ApiService._parseDouble(json['price']) ?? 0.0,
       parentItemAmount: ApiService._parseInt(json['parent_item_amount']),
     );

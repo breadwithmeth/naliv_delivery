@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/pages/bottomMenu.dart';
 import 'package:naliv_delivery/utils/location_service.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
+import 'package:naliv_delivery/services/notification_service.dart';
+import 'package:naliv_delivery/widgets/agreement_wrapper.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
@@ -13,9 +14,14 @@ final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Инициализация Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Инициализация сервиса уведомлений
+  await NotificationService.instance.initialize();
 
   runApp(
     MultiProvider(
@@ -112,7 +118,7 @@ class _MainState extends State<Main> with LocationMixin {
           scaffoldBackgroundColor: Color(0xFF0a0a0a),
           colorScheme: const ColorScheme.dark(
               surfaceDim: Colors.white10,
-              surface: Color(0xFF151515),
+              surface: Color(0xFF0a0a0a),
               onSurface: Colors.white,
               primaryContainer: Color(0xFF363636),
               primary: Colors.white,
@@ -124,6 +130,6 @@ class _MainState extends State<Main> with LocationMixin {
           ),
         ),
         debugShowCheckedModeBanner: false,
-        home: BottomMenu());
+        home: const AgreementWrapper());
   }
 }
