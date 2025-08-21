@@ -12,6 +12,7 @@ import '../utils/api.dart';
 import 'promotion_items_page.dart';
 import 'order_detail_page.dart';
 import 'categoryPage.dart';
+import 'search_page.dart';
 
 class MainPage extends StatefulWidget {
   final List<Map<String, dynamic>> businesses;
@@ -954,7 +955,51 @@ class _MainPageState extends State<MainPage> {
             elevation: 0,
             shadowColor: Colors.transparent,
             forceElevated: false,
-            toolbarHeight: 0,
+            toolbarHeight: 56,
+            titleSpacing: 12,
+            title: GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const SearchPage(),
+                  ),
+                );
+              },
+              child: Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color:
+                        Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.search,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Поиск товаров',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -1132,7 +1177,7 @@ class _MainPageState extends State<MainPage> {
                                               ),
                                             ),
                                             // const SizedBox(width: 8),
-                                            // _buildDistanceInfo(),
+                                            _buildDistanceInfo(),
                                           ],
                                         ),
                                         if (selectedBusiness['address'] !=
