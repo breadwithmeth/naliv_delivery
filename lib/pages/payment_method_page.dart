@@ -12,16 +12,34 @@ class PaymentMethodPage extends StatefulWidget {
   _PaymentMethodPageState createState() => _PaymentMethodPageState();
 }
 
-class _PaymentMethodPageState extends State<PaymentMethodPage> {
+class _PaymentMethodPageState extends State<PaymentMethodPage>
+    with WidgetsBindingObserver {
   List<Map<String, dynamic>>? _cards;
   bool _isLoading = true;
   String? _selectedCardId;
+  bool _awaitingCardAdd = false;
 
   @override
   void initState() {
     super.initState();
     print('Order data received: ${widget.orderData}');
+    WidgetsBinding.instance.addObserver(this);
     _loadCards();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _awaitingCardAdd) {
+      // Возвратились из внешнего браузера — обновляем карты один раз
+      _awaitingCardAdd = false;
+      _loadCards();
+    }
   }
 
   Future<void> _loadCards() async {
@@ -54,9 +72,8 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> {
     if (link != null) {
       final uri = Uri.parse(link);
       if (await canLaunchUrl(uri)) {
+        _awaitingCardAdd = true;
         await launchUrl(uri, mode: LaunchMode.externalApplication);
-        // После возвращения из браузера, перезагружаем список карт
-        _loadCards();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -162,6 +179,13 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Способ оплаты'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Обновить',
+            onPressed: _isLoading ? null : () => _loadCards(),
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

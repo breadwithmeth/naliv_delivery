@@ -104,10 +104,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
       return;
     }
 
-    
     // TODO: Собрать тело заказа из выбранного адреса и корзины
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
+    final businessProvider =
+        Provider.of<BusinessProvider>(context, listen: false);
     if (businessProvider.selectedBusiness == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Пожалуйста, выберите магазин')),
@@ -164,7 +164,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
     print(_selectedAddress);
     if (_selectedAddress == null) return;
     print("адрес выбран");
-    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
+    final businessProvider =
+        Provider.of<BusinessProvider>(context, listen: false);
     if (businessProvider.selectedBusiness == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Пожалуйста, выберите магазин')),
@@ -587,35 +588,35 @@ class _CheckoutPageState extends State<CheckoutPage> {
             // Горизонтальная прокрутка для кнопок доставки
 
             const SizedBox(height: 16),
-            if (_userCards != null)
-              Card(
-                child: ListTile(
-                  title: const Text('Способ оплаты'),
-                  subtitle: Text(_selectedCard != null
-                      ? _selectedCard!['mask']
-                      : 'Выберите карту'),
-                  onTap: () async {
-                    if (_userCards == null || _userCards!.isEmpty) return;
-                    final choice = await showDialog<Map<String, dynamic>>(
-                      context: context,
-                      builder: (_) => SimpleDialog(
-                        title: const Text('Выберите карту'),
-                        children: _userCards!
-                            .map((card) => SimpleDialogOption(
-                                  onPressed: () => Navigator.pop(context, card),
-                                  child: Text(card['mask']),
-                                ))
-                            .toList(),
-                      ),
-                    );
-                    if (choice != null) {
-                      setState(() {
-                        _selectedCard = choice;
-                      });
-                    }
-                  },
-                ),
-              ),
+            // if (_userCards != null)
+            //   Card(
+            //     child: ListTile(
+            //       title: const Text('Способ оплаты'),
+            //       subtitle: Text(_selectedCard != null
+            //           ? _selectedCard!['mask']
+            //           : 'Выберите карту'),
+            //       onTap: () async {
+            //         if (_userCards == null || _userCards!.isEmpty) return;
+            //         final choice = await showDialog<Map<String, dynamic>>(
+            //           context: context,
+            //           builder: (_) => SimpleDialog(
+            //             title: const Text('Выберите карту'),
+            //             children: _userCards!
+            //                 .map((card) => SimpleDialogOption(
+            //                       onPressed: () => Navigator.pop(context, card),
+            //                       child: Text(card['mask']),
+            //                     ))
+            //                 .toList(),
+            //           ),
+            //         );
+            //         if (choice != null) {
+            //           setState(() {
+            //             _selectedCard = choice;
+            //           });
+            //         }
+            //       },
+            //     ),
+            //   ),
             const Text(
               'Товары в корзине',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
