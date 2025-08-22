@@ -1745,6 +1745,15 @@ class _MainPageState extends State<MainPage> {
                       child: Image.network(
                         promotion.cover ?? '',
                         fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: Theme.of(context).colorScheme.surface,
+                          child: Icon(
+                            Icons.broken_image,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            size: 40,
+                          ),
+                        ),
                       ),
                     ),
                   ),

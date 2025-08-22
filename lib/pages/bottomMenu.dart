@@ -40,6 +40,11 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
   @override
   void initState() {
     super.initState();
+    // Загружаем сохранённый магазин из storage
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final bp = Provider.of<BusinessProvider>(context, listen: false);
+      bp.loadSavedBusiness();
+    });
     _loadBusinesses();
     _loadSavedAddress();
   }
@@ -74,11 +79,11 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     }
   }
 
-  void _selectBusiness(Map<String, dynamic> business) {
+  Future<void> _selectBusiness(Map<String, dynamic> business) async {
     setState(() {
       _selectedBusiness = business;
     });
-    Provider.of<BusinessProvider>(context, listen: false)
+    await Provider.of<BusinessProvider>(context, listen: false)
         .setSelectedBusiness(business);
     final likedProvider =
         Provider.of<LikedItemsProvider>(context, listen: false);
