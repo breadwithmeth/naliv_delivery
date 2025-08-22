@@ -53,6 +53,7 @@ class ApiService {
           'Authorization': 'Bearer $token',
         },
       );
+      print(response.body);
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
@@ -68,6 +69,53 @@ class ApiService {
       }
     } catch (e) {
       print('Network Error getLikedItems: $e');
+      return null;
+    }
+  }
+
+  /// Поставить / снять лайк для товара
+  /// POST /api/users/liked-items/toggle { item_id: number }
+  static Future<bool?> toggleLikeItem(int itemId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString(_authTokenKey);
+      if (token == null) {
+        print('API toggleLikeItem: no auth token');
+        return null;
+      }
+
+      final uri = Uri.parse('$baseUrl/users/liked-items/toggle');
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'item_id': itemId}),
+      );
+      print('toggleLikeItem response: ${response.statusCode} ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        if (jsonResponse['success'] == true) {
+          // Ожидаем, что в data будет новое значение is_liked или сам liked_item
+          if (jsonResponse['data'] is Map &&
+              jsonResponse['data']['is_liked'] != null) {
+            return jsonResponse['data']['is_liked'] == true;
+          }
+          // fallback: возможно success=true означает теперь лайк стоит
+          return true;
+        } else {
+          print('API toggleLikeItem error: ${jsonResponse['message']}');
+          return null;
+        }
+      } else {
+        print('HTTP Error toggleLikeItem: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Network Error toggleLikeItem: $e');
       return null;
     }
   }

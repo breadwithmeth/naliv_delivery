@@ -19,24 +19,46 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _checkAuth() async {
-    bool isLoggedIn = await ApiService.isUserLoggedIn();
+    final isLoggedIn = await ApiService.isUserLoggedIn();
+    if (!mounted) return; // виджет мог быть удалён пока ждали
+
     if (!isLoggedIn) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Пожалуйста, авторизуйтесь')),
-      );
+      // Откладываем показ SnackBar до следующего кадра, чтобы Scaffold точно существовал
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(content: Text('Пожалуйста, авторизуйтесь')),
+          );
+      });
       return;
     }
+
     final data = await ApiService.getFullInfo();
+    if (!mounted) return;
+
     if (data == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ошибка получения данных профиля')),
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(content: Text('Ошибка получения данных профиля')),
+          );
+      });
       return;
     }
-    print(data.toString());
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Данные профиля успешно получены')),
-    );
+
+    // Успех
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Данные профиля успешно получены')),
+        );
+    });
   }
 
   @override

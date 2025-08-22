@@ -3,13 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/cart_page.dart';
 import 'package:naliv_delivery/pages/catalog.dart';
 import 'package:naliv_delivery/pages/likedPage.dart';
-import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/pages/mainPage.dart';
 import 'package:naliv_delivery/pages/profile_page.dart';
 import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
+import 'package:naliv_delivery/utils/liked_items_provider.dart';
 import 'package:naliv_delivery/utils/cartFloatingButton.dart';
-import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/location_service.dart';
 import 'package:provider/provider.dart';
 import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
@@ -35,8 +34,6 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
 
   // Данные геолокации
   Position? _userPosition;
-  bool _isLoadingLocation = false;
-  String _locationStatus = 'Геолокация не запрошена';
 
   // Акции загружаются в MainPage
 
@@ -47,370 +44,192 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     _loadSavedAddress();
   }
 
+  Future<void> _loadBusinesses() async {
+    setState(() {
+      _isLoadingBusinesses = true;
+    });
+    try {
+      final data = await ApiService.getBusinesses(page: 1, limit: 20);
+      if (!mounted) return;
+      if (data != null && data['businesses'] != null) {
+        final list = List<Map<String, dynamic>>.from(data['businesses']);
+        setState(() {
+          _businesses = list;
+          _isLoadingBusinesses = false;
+        });
+        // Пытаемся выбрать ближайший магазин к текущему адресу
+        _autoSelectNearestBusiness();
+      } else {
+        setState(() {
+          _isLoadingBusinesses = false;
+        });
+        debugPrint('Не удалось получить список бизнесов (пустой ответ)');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingBusinesses = false;
+      });
+      debugPrint('Ошибка загрузки бизнесов: $e');
+    }
+  }
+
+  void _selectBusiness(Map<String, dynamic> business) {
+    setState(() {
+      _selectedBusiness = business;
+    });
+    Provider.of<BusinessProvider>(context, listen: false)
+        .setSelectedBusiness(business);
+    final likedProvider =
+        Provider.of<LikedItemsProvider>(context, listen: false);
+    final businessId =
+        business['id'] ?? business['business_id'] ?? business['businessId'];
+    if (businessId != null) {
+      likedProvider.loadLiked(int.tryParse(businessId.toString()) ?? 0);
+    }
+  }
+
+  // --- ЛОГИКА АВТОВЫБОРА БЛИЖАЙШЕГО МАГАЗИНА ---
+
+  void _autoSelectNearestBusiness({bool force = false}) {
+    if (_businesses.isEmpty) return;
+    if (_selectedAddress == null) {
+      // Если нет адреса – fallback: если ничего не выбрано, возьмём первый для стабильности
+      if (_selectedBusiness == null && _businesses.isNotEmpty) {
+        _selectBusiness(_businesses.first);
+        _showBusinessChangeSnack(_businesses.first, auto: true);
+      }
+      return;
+    }
+
+    final coords = _extractAddressLatLon(_selectedAddress!);
+    if (coords == null) return;
+
+    // Если уже выбран магазин и не принудительный выбор, проверим – вдруг он уже ближайший
+    if (!force && _selectedBusiness != null) {
+      // всё равно пересчитаем, чтобы понять ближайший
+      final nearest = _findNearestBusiness(coords['lat']!, coords['lon']!);
+      if (nearest != null && nearest['id'] != _selectedBusiness!['id']) {
+        _selectBusiness(nearest);
+        _showBusinessChangeSnack(nearest, auto: true);
+      }
+      return;
+    }
+
+    final nearest = _findNearestBusiness(coords['lat']!, coords['lon']!);
+    if (nearest != null) {
+      _selectBusiness(nearest);
+      _showBusinessChangeSnack(nearest, auto: true);
+    }
+  }
+
+  Map<String, double>? _extractAddressLatLon(Map<String, dynamic> address) {
+    try {
+      // Поддержка разных структур: {lat, lon} или {point: {lat, lon}}
+      dynamic lat = address['lat'] ?? address['latitude'];
+      dynamic lon = address['lon'] ?? address['lng'] ?? address['longitude'];
+      if (lat == null || lon == null) {
+        final point = address['point'];
+        if (point is Map) {
+          lat = point['lat'];
+          lon = point['lon'] ?? point['lng'];
+        }
+      }
+      if (lat == null || lon == null) return null;
+      final dLat = double.tryParse(lat.toString());
+      final dLon = double.tryParse(lon.toString());
+      if (dLat == null || dLon == null) return null;
+      return {'lat': dLat, 'lon': dLon};
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Map<String, dynamic>? _findNearestBusiness(double lat, double lon) {
+    Map<String, dynamic>? nearest;
+    double bestDistance = double.infinity;
+    for (final b in _businesses) {
+      final bLat = b['lat'];
+      final bLon = b['lon'];
+      if (bLat == null || bLon == null) continue;
+      final dLat = double.tryParse(bLat.toString());
+      final dLon = double.tryParse(bLon.toString());
+      if (dLat == null || dLon == null) continue;
+      final dist = Geolocator.distanceBetween(lat, lon, dLat, dLon); // метры
+      if (dist < bestDistance) {
+        bestDistance = dist;
+        nearest = b;
+      }
+    }
+    if (nearest != null) {
+      return {
+        ...nearest,
+        'distanceMeters': bestDistance,
+      };
+    }
+    return null;
+  }
+
+  void _showBusinessChangeSnack(Map<String, dynamic> business,
+      {bool auto = false}) {
+    // Показываем уже после построения кадра, чтобы Scaffold был доступен
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final distanceM = business['distanceMeters'];
+      String distanceText = '';
+      if (distanceM is num) {
+        final km =
+            (distanceM / 1000).toStringAsFixed(distanceM >= 1000 ? 1 : 2);
+        distanceText = ' ($km км)';
+      }
+      final text = auto
+          ? 'Выбран ближайший магазин: ${business['name']}$distanceText'
+          : 'Магазин изменён: ${business['name']}$distanceText';
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(text),
+            duration: const Duration(seconds: 3),
+            action: SnackBarAction(
+              label: 'Изменить',
+              onPressed: () {
+                // Открываем селектор магазинов через MainPage (там уже есть логика)
+                // Можно навигацией или callback; упрощённо ничего не делаем здесь.
+              },
+            ),
+          ),
+        );
+    });
+  }
+
+  Future<void> _changeAddress() async {
+    final newAddress = await AddressSelectionModalHelper.show(context);
+    if (newAddress != null && mounted) {
+      await AddressStorageService.saveSelectedAddress(newAddress);
+      setState(() {
+        _selectedAddress = newAddress;
+      });
+      // После смены адреса обязательно пересчитываем ближайший магазин
+      _autoSelectNearestBusiness(force: true);
+    }
+  }
+
   Future<void> _loadSavedAddress() async {
     final address = await AddressStorageService.getSelectedAddress();
     if (address != null && mounted) {
       setState(() {
         _selectedAddress = address;
       });
-      // Optionally auto-select nearest business after loading address
+      // Если адрес уже был сохранён ранее – попробуем выбрать ближайший
       _autoSelectNearestBusiness();
     }
   }
 
-  /// Загружает список бизнесов из API
-  Future<void> _loadBusinesses() async {
-    // CartProvider cartProvider =
-    //     Provider.of<CartProvider>(context, listen: false);
-    // cartProvider.clearCart(); // Очищаем корзину при загрузке бизнесов
-    setState(() {
-      _isLoadingBusinesses = true;
-    });
-
-    try {
-      // Загружаем бизнесы с первой страницы
-      final data = await ApiService.getBusinesses(page: 1, limit: 20);
-
-      if (data != null && data['businesses'] != null) {
-        setState(() {
-          _businesses = List<Map<String, dynamic>>.from(data['businesses']);
-          _isLoadingBusinesses = false;
-        });
-        print(_businesses);
-        print('Загружено ${_businesses.length} бизнесов');
-
-        // Автоматически выбираем ближайший магазин если есть геолокация
-        _selectedBusiness =
-            Provider.of<BusinessProvider>(context, listen: false)
-                .selectedBusiness;
-        if (_selectedBusiness == null) {
-          _autoSelectNearestBusiness();
-        }
-
-        // Выводим информацию о пагинации
-        if (data['pagination'] != null) {
-          final pagination = data['pagination'];
-          print(
-              'Пагинация: страница ${pagination['page']} из ${pagination['totalPages']}, всего ${pagination['total']} элементов');
-        }
-      } else {
-        setState(() {
-          _isLoadingBusinesses = false;
-        });
-        print('Не удалось загрузить бизнесы');
-      }
-    } catch (e) {
-      setState(() {
-        _isLoadingBusinesses = false;
-      });
-      print('Ошибка при загрузке бизнесов: $e');
-    }
-  }
-
-  /// Выбирает магазин и сохраняет его в памяти
-  void _selectBusiness(Map<String, dynamic> business) {
-    setState(() {
-      _selectedBusiness = business;
-    });
-
-    // Обновляем BusinessProvider
-    Provider.of<BusinessProvider>(context, listen: false)
-        .setSelectedBusiness(business);
-
-    // Акции загружаются в MainPage при выборе магазина
-  }
-
-  /// Автоматически выбирает ближайший магазин если доступна геолокация
-  void _autoSelectNearestBusiness() {
-    if (_selectedBusiness == null &&
-        _userPosition != null &&
-        _businesses.isNotEmpty) {
-      final nearest = _findNearestBusiness(_userPosition!);
-      if (nearest != null) {
-        setState(() {
-          _selectedBusiness = nearest;
-        });
-
-        // Обновляем BusinessProvider
-        Provider.of<BusinessProvider>(context, listen: false)
-            .setSelectedBusiness(nearest);
-
-        print('Автоматически выбран ближайший магазин: ${nearest['name']}');
-      }
-    }
-  }
-
-  /// Изменяет выбранный адрес пользователя
-  Future<void> _changeAddress() async {
-    // Проверяем, что контекст доступен и виджет mounted
-    if (!mounted) return;
-
-    try {
-      final newAddress = await AddressSelectionModalHelper.show(context);
-
-      if (newAddress != null && mounted) {
-        // Persist to SharedPreferences
-        await AddressStorageService.saveSelectedAddress(newAddress);
-        await AddressStorageService.addToAddressHistory({
-          'name': newAddress['address'],
-          'point': {'lat': newAddress['lat'], 'lon': newAddress['lon']}
-        });
-        setState(() {
-          _selectedAddress = newAddress;
-        });
-        // Auto-select nearest business based on new address
-        _autoSelectNearestBusiness();
-      }
-    } catch (e) {
-      print('Ошибка при изменении адреса: $e');
-    }
-  }
-
-  /// Получает ближайший магазин или выбранный пользователем
-  Map<String, dynamic>? get _currentBusiness {
-    // Если пользователь выбрал магазин, возвращаем его
-    if (_selectedBusiness != null) {
-      return _selectedBusiness;
-    }
-
-    // Иначе пытаемся найти ближайший
-    if (_userPosition != null) {
-      final nearest = _findNearestBusiness(_userPosition!);
-      if (nearest != null) return nearest;
-    }
-
-    // В крайнем случае возвращаем первый из списка
-    if (_businesses.isNotEmpty) {
-      return _businesses.first;
-    }
-
-    // Возвращаем mock данные если API не доступно
-    return {
-      'business_id': 1,
-      'name': 'Налив',
-      'address': 'Москва',
-      'description': 'Mock магазин',
-      'logo': '',
-      'city_id': 1
-    };
-  }
-
-  /// Запрашивает разрешение на геолокацию и получает координаты
-  Future<void> _requestLocationPermission() async {
-    setState(() {
-      _isLoadingLocation = true;
-      _locationStatus = 'Запрос разрешения...';
-    });
-
-    try {
-      bool success = await requestLocationAndGetPosition();
-
-      if (success && currentPosition != null) {
-        setState(() {
-          _userPosition = currentPosition;
-          _isLoadingLocation = false;
-          _locationStatus = 'Геолокация получена';
-        });
-
-        print(
-            'Координаты пользователя: ${_userPosition!.latitude}, ${_userPosition!.longitude}');
-
-        // Автоматически выбираем ближайший магазин
-        _autoSelectNearestBusiness();
-
-        // Можно показать диалог с информацией
-        if (mounted) {
-          showCurrentLocationInfo();
-        }
-      } else {
-        setState(() {
-          _isLoadingLocation = false;
-          _locationStatus = 'Не удалось получить геолокацию';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _isLoadingLocation = false;
-        _locationStatus = 'Ошибка: $e';
-      });
-    }
-  }
-
-  /// Проверяет статус разрешения геолокации
-  Future<void> _checkLocationPermission() async {
-    LocationPermissionResult result =
-        await locationService.checkAndRequestPermissions();
-
-    setState(() {
-      if (result.success) {
-        _locationStatus = 'Разрешение получено';
-      } else {
-        _locationStatus = result.message;
-      }
-    });
-  }
-
   /// Находит ближайший магазин по координатам пользователя
-  Map<String, dynamic>? _findNearestBusiness(Position userPosition) {
-    if (_businesses.isEmpty) return null;
-
-    Map<String, dynamic>? nearestBusiness;
-    double minDistance = double.infinity;
-
-    for (var business in _businesses) {
-      // Проверяем наличие координат в данных бизнеса
-      double? businessLat = business['lat']?.toDouble();
-      double? businessLon = business['lon']?.toDouble();
-
-      if (businessLat != null && businessLon != null) {
-        // Вычисляем расстояние
-        double distance = locationService.calculateDistance(
-          userPosition.latitude,
-          userPosition.longitude,
-          businessLat,
-          businessLon,
-        );
-
-        if (distance < minDistance) {
-          minDistance = distance;
-          nearestBusiness = {
-            ...business,
-            'distance': distance,
-            'distanceKm': distance / 1000,
-          };
-        }
-      }
-    }
-
-    return nearestBusiness;
-  }
-
-  /// Запрашивает геолокацию и находит ближайший магазин
-  Future<void> _findNearestStore() async {
-    setState(() {
-      _isLoadingLocation = true;
-      _locationStatus = 'Поиск ближайшего магазина...';
-    });
-
-    try {
-      bool success = await requestLocationAndGetPosition();
-
-      if (success && currentPosition != null) {
-        setState(() {
-          _userPosition = currentPosition;
-        });
-
-        // Находим ближайший магазин
-        Map<String, dynamic>? nearestStore =
-            _findNearestBusiness(currentPosition!);
-
-        if (nearestStore != null) {
-          setState(() {
-            _isLoadingLocation = false;
-            _locationStatus =
-                'Найден ближайший магазин: ${nearestStore['name']}';
-          });
-
-          // Показываем диалог с информацией о ближайшем магазине
-          _showNearestStoreDialog(nearestStore);
-        } else {
-          setState(() {
-            _isLoadingLocation = false;
-            _locationStatus = 'Не удалось найти ближайший магазин';
-          });
-        }
-      } else {
-        setState(() {
-          _isLoadingLocation = false;
-          _locationStatus = 'Не удалось получить геолокацию';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _isLoadingLocation = false;
-        _locationStatus = 'Ошибка: $e';
-      });
-    }
-  }
+  // Убран расчет ближайшего магазина для упрощения
 
   /// Показывает диалог с информацией о ближайшем магазине
-  void _showNearestStoreDialog(Map<String, dynamic> store) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Ближайший магазин'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
-            Text(
-              '🏪 ${store['name']}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text('📍 ${store['address']}'),
-            const SizedBox(height: 8),
-            Text(
-              '📏 Расстояние: ${store['distanceKm'].toStringAsFixed(2)} км',
-              style: TextStyle(
-                color: Colors.blue,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '🌍 Координаты: ${store['lat']}, ${store['lon']}',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            child: const Text('Закрыть'),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          TextButton(
-            child: const Text('Выбрать'),
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Здесь можно добавить логику выбора магазина
-              _selectStore(store);
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Выбирает магазин как текущий
-  void _selectStore(Map<String, dynamic> store) {
-    // Обновляем _currentBusiness или сохраняем выбранный магазин
-    setState(() {
-      _locationStatus = 'Выбран магазин: ${store['name']}';
-    });
-
-    // Показываем подтверждение
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Магазин выбран'),
-        content: Text('Вы выбрали магазин "${store['name']}"'),
-        actions: [
-          TextButton(
-            child: const Text('OK'),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {

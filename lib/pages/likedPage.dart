@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../utils/api.dart';
 import '../model/item.dart' as model;
+import '../shared/product_card.dart';
+import '../utils/liked_items_provider.dart';
 
 class LikedPage extends StatefulWidget {
   final int businessId;
@@ -18,6 +21,7 @@ class _LikedPageState extends State<LikedPage> {
   bool _hasMore = true;
   int _page = 1;
   String? _error;
+  bool _syncScheduled = false; // защищаемся от частых setState
 
   @override
   void initState() {
@@ -147,53 +151,40 @@ class _LikedPageState extends State<LikedPage> {
         ),
       );
     }
-
-    return ListView.separated(
-      controller: _scrollController,
-      padding: const EdgeInsets.all(12),
-      itemBuilder: (_, i) {
-        if (i == _items.length) {
-          return _isLoading
-              ? const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              : const SizedBox.shrink();
+    return Consumer<LikedItemsProvider>(
+      builder: (context, likedProvider, child) {
+        // Фильтруем по актуальному состоянию лайков
+        final likedSet = likedProvider.likedItems(widget.businessId);
+        // Удаляем локально те, что больше не лайкнуты
+        if (!_syncScheduled) {
+          _syncScheduled = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            _items.removeWhere((it) => !likedSet.contains(it.itemId));
+            _syncScheduled = false;
+            setState(() {});
+          });
         }
-        final item = _items[i];
-        return _ItemTile(item: item);
+
+        return GridView.builder(
+            controller: _scrollController,
+            padding: const EdgeInsets.all(12),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.60,
+            ),
+            itemCount: _items.length + (_isLoading ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index >= _items.length) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final item = _items[index];
+              return ProductCard(item: item);
+            });
       },
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemCount: _items.length + 1,
     );
   }
 }
-
-class _ItemTile extends StatelessWidget {
-  final model.Item item;
-  const _ItemTile({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-        ),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        leading: Icon(Icons.shopping_bag,
-            color: Theme.of(context).colorScheme.primary),
-        title: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-        subtitle: Text('${item.price.toStringAsFixed(0)} ₸'),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () {
-          // TODO: перейти на страницу товара
-        },
-      ),
-    );
-  }
-}
+// _ItemTile удалён – используем ProductCard

@@ -5,17 +5,96 @@ import '../utils/cart_provider.dart';
 import '../models/cart_item.dart';
 import '../widgets/item_options_dialog.dart';
 import '../pages/product_detail_page.dart';
+import '../utils/api.dart';
+import '../utils/liked_storage_service.dart';
+import '../utils/business_provider.dart';
+import '../utils/liked_items_provider.dart';
 
-class ProductCard extends StatelessWidget {
+class ProductCard extends StatefulWidget {
   final ItemModel.Item item;
 
-  const ProductCard({
-    super.key,
-    required this.item,
-  });
+  const ProductCard({super.key, required this.item});
+
+  @override
+  State<ProductCard> createState() => _ProductCardState();
+}
+
+class _ProductCardState extends State<ProductCard> {
+  bool _likeInProgress = false;
+  bool? _isLikedOverride; // локальное переопределение если изменили
+
+  int? _businessId;
+
+  bool get _isLiked => _isLikedOverride ?? false; // локальное состояние
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Получаем текущий бизнес (если есть)
+    final businessProvider =
+        Provider.of<BusinessProvider>(context, listen: false);
+    final bid = businessProvider.selectedBusinessId;
+    if (bid != null && bid != _businessId) {
+      _businessId = bid;
+      _initLikeState(bid);
+    }
+  }
+
+  Future<void> _initLikeState(int businessId) async {
+    // Сначала пробуем из провайдера
+    final likedProvider =
+        Provider.of<LikedItemsProvider>(context, listen: false);
+    final providerLiked = likedProvider.isLiked(businessId, widget.item.itemId);
+    if (providerLiked) {
+      _isLikedOverride = true;
+      setState(() {});
+      return; // уже знаем
+    }
+    // Иначе грузим из локального хранилища
+    final liked = await LikedStorageService.isLiked(
+      businessId: businessId,
+      itemId: widget.item.itemId,
+    );
+    if (mounted) {
+      setState(() {
+        _isLikedOverride = liked;
+      });
+      if (liked) {
+        likedProvider.updateLike(businessId, widget.item.itemId, true);
+      }
+    }
+  }
+
+  Future<void> _toggleLike() async {
+    if (_likeInProgress) return;
+    setState(() => _likeInProgress = true);
+    try {
+      final newValue = await ApiService.toggleLikeItem(widget.item.itemId);
+      if (newValue != null) {
+        setState(() {
+          _isLikedOverride = newValue;
+        });
+        if (_businessId != null) {
+          // Сохраняем в SharedPreferences
+          LikedStorageService.setLiked(
+            businessId: _businessId!,
+            itemId: widget.item.itemId,
+            liked: newValue,
+          );
+          // Обновляем провайдер
+          final likedProvider =
+              Provider.of<LikedItemsProvider>(context, listen: false);
+          likedProvider.updateLike(_businessId!, widget.item.itemId, newValue);
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _likeInProgress = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final item = widget.item;
     return GestureDetector(
       child: Container(
         decoration: BoxDecoration(
@@ -83,108 +162,141 @@ class ProductCard extends StatelessWidget {
                   ),
                 ),
                 AspectRatio(
-                  aspectRatio: 1.0, // Квадратное соотношение
-                  child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        boxShadow: [
-                          // BoxShadow(
-                          //   color: Theme.of(context)
-                          //       .colorScheme
-                          //       .shadow
-                          //       .withValues(alpha: 0.1),
-                          //   blurRadius: 4,
-                          //   offset: const Offset(0, 2),
-                          // ),
-                        ],
-                        // color:
-                        //     Theme.of(context).colorScheme.surfaceContainerHighest,
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(15)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Акции товара (если есть)
-                          if (item.hasPromotions) ...[
-                            Wrap(
-                              spacing: 4,
-                              runSpacing: 4,
-                              children: item.promotions!.map((promo) {
-                                return Container(
+                  aspectRatio: 1.0,
+                  child: Stack(
+                    children: [
+                      // Overlay content (promos + options + like)
+                      Positioned.fill(
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            borderRadius: BorderRadius.all(Radius.circular(15)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        if (item.hasPromotions) ...[
+                                          Wrap(
+                                            spacing: 4,
+                                            runSpacing: 4,
+                                            children:
+                                                item.promotions!.map((promo) {
+                                              return Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 6,
+                                                  vertical: 2,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .surfaceContainer,
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  promo.description ??
+                                                      promo.name,
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurface,
+                                                  ),
+                                                ),
+                                              );
+                                            }).toList(),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  GestureDetector(
+                                    onTap: _toggleLike,
+                                    child: AnimatedOpacity(
+                                      duration:
+                                          const Duration(milliseconds: 150),
+                                      opacity: _likeInProgress ? 0.5 : 1,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .surfaceContainerHighest
+                                              .withOpacity(0.7),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          _isLiked
+                                              ? Icons.favorite
+                                              : Icons.favorite_border,
+                                          size: 18,
+                                          color: _isLiked
+                                              ? Colors.redAccent
+                                              : Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Spacer(),
+                              if (item.hasOptions) ...[
+                                Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 6,
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .surfaceContainer
-                                      // color: Colors.red.withValues(alpha: 0.1),
-                                      // borderRadius: BorderRadius.circular(8),
-                                      // border: Border.all(
-                                      //   color: Colors.red.withValues(alpha: 0.3),
-                                      //   width: 1,
-                                      // ),
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .surfaceContainer,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.tune,
+                                        size: 12,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
                                       ),
-                                  child: Text(
-                                    promo.description ?? promo.name,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w900,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
-                                    ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '+ опции (${item.options!.length})',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                );
-                              }).toList(),
-                            ),
-                            const SizedBox(height: 6),
-                          ],
-                          Spacer(),
-
-                          // Опции товара (если есть)
-                          if (item.hasOptions) ...[
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainer,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.tune,
-                                    size: 12,
-                                    color:
-                                        Theme.of(context).colorScheme.onSurface,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '+ опции (${item.options!.length})',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                          ],
-                        ],
-                      )),
+                                ),
+                                const SizedBox(height: 6),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/utils/location_service.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
+import 'package:naliv_delivery/utils/liked_items_provider.dart';
 import 'package:naliv_delivery/services/notification_service.dart';
 import 'package:naliv_delivery/widgets/agreement_wrapper.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -28,6 +29,7 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => BusinessProvider()),
+        ChangeNotifierProvider(create: (_) => LikedItemsProvider()),
       ],
       child: const Main(),
     ),
