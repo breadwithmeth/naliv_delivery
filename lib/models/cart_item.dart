@@ -6,6 +6,7 @@ class CartItem {
   final double stepQuantity;
   final List<Map<String, dynamic>> selectedVariants;
   final List<Map<String, dynamic>> promotions;
+  final double? maxAmount; // лимит доступного количества (остаток)
 
   CartItem({
     required this.itemId,
@@ -15,6 +16,7 @@ class CartItem {
     required this.stepQuantity,
     required this.selectedVariants,
     required this.promotions,
+    this.maxAmount,
   });
 
   factory CartItem.fromJson(Map<String, dynamic> json) {
@@ -30,6 +32,9 @@ class CartItem {
       promotions: (json['promotions'] as List<dynamic>)
           .map((e) => Map<String, dynamic>.from(e as Map))
           .toList(),
+      maxAmount: json['maxAmount'] != null
+          ? (json['maxAmount'] as num).toDouble()
+          : null,
     );
   }
 
@@ -42,6 +47,7 @@ class CartItem {
       'stepQuantity': stepQuantity,
       'selectedVariants': selectedVariants,
       'promotions': promotions,
+      if (maxAmount != null) 'maxAmount': maxAmount,
     };
   }
 

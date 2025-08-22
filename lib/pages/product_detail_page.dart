@@ -8,260 +8,142 @@ import '../widgets/item_options_dialog.dart';
 class ProductDetailPage extends StatelessWidget {
   final ItemModel.Item item;
 
-  const ProductDetailPage({
-    super.key,
-    required this.item,
-  });
+  const ProductDetailPage({super.key, required this.item});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(item.name),
-        backgroundColor: Theme.of(context).colorScheme.surface,
+        title: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
       ),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Изображение товара
-            Container(
-              height: 300,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            // Изображение
+            if (item.hasImage)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: AspectRatio(
+                  aspectRatio: 1.3,
+                  child: Image.network(
+                    item.image!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: theme.colorScheme.surfaceVariant,
+                      child: Icon(Icons.image_not_supported,
+                          color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                  ),
+                ),
               ),
-              child: item.image != null && item.image!.isNotEmpty
-                  ? Image.network(
-                      item.image!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Center(
-                          child: Icon(
-                            Icons.inventory_2_outlined,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                            size: 80,
-                          ),
-                        );
-                      },
+            if (item.hasImage) const SizedBox(height: 20),
+
+            // Название
+            Text(
+              item.name,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Цена
+            Text(
+              '${item.price.toStringAsFixed(2)} ₽',
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Код товара
+            if (item.code != null && item.code!.isNotEmpty)
+              Text(
+                'Код товара: ${item.code}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            if (item.code != null && item.code!.isNotEmpty)
+              const SizedBox(height: 16),
+
+            // Описание
+            if (item.description != null && item.description!.isNotEmpty) ...[
+              Text(
+                item.description!,
+                style: theme.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Информация о шаге
+            if (item.effectiveStepQuantity != 1.0) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: theme.colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Товар продается с шагом ${item.effectiveStepQuantity} ${item.effectiveStepQuantity < 1 ? "кг" : "шт"}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     )
-                  : Center(
-                      child: Icon(
-                        Icons.inventory_2_outlined,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        size: 80,
-                      ),
-                    ),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Название товара
-                  Text(
-                    item.name,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Цена
-                  Text(
-                    '${item.price.toStringAsFixed(0)} ₸',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Акции (если есть)
-                  if (item.hasPromotions) ...[
-                    const Text(
-                      'Акции и предложения',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: item.promotions!.map((promo) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.red.withOpacity(0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: Text(
-                            promo.description ?? promo.name,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.red,
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 16),
                   ],
-
-                  // Опции (если есть)
-                  if (item.hasOptions) ...[
-                    const Text(
-                      'Доступные опции',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainer,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.tune,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Доступно ${item.options!.length} ${item.options!.length == 1 ? "опция" : "опций"}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-
-                  // Описание товара (если есть)
-                  if (item.description != null &&
-                      item.description!.isNotEmpty) ...[
-                    const Text(
-                      'Описание',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      item.description!,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-
-                  // Код товара (если есть)
-                  if (item.code != null && item.code!.isNotEmpty) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.qr_code,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Код товара: ${item.code}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-
-                  // Информация о stepQuantity
-                  if (item.effectiveStepQuantity != 1.0) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .primaryContainer
-                            .withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Товар продается с шагом ${item.effectiveStepQuantity} ${item.effectiveStepQuantity < 1 ? "кг" : "шт"}',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Theme.of(context).colorScheme.primary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                  ] else
-                    const SizedBox(height: 20),
-                ],
+                ),
               ),
-            ),
+              const SizedBox(height: 20),
+            ],
+
+            // Промоакции
+            if (item.hasPromotions) ...[
+              Text('Акции', style: theme.textTheme.titleMedium),
+              const SizedBox(height: 8),
+              ...item.promotions!.map(
+                (p) => Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    p.name,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSecondaryContainer,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Заглушка под контент
+            const SizedBox(height: 80),
           ],
         ),
       ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
+          color: theme.colorScheme.surface,
           boxShadow: [
             BoxShadow(
-              color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
-              blurRadius: 8,
+              color: theme.colorScheme.shadow.withOpacity(0.08),
+              blurRadius: 10,
               offset: const Offset(0, -2),
             ),
           ],
@@ -271,12 +153,13 @@ class ProductDetailPage extends StatelessWidget {
             final totalQuantity =
                 cartProvider.getTotalQuantityForItem(item.itemId);
             final isInCart = totalQuantity > 0;
+            final double? maxAmount = item.amount?.toDouble();
+            final bool canIncrease =
+                maxAmount == null || totalQuantity < maxAmount;
 
             if (isInCart) {
-              // Товар в корзине - показываем управление количеством
               return Row(
                 children: [
-                  // Кнопка уменьшения
                   SizedBox(
                     width: 48,
                     height: 48,
@@ -297,14 +180,14 @@ class ProductDetailPage extends StatelessWidget {
                           cartProvider.updateQuantityWithVariants(
                             item.itemId,
                             firstVariant.selectedVariants,
-                            firstVariant.quantity - step,
+                            (firstVariant.quantity - step)
+                                .clamp(0, double.infinity),
                           );
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor:
-                            Theme.of(context).colorScheme.onPrimary,
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
                         padding: EdgeInsets.zero,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -314,14 +197,12 @@ class ProductDetailPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 16),
-
-                  // Количество
                   Expanded(
                     child: Container(
                       height: 48,
                       decoration: BoxDecoration(
                         border: Border.all(
-                          color: Theme.of(context).colorScheme.primary,
+                          color: theme.colorScheme.primary,
                           width: 2,
                         ),
                         borderRadius: BorderRadius.circular(8),
@@ -332,51 +213,59 @@ class ProductDetailPage extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.primary,
+                            color: theme.colorScheme.primary,
                           ),
                         ),
                       ),
                     ),
                   ),
-
                   const SizedBox(width: 16),
-
-                  // Кнопка увеличения/настройки
                   SizedBox(
                     width: 48,
                     height: 48,
                     child: ElevatedButton(
-                      onPressed: () {
-                        if (item.hasOptions) {
-                          showDialog(
-                            context: context,
-                            builder: (context) => ItemOptionsDialog(item: item),
-                          );
-                        } else {
-                          final variants =
-                              cartProvider.getItemVariants(item.itemId);
-                          if (variants.isNotEmpty) {
-                            final firstVariant = variants.first;
-                            double step = firstVariant.stepQuantity;
-                            for (var v in firstVariant.selectedVariants) {
-                              if (v.containsKey('parent_item_amount')) {
-                                step =
-                                    (v['parent_item_amount'] as num).toDouble();
-                                break;
+                      onPressed: canIncrease
+                          ? () {
+                              if (item.hasOptions) {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) =>
+                                      ItemOptionsDialog(item: item),
+                                );
+                              } else {
+                                final variants =
+                                    cartProvider.getItemVariants(item.itemId);
+                                if (variants.isNotEmpty) {
+                                  final firstVariant = variants.first;
+                                  double step = firstVariant.stepQuantity;
+                                  for (var v in firstVariant.selectedVariants) {
+                                    if (v.containsKey('parent_item_amount')) {
+                                      step = (v['parent_item_amount'] as num)
+                                          .toDouble();
+                                      break;
+                                    }
+                                  }
+                                  final target = firstVariant.quantity + step;
+                                  final newValue =
+                                      maxAmount != null && target > maxAmount
+                                          ? maxAmount
+                                          : target;
+                                  cartProvider.updateQuantityWithVariants(
+                                    item.itemId,
+                                    firstVariant.selectedVariants,
+                                    newValue,
+                                  );
+                                }
                               }
                             }
-                            cartProvider.updateQuantityWithVariants(
-                              item.itemId,
-                              firstVariant.selectedVariants,
-                              firstVariant.quantity + step,
-                            );
-                          }
-                        }
-                      },
+                          : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor:
-                            Theme.of(context).colorScheme.onPrimary,
+                        backgroundColor: canIncrease
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.surfaceVariant,
+                        foregroundColor: canIncrease
+                            ? theme.colorScheme.onPrimary
+                            : theme.colorScheme.onSurfaceVariant,
                         padding: EdgeInsets.zero,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -391,34 +280,37 @@ class ProductDetailPage extends StatelessWidget {
                 ],
               );
             } else {
-              // Товар не в корзине - показываем кнопку добавления
               return SizedBox(
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    if (item.hasOptions) {
-                      showDialog(
-                        context: context,
-                        builder: (context) => ItemOptionsDialog(item: item),
-                      );
-                    } else {
-                      final stepQuantity = item.effectiveStepQuantity;
-                      final newCartItem = CartItem(
-                        itemId: item.itemId,
-                        name: item.name,
-                        price: item.price,
-                        quantity: stepQuantity,
-                        stepQuantity: stepQuantity,
-                        selectedVariants: [],
-                        promotions: [],
-                      );
-                      cartProvider.addItem(newCartItem);
-                    }
-                  },
+                  onPressed: (maxAmount != null && maxAmount <= 0)
+                      ? null
+                      : () {
+                          if (item.hasOptions) {
+                            showDialog(
+                              context: context,
+                              builder: (context) =>
+                                  ItemOptionsDialog(item: item),
+                            );
+                          } else {
+                            final stepQuantity = item.effectiveStepQuantity;
+                            final newCartItem = CartItem(
+                              itemId: item.itemId,
+                              name: item.name,
+                              price: item.price,
+                              quantity: stepQuantity,
+                              stepQuantity: stepQuantity,
+                              selectedVariants: [],
+                              promotions: [],
+                              maxAmount: maxAmount,
+                            );
+                            cartProvider.addItem(newCartItem);
+                          }
+                        },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: theme.colorScheme.onPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),

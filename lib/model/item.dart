@@ -103,6 +103,7 @@ class Item {
       print('step_quantity: ${categoryItem['step_quantity']}');
       print('quantity_step: ${categoryItem['quantity_step']}');
       print('parent_item_amount: ${categoryItem['parent_item_amount']}');
+      print('amount: ${categoryItem['amount']}');
       print('==========================================');
       return Item.fromJson(categoryItem);
     }
@@ -111,6 +112,7 @@ class Item {
     print('Item ID: ${categoryItem.itemId}');
     print('Name: ${categoryItem.name}');
     print('CategoryItem stepQuantity: ${categoryItem.stepQuantity}');
+    print('amount: ${categoryItem.amount}');
     print(
         'Has options: ${categoryItem.options != null && categoryItem.options!.isNotEmpty}');
     print('=============================================');
@@ -139,6 +141,7 @@ class Item {
       price: categoryItem.price ?? 0.0,
       image: categoryItem.img ?? categoryItem.img,
       code: categoryItem.code,
+      amount: categoryItem.amount,
       categoryId: categoryItem.category?.categoryId,
       category: categoryItem.category != null
           ? ItemCategory.fromApiCategory(categoryItem.category)

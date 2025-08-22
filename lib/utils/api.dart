@@ -2099,6 +2099,7 @@ class CategoryItem {
   final double? stepQuantity;
   final List<CategoryItemOption>? options;
   final List<CategoryItemPromotion>? promotions;
+  final int? amount; // добавлено: доступное количество / остаток
 
   CategoryItem({
     required this.itemId,
@@ -2112,6 +2113,7 @@ class CategoryItem {
     this.stepQuantity,
     this.options,
     this.promotions,
+    this.amount,
   });
 
   factory CategoryItem.fromJson(Map<String, dynamic> json) {
@@ -2137,6 +2139,8 @@ class CategoryItem {
               .map((promotion) => CategoryItemPromotion.fromJson(promotion))
               .toList()
           : null,
+      amount:
+          json['amount'] != null ? ApiService._parseInt(json['amount']) : null,
     );
   }
 
@@ -2151,6 +2155,7 @@ class CategoryItem {
       'category': category.toJson(),
       'visible': visible,
       if (stepQuantity != null) 'quantity_step': stepQuantity,
+      if (amount != null) 'amount': amount,
       if (options != null)
         'options': options!.map((option) => option.toJson()).toList(),
       if (promotions != null)

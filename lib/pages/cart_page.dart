@@ -59,6 +59,10 @@ class CartPage extends StatelessWidget {
                     itemCount: items.length,
                     itemBuilder: (context, index) {
                       final item = items[index];
+                      final double? maxAmount = item.maxAmount;
+                      final bool canIncrease =
+                          maxAmount == null || item.quantity < maxAmount;
+                      final bool canDecrease = item.quantity > 0;
                       return Card(
                         margin: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 8),
@@ -145,24 +149,28 @@ class CartPage extends StatelessWidget {
                                 children: [
                                   IconButton(
                                     icon: const Icon(Icons.remove),
-                                    onPressed: () {
-                                      // Вычисляем шаг изменения количества: parent_item_amount или stepQuantity
-                                      double step = item.stepQuantity;
-                                      for (var v in item.selectedVariants) {
-                                        if (v.containsKey(
-                                            'parent_item_amount')) {
-                                          step =
-                                              (v['parent_item_amount'] as num)
-                                                  .toDouble();
-                                          break;
-                                        }
-                                      }
-                                      cartProvider.updateQuantityWithVariants(
-                                        item.itemId,
-                                        item.selectedVariants,
-                                        item.quantity - step,
-                                      );
-                                    },
+                                    onPressed: canDecrease
+                                        ? () {
+                                            // Вычисляем шаг изменения количества: parent_item_amount или stepQuantity
+                                            double step = item.stepQuantity;
+                                            for (var v
+                                                in item.selectedVariants) {
+                                              if (v.containsKey(
+                                                  'parent_item_amount')) {
+                                                step = (v['parent_item_amount']
+                                                        as num)
+                                                    .toDouble();
+                                                break;
+                                              }
+                                            }
+                                            cartProvider
+                                                .updateQuantityWithVariants(
+                                              item.itemId,
+                                              item.selectedVariants,
+                                              item.quantity - step,
+                                            );
+                                          }
+                                        : null,
                                   ),
                                   Text(
                                     item.quantity.toStringAsFixed(2),
@@ -170,24 +178,34 @@ class CartPage extends StatelessWidget {
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.add),
-                                    onPressed: () {
-                                      // Вычисляем шаг изменения количества: parent_item_amount или stepQuantity
-                                      double step = item.stepQuantity;
-                                      for (var v in item.selectedVariants) {
-                                        if (v.containsKey(
-                                            'parent_item_amount')) {
-                                          step =
-                                              (v['parent_item_amount'] as num)
-                                                  .toDouble();
-                                          break;
-                                        }
-                                      }
-                                      cartProvider.updateQuantityWithVariants(
-                                        item.itemId,
-                                        item.selectedVariants,
-                                        item.quantity + step,
-                                      );
-                                    },
+                                    onPressed: canIncrease
+                                        ? () {
+                                            // Вычисляем шаг изменения количества: parent_item_amount или stepQuantity
+                                            double step = item.stepQuantity;
+                                            for (var v
+                                                in item.selectedVariants) {
+                                              if (v.containsKey(
+                                                  'parent_item_amount')) {
+                                                step = (v['parent_item_amount']
+                                                        as num)
+                                                    .toDouble();
+                                                break;
+                                              }
+                                            }
+                                            final target = item.quantity + step;
+                                            final newValue =
+                                                maxAmount != null &&
+                                                        target > maxAmount
+                                                    ? maxAmount
+                                                    : target;
+                                            cartProvider
+                                                .updateQuantityWithVariants(
+                                              item.itemId,
+                                              item.selectedVariants,
+                                              newValue,
+                                            );
+                                          }
+                                        : null,
                                   ),
                                 ],
                               ),

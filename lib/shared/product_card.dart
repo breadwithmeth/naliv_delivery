@@ -356,6 +356,9 @@ class _ProductCardState extends State<ProductCard> {
                         final totalQuantity =
                             cartProvider.getTotalQuantityForItem(item.itemId);
                         final isInCart = totalQuantity > 0;
+                        final num? maxAmount = item.amount;
+                        final bool canIncrease = maxAmount == null ||
+                            totalQuantity < maxAmount.toDouble();
 
                         if (isInCart) {
                           // Товар в корзине - показываем общее количество и кнопку управления
@@ -434,60 +437,88 @@ class _ProductCardState extends State<ProductCard> {
                                 width: 32,
                                 height: 32,
                                 child: ElevatedButton(
-                                  onPressed: () {
-                                    if (item.hasOptions) {
-                                      // Если есть опции, показываем диалог
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) =>
-                                            ItemOptionsDialog(item: item),
-                                      );
-                                    } else {
-                                      // Если нет опций, просто увеличиваем количество
-                                      final variants = cartProvider
-                                          .getItemVariants(item.itemId);
-                                      if (variants.isNotEmpty) {
-                                        final firstVariant = variants.first;
-                                        // Вычисляем шаг изменения количества: parent_item_amount или stepQuantity
-                                        double step = firstVariant.stepQuantity;
-                                        for (var v
-                                            in firstVariant.selectedVariants) {
-                                          if (v.containsKey(
-                                              'parent_item_amount')) {
-                                            step =
-                                                (v['parent_item_amount'] as num)
-                                                    .toDouble();
-                                            break;
+                                  onPressed: canIncrease
+                                      ? () {
+                                          if (item.hasOptions) {
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) =>
+                                                  ItemOptionsDialog(item: item),
+                                            );
+                                          } else {
+                                            final variants = cartProvider
+                                                .getItemVariants(item.itemId);
+                                            if (variants.isNotEmpty) {
+                                              final firstVariant =
+                                                  variants.first;
+                                              double step = firstVariant
+                                                  .stepQuantity; // базовый шаг
+                                              for (var v in firstVariant
+                                                  .selectedVariants) {
+                                                if (v.containsKey(
+                                                    'parent_item_amount')) {
+                                                  step =
+                                                      (v['parent_item_amount']
+                                                              as num)
+                                                          .toDouble();
+                                                  break;
+                                                }
+                                              }
+                                              // Если после увеличения превысим лимит – ограничим до максимума
+                                              final target =
+                                                  firstVariant.quantity + step;
+                                              if (maxAmount != null &&
+                                                  target >
+                                                      maxAmount.toDouble()) {
+                                                // ставим максимум
+                                                cartProvider
+                                                    .updateQuantityWithVariants(
+                                                  item.itemId,
+                                                  firstVariant.selectedVariants,
+                                                  maxAmount.toDouble(),
+                                                );
+                                              } else {
+                                                cartProvider
+                                                    .updateQuantityWithVariants(
+                                                  item.itemId,
+                                                  firstVariant.selectedVariants,
+                                                  target,
+                                                );
+                                              }
+                                            }
                                           }
                                         }
-                                        // Увеличиваем на шаг
-                                        cartProvider.updateQuantityWithVariants(
-                                          item.itemId,
-                                          firstVariant.selectedVariants,
-                                          firstVariant.quantity + step,
-                                        );
-                                      }
-                                    }
-                                  },
+                                      : null,
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        Theme.of(context).colorScheme.primary,
-                                    foregroundColor:
-                                        Theme.of(context).colorScheme.onPrimary,
+                                    backgroundColor: canIncrease
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .surfaceVariant,
+                                    foregroundColor: canIncrease
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .onPrimary
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
                                     padding: EdgeInsets.zero,
                                     minimumSize: const Size(32, 32),
                                   ),
                                   child: Icon(
-                                      item.hasOptions
-                                          ? Icons.settings
-                                          : Icons.add,
-                                      size: 16),
+                                    item.hasOptions
+                                        ? Icons.settings
+                                        : Icons.add,
+                                    size: 16,
+                                  ),
                                 ),
                               ),
                             ],
                           );
                         } else {
                           // Товар не в корзине - показываем кнопку добавления
+                          final bool canAdd =
+                              (maxAmount == null || maxAmount.toDouble() > 0);
                           return Row(
                             children: [
                               Expanded(
@@ -506,59 +537,53 @@ class _ProductCardState extends State<ProductCard> {
                                 width: 32,
                                 child: IconButton(
                                   style: IconButton.styleFrom(
-                                    backgroundColor:
-                                        Theme.of(context).colorScheme.primary,
-                                    foregroundColor:
-                                        Theme.of(context).colorScheme.onPrimary,
+                                    backgroundColor: canAdd
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .surfaceVariant,
+                                    foregroundColor: canAdd
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .onPrimary
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
                                     padding: EdgeInsets.zero,
                                     minimumSize: const Size(32, 32),
                                   ),
-                                  onPressed: () {
-                                    if (item.hasOptions) {
-                                      // Если есть опции, показываем диалог выбора
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) =>
-                                            ItemOptionsDialog(item: item),
-                                      );
-                                    } else {
-                                      // Если нет опций, добавляем сразу
-                                      // Используем эффективный stepQuantity из товара
-                                      final stepQuantity =
-                                          item.effectiveStepQuantity;
-                                      final newCartItem = CartItem(
-                                        itemId: item.itemId,
-                                        name: item.name,
-                                        price: item.price,
-                                        quantity: stepQuantity,
-                                        stepQuantity: stepQuantity,
-                                        selectedVariants: [],
-                                        promotions: [],
-                                      );
-                                      cartProvider.addItem(newCartItem);
-                                    }
-                                  },
+                                  onPressed: canAdd
+                                      ? () {
+                                          if (item.hasOptions) {
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) =>
+                                                  ItemOptionsDialog(item: item),
+                                            );
+                                          } else {
+                                            final stepQuantity =
+                                                item.effectiveStepQuantity;
+                                            final newCartItem = CartItem(
+                                              itemId: item.itemId,
+                                              name: item.name,
+                                              price: item.price,
+                                              quantity: stepQuantity,
+                                              stepQuantity: stepQuantity,
+                                              selectedVariants: [],
+                                              promotions: [],
+                                              maxAmount:
+                                                  item.amount?.toDouble(),
+                                            );
+                                            cartProvider.addItem(newCartItem);
+                                          }
+                                        }
+                                      : null,
                                   icon: Icon(
                                     item.hasOptions
                                         ? Icons.tune
                                         : Icons.add_shopping_cart,
                                     size: 14,
                                   ),
-                                  // label: Text(
-                                  //   item.hasOptions ? 'Выбрать' : 'В корзину',
-                                  //   style: const TextStyle(fontSize: 12),
-                                  // ),
-                                  // style: ElevatedButton.styleFrom(
-                                  //   backgroundColor:
-                                  //       Theme.of(context).colorScheme.primary,
-                                  //   foregroundColor:
-                                  //       Theme.of(context).colorScheme.onPrimary,
-                                  //   minimumSize: const Size(0, 32),
-                                  //   padding: const EdgeInsets.symmetric(
-                                  //     horizontal: 8,
-                                  //     vertical: 4,
-                                  //   ),
-                                  // ),
                                 ),
                               )
                             ],
