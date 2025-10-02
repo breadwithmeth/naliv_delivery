@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../utils/api.dart';
-import 'package:naliv_delivery/pages/checkout_page.dart';
+import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
 
 // Форматирует ввод номера в +7XXXXXXXXXX
 class PhoneTextInputFormatter extends TextInputFormatter {
@@ -32,7 +32,8 @@ class PhoneTextInputFormatter extends TextInputFormatter {
 }
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({Key? key}) : super(key: key);
+  final int? redirectTabIndex;
+  const LoginPage({Key? key, this.redirectTabIndex}) : super(key: key);
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -89,12 +90,14 @@ class _LoginPageState extends State<LoginPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Авторизация успешна')),
         );
-        // Переходим к оформлению заказа
-        Navigator.pushReplacement(
-          context,
+        // После успешной авторизации переходим на BottomMenu через AuthenticationWrapper
+        // и очищаем стек, чтобы нельзя было вернуться на экран логина
+        Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
-            builder: (_) => const CheckoutPage(),
-          ),
+              builder: (_) => AuthenticationWrapper(
+                    initialTabIndex: widget.redirectTabIndex,
+                  )),
+          (route) => false,
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

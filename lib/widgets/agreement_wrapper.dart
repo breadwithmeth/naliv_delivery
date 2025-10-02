@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/agreement_service.dart';
 import '../pages/mandatory_offer_page.dart';
-import '../pages/bottomMenu.dart';
+import 'authentication_wrapper.dart';
 
 /// Виджет-обертка для проверки принятия пользовательских соглашений
 class AgreementWrapper extends StatefulWidget {
@@ -85,6 +85,6 @@ class _AgreementWrapperState extends State<AgreementWrapper> {
       );
     }
 
-    return const BottomMenu();
+    return const AuthenticationWrapper();
   }
 }

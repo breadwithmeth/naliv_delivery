@@ -523,10 +523,20 @@ class ApiService {
   }
 
   /// Поиск товаров по имени
-  static Future<List<Map<String, dynamic>>?> searchItems(String name,
-      {int? businessId}) async {
+  /// Поиск товаров по имени (сырой ответ API)
+  /// Поддерживает пагинацию как на /categories/:id/items
+  static Future<Map<String, dynamic>?> searchItems(
+    String name, {
+    int? businessId,
+    int page = 1,
+    int limit = 20,
+  }) async {
     try {
-      final queryParams = {'name': name};
+      final queryParams = <String, String>{
+        'name': name,
+        'page': page.toString(),
+        'limit': limit.toString(),
+      };
       if (businessId != null) {
         queryParams['business_id'] = businessId.toString();
       }
@@ -534,20 +544,21 @@ class ApiService {
       final uri = Uri.parse('$baseUrl/items/search').replace(
         queryParameters: queryParams,
       );
+
       final response = await http.get(
         uri,
-        headers: {
+        headers: const {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
       );
+
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true) {
-          final items = jsonResponse['data']?['items'] as List<dynamic>? ?? [];
-          return items.cast<Map<String, dynamic>>();
+          return jsonResponse;
         } else {
-          // print('API searchItems error: jjsonResponse['message']}');
+          print('API searchItems error: ${jsonResponse['message']}');
         }
       } else {
         print('HTTP searchItems error: ${response.statusCode}');
@@ -558,18 +569,88 @@ class ApiService {
     return null;
   }
 
-  /// Поиск товаров по имени (типизированная версия unified)
-  static Future<List<ItemModel.Item>?> searchItemsTyped(String name,
-      {int? businessId}) async {
+  /// Поиск товаров по имени (типизированная версия как categoryItemsTyped)
+  /// Возвращает CategoryItemsResponse
+  static Future<CategoryItemsResponse?> searchItemsTyped(
+    String name, {
+    int? businessId,
+    int page = 1,
+    int limit = 20,
+  }) async {
     try {
-      final data = await searchItems(name, businessId: businessId);
-      if (data != null) {
-        return data.map((json) => ItemModel.Item.fromJson(json)).toList();
+      final raw = await searchItems(
+        name,
+        businessId: businessId,
+        page: page,
+        limit: limit,
+      );
+      if (raw == null) return null;
+
+      // Ожидаем структуру вида:
+      // { success, data: { items: [...], pagination?: {...} } }
+      final success = raw['success'] == true;
+      final data = (raw['data'] as Map<String, dynamic>? ?? {});
+
+      // 1) Items -> List<CategoryItem>
+      final List<dynamic> itemsRaw = (data['items'] as List?) ?? const [];
+      final items = itemsRaw.map((e) => CategoryItem.fromJson(e)).toList();
+
+      // 2) Pagination -> PaginationInfo
+      PaginationInfo pagination;
+      if (data['pagination'] is Map) {
+        pagination =
+            PaginationInfo.fromJson(data['pagination'] as Map<String, dynamic>);
+      } else {
+        // fallback, если бэкенд не вернул pagination
+        final total = ApiService._parseInt(data['total']) == 0
+            ? items.length
+            : ApiService._parseInt(data['total']);
+        final totalPages = (total / limit).ceil().clamp(1, 999999);
+        pagination = PaginationInfo(
+          page: page,
+          limit: limit,
+          total: total,
+          totalPages: totalPages,
+        );
       }
+
+      // 3) «Виртуальная» категория: "Поиск: <name>"
+      final categoryInfo = CategoryInfo(
+        categoryId: 0,
+        name: 'Поиск: $name',
+        photo: null,
+        img: null,
+      );
+
+      // 4) Бизнес (если задан фильтр)
+      final businessInfo = BusinessInfo(
+        businessId: businessId ?? 0,
+        name: '', // реального имени нет в поиске — оставляем пустым
+        address: null,
+      );
+
+      // 5) Прочие поля CategoryItemsData
+      final categoriesIncluded = <int>[];
+      final subcategoriesCount = 0;
+
+      final typedData = CategoryItemsData(
+        category: categoryInfo,
+        business: businessInfo,
+        items: items,
+        pagination: pagination,
+        categoriesIncluded: categoriesIncluded,
+        subcategoriesCount: subcategoriesCount,
+      );
+
+      return CategoryItemsResponse(
+        success: success,
+        data: typedData,
+        message: raw['message'],
+      );
     } catch (e) {
       print('Error parsing searchItemsTyped: $e');
+      return null;
     }
-    return null;
   }
 
   /// Поиск адресов по текстовому запросу (типизированная версия)

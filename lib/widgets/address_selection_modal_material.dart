@@ -161,31 +161,19 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
           'timestamp': DateTime.now().toIso8601String(),
         };
 
-        // Сохраняем адрес в настройках
-        await AddressStorageService.saveSelectedAddress(selectedAddress);
-        // Добавляем адрес в историю поиска
-        await AddressStorageService.addToAddressHistory({
-          'name': selectedAddress['address'],
-          'point': {
-            'lat': selectedAddress['lat'],
-            'lon': selectedAddress['lon']
-          },
-        });
-
-        print('💾 Адрес сохранен: ${selectedAddress['address']}');
+        print('💾 Сохраняем базовый адрес: ${selectedAddress['address']}');
 
         if (mounted) {
-          // final extra = await _askAddressDetails(selectedAddress);
-          final full = selectedAddress;
-          // Уточнение на карте
+          // Уточнение на карте с возможностью добавления деталей
           await Navigator.of(context).push(MaterialPageRoute(
             builder: (_) => MapAddressPage(
-              initialLat: full['lat'],
-              initialLon: full['lon'],
+              initialLat: selectedAddress['lat'],
+              initialLon: selectedAddress['lon'],
               onAddressSelected: widget.onAddressSelected,
             ),
           ));
           // Callback already called by MapAddressPage via widget.onAddressSelected
+          // MapAddressPage сам сохранит адрес с деталями в AddressStorageService
         }
       } else {
         print('❌ API не вернул данные об адресе');
@@ -272,19 +260,15 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
 
       print('🏠 Выбран адрес: $selectedAddress');
 
-      // Сохраняем адрес
-      await AddressStorageService.saveSelectedAddress(selectedAddress);
-      // Добавляем адрес в историю поиска
-      await AddressStorageService.addToAddressHistory({
-        'name': selectedAddress['address'],
-        'point': {'lat': selectedAddress['lat'], 'lon': selectedAddress['lon']},
-      });
-
       // Запрашиваем дополнительные детали и закрываем с полным адресом
       if (mounted) {
         final extra = await _askAddressDetails(selectedAddress);
         final full =
             (extra != null) ? {...selectedAddress, ...extra} : selectedAddress;
+
+        // Сохраняем адрес с деталями
+        await AddressStorageService.saveSelectedAddress(full);
+
         // Уточнение на карте
         final mapRes = await Navigator.of(context)
             .push<Map<String, dynamic>>(MaterialPageRoute(
@@ -297,7 +281,32 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
         if (mapRes != null) {
           full['lat'] = mapRes['lat'];
           full['lon'] = mapRes['lon'];
+          // Пересохраняем с обновленными координатами
+          await AddressStorageService.saveSelectedAddress(full);
         }
+
+        // Добавляем адрес в историю поиска с полными данными
+        final historyEntry = {
+          'name': full['address'],
+          'point': {'lat': full['lat'], 'lon': full['lon']},
+        };
+
+        // Добавляем детали если они есть
+        if (full['apartment']?.toString().isNotEmpty == true) {
+          historyEntry['apartment'] = full['apartment'];
+        }
+        if (full['entrance']?.toString().isNotEmpty == true) {
+          historyEntry['entrance'] = full['entrance'];
+        }
+        if (full['floor']?.toString().isNotEmpty == true) {
+          historyEntry['floor'] = full['floor'];
+        }
+        if (full['other']?.toString().isNotEmpty == true) {
+          historyEntry['comment'] = full['other'];
+        }
+
+        await AddressStorageService.addToAddressHistory(historyEntry);
+
         widget.onAddressSelected(full);
       }
     } catch (e) {
@@ -374,6 +383,34 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  /// Строит подзаголовок с деталями адреса
+  Widget? _buildAddressSubtitle(Map<String, dynamic> addr) {
+    final List<String> details = [];
+
+    if (addr['apartment']?.toString().isNotEmpty == true) {
+      details.add('кв. ${addr['apartment']}');
+    }
+    if (addr['entrance']?.toString().isNotEmpty == true) {
+      details.add('подъезд ${addr['entrance']}');
+    }
+    if (addr['floor']?.toString().isNotEmpty == true) {
+      details.add('этаж ${addr['floor']}');
+    }
+    if (addr['comment']?.toString().isNotEmpty == true) {
+      details.add('${addr['comment']}');
+    }
+
+    if (details.isEmpty) return null;
+
+    return Text(
+      details.join(', '),
+      style: TextStyle(
+        color: Colors.grey[600],
+        fontSize: 12,
       ),
     );
   }
@@ -641,14 +678,35 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
                     ...snapshot.data!.map((addr) => ListTile(
                           leading: Icon(Icons.history, color: Colors.blue),
                           title: Text(addr['name'] ?? ''),
+                          subtitle: _buildAddressSubtitle(addr),
                           onTap: () {
-                            widget.onAddressSelected({
+                            // Передаем все сохраненные детали адреса
+                            final fullAddress = {
                               'address': addr['name'],
                               'lat': addr['point']['lat'],
                               'lon': addr['point']['lon'],
                               'source': 'history',
                               'timestamp': DateTime.now().toIso8601String(),
-                            });
+                            };
+
+                            // Добавляем детали адреса если они есть
+                            if (addr['apartment']?.toString().isNotEmpty ==
+                                true) {
+                              fullAddress['apartment'] = addr['apartment'];
+                            }
+                            if (addr['entrance']?.toString().isNotEmpty ==
+                                true) {
+                              fullAddress['entrance'] = addr['entrance'];
+                            }
+                            if (addr['floor']?.toString().isNotEmpty == true) {
+                              fullAddress['floor'] = addr['floor'];
+                            }
+                            if (addr['comment']?.toString().isNotEmpty ==
+                                true) {
+                              fullAddress['comment'] = addr['comment'];
+                            }
+
+                            widget.onAddressSelected(fullAddress);
                           },
                         )),
                   ],

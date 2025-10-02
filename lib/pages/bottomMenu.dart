@@ -14,9 +14,18 @@ import 'package:provider/provider.dart';
 import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/utils/address_storage_service.dart';
+import 'package:naliv_delivery/pages/login_page.dart';
 
 class BottomMenu extends StatefulWidget {
-  const BottomMenu({super.key});
+  final bool isAuthenticated;
+  final Map<String, dynamic>? userInfo;
+  final int? initialTabIndex;
+
+  const BottomMenu(
+      {required this.isAuthenticated,
+      this.userInfo,
+      this.initialTabIndex,
+      super.key});
 
   @override
   State<BottomMenu> createState() => _BottomMenuState();
@@ -40,6 +49,10 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
   @override
   void initState() {
     super.initState();
+    // Установка стартовой вкладки, если передан индекс
+    if (widget.initialTabIndex != null) {
+      _currentIndex = widget.initialTabIndex!.clamp(0, 4);
+    }
     // Загружаем сохранённый магазин из storage
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final bp = Provider.of<BusinessProvider>(context, listen: false);
@@ -338,6 +351,7 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
 
     switch (_currentIndex) {
       case 0:
+        // Главная страница доступна всем
         return MainPage(
           businesses: _businesses,
           selectedBusiness: _selectedBusiness,
@@ -348,21 +362,31 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
           isLoadingBusinesses: _isLoadingBusinesses,
         );
       case 1:
+        // Каталог доступен всем
         return Catalog(
           businessId: _selectedBusiness?['id'] ??
               _selectedBusiness?['business_id'] ??
               _selectedBusiness?['businessId'],
         );
       case 2:
+        // Избранное требует авторизации
+        if (!widget.isAuthenticated) {
+          return const LoginPage(redirectTabIndex: 2);
+        }
         return LikedPage(
           businessId: _selectedBusiness?['id'] ??
               _selectedBusiness?['business_id'] ??
               _selectedBusiness?['businessId'],
         );
       case 3:
-        return CartPage();
+        // Корзина доступна всем
+        return const CartPage();
       case 4:
-        return ProfilePage();
+        // Профиль требует авторизации
+        if (!widget.isAuthenticated) {
+          return const LoginPage(redirectTabIndex: 4);
+        }
+        return ProfilePage(userInfo: widget.userInfo!);
       default:
         return Container();
     }

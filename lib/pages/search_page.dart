@@ -14,33 +14,135 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _controller = TextEditingController();
-  List<ItemModel.Item>? _results = [];
+
+  List<ItemModel.Item> _items = [];
   bool _isLoading = false;
+  bool _isLoadingMore = false;
   String? _error;
+  PaginationInfo? _pagination;
+
+  // для бесконечной прокрутки
+  final ScrollController _scrollController = ScrollController();
+
+  // текущие параметры поиска
+  String _currentQuery = '';
+  int? _currentBusinessId;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_isLoadingMore &&
+        _pagination != null &&
+        _pagination!.hasNextPage &&
+        _scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200) {
+      _loadMore();
+    }
+  }
 
   Future<void> _search(String query) async {
     if (query.isEmpty) return;
+
+    final businessProvider =
+        Provider.of<BusinessProvider>(context, listen: false);
+    final businessId = businessProvider.selectedBusinessId;
+
     setState(() {
       _isLoading = true;
       _error = null;
+      _items = [];
+      _pagination = null;
+      _currentQuery = query;
+      _currentBusinessId = businessId;
     });
+
     try {
-      final businessProvider =
-          Provider.of<BusinessProvider>(context, listen: false);
-      final businessId = businessProvider.selectedBusinessId;
-      final items =
-          await ApiService.searchItemsTyped(query, businessId: businessId);
+      final resp = await ApiService.searchItemsTyped(
+        query,
+        businessId: businessId,
+        page: 1,
+        limit: 40,
+      );
+
+      if (!mounted) return;
+
+      if (resp == null) {
+        setState(() {
+          _items = [];
+          _pagination = null;
+        });
+        return;
+      }
+
+      final mapped = resp.data.items
+          .map((ci) => ItemModel.Item.fromCategoryItem(ci))
+          .toList();
+
       setState(() {
-        _results = items;
+        _items = mapped;
+        _pagination = resp.data.pagination;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
       });
     } finally {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_currentQuery.isEmpty ||
+        _pagination == null ||
+        !_pagination!.hasNextPage) {
+      return;
+    }
+
+    setState(() => _isLoadingMore = true);
+
+    try {
+      final nextPage = _pagination!.page + 1;
+
+      final resp = await ApiService.searchItemsTyped(
+        _currentQuery,
+        businessId: _currentBusinessId,
+        page: nextPage,
+        limit: _pagination!.limit,
+      );
+
+      if (!mounted) return;
+
+      if (resp != null) {
+        final mapped = resp.data.items
+            .map((ci) => ItemModel.Item.fromCategoryItem(ci))
+            .toList();
+
+        setState(() {
+          _items.addAll(mapped);
+          _pagination = resp.data.pagination;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      // Можно показать снэкбар/ошибку догрузки, но основной экран не ломаем
+    } finally {
+      if (!mounted) return;
+      setState(() => _isLoadingMore = false);
     }
   }
 
@@ -57,6 +159,7 @@ class _SearchPageState extends State<SearchPage> {
         ),
       );
     }
+
     if (_error != null) {
       return Center(
         child: Padding(
@@ -89,8 +192,8 @@ class _SearchPageState extends State<SearchPage> {
         ),
       );
     }
-    final items = _results ?? [];
-    if (items.isEmpty && _controller.text.isNotEmpty) {
+
+    if (_items.isEmpty && _controller.text.isNotEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -112,7 +215,9 @@ class _SearchPageState extends State<SearchPage> {
         ),
       );
     }
+
     return GridView.builder(
+      controller: _scrollController,
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
@@ -120,9 +225,13 @@ class _SearchPageState extends State<SearchPage> {
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
-      itemCount: items.length,
+      itemCount: _items.length + (_isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
-        return ProductCard(item: items[index]);
+        if (_isLoadingMore && index == _items.length) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final item = _items[index];
+        return ProductCard(item: item);
       },
     );
   }
@@ -136,9 +245,7 @@ class _SearchPageState extends State<SearchPage> {
           decoration: const InputDecoration(
             hintText: 'Поиск товаров...',
             border: InputBorder.none,
-            // hintStyle: TextStyle(colorf: Colors.white70),
           ),
-          // style: const TextStyle(color: Colors.white),
           textInputAction: TextInputAction.search,
           onSubmitted: _search,
         ),

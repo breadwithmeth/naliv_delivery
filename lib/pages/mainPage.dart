@@ -39,6 +39,10 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
+  // Контроллер и таймер для автопрокрутки промо
+  final PageController _promoPageController = PageController();
+  Timer? _promoAutoScrollTimer;
+  int _currentPromoPage = 0;
   final LocationService locationService = LocationService.instance;
   StreamSubscription<Map<String, dynamic>?>? _addressSubscription;
 
@@ -332,6 +336,7 @@ class _MainPageState extends State<MainPage> {
           _promotions = promotions ?? [];
           _isLoadingPromotions = false;
         });
+        _startPromoAutoScroll();
 
         print('✅ Загружено акций: ${_promotions.length}');
       }
@@ -391,13 +396,32 @@ class _MainPageState extends State<MainPage> {
       if (mounted && result != null && result['success'] == true) {
         final data = result['data'];
         final activeOrdersList = data['active_orders'] as List<dynamic>? ?? [];
+        print(activeOrdersList);
+        // Фильтруем заказы за последние 36 часов
+        final now = DateTime.now();
+        final cutoffTime = now.subtract(const Duration(hours: 36));
+
+        final filteredOrders =
+            activeOrdersList.cast<Map<String, dynamic>>().where((order) {
+          try {
+            final createdAt = order['log_timestamp'];
+            if (createdAt == null) return true; // Показываем если нет даты
+
+            final orderDate = DateTime.parse(createdAt.toString());
+            return orderDate.isAfter(cutoffTime);
+          } catch (e) {
+            print('❌ Ошибка парсинга даты заказа ${order['order_id']}: $e');
+            return true; // Показываем заказ если не удалось распарсить дату
+          }
+        }).toList();
 
         setState(() {
-          _activeOrders = activeOrdersList.cast<Map<String, dynamic>>();
+          _activeOrders = filteredOrders;
           _isLoadingActiveOrders = false;
         });
 
-        print('✅ Загружено активных заказов: ${_activeOrders.length}');
+        print(
+            '✅ Загружено активных заказов за последние 36 часов: ${_activeOrders.length} из ${activeOrdersList.length}');
       } else {
         setState(() {
           _activeOrders = [];
@@ -513,6 +537,8 @@ class _MainPageState extends State<MainPage> {
 
   @override
   void dispose() {
+    _promoAutoScrollTimer?.cancel();
+    _promoPageController.dispose();
     _addressSubscription?.cancel();
     super.dispose();
   }
@@ -644,13 +670,23 @@ class _MainPageState extends State<MainPage> {
         print('💾 Сохраняем выбранный адрес');
         // Сохраняем в SharedPreferences
         await AddressStorageService.saveSelectedAddress(selectedAddress);
-        // Сохраняем в историю
+        // Сохраняем в историю с полными данными адреса
         await AddressStorageService.addToAddressHistory({
           'name': selectedAddress['address'],
           'point': {
             'lat': selectedAddress['lat'],
             'lon': selectedAddress['lon']
-          }
+          },
+          if (selectedAddress['apartment']?.toString().isNotEmpty == true)
+            'apartment': selectedAddress['apartment'],
+          if (selectedAddress['entrance']?.toString().isNotEmpty == true)
+            'entrance': selectedAddress['entrance'],
+          if (selectedAddress['floor']?.toString().isNotEmpty == true)
+            'floor': selectedAddress['floor'],
+          if (selectedAddress['other']?.toString().isNotEmpty == true)
+            'other': selectedAddress['other'],
+          if (selectedAddress['comment']?.toString().isNotEmpty == true)
+            'comment': selectedAddress['comment'],
         });
         setState(() {
           _selectedAddress = selectedAddress;
@@ -948,67 +984,119 @@ class _MainPageState extends State<MainPage> {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            pinned: true,
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            surfaceTintColor: Colors.transparent,
-            elevation: 0,
-            shadowColor: Colors.transparent,
-            forceElevated: false,
-            toolbarHeight: 56,
-            titleSpacing: 12,
-            title: GestureDetector(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const SearchPage(),
-                  ),
-                );
-              },
-              child: Container(
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color:
-                        Theme.of(context).colorScheme.outline.withOpacity(0.2),
-                  ),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                alignment: Alignment.centerLeft,
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.search,
-                      size: 20,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Поиск товаров',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          // SliverAppBar(
+          //   pinned: true,
+          //   backgroundColor: Theme.of(context).colorScheme.surface,
+          //   surfaceTintColor: Colors.transparent,
+          //   elevation: 0,
+          //   shadowColor: Colors.transparent,
+          //   forceElevated: false,
+          //   toolbarHeight: 56,
+          //   titleSpacing: 12,
+          //   title: GestureDetector(
+          //     onTap: () {
+          //       Navigator.of(context).push(
+          //         MaterialPageRoute(
+          //           builder: (_) => const SearchPage(),
+          //         ),
+          //       );
+          //     },
+          //     child: Container(
+          //       height: 40,
+          //       decoration: BoxDecoration(
+          //         color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          //         borderRadius: BorderRadius.circular(10),
+          //         border: Border.all(
+          //           color:
+          //               Theme.of(context).colorScheme.outline.withOpacity(0.2),
+          //         ),
+          //       ),
+          //       padding: const EdgeInsets.symmetric(horizontal: 12),
+          //       alignment: Alignment.centerLeft,
+          //       child: Row(
+          //         children: [
+          //           Icon(
+          //             Icons.search,
+          //             size: 20,
+          //             color: Theme.of(context).colorScheme.onSurfaceVariant,
+          //           ),
+          //           const SizedBox(width: 8),
+          //           Expanded(
+          //             child: Text(
+          //               'Поиск товаров',
+          //               maxLines: 1,
+          //               overflow: TextOverflow.ellipsis,
+          //               style: TextStyle(
+          //                 color: Theme.of(context).colorScheme.onSurfaceVariant,
+          //                 fontSize: 14,
+          //               ),
+          //             ),
+          //           ),
+          //         ],
+          //       ),
+          //     ),
+          //   ),
+          // ),
+          SliverToBoxAdapter(
+            child: widget.selectedBusiness != null
+                ? _buildPromotionsHeroCarousel()
+                : const SizedBox.shrink(),
           ),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
                 children: [
-                  if (widget.selectedBusiness != null) ...[
-                    _buildPromotionsHeroCarousel(),
-                  ],
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const SearchPage(),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .outline
+                              .withOpacity(0.2),
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.search,
+                            size: 20,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Поиск товаров',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                   // Адрес и магазин: компактный ряд из двух плиток
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1600,22 +1688,15 @@ class _MainPageState extends State<MainPage> {
 
   /// Строит hero карусель акций
   Widget _buildPromotionsHeroCarousel() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Заголовок секции
-
-        // Hero карусель
-        SizedBox(
-          height: 150, // Высота hero баннеров
-          child: _buildPromotionsCarousel(),
-        ),
-      ],
+    final width = MediaQuery.of(context).size.width; // учёт внешних отступов
+    return SizedBox(
+      height: (width / 3) * 2, // квадрат
+      child: _buildPromotionsCarousel(width),
     );
   }
 
   /// Строит карусель акций
-  Widget _buildPromotionsCarousel() {
+  Widget _buildPromotionsCarousel(double size) {
     if (_isLoadingPromotions) {
       return const Center(
         child: Row(
@@ -1680,96 +1761,139 @@ class _MainPageState extends State<MainPage> {
       );
     }
 
-    // Горизонтальная карусель акций
-    return ListView.builder(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 0),
-      itemCount: _promotions.length,
-      itemBuilder: (context, index) {
-        return Container(
-          // width: MediaQuery.of(context).size.width *
-          //     0.6, // Ширина каждого hero баннера
-          // margin:
-          //     EdgeInsets.only(right: index < _promotions.length - 1 ? 16 : 0),
-          child: _buildPromotionHeroBanner(_promotions[index], index),
-        );
-      },
+    return Stack(
+      children: [
+        PageView.builder(
+          controller: _promoPageController,
+          itemCount: _promotions.length,
+          onPageChanged: (i) => setState(() => _currentPromoPage = i),
+          itemBuilder: (context, index) =>
+              _buildPromotionPage(_promotions[index], size),
+        ),
+        // Индикаторы
+        Positioned(
+          bottom: 8,
+          left: 0,
+          right: 0,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(_promotions.length, (i) {
+              final active = i == _currentPromoPage;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                height: 6,
+                width: active ? 18 : 6,
+                decoration: BoxDecoration(
+                  color: active
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              );
+            }),
+          ),
+        ),
+      ],
     );
   }
 
-  /// Строит hero баннер акции
-  Widget _buildPromotionHeroBanner(Promotion promotion, int index) {
-    return AspectRatio(
-      aspectRatio: 4 / 3,
-      child: InkWell(
-          onTap: () {
-            // Определяем ID магазина для передачи в страницу товаров акции
-            final int? bizId = widget.selectedBusiness != null
-                ? (widget.selectedBusiness!['id'] as int?) ??
-                    (widget.selectedBusiness!['businessId'] as int?)
-                : null;
-
-            if (bizId != null) {
-              Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => PromotionItemsPage(
-                  promotionId: promotion.marketingPromotionId,
-                  promotionName: promotion.name,
-                  businessId: bizId,
-                ),
-              ));
-            }
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  // BoxShadow(
-                  //   color: Theme.of(context).colorScheme.primary.withAlpha(30),
-                  //   blurRadius: 2,
-                  //   offset: const Offset(0, 2),
-                  // ),
-                ],
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+  /// Страница промо (квадрат)
+  Widget _buildPromotionPage(Promotion promotion, double size) {
+    final bizId = widget.selectedBusiness != null
+        ? (widget.selectedBusiness!['id'] as int?) ??
+            (widget.selectedBusiness!['businessId'] as int?)
+        : null;
+    return GestureDetector(
+      onTap: () {
+        if (bizId != null) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => PromotionItemsPage(
+                promotionId: promotion.marketingPromotionId,
+                promotionName: promotion.name,
+                businessId: bizId,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    clipBehavior: Clip.hardEdge,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
+            ),
+          );
+        }
+      },
+      child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(0),
+          ),
+          clipBehavior: Clip.hardEdge,
+          // borderRadius: BorderRadius.circular(16),
+          child: AspectRatio(
+            aspectRatio: 3 / 2,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Фото
+                Image.network(
+                  promotion.cover ?? '',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: Theme.of(context).colorScheme.surface,
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.broken_image,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      size: 48,
                     ),
-                    child: AspectRatio(
-                      aspectRatio: 2 / 1,
-                      child: Image.network(
-                        promotion.cover ?? '',
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: Theme.of(context).colorScheme.surface,
-                          child: Icon(
-                            Icons.broken_image,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                            size: 40,
-                          ),
-                        ),
+                  ),
+                ),
+                // Градиент снизу
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(16, 32, 16, 14),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.0),
+                          Colors.black.withOpacity(0.55),
+                        ],
+                      ),
+                    ),
+                    child: Text(
+                      promotion.name ?? 'Акция без названия',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
                       ),
                     ),
                   ),
-                  Text(
-                    promotion.name ?? 'Акция без названия',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.normal,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ))),
+                ),
+              ],
+            ),
+          )),
     );
+  }
+
+  void _startPromoAutoScroll() {
+    _promoAutoScrollTimer?.cancel();
+    if (_promotions.length <= 1) return; // не скроллим если одна акция
+    _promoAutoScrollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted) return;
+      final next = (_currentPromoPage + 1) % _promotions.length;
+      _promoPageController.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+      _currentPromoPage = next;
+      if (mounted) setState(() {});
+    });
   }
 
   void _showBarcodeModal(String cardUuid) {

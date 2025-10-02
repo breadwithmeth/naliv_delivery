@@ -88,6 +88,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
         _selectedAddress = selected;
         _deliveryData = null;
       });
+      // Сохраняем выбранный адрес со всеми деталями
+      await AddressStorageService.saveSelectedAddress(selected);
       await AddressStorageService.markAsLaunched();
       // Рассчитываем доставку по новому адресу
       _calculateDelivery();
@@ -121,6 +123,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
       'house': _selectedAddress?['house'] ?? '-',
       'lat': _selectedAddress?['lat'] ?? 0.0,
       'lon': _selectedAddress?['lon'] ?? 0.0,
+      'apartment': _selectedAddress?['apartment'] ?? '',
+      'entrance': _selectedAddress?['entrance'] ?? '',
+      'floor': _selectedAddress?['floor'] ?? '',
+      'extra': _selectedAddress?['comment'] ?? '',
       'items': cartProvider.items.map((item) => item.toJsonForOrder()).toList(),
       'delivery_type': _deliveryType,
       'delivery_time': _deliveryTime,
@@ -551,8 +557,120 @@ class _CheckoutPageState extends State<CheckoutPage> {
             Card(
               child: ListTile(
                 title: const Text('Адрес доставки'),
-                subtitle:
-                    Text(_selectedAddress?['address'] ?? 'Адрес не выбран'),
+                subtitle: _selectedAddress != null
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(_selectedAddress!['address'] ??
+                              'Адрес не указан'),
+                          if (_selectedAddress!['apartment']
+                                      ?.toString()
+                                      .isNotEmpty ==
+                                  true ||
+                              _selectedAddress!['entrance']
+                                      ?.toString()
+                                      .isNotEmpty ==
+                                  true ||
+                              _selectedAddress!['floor']
+                                      ?.toString()
+                                      .isNotEmpty ==
+                                  true) ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                if (_selectedAddress!['entrance']
+                                        ?.toString()
+                                        .isNotEmpty ==
+                                    true) ...[
+                                  Text(
+                                    'Под. ${_selectedAddress!['entrance']}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                                  ),
+                                  if (_selectedAddress!['apartment']
+                                              ?.toString()
+                                              .isNotEmpty ==
+                                          true ||
+                                      _selectedAddress!['floor']
+                                              ?.toString()
+                                              .isNotEmpty ==
+                                          true)
+                                    Text(
+                                      ', ',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                      ),
+                                    ),
+                                ],
+                                if (_selectedAddress!['floor']
+                                        ?.toString()
+                                        .isNotEmpty ==
+                                    true) ...[
+                                  Text(
+                                    'Эт. ${_selectedAddress!['floor']}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                                  ),
+                                  if (_selectedAddress!['apartment']
+                                          ?.toString()
+                                          .isNotEmpty ==
+                                      true)
+                                    Text(
+                                      ', ',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                      ),
+                                    ),
+                                ],
+                                if (_selectedAddress!['apartment']
+                                        ?.toString()
+                                        .isNotEmpty ==
+                                    true)
+                                  Text(
+                                    'Кв. ${_selectedAddress!['apartment']}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                          if (_selectedAddress!['other']
+                                  ?.toString()
+                                  .isNotEmpty ==
+                              true) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'Комментарий: ${_selectedAddress!['other']}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ],
+                      )
+                    : const Text('Адрес не выбран'),
                 trailing: const Icon(Icons.keyboard_arrow_right),
                 onTap: _showAddressSelectionModal,
               ),

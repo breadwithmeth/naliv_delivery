@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 import '../utils/api.dart';
 import '../services/agreement_service.dart';
+import '../services/auth_service.dart';
+import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+  final Map<String, dynamic> userInfo;
+
+  const ProfilePage({required this.userInfo, super.key});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -79,7 +83,10 @@ class _ProfilePageState extends State<ProfilePage> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => LoginPage()),
+                        MaterialPageRoute(
+                            builder: (context) => const LoginPage(
+                                  redirectTabIndex: 4,
+                                )),
                       );
                     },
                     child: Text('Войти')));
@@ -96,6 +103,30 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Logout button
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      await AuthService.clearToken();
+                      if (!mounted) return;
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                            builder: (_) => const AuthenticationWrapper(
+                                  initialTabIndex: 0,
+                                )),
+                        (route) => false,
+                      );
+                    },
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Выйти'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Card(
                   margin: const EdgeInsets.only(bottom: 16),
                   shape: RoundedRectangleBorder(

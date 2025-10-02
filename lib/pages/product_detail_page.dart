@@ -52,7 +52,7 @@ class ProductDetailPage extends StatelessWidget {
 
             // Цена
             Text(
-              '${item.price.toStringAsFixed(2)} ₽',
+              '${item.price.toStringAsFixed(2)} ₸',
               style: theme.textTheme.titleLarge?.copyWith(
                 color: theme.colorScheme.primary,
                 fontWeight: FontWeight.w600,

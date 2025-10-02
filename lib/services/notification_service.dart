@@ -4,6 +4,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/api.dart';
+import 'package:naliv_delivery/utils/app_navigator.dart';
 
 /// Глобальная функция для обработки фоновых сообщений
 @pragma('vm:entry-point')
@@ -280,7 +281,8 @@ class NotificationService {
   void _navigateToOrder(String? orderId) {
     if (orderId != null) {
       print('🚀 Навигация к заказу: $orderId');
-      // TODO: Реализовать навигацию к странице заказа
+      // Простейшая реализация: открываем вкладку Профиль (4), где пользователь видит список заказов
+      AppNavigator.goToHomeTab(4);
     }
   }
 
@@ -288,7 +290,8 @@ class NotificationService {
   void _navigateToPromotions(String? businessId) {
     if (businessId != null) {
       print('🚀 Навигация к акциям магазина: $businessId');
-      // TODO: Реализовать навигацию к странице акций
+      // Открываем главную (0), где обычно баннеры/акции
+      AppNavigator.goToHomeTab(0);
     }
   }
 
@@ -296,14 +299,15 @@ class NotificationService {
   void _navigateToDeliveryTracking(String? orderId) {
     if (orderId != null) {
       print('🚀 Навигация к трекингу заказа: $orderId');
-      // TODO: Реализовать навигацию к странице трекинга
+      // Пока отдельной страницы нет — ведём в Профиль, где доступна информация о заказах
+      AppNavigator.goToHomeTab(4);
     }
   }
 
   /// Навигация на главную
   void _navigateToHome() {
     print('🚀 Навигация на главную страницу');
-    // TODO: Реализовать навигацию на главную страницу
+    AppNavigator.goToHomeTab(0);
   }
 
   /// Получить текущий FCM токен

@@ -5,11 +5,12 @@ import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/liked_items_provider.dart';
 import 'package:naliv_delivery/services/notification_service.dart';
-import 'package:naliv_delivery/widgets/agreement_wrapper.dart';
+import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
+import 'package:naliv_delivery/utils/app_navigator.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
@@ -58,6 +59,7 @@ class _MainState extends State<Main> with LocationMixin {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+        navigatorKey: AppNavigator.key,
         navigatorObservers: [routeObserver],
         title: "Налив/Градусы24",
         localizationsDelegates: const [
@@ -132,6 +134,6 @@ class _MainState extends State<Main> with LocationMixin {
           ),
         ),
         debugShowCheckedModeBanner: false,
-        home: const AgreementWrapper());
+        home: const AuthenticationWrapper());
   }
 }
