@@ -6,6 +6,7 @@ import 'package:barcode_widget/barcode_widget.dart';
 import 'package:naliv_delivery/utils/address_storage_service.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
+import 'package:naliv_delivery/pages/map_address_page.dart';
 import 'package:provider/provider.dart';
 import '../utils/location_service.dart';
 import '../utils/api.dart';
@@ -45,6 +46,8 @@ class _MainPageState extends State<MainPage> {
   int _currentPromoPage = 0;
   final LocationService locationService = LocationService.instance;
   StreamSubscription<Map<String, dynamic>?>? _addressSubscription;
+  String?
+      _lastPromptKey; // чтобы не спамить диалогами при одной и той же комбинации
 
   // Состояние для акций
   List<Promotion> _promotions = [];
@@ -502,7 +505,13 @@ class _MainPageState extends State<MainPage> {
         setState(() {
           _selectedAddress = address;
         });
-        if (address != null) _autoSelectNearestBusiness();
+        if (address != null) {
+          if (widget.selectedBusiness == null) {
+            _autoSelectNearestBusiness();
+          } else {
+            _maybePromptNearestSwitch();
+          }
+        }
       }
     });
 
@@ -520,6 +529,8 @@ class _MainPageState extends State<MainPage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _autoSelectNearestBusiness();
       });
+      // Дополнительно проверяем актуальность адреса относительно текущей позиции
+      _maybeSuggestCloserAddress();
     }
 
     // Загружаем акции если магазин уже выбран
@@ -533,6 +544,146 @@ class _MainPageState extends State<MainPage> {
 
     // Загружаем активные заказы
     _loadActiveOrders();
+  }
+
+  /// Проверяет, далеко ли сохраненный адрес от текущей геопозиции и предлагает более близкий из истории
+  Future<void> _maybeSuggestCloserAddress() async {
+    if (_selectedAddress == null) return;
+    if (_selectedAddress!['lat'] == null || _selectedAddress!['lon'] == null)
+      return;
+
+    // Пытаемся получить текущее местоположение быстро (низкая точность достаточна)
+    Position? pos;
+    try {
+      pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.low,
+        timeLimit: const Duration(seconds: 4),
+      );
+    } catch (e) {
+      print(
+          '⚠️ Не удалось получить позицию для проверки более близкого адреса: $e');
+      return;
+    }
+    final savedLat = (_selectedAddress!['lat'] as num).toDouble();
+    final savedLon = (_selectedAddress!['lon'] as num).toDouble();
+    final currentDistance = locationService.calculateDistance(
+      pos.latitude,
+      pos.longitude,
+      savedLat,
+      savedLon,
+    );
+
+    // Порог (метры), после которого считаем адрес "не актуальным" (например 1500 м)
+    const staleThresholdMeters = 1500.0;
+    if (currentDistance <= staleThresholdMeters) return; // достаточно близко
+
+    // Загружаем историю и ищем адрес ближе к текущему положению
+    final history = await AddressStorageService.getAddressHistory();
+    if (history.isEmpty) return;
+
+    double bestDistance = double.infinity;
+    Map<String, dynamic>? bestEntry;
+    for (final entry in history) {
+      final point = entry['point'];
+      if (point == null) continue;
+      final lat = (point['lat'] as num?)?.toDouble();
+      final lon = (point['lon'] as num?)?.toDouble();
+      if (lat == null || lon == null) continue;
+      final d = locationService.calculateDistance(
+        pos.latitude,
+        pos.longitude,
+        lat,
+        lon,
+      );
+      if (d < bestDistance) {
+        bestDistance = d;
+        bestEntry = entry;
+      }
+    }
+
+    if (bestEntry == null) return;
+
+    // Если ближайший из истории не существенно ближе (разница < 400 м) — не предлагаем
+    if (currentDistance - bestDistance < 400) return;
+
+    final promptKey =
+        '${pos.latitude.toStringAsFixed(4)}_${pos.longitude.toStringAsFixed(4)}_${savedLat.toStringAsFixed(4)}_${savedLon.toStringAsFixed(4)}';
+    final lastKey = await AddressStorageService.getLastReaddressPromptKey();
+    if (lastKey == promptKey) return; // уже спрашивали в аналогичной ситуации
+
+    await AddressStorageService.setLastReaddressPromptKey(promptKey);
+
+    final bestKm = (bestDistance / 1000).toStringAsFixed(2);
+    final currentKm = (currentDistance / 1000).toStringAsFixed(2);
+
+    if (!mounted) return;
+    final decision = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Обновить адрес?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                  'Текущий выбранный адрес находится примерно в $currentKm км от вашего текущего местоположения.'),
+              const SizedBox(height: 8),
+              Text(
+                  'В истории есть более близкий адрес (~$bestKm км). Заменить?'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop('keep'),
+              child: const Text('Оставить'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop('switch'),
+              child: const Text('Заменить'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop('dontask'),
+              child: const Text('Не спрашивать'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted) return;
+    if (decision == 'switch') {
+      final newAddress = {
+        'address': bestEntry['name'],
+        'lat': bestEntry['point']['lat'],
+        'lon': bestEntry['point']['lon'],
+        if (bestEntry['apartment'] != null) 'apartment': bestEntry['apartment'],
+        if (bestEntry['entrance'] != null) 'entrance': bestEntry['entrance'],
+        if (bestEntry['floor'] != null) 'floor': bestEntry['floor'],
+        if (bestEntry['comment'] != null) 'comment': bestEntry['comment'],
+        'source': 'history_replacement',
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+      await AddressStorageService.saveSelectedAddress(newAddress);
+      setState(() => _selectedAddress = newAddress);
+      // После смены может потребоваться пересчитать ближайший магазин
+      if (widget.selectedBusiness == null) {
+        _autoSelectNearestBusiness();
+      } else {
+        _maybePromptNearestSwitch();
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text('Адрес обновлён на более близкий: ${newAddress['address']}'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } else if (decision == 'dontask') {
+      // Сохраняем специальный ключ, чтобы не спрашивать до смены координат/адреса заметно
+      await AddressStorageService.setLastReaddressPromptKey(promptKey);
+    }
   }
 
   @override
@@ -622,25 +773,310 @@ class _MainPageState extends State<MainPage> {
         }
       });
     } else {
-      // Если адрес не найден, показываем модальное окно
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        print('⏰ PostFrameCallback выполняется');
+      // Попытка автоматического определения адреса при первом запуске
+      final isFirst = await AddressStorageService.isFirstLaunch();
+      if (isFirst) {
+        print('🆕 Первый запуск приложения – пробуем автоопределение адреса');
+        _attemptAutoDetectAddress();
+      } else {
+        // Не первый запуск: пробуем взять ближайший адрес из истории к текущей геопозиции, если можем
+        try {
+          final history = await AddressStorageService.getAddressHistory();
+          if (history.isNotEmpty) {
+            // Получаем текущую позицию (быстрая попытка, без сложной многоступенчатой логики)
+            Position? pos;
+            try {
+              pos = await Geolocator.getCurrentPosition(
+                desiredAccuracy: LocationAccuracy.low,
+                timeLimit: const Duration(seconds: 5),
+              );
+            } catch (e) {
+              print(
+                  '⚠️ Не удалось получить текущую позицию для выбора ближайшего адреса из истории: $e');
+            }
 
-        // Дополнительная проверка что виджет еще mounted
-        if (mounted) {
-          print('✅ Виджет mounted, ждем 100ms');
-          await Future.delayed(const Duration(milliseconds: 100));
-          if (mounted) {
-            print('🎯 Показываем модальное окно');
-            _showAddressSelectionModal();
-          } else {
-            print('❌ Виджет больше не mounted после задержки');
+            if (pos != null) {
+              double bestDistance = double.infinity;
+              Map<String, dynamic>? bestEntry;
+              for (final entry in history) {
+                final point = entry['point'];
+                if (point == null) continue;
+                final lat = (point['lat'] as num?)?.toDouble();
+                final lon = (point['lon'] as num?)?.toDouble();
+                if (lat == null || lon == null) continue;
+                final d = locationService.calculateDistance(
+                  pos.latitude,
+                  pos.longitude,
+                  lat,
+                  lon,
+                );
+                if (d < bestDistance) {
+                  bestDistance = d;
+                  bestEntry = entry;
+                }
+              }
+              if (bestEntry != null) {
+                const nearThresholdMeters = 1000.0; // 1 км
+                if (bestDistance <= nearThresholdMeters) {
+                  // Ближайший адрес достаточно близко — используем автоматически
+                  final reconstructed = {
+                    'address': bestEntry['name'],
+                    'lat': bestEntry['point']['lat'],
+                    'lon': bestEntry['point']['lon'],
+                    if (bestEntry['apartment'] != null)
+                      'apartment': bestEntry['apartment'],
+                    if (bestEntry['entrance'] != null)
+                      'entrance': bestEntry['entrance'],
+                    if (bestEntry['floor'] != null) 'floor': bestEntry['floor'],
+                    if (bestEntry['comment'] != null)
+                      'comment': bestEntry['comment'],
+                    'source': 'history_nearest_auto',
+                    'timestamp': DateTime.now().toIso8601String(),
+                  };
+                  print(
+                      '📌 Автовыбор адреса из истории: ${reconstructed['address']} (~${(bestDistance / 1000).toStringAsFixed(2)} км)');
+                  await AddressStorageService.saveSelectedAddress(
+                      reconstructed);
+                  if (!mounted) return;
+                  setState(() => _selectedAddress = reconstructed);
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) _autoSelectNearestBusiness();
+                  });
+                  return; // Завершаем, не показываем модалку
+                } else {
+                  // Слишком далеко — предлагаем создать новый адрес
+                  if (!mounted) return;
+                  final distanceKm = (bestDistance / 1000).toStringAsFixed(2);
+                  final decision = await showDialog<String>(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Создать новый адрес?'),
+                      content: Text(
+                        'Ближайший сохранённый адрес находится в ~${distanceKm} км от вас. Хотите создать новый ближе или использовать существующий?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop('use_old'),
+                          child: const Text('Использовать'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop('new'),
+                          child: const Text('Создать новый'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (decision == 'use_old') {
+                    final reconstructed = {
+                      'address': bestEntry['name'],
+                      'lat': bestEntry['point']['lat'],
+                      'lon': bestEntry['point']['lon'],
+                      if (bestEntry['apartment'] != null)
+                        'apartment': bestEntry['apartment'],
+                      if (bestEntry['entrance'] != null)
+                        'entrance': bestEntry['entrance'],
+                      if (bestEntry['floor'] != null)
+                        'floor': bestEntry['floor'],
+                      if (bestEntry['comment'] != null)
+                        'comment': bestEntry['comment'],
+                      'source': 'history_far_confirmed',
+                      'timestamp': DateTime.now().toIso8601String(),
+                    };
+                    await AddressStorageService.saveSelectedAddress(
+                        reconstructed);
+                    if (!mounted) return;
+                    setState(() => _selectedAddress = reconstructed);
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) _autoSelectNearestBusiness();
+                    });
+                    return;
+                  } else if (decision == 'new') {
+                    // Показать модалку создания нового адреса
+                    WidgetsBinding.instance.addPostFrameCallback((_) async {
+                      if (!mounted) return;
+                      await Future.delayed(const Duration(milliseconds: 120));
+                      if (mounted) _showAddressSelectionModal();
+                    });
+                    return; // ждём выбора
+                  } else {
+                    // Если диалог закрыт системно — просто показываем модалку
+                    WidgetsBinding.instance.addPostFrameCallback((_) async {
+                      if (!mounted) return;
+                      await Future.delayed(const Duration(milliseconds: 120));
+                      if (mounted) _showAddressSelectionModal();
+                    });
+                    return;
+                  }
+                }
+              }
+            }
           }
-        } else {
-          print('❌ Виджет не mounted в PostFrameCallback');
+        } catch (e) {
+          print('⚠️ Ошибка при попытке выбрать ближайший адрес из истории: $e');
         }
-      });
+
+        // Если история пустая или не удалось определить позицию/найти ближайший — показываем модалку
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (!mounted) return;
+          await Future.delayed(const Duration(milliseconds: 100));
+          if (mounted) _showAddressSelectionModal();
+        });
+      }
     }
+  }
+
+  /// Пытается автоматически определить текущий адрес пользователя и выбрать ближайший магазин
+  Future<void> _attemptAutoDetectAddress() async {
+    try {
+      // Проверяем и запрашиваем разрешения
+      final locationService = LocationService.instance;
+      final permission = await locationService.checkAndRequestPermissions();
+      if (!permission.success) {
+        print(
+            '❌ Автоопределение адреса: нет разрешений (${permission.message})');
+        // Фоллбек — показать модальное окно выбора
+        _fallbackShowAddressModal();
+        return;
+      }
+
+      final enabled = await locationService.isLocationServiceEnabled();
+      if (!enabled) {
+        print('❌ Службы геолокации отключены – показать модалку');
+        _fallbackShowAddressModal();
+        return;
+      }
+
+      // Многоступенчатая стратегия точности (упрощённая относительно модалки)
+      Position? position;
+      final attempts = [
+        {
+          'accuracy': LocationAccuracy.high,
+          'timeout': const Duration(seconds: 8)
+        },
+        {
+          'accuracy': LocationAccuracy.medium,
+          'timeout': const Duration(seconds: 10)
+        },
+        {
+          'accuracy': LocationAccuracy.low,
+          'timeout': const Duration(seconds: 12)
+        },
+      ];
+      for (final attempt in attempts) {
+        try {
+          position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: attempt['accuracy'] as LocationAccuracy,
+            timeLimit: attempt['timeout'] as Duration,
+          );
+          break; // Позиция получена – выходим из цикла
+        } catch (e) {
+          print('⚠️ Не удалось получить позицию (${attempt['accuracy']}): $e');
+        }
+      }
+
+      if (position == null) {
+        print('❌ Не удалось определить координаты – показываем модалку');
+        _fallbackShowAddressModal();
+        return;
+      }
+
+      print(
+          '📍 Координаты auto-detect: ${position.latitude}, ${position.longitude} (accuracy ${position.accuracy})');
+
+      // Обратное геокодирование через API
+      final reverse = await ApiService.searchAddresses(
+        lat: position.latitude,
+        lon: position.longitude,
+      );
+
+      if (reverse == null || reverse.isEmpty) {
+        print(
+            '⚠️ API не вернул человекочитаемый адрес, открываем карту для уточнения');
+        if (!mounted) return;
+        final lat = position.latitude;
+        final lon = position.longitude;
+        // Переходим сразу на карту с текущими координатами для уточнения и обратного вызова
+        await Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => MapAddressPage(
+            initialLat: lat,
+            initialLon: lon,
+            onAddressSelected: (data) async {
+              _selectedAddress = data;
+              _autoSelectNearestBusiness();
+            },
+          ),
+        ));
+        await AddressStorageService.markAsLaunched();
+        return;
+      }
+
+      final base = reverse.first;
+      final autoAddress = {
+        'address': base['name'] ?? base['description'] ?? 'Определённый адрес',
+        'lat': position.latitude,
+        'lon': position.longitude,
+        'accuracy': position.accuracy,
+        'source': 'auto_geolocation',
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+
+      // Сохраняем адрес
+      await AddressStorageService.saveSelectedAddress(autoAddress);
+      await AddressStorageService.addToAddressHistory({
+        'name': autoAddress['address'],
+        'point': {'lat': autoAddress['lat'], 'lon': autoAddress['lon']},
+      });
+      await AddressStorageService.markAsLaunched();
+
+      if (!mounted) return;
+      setState(() => _selectedAddress = autoAddress);
+
+      // Если магазины уже есть – сразу выбираем, иначе поставим отложенный хук
+      if (widget.businesses.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _autoSelectNearestBusiness();
+        });
+      } else {
+        // Одноразовый ожидатель появления магазинов через микротаймеры
+        int attempts = 0;
+        Timer.periodic(const Duration(milliseconds: 400), (t) {
+          attempts++;
+          if (!mounted || attempts > 25) {
+            // максимум ~10 секунд ожидания
+            t.cancel();
+            return;
+          }
+          if (widget.businesses.isNotEmpty && widget.selectedBusiness == null) {
+            t.cancel();
+            _autoSelectNearestBusiness();
+          }
+        });
+      }
+
+      // Отобразим ненавязчивый snackbar
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Адрес определён автоматически: ${autoAddress['address']}'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Ошибка автоопределения адреса: $e');
+      _fallbackShowAddressModal();
+    }
+  }
+
+  void _fallbackShowAddressModal() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await Future.delayed(const Duration(milliseconds: 150));
+      if (mounted) _showAddressSelectionModal();
+    });
   }
 
   Future<void> _showAddressSelectionModal() async {
@@ -699,13 +1135,130 @@ class _MainPageState extends State<MainPage> {
         // Уведомляем родительский виджет об изменении адреса
         //widget.onAddressChangeRequested(); // убираем автоматическое открытие выбора магазина
 
-        // Автоматически выбираем ближайший магазин
-        _autoSelectNearestBusiness();
+        // Если магазин ещё не выбран – выбираем автоматически, иначе проверяем необходимость предложения смены
+        if (widget.selectedBusiness == null) {
+          _autoSelectNearestBusiness();
+        } else {
+          _maybePromptNearestSwitch();
+        }
       } else {
         print('ℹ️ Адрес не выбран или виджет не mounted');
       }
     } catch (e) {
       print('❌ Ошибка при показе модального окна выбора адреса: $e');
+    }
+  }
+
+  /// Предлагает переключиться на ближайший магазин, если текущий не ближайший
+  Future<void> _maybePromptNearestSwitch() async {
+    if (_selectedAddress == null) return;
+    if (_selectedAddress!['lat'] == null || _selectedAddress!['lon'] == null)
+      return;
+    if (widget.businesses.isEmpty) return;
+    if (widget.selectedBusiness == null)
+      return; // тогда пусть авто выбор сделает другая логика
+
+    final lat = (_selectedAddress!['lat'] as num).toDouble();
+    final lon = (_selectedAddress!['lon'] as num).toDouble();
+    final nearest = _findNearestBusiness(lat, lon);
+    if (nearest == null) return;
+
+    // ID текущего и ближайшего магазина
+    final currentBusinessId = widget.selectedBusiness!['id'] ??
+        widget.selectedBusiness!['business_id'] ??
+        widget.selectedBusiness!['businessId'];
+    final nearestBusinessId =
+        nearest['id'] ?? nearest['business_id'] ?? nearest['businessId'];
+    if (currentBusinessId == null || nearestBusinessId == null) return;
+
+    // Уже и так ближайший
+    if (currentBusinessId == nearestBusinessId) return;
+
+    // Ключ для предотвращения повторных диалогов
+    final promptKey =
+        '${lat.toStringAsFixed(5)}_${lon.toStringAsFixed(5)}_${currentBusinessId}_${nearestBusinessId}';
+    if (_lastPromptKey == promptKey) return; // уже показывали
+    _lastPromptKey = promptKey;
+
+    // Расстояния
+    final nearestDistanceM = (nearest['distance'] as num?)?.toDouble() ??
+        _calculateDistanceFromCoords(nearest, lat, lon) ??
+        0;
+    final currentDistanceM =
+        _calculateDistanceFromCoords(widget.selectedBusiness!, lat, lon) ?? 0;
+
+    final nearestKm = (nearestDistanceM / 1000).toStringAsFixed(2);
+    final currentKm = (currentDistanceM / 1000).toStringAsFixed(2);
+
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final hasCartItems = cartProvider.items.isNotEmpty;
+
+    // Диалог-предложение
+    final shouldSwitch = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Ближайший магазин'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Текущий магазин находится на ~${currentKm} км от выбранного адреса.',
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Ближайший магазин: ${nearest['name']} (~${nearestKm} км).',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                hasCartItems
+                    ? 'Переключение очистит текущую корзину. Перейти к ближайшему магазину?'
+                    : 'Переключить на ближайший магазин?',
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Оставить'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Переключить'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldSwitch == true) {
+      if (hasCartItems) {
+        cartProvider.clearCart();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Корзина очищена из-за смены магазина'),
+              duration: const Duration(seconds: 2),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+            ),
+          );
+        }
+      }
+
+      widget.onBusinessSelected(nearest);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Вы переключились на ближайший магазин: ${nearest['name']}'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 

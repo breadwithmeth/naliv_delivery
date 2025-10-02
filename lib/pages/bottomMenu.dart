@@ -15,6 +15,7 @@ import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/utils/address_storage_service.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
+import 'package:naliv_delivery/utils/cart_provider.dart';
 
 class BottomMenu extends StatefulWidget {
   final bool isAuthenticated;
@@ -40,6 +41,9 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
 
   // Выбранный адрес пользователя
   Map<String, dynamic>? _selectedAddress;
+
+  // Ключ для предотвращения повторного показа одного и того же диалога
+  String? _lastNearestPromptKey;
 
   // Данные геолокации
   Position? _userPosition;
@@ -228,8 +232,122 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       setState(() {
         _selectedAddress = newAddress;
       });
-      // После смены адреса обязательно пересчитываем ближайший магазин
-      _autoSelectNearestBusiness(force: true);
+      // Если магазин ещё не выбран – просто выберем ближайший
+      if (_selectedBusiness == null) {
+        _autoSelectNearestBusiness(force: true);
+      } else {
+        // Иначе предложим переключиться, если текущий не ближайший
+        _maybePromptNearestSwitch();
+      }
+    }
+  }
+
+  /// Предлагает переключиться на ближайший магазин, если текущий не ближайший
+  Future<void> _maybePromptNearestSwitch() async {
+    if (!mounted) return;
+    if (_selectedAddress == null) return;
+    if (_selectedBusiness == null) return; // нечего сравнивать
+    if (_businesses.isEmpty) return;
+
+    final coords = _extractAddressLatLon(_selectedAddress!);
+    if (coords == null) return;
+
+    final nearest = _findNearestBusiness(coords['lat']!, coords['lon']!);
+    if (nearest == null) return;
+
+    final currentId = _selectedBusiness!['id'] ??
+        _selectedBusiness!['business_id'] ??
+        _selectedBusiness!['businessId'];
+    final nearestId =
+        nearest['id'] ?? nearest['business_id'] ?? nearest['businessId'];
+    if (currentId == null || nearestId == null) return;
+
+    // Уже ближайший
+    if (currentId == nearestId) return;
+
+    final promptKey =
+        '${coords['lat']!.toStringAsFixed(5)}_${coords['lon']!.toStringAsFixed(5)}_${currentId}_${nearestId}';
+    if (_lastNearestPromptKey == promptKey)
+      return; // уже спрашивали в этой конфигурации
+    _lastNearestPromptKey = promptKey;
+
+    // Расстояния
+    final nearestDistM = (nearest['distanceMeters'] as num?)?.toDouble() ?? 0;
+    final currentDistM = () {
+      final bLat = _selectedBusiness!['lat'];
+      final bLon = _selectedBusiness!['lon'];
+      if (bLat != null && bLon != null) {
+        final dLat = double.tryParse(bLat.toString());
+        final dLon = double.tryParse(bLon.toString());
+        if (dLat != null && dLon != null) {
+          return Geolocator.distanceBetween(
+              coords['lat']!, coords['lon']!, dLat, dLon);
+        }
+      }
+      return 0.0;
+    }();
+
+    final nearestKm = (nearestDistM / 1000).toStringAsFixed(2);
+    final currentKm = (currentDistM / 1000).toStringAsFixed(2);
+
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final hasCartItems = cartProvider.items.isNotEmpty;
+
+    final shouldSwitch = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Ближайший магазин'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+                'Текущий магазин находится на ~$currentKm км от выбранного адреса.'),
+            const SizedBox(height: 8),
+            Text('Ближайший магазин: ${nearest['name']} (~$nearestKm км).',
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 12),
+            Text(hasCartItems
+                ? 'Переключение очистит текущую корзину. Перейти к ближайшему магазину?'
+                : 'Переключить на ближайший магазин?'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Оставить'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Переключить'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldSwitch == true) {
+      if (hasCartItems) {
+        cartProvider.clearCart();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Корзина очищена из-за смены магазина'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+      await _selectBusiness(nearest);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Вы переключились на ближайший магазин: ${nearest['name']}'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 

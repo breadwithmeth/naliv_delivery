@@ -20,10 +20,7 @@ class AddressSelectionModal extends StatefulWidget {
 
 class _AddressSelectionModalState extends State<AddressSelectionModal> {
   bool _isLoadingLocation = false;
-  bool _isSearching = false;
-  String _searchQuery = '';
   String _locationAttemptStatus = '';
-  List<Map<String, dynamic>> _searchResults = [];
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
@@ -80,76 +77,65 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
       // Первая попытка - быстрая проверка с высокой точностью
       print('🎯 Первая попытка - высокая точность...');
       Position? position;
-
       try {
         position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high,
           timeLimit: const Duration(seconds: 8),
         );
-        print(position);
+        print('✅ Координаты (high): $position');
       } catch (e) {
         print('⚠️ Первая попытка неудачна: $e');
       }
 
-      // Если первая попытка не удалась, пробуем с меньшей точностью
-      if (position == null && mounted) {
-        setState(() {
-          _locationAttemptStatus = 'Попытка 2/3 - средняя точность...';
-        });
-        print('⚡ Первая попытка не удалась, пробуем со средней точностью...');
-        await Future.delayed(const Duration(milliseconds: 500));
-
+      // Вторая попытка
+      if (position == null) {
+        if (mounted) {
+          setState(() {
+            _locationAttemptStatus = 'Попытка 2/3 - средняя точность...';
+          });
+        }
         try {
           position = await Geolocator.getCurrentPosition(
             desiredAccuracy: LocationAccuracy.medium,
-            timeLimit: const Duration(seconds: 12),
+            timeLimit: const Duration(seconds: 10),
           );
+          print('✅ Координаты (medium): $position');
         } catch (e) {
           print('⚠️ Вторая попытка неудачна: $e');
         }
       }
 
-      // Если и вторая попытка не удалась, пробуем с низкой точностью
-      if (position == null && mounted) {
-        setState(() {
-          _locationAttemptStatus = 'Попытка 3/3 - низкая точность...';
-        });
-        print('🔄 Вторая попытка не удалась, пробуем с низкой точностью...');
-        await Future.delayed(const Duration(milliseconds: 500));
-
+      // Третья попытка
+      if (position == null) {
+        if (mounted) {
+          setState(() {
+            _locationAttemptStatus = 'Попытка 3/3 - низкая точность...';
+          });
+        }
         try {
           position = await Geolocator.getCurrentPosition(
             desiredAccuracy: LocationAccuracy.low,
-            timeLimit: const Duration(seconds: 15),
+            timeLimit: const Duration(seconds: 12),
           );
+          print('✅ Координаты (low): $position');
         } catch (e) {
-          print('⚠️ Третья попытка неудачна: $e');
+          print('❌ Третья попытка неудачна: $e');
         }
       }
 
       if (position == null) {
-        print('❌ Не удалось получить координаты после трех попыток');
-        _showLocationErrorDialog();
+        _showErrorDialog(
+            'Не удалось получить координаты. Выберите адрес вручную.');
         return;
       }
 
-      setState(() {
-        _locationAttemptStatus = 'Получаем адрес...';
-      });
-
-      print(
-          '📍 Координаты получены: ${position.latitude}, ${position.longitude}');
-      print('📏 Точность: ${position.accuracy} метров');
-
-      // Получаем адрес по координатам через API
+      // Обратное геокодирование
       final addressData = await ApiService.searchAddresses(
         lat: position.latitude,
         lon: position.longitude,
       );
 
       if (addressData != null && addressData.isNotEmpty) {
-        print('🏠 Адрес получен: ${addressData.first}');
-
         final selectedAddress = {
           'address': addressData.first['name'] ??
               addressData.first['description'] ??
@@ -162,9 +148,7 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
         };
 
         print('💾 Сохраняем базовый адрес: ${selectedAddress['address']}');
-
         if (mounted) {
-          // Уточнение на карте с возможностью добавления деталей
           await Navigator.of(context).push(MaterialPageRoute(
             builder: (_) => MapAddressPage(
               initialLat: selectedAddress['lat'],
@@ -172,8 +156,6 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
               onAddressSelected: widget.onAddressSelected,
             ),
           ));
-          // Callback already called by MapAddressPage via widget.onAddressSelected
-          // MapAddressPage сам сохранит адрес с деталями в AddressStorageService
         }
       } else {
         print('❌ API не вернул данные об адресе');
@@ -199,119 +181,6 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
           _locationAttemptStatus = '';
         });
       }
-    }
-  }
-
-  /// Выполняет поиск адресов
-  Future<void> _searchAddresses(String query) async {
-    if (query.length < 3) {
-      setState(() {
-        _searchResults = [];
-        _isSearching = false;
-      });
-      return;
-    }
-
-    setState(() {
-      _isSearching = true;
-      _searchQuery = query;
-    });
-
-    try {
-      print('🔍 Поиск адресов: $query');
-
-      final results = await ApiService.searchAddresses(query: query);
-      if (results != null && results.isNotEmpty) {
-        setState(() {
-          _searchResults = List<Map<String, dynamic>>.from(results);
-          _isSearching = false;
-        });
-        print('✅ Найдено ${_searchResults.length} адресов');
-        print(_searchResults);
-      } else {
-        setState(() {
-          _searchResults = [];
-          _isSearching = false;
-        });
-        print('🔍 Адреса не найдены');
-      }
-    } catch (e) {
-      print('❌ Ошибка поиска: $e');
-      setState(() {
-        _searchResults = [];
-        _isSearching = false;
-      });
-      _showErrorDialog('Ошибка поиска: ${e.toString()}');
-    }
-  }
-
-  /// Выбирает адрес из результатов поиска
-  Future<void> _selectSearchResult(Map<String, dynamic> address) async {
-    try {
-      // Создаем объект адреса для сохранения
-      final selectedAddress = {
-        'address':
-            address['name'] ?? address['description'] ?? 'Неизвестный адрес',
-        'lat': address['point']?['lat'] ?? address['lat'],
-        'lon': address['point']?['lon'] ?? address['lon'],
-        'source': 'search',
-        'timestamp': DateTime.now().toIso8601String(),
-      };
-
-      print('🏠 Выбран адрес: $selectedAddress');
-
-      // Запрашиваем дополнительные детали и закрываем с полным адресом
-      if (mounted) {
-        final extra = await _askAddressDetails(selectedAddress);
-        final full =
-            (extra != null) ? {...selectedAddress, ...extra} : selectedAddress;
-
-        // Сохраняем адрес с деталями
-        await AddressStorageService.saveSelectedAddress(full);
-
-        // Уточнение на карте
-        final mapRes = await Navigator.of(context)
-            .push<Map<String, dynamic>>(MaterialPageRoute(
-          builder: (_) => MapAddressPage(
-            initialLat: full['lat'],
-            initialLon: full['lon'],
-            onAddressSelected: widget.onAddressSelected,
-          ),
-        ));
-        if (mapRes != null) {
-          full['lat'] = mapRes['lat'];
-          full['lon'] = mapRes['lon'];
-          // Пересохраняем с обновленными координатами
-          await AddressStorageService.saveSelectedAddress(full);
-        }
-
-        // Добавляем адрес в историю поиска с полными данными
-        final historyEntry = {
-          'name': full['address'],
-          'point': {'lat': full['lat'], 'lon': full['lon']},
-        };
-
-        // Добавляем детали если они есть
-        if (full['apartment']?.toString().isNotEmpty == true) {
-          historyEntry['apartment'] = full['apartment'];
-        }
-        if (full['entrance']?.toString().isNotEmpty == true) {
-          historyEntry['entrance'] = full['entrance'];
-        }
-        if (full['floor']?.toString().isNotEmpty == true) {
-          historyEntry['floor'] = full['floor'];
-        }
-        if (full['other']?.toString().isNotEmpty == true) {
-          historyEntry['comment'] = full['other'];
-        }
-
-        await AddressStorageService.addToAddressHistory(historyEntry);
-
-        widget.onAddressSelected(full);
-      }
-    } catch (e) {
-      print('❌ Ошибка при выборе адреса: $e');
-      _showErrorDialog('Ошибка при сохранении адреса: ${e.toString()}');
     }
   }
 
@@ -413,129 +282,6 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
         fontSize: 12,
       ),
     );
-  }
-
-  /// Запрашивает у пользователя дополнительные детали адреса
-  Future<Map<String, String>?> _askAddressDetails(
-      Map<String, dynamic> address) async {
-    String selectedType = 'Квартира';
-    final types = ['Квартира', 'Офис', 'Дом', 'Другое'];
-    final apartmentController = TextEditingController();
-    final entranceController = TextEditingController();
-    final floorController = TextEditingController();
-    final otherController = TextEditingController();
-
-    final formKey = GlobalKey<FormState>();
-    final result = await showModalBottomSheet<Map<String, String>>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Padding(
-          padding:
-              EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Theme.of(ctx).dialogBackgroundColor,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Уточните детали адреса',
-                  style: Theme.of(ctx).textTheme.titleLarge,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                Form(
-                  key: formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      DropdownButtonFormField<String>(
-                        value: selectedType,
-                        items: types
-                            .map((e) =>
-                                DropdownMenuItem(value: e, child: Text(e)))
-                            .toList(),
-                        onChanged: (v) => setState(() => selectedType = v!),
-                        decoration: const InputDecoration(
-                          labelText: 'Тип адреса',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: apartmentController,
-                        decoration: const InputDecoration(
-                          labelText: 'Квартира',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: entranceController,
-                        decoration: const InputDecoration(
-                          labelText: 'Подъезд',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: floorController,
-                        decoration: const InputDecoration(
-                          labelText: 'Этаж',
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: otherController,
-                        decoration: const InputDecoration(
-                          labelText: 'Комментарий',
-                          border: OutlineInputBorder(),
-                        ),
-                        maxLines: 3,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(null),
-                      child: const Text('Отмена'),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () {
-                        if (formKey.currentState?.validate() ?? true) {
-                          Navigator.of(ctx).pop({
-                            'addressType': selectedType,
-                            'apartment': apartmentController.text.trim(),
-                            'entrance': entranceController.text.trim(),
-                            'floor': floorController.text.trim(),
-                            'other': otherController.text.trim(),
-                          });
-                        }
-                      },
-                      child: const Text('Сохранить'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-    return result;
   }
 
   @override
@@ -728,19 +474,25 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
 /// Вспомогательный класс для показа модального окна
 class AddressSelectionModalHelper {
   static Future<Map<String, dynamic>?> show(BuildContext context) async {
-    // Показываем модальное нижнее меню для выбора адреса
-    final result = await showModalBottomSheet<Map<String, dynamic>>(
+    Map<String, dynamic>? pickedAddress;
+    // Показываем модальное нижнее меню для выбора адреса. Не передаём Map напрямую в pop,
+    // чтобы избежать конфликтов с маршрутами, ожидающими bool?/null.
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => SafeArea(
         child: AddressSelectionModal(
           onAddressSelected: (address) {
-            Navigator.of(ctx).pop(address);
+            pickedAddress = address;
+            // Закрываем лист без результата (result = null)
+            if (Navigator.of(ctx).canPop()) {
+              Navigator.of(ctx).pop();
+            }
           },
         ),
       ),
     );
-    return result;
+    return pickedAddress;
   }
 }

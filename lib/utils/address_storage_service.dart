@@ -7,6 +7,7 @@ class AddressStorageService {
   static const String _selectedAddressKey = 'selected_address';
   static const String _addressHistoryKey = 'address_history';
   static const String _isFirstLaunchKey = 'is_first_launch';
+  static const String _lastReaddressPromptKey = 'last_readdress_prompt';
 
   /// Проверяет, является ли это первым запуском приложения
   static Future<bool> isFirstLaunch() async {
@@ -141,5 +142,17 @@ class AddressStorageService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_selectedAddressKey);
     await prefs.remove(_addressHistoryKey);
+  }
+
+  /// Сохраняет ключ последнего авто-опроса о смене далекого адреса, чтобы не спамить
+  static Future<void> setLastReaddressPromptKey(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_lastReaddressPromptKey, key);
+  }
+
+  /// Возвращает ключ последнего авто-опроса о смене далекого адреса
+  static Future<String?> getLastReaddressPromptKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_lastReaddressPromptKey);
   }
 }
