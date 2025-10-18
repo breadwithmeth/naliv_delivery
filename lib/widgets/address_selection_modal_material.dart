@@ -402,6 +402,87 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
             ),
           ),
 
+          // Разделитель ИЛИ
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                Expanded(child: Divider(color: Colors.grey.shade300)),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Text('или'),
+                ),
+                Expanded(child: Divider(color: Colors.grey.shade300)),
+              ],
+            ),
+          ),
+
+          // Кнопка ручного выбора на карте
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () async {
+                  // Выбираем стартовые координаты: текущий выбранный адрес -> последний из истории -> дефолт
+                  double initLat = 43.2220; // Алматы по умолчанию
+                  double initLon = 76.8512;
+
+                  try {
+                    final selected =
+                        await AddressStorageService.getSelectedAddress();
+                    if (selected != null &&
+                        selected['lat'] != null &&
+                        selected['lon'] != null) {
+                      initLat = (selected['lat'] as num).toDouble();
+                      initLon = (selected['lon'] as num).toDouble();
+                    } else {
+                      final hist =
+                          await AddressStorageService.getAddressHistory();
+                      if (hist.isNotEmpty && hist.first['point'] != null) {
+                        final p = hist.first['point'];
+                        if (p['lat'] != null && p['lon'] != null) {
+                          initLat = (p['lat'] as num).toDouble();
+                          initLon = (p['lon'] as num).toDouble();
+                        }
+                      }
+                    }
+                  } catch (_) {}
+
+                  if (!mounted) return;
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => MapAddressPage(
+                        initialLat: initLat,
+                        initialLon: initLon,
+                        onAddressSelected: widget.onAddressSelected,
+                      ),
+                    ),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.all(16),
+                  side: BorderSide(color: Colors.blue.withValues(alpha: 0.3)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.map_outlined, size: 22),
+                    SizedBox(width: 10),
+                    Text(
+                      'Выбрать адрес на карте',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
           // Сохраненные адреса (история)
           FutureBuilder<List<Map<String, dynamic>>>(
             future: AddressStorageService.getAddressHistory(),
