@@ -9,7 +9,7 @@ import 'package:naliv_delivery/pages/payment_method_page.dart';
 
 class CheckoutPage extends StatefulWidget {
   static const routeName = '/checkout';
-  const CheckoutPage({Key? key}) : super(key: key);
+  const CheckoutPage({super.key});
 
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
@@ -18,8 +18,6 @@ class CheckoutPage extends StatefulWidget {
 class _CheckoutPageState extends State<CheckoutPage> {
   bool _useBonus = false;
   Map<String, dynamic>? _selectedAddress;
-  List<Map<String, dynamic>>? _userCards;
-  Map<String, dynamic>? _selectedCard;
   Map<String, dynamic>? _deliveryData;
   Map<String, dynamic>? _bonusData;
   // Тип доставки: DELIVERY, PICKUP, SCHEDULED
@@ -27,16 +25,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
   // Время доставки: NOW или конкретное время
   String _deliveryTime = 'NOW';
   DateTime? _selectedDeliveryDateTime;
-  bool _isCreatingOrder = false;
-
-  final TextEditingController _commentController = TextEditingController();
-  final TextEditingController _bonusesController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _initAddressSelection();
-    _loadUserCards();
     _loadUserBonuses();
   }
 
@@ -55,17 +48,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
       });
     }
     _calculateDelivery();
-  }
-
-  Future<void> _loadUserCards() async {
-    if (await ApiService.isUserLoggedIn()) {
-      final cards = await ApiService.getUserCards();
-      if (mounted) {
-        setState(() {
-          _userCards = cards;
-        });
-      }
-    }
   }
 
   Future<void> _loadUserBonuses() async {
@@ -108,8 +90,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     // TODO: Собрать тело заказа из выбранного адреса и корзины
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final businessProvider =
-        Provider.of<BusinessProvider>(context, listen: false);
+    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
     if (businessProvider.selectedBusiness == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Пожалуйста, выберите магазин')),
@@ -118,8 +99,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
     final body = <String, dynamic>{
       'business_id': businessProvider.selectedBusiness!['id'],
-      'street':
-          _selectedAddress?['street'] ?? _selectedAddress?['address'] ?? '',
+      'street': _selectedAddress?['street'] ?? _selectedAddress?['address'] ?? '',
       'house': _selectedAddress?['house'] ?? '-',
       'lat': _selectedAddress?['lat'] ?? 0.0,
       'lon': _selectedAddress?['lon'] ?? 0.0,
@@ -133,16 +113,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
       'total_amount': _getTotalWithDelivery(),
       'use_bonuses': _useBonus,
       if (_useBonus) 'bonus_amount': _getUsedBonuses(),
-      if (_selectedDeliveryDateTime != null)
-        'scheduled_time': _selectedDeliveryDateTime!.toIso8601String(),
+      if (_selectedDeliveryDateTime != null) 'scheduled_time': _selectedDeliveryDateTime!.toIso8601String(),
       'saved_card_id': 1,
     };
-    print('Заказ: $body');
     final result = await ApiService.createUserOrder(body);
-
-    setState(() {
-      _isCreatingOrder = false;
-    });
 
     if (result['success'] == true) {
       final orderData = result['data'];
@@ -157,8 +131,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         ),
       );
     } else {
-      final errorMessage =
-          result['error'] is Map ? result['error']['message'] : result['error'];
+      final errorMessage = result['error'] is Map ? result['error']['message'] : result['error'];
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ошибка создания заказа: $errorMessage')),
       );
@@ -167,11 +140,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   /// Рассчитать стоимость доставки по адресу
   Future<void> _calculateDelivery() async {
-    print(_selectedAddress);
     if (_selectedAddress == null) return;
-    print("адрес выбран");
-    final businessProvider =
-        Provider.of<BusinessProvider>(context, listen: false);
+    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
     if (businessProvider.selectedBusiness == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Пожалуйста, выберите магазин')),
@@ -185,7 +155,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
       lat: _selectedAddress!['lat'],
       lon: _selectedAddress!['lon'],
     );
-    print("Доставка рассчитана: $data");
 
     if (mounted) {
       setState(() {
@@ -219,8 +188,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 await _showDateTimePicker();
               },
             ),
-            if (_deliveryTime != 'NOW' &&
-                _selectedDeliveryDateTime != null) ...[
+            if (_deliveryTime != 'NOW' && _selectedDeliveryDateTime != null) ...[
               const Divider(),
               ListTile(
                 leading: const Icon(Icons.clear),
@@ -327,15 +295,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
       final tomorrow = today.add(const Duration(days: 1));
 
       String dateText;
-      if (_selectedDeliveryDateTime!.day == today.day &&
-          _selectedDeliveryDateTime!.month == today.month) {
+      if (_selectedDeliveryDateTime!.day == today.day && _selectedDeliveryDateTime!.month == today.month) {
         dateText = 'Сегодня';
-      } else if (_selectedDeliveryDateTime!.day == tomorrow.day &&
-          _selectedDeliveryDateTime!.month == tomorrow.month) {
+      } else if (_selectedDeliveryDateTime!.day == tomorrow.day && _selectedDeliveryDateTime!.month == tomorrow.month) {
         dateText = 'Завтра';
       } else {
-        dateText =
-            '${_selectedDeliveryDateTime!.day}.${_selectedDeliveryDateTime!.month.toString().padLeft(2, '0')}';
+        dateText = '${_selectedDeliveryDateTime!.day}.${_selectedDeliveryDateTime!.month.toString().padLeft(2, '0')}';
       }
 
       final timeText =
@@ -354,16 +319,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     // Добавляем стоимость доставки
     if (_deliveryType == 'DELIVERY' && _deliveryData != null) {
-      final deliveryCost =
-          (_deliveryData!['delivery_cost'] as num?)?.toDouble() ?? 0.0;
+      final deliveryCost = (_deliveryData!['delivery_cost'] as num?)?.toDouble() ?? 0.0;
       total += deliveryCost;
     }
 
     // Вычитаем бонусы если они используются
     if (_useBonus && _bonusData != null && _bonusData!['success'] == true) {
-      final availableBonuses =
-          (_bonusData!['data']['totalBonuses'] as num?)?.toDouble() ?? 0.0;
-      final bonusToUse = availableBonuses > total ? total : availableBonuses;
       total -= _getUsedBonuses();
     }
 
@@ -381,19 +342,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     double total = cartTotal;
     if (_deliveryType == 'DELIVERY' && _deliveryData != null) {
-      final deliveryCost =
-          (_deliveryData!['delivery_cost'] as num?)?.toDouble() ?? 0.0;
+      final deliveryCost = (_deliveryData!['delivery_cost'] as num?)?.toDouble() ?? 0.0;
       total += deliveryCost;
     }
 
     // Максимум 25% от суммы заказа можно оплатить бонусами
     final maxBonusUsage = total * 0.25;
-    final availableBonuses =
-        (_bonusData!['data']['totalBonuses'] as num?)?.toDouble() ?? 0.0;
+    final availableBonuses = (_bonusData!['data']['totalBonuses'] as num?)?.toDouble() ?? 0.0;
 
     // Возвращаем меньшее из: доступные бонусы, максимально допустимое использование (25%), или полная сумма
-    return [availableBonuses, maxBonusUsage, total]
-        .reduce((a, b) => a < b ? a : b);
+    return [availableBonuses, maxBonusUsage, total].reduce((a, b) => a < b ? a : b);
   }
 
   /// Построить подзаголовок с информацией о бонусах
@@ -407,25 +365,19 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     // Получаем последнее значение из истории бонусов
     final bonusHistory = bonusData['bonusHistory'] as List?;
-    final latestBonusAmount = bonusHistory != null && bonusHistory.isNotEmpty
-        ? bonusHistory.first['amount'] ?? 0
-        : 0;
-    final latestBonusDate = bonusHistory != null && bonusHistory.isNotEmpty
-        ? bonusHistory.first['timestamp'] ?? ''
-        : '';
+    final latestBonusAmount = bonusHistory != null && bonusHistory.isNotEmpty ? bonusHistory.first['amount'] ?? 0 : 0;
+    final latestBonusDate = bonusHistory != null && bonusHistory.isNotEmpty ? bonusHistory.first['timestamp'] ?? '' : '';
 
     // Рассчитываем максимальную сумму для использования бонусов (25% от заказа)
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
     final cartTotal = cartProvider.getTotalPrice();
     double orderTotal = cartTotal;
     if (_deliveryType == 'DELIVERY' && _deliveryData != null) {
-      final deliveryCost =
-          (_deliveryData!['delivery_cost'] as num?)?.toDouble() ?? 0.0;
+      final deliveryCost = (_deliveryData!['delivery_cost'] as num?)?.toDouble() ?? 0.0;
       orderTotal += deliveryCost;
     }
     final maxBonusUsage = orderTotal * 0.25;
-    final availableToUse =
-        totalBonuses > maxBonusUsage ? maxBonusUsage : totalBonuses;
+    final availableToUse = totalBonuses > maxBonusUsage ? maxBonusUsage : totalBonuses;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -493,11 +445,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     Icons.store,
                     color: Theme.of(context).colorScheme.primary,
                   ),
-                  title: Text(businessProvider.selectedBusinessName ??
-                      'Неизвестный магазин'),
-                  subtitle: Text(
-                      businessProvider.selectedBusiness!["address"] ??
-                          'Неизвестный магазин'),
+                  title: Text(businessProvider.selectedBusinessName ?? 'Неизвестный магазин'),
+                  subtitle: Text(businessProvider.selectedBusiness!["address"] ?? 'Неизвестный магазин'),
                   // trailing: const Icon(Icons.keyboard_arrow_right),
                   // onTap: () {
                   //   // Возвращаемся на главную страницу для смены магазина
@@ -505,54 +454,46 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   // },
                 ),
               ),
-            if (businessProvider.selectedBusiness != null)
-              const SizedBox(height: 16),
+            if (businessProvider.selectedBusiness != null) const SizedBox(height: 16),
 
-            Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  Expanded(
-                    child: ToggleButtons(
-                      renderBorder: true,
-                      isSelected: [
-                        _deliveryType == 'DELIVERY',
-                        _deliveryType == 'PICKUP',
-                      ],
-                      onPressed: (index) {
-                        const options = ['DELIVERY', 'PICKUP'];
-                        setState(() {
-                          _deliveryType = options[index];
-                        });
-                      },
-                      borderRadius: BorderRadius.circular(800),
-                      selectedBorderColor:
-                          Theme.of(context).colorScheme.secondary,
-                      borderColor: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withOpacity(0.5),
-                      selectedColor: Theme.of(context).colorScheme.onPrimary,
-                      fillColor: Theme.of(context).colorScheme.secondary,
-                      children: const [
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(
-                            'Доставка',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(
-                            'Самовывоз',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
+            Row(mainAxisAlignment: MainAxisAlignment.start, mainAxisSize: MainAxisSize.max, children: [
+              Expanded(
+                child: ToggleButtons(
+                  renderBorder: true,
+                  isSelected: [
+                    _deliveryType == 'DELIVERY',
+                    _deliveryType == 'PICKUP',
+                  ],
+                  onPressed: (index) {
+                    const options = ['DELIVERY', 'PICKUP'];
+                    setState(() {
+                      _deliveryType = options[index];
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(800),
+                  selectedBorderColor: Theme.of(context).colorScheme.secondary,
+                  borderColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                  selectedColor: Theme.of(context).colorScheme.onPrimary,
+                  fillColor: Theme.of(context).colorScheme.secondary,
+                  children: const [
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'Доставка',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  ),
-                ]),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'Самовывоз',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ]),
             const SizedBox(height: 16),
             Card(
               child: ListTile(
@@ -561,109 +502,66 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     ? Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(_selectedAddress!['address'] ??
-                              'Адрес не указан'),
-                          if (_selectedAddress!['apartment']
-                                      ?.toString()
-                                      .isNotEmpty ==
-                                  true ||
-                              _selectedAddress!['entrance']
-                                      ?.toString()
-                                      .isNotEmpty ==
-                                  true ||
-                              _selectedAddress!['floor']
-                                      ?.toString()
-                                      .isNotEmpty ==
-                                  true) ...[
+                          Text(_selectedAddress!['address'] ?? 'Адрес не указан'),
+                          if (_selectedAddress!['apartment']?.toString().isNotEmpty == true ||
+                              _selectedAddress!['entrance']?.toString().isNotEmpty == true ||
+                              _selectedAddress!['floor']?.toString().isNotEmpty == true) ...[
                             const SizedBox(height: 4),
                             Row(
                               children: [
-                                if (_selectedAddress!['entrance']
-                                        ?.toString()
-                                        .isNotEmpty ==
-                                    true) ...[
+                                if (_selectedAddress!['entrance']?.toString().isNotEmpty == true) ...[
                                   Text(
                                     'Под. ${_selectedAddress!['entrance']}',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
-                                  if (_selectedAddress!['apartment']
-                                              ?.toString()
-                                              .isNotEmpty ==
-                                          true ||
-                                      _selectedAddress!['floor']
-                                              ?.toString()
-                                              .isNotEmpty ==
-                                          true)
+                                  if (_selectedAddress!['apartment']?.toString().isNotEmpty == true ||
+                                      _selectedAddress!['floor']?.toString().isNotEmpty == true)
                                     Text(
                                       ', ',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                                       ),
                                     ),
                                 ],
-                                if (_selectedAddress!['floor']
-                                        ?.toString()
-                                        .isNotEmpty ==
-                                    true) ...[
+                                if (_selectedAddress!['floor']?.toString().isNotEmpty == true) ...[
                                   Text(
                                     'Эт. ${_selectedAddress!['floor']}',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
-                                  if (_selectedAddress!['apartment']
-                                          ?.toString()
-                                          .isNotEmpty ==
-                                      true)
+                                  if (_selectedAddress!['apartment']?.toString().isNotEmpty == true)
                                     Text(
                                       ', ',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                                       ),
                                     ),
                                 ],
-                                if (_selectedAddress!['apartment']
-                                        ?.toString()
-                                        .isNotEmpty ==
-                                    true)
+                                if (_selectedAddress!['apartment']?.toString().isNotEmpty == true)
                                   Text(
                                     'Кв. ${_selectedAddress!['apartment']}',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                               ],
                             ),
                           ],
-                          if (_selectedAddress!['other']
-                                  ?.toString()
-                                  .isNotEmpty ==
-                              true) ...[
+                          if (_selectedAddress!['other']?.toString().isNotEmpty == true) ...[
                             const SizedBox(height: 4),
                             Text(
                               'Комментарий: ${_selectedAddress!['other']}',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 fontStyle: FontStyle.italic,
                               ),
                             ),
@@ -745,8 +643,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 margin: const EdgeInsets.symmetric(vertical: 4),
                 child: ListTile(
                   title: Text(item.name),
-                  subtitle: Text(
-                      'x${item.stepQuantity == 1.0 ? item.quantity.toStringAsFixed(0) : item.quantity.toStringAsFixed(2)}'),
+                  subtitle: Text('x${item.stepQuantity == 1.0 ? item.quantity.toStringAsFixed(0) : item.quantity.toStringAsFixed(2)}'),
                   trailing: Text('${item.totalPrice.toStringAsFixed(0)} ₸'),
                 ),
               );
@@ -786,9 +683,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   ],
                 ],
               ),
-              subtitle: _bonusData != null && _bonusData!['success'] == true
-                  ? _buildBonusSubtitle()
-                  : const Text('Загрузка...'),
+              subtitle: _bonusData != null && _bonusData!['success'] == true ? _buildBonusSubtitle() : const Text('Загрузка...'),
               value: _useBonus,
               onChanged: _bonusData != null && _bonusData!['success'] == true
                   ? (value) {
@@ -813,8 +708,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         Text('${total.toStringAsFixed(0)} ₸'),
                       ],
                     ),
-                    if (_deliveryType == 'DELIVERY' &&
-                        _deliveryData != null) ...[
+                    if (_deliveryType == 'DELIVERY' && _deliveryData != null) ...[
                       const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -846,13 +740,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       children: [
                         const Text(
                           'Итого:',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         Text(
                           '${_getTotalWithDelivery().toStringAsFixed(0)} ₸',
-                          style: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),

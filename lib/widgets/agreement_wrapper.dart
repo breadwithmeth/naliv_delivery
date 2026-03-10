@@ -29,10 +29,8 @@ class _AgreementWrapperState extends State<AgreementWrapper> {
         _agreementsAccepted = accepted;
         _isLoading = false;
       });
-
-      print('🔍 Проверка согласий: ${accepted ? "приняты" : "не приняты"}');
     } catch (e) {
-      print('❌ Ошибка при проверке согласий: $e');
+      debugPrint('Ошибка при проверке согласий: $e');
       setState(() {
         _agreementsAccepted = false;
         _isLoading = false;
@@ -44,7 +42,6 @@ class _AgreementWrapperState extends State<AgreementWrapper> {
     setState(() {
       _agreementsAccepted = true;
     });
-    print('✅ Пользователь принял соглашения, переход к основному приложению');
   }
 
   @override

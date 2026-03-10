@@ -31,8 +31,7 @@ class _ProductCardState extends State<ProductCard> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Получаем текущий бизнес (если есть)
-    final businessProvider =
-        Provider.of<BusinessProvider>(context, listen: false);
+    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
     final bid = businessProvider.selectedBusinessId;
     if (bid != null && bid != _businessId) {
       _businessId = bid;
@@ -42,8 +41,7 @@ class _ProductCardState extends State<ProductCard> {
 
   Future<void> _initLikeState(int businessId) async {
     // Сначала пробуем из провайдера
-    final likedProvider =
-        Provider.of<LikedItemsProvider>(context, listen: false);
+    final likedProvider = Provider.of<LikedItemsProvider>(context, listen: false);
     final providerLiked = likedProvider.isLiked(businessId, widget.item.itemId);
     if (providerLiked) {
       _isLikedOverride = true;
@@ -82,8 +80,7 @@ class _ProductCardState extends State<ProductCard> {
             liked: newValue,
           );
           // Обновляем провайдер
-          final likedProvider =
-              Provider.of<LikedItemsProvider>(context, listen: false);
+          final likedProvider = Provider.of<LikedItemsProvider>(context, listen: false);
           likedProvider.updateLike(_businessId!, widget.item.itemId, newValue);
         }
       }
@@ -124,16 +121,12 @@ class _ProductCardState extends State<ProductCard> {
                     decoration: BoxDecoration(
                       boxShadow: [
                         BoxShadow(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .shadow
-                              .withValues(alpha: 0.1),
+                          color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.1),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
                       ],
-                      color:
-                          Theme.of(context).colorScheme.surfaceContainerHighest,
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: const BorderRadius.all(Radius.circular(15)),
                     ),
                     child: item.image != null && item.image!.isNotEmpty
@@ -145,9 +138,7 @@ class _ProductCardState extends State<ProductCard> {
                               errorBuilder: (context, error, stackTrace) {
                                 return Icon(
                                   Icons.inventory_2_outlined,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   size: 48,
                                 );
                               },
@@ -155,8 +146,7 @@ class _ProductCardState extends State<ProductCard> {
                           )
                         : Icon(
                             Icons.inventory_2_outlined,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             size: 48,
                           ),
                   ),
@@ -180,37 +170,28 @@ class _ProductCardState extends State<ProductCard> {
                                 children: [
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         if (item.hasPromotions) ...[
                                           Wrap(
                                             spacing: 4,
                                             runSpacing: 4,
-                                            children:
-                                                item.promotions!.map((promo) {
+                                            children: item.promotions!.map((promo) {
                                               return Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
+                                                padding: const EdgeInsets.symmetric(
                                                   horizontal: 6,
                                                   vertical: 2,
                                                 ),
                                                 decoration: BoxDecoration(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .surfaceContainer,
-                                                  borderRadius:
-                                                      BorderRadius.circular(6),
+                                                  color: Theme.of(context).colorScheme.surfaceContainer,
+                                                  borderRadius: BorderRadius.circular(6),
                                                 ),
                                                 child: Text(
-                                                  promo.description ??
-                                                      promo.name,
+                                                  promo.description ?? promo.name,
                                                   style: TextStyle(
                                                     fontSize: 11,
                                                     fontWeight: FontWeight.w700,
-                                                    color: Theme.of(context)
-                                                        .colorScheme
-                                                        .onSurface,
+                                                    color: Theme.of(context).colorScheme.onSurface,
                                                   ),
                                                 ),
                                               );
@@ -224,28 +205,18 @@ class _ProductCardState extends State<ProductCard> {
                                   GestureDetector(
                                     onTap: _toggleLike,
                                     child: AnimatedOpacity(
-                                      duration:
-                                          const Duration(milliseconds: 150),
+                                      duration: const Duration(milliseconds: 150),
                                       opacity: _likeInProgress ? 0.5 : 1,
                                       child: Container(
                                         padding: const EdgeInsets.all(4),
                                         decoration: BoxDecoration(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .surfaceContainerHighest
-                                              .withOpacity(0.7),
+                                          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
                                           shape: BoxShape.circle,
                                         ),
                                         child: Icon(
-                                          _isLiked
-                                              ? Icons.favorite
-                                              : Icons.favorite_border,
+                                          _isLiked ? Icons.favorite : Icons.favorite_border,
                                           size: 18,
-                                          color: _isLiked
-                                              ? Colors.redAccent
-                                              : Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurfaceVariant,
+                                          color: _isLiked ? Colors.redAccent : Theme.of(context).colorScheme.onSurfaceVariant,
                                         ),
                                       ),
                                     ),
@@ -260,9 +231,7 @@ class _ProductCardState extends State<ProductCard> {
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .surfaceContainer,
+                                    color: Theme.of(context).colorScheme.surfaceContainer,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Row(
@@ -271,18 +240,14 @@ class _ProductCardState extends State<ProductCard> {
                                       Icon(
                                         Icons.tune,
                                         size: 12,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface,
+                                        color: Theme.of(context).colorScheme.onSurface,
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
                                         '+ опции (${item.options!.length})',
                                         style: TextStyle(
                                           fontSize: 11,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurface,
+                                          color: Theme.of(context).colorScheme.onSurface,
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -353,12 +318,10 @@ class _ProductCardState extends State<ProductCard> {
 
                     Consumer<CartProvider>(
                       builder: (context, cartProvider, child) {
-                        final totalQuantity =
-                            cartProvider.getTotalQuantityForItem(item.itemId);
+                        final totalQuantity = cartProvider.getTotalQuantityForItem(item.itemId);
                         final isInCart = totalQuantity > 0;
                         final num? maxAmount = item.amount;
-                        final bool canIncrease = maxAmount == null ||
-                            totalQuantity < maxAmount.toDouble();
+                        final bool canIncrease = maxAmount == null || totalQuantity < maxAmount.toDouble();
 
                         if (isInCart) {
                           // Товар в корзине - показываем общее количество и кнопку управления
@@ -370,19 +333,14 @@ class _ProductCardState extends State<ProductCard> {
                                 height: 32,
                                 child: ElevatedButton(
                                   onPressed: () {
-                                    final variants = cartProvider
-                                        .getItemVariants(item.itemId);
+                                    final variants = cartProvider.getItemVariants(item.itemId);
                                     if (variants.isNotEmpty) {
                                       final firstVariant = variants.first;
                                       // Вычисляем шаг изменения количества: parent_item_amount или stepQuantity
                                       double step = firstVariant.stepQuantity;
-                                      for (var v
-                                          in firstVariant.selectedVariants) {
-                                        if (v.containsKey(
-                                            'parent_item_amount')) {
-                                          step =
-                                              (v['parent_item_amount'] as num)
-                                                  .toDouble();
+                                      for (var v in firstVariant.selectedVariants) {
+                                        if (v.containsKey('parent_item_amount')) {
+                                          step = (v['parent_item_amount'] as num).toDouble();
                                           break;
                                         }
                                       }
@@ -395,10 +353,8 @@ class _ProductCardState extends State<ProductCard> {
                                     }
                                   },
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        Theme.of(context).colorScheme.primary,
-                                    foregroundColor:
-                                        Theme.of(context).colorScheme.onPrimary,
+                                    backgroundColor: Theme.of(context).colorScheme.primary,
+                                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
                                     padding: EdgeInsets.zero,
                                     minimumSize: const Size(32, 32),
                                   ),
@@ -411,10 +367,7 @@ class _ProductCardState extends State<ProductCard> {
                                 child: Container(
                                   height: 32,
                                   decoration: BoxDecoration(
-                                    border: Border.all(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary),
+                                    border: Border.all(color: Theme.of(context).colorScheme.primary),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Center(
@@ -423,9 +376,7 @@ class _ProductCardState extends State<ProductCard> {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
+                                        color: Theme.of(context).colorScheme.primary,
                                       ),
                                     ),
                                   ),
@@ -442,44 +393,30 @@ class _ProductCardState extends State<ProductCard> {
                                           if (item.hasOptions) {
                                             showDialog(
                                               context: context,
-                                              builder: (context) =>
-                                                  ItemOptionsDialog(item: item),
+                                              builder: (context) => ItemOptionsDialog(item: item),
                                             );
                                           } else {
-                                            final variants = cartProvider
-                                                .getItemVariants(item.itemId);
+                                            final variants = cartProvider.getItemVariants(item.itemId);
                                             if (variants.isNotEmpty) {
-                                              final firstVariant =
-                                                  variants.first;
-                                              double step = firstVariant
-                                                  .stepQuantity; // базовый шаг
-                                              for (var v in firstVariant
-                                                  .selectedVariants) {
-                                                if (v.containsKey(
-                                                    'parent_item_amount')) {
-                                                  step =
-                                                      (v['parent_item_amount']
-                                                              as num)
-                                                          .toDouble();
+                                              final firstVariant = variants.first;
+                                              double step = firstVariant.stepQuantity; // базовый шаг
+                                              for (var v in firstVariant.selectedVariants) {
+                                                if (v.containsKey('parent_item_amount')) {
+                                                  step = (v['parent_item_amount'] as num).toDouble();
                                                   break;
                                                 }
                                               }
                                               // Если после увеличения превысим лимит – ограничим до максимума
-                                              final target =
-                                                  firstVariant.quantity + step;
-                                              if (maxAmount != null &&
-                                                  target >
-                                                      maxAmount.toDouble()) {
+                                              final target = firstVariant.quantity + step;
+                                              if (maxAmount != null && target > maxAmount.toDouble()) {
                                                 // ставим максимум
-                                                cartProvider
-                                                    .updateQuantityWithVariants(
+                                                cartProvider.updateQuantityWithVariants(
                                                   item.itemId,
                                                   firstVariant.selectedVariants,
                                                   maxAmount.toDouble(),
                                                 );
                                               } else {
-                                                cartProvider
-                                                    .updateQuantityWithVariants(
+                                                cartProvider.updateQuantityWithVariants(
                                                   item.itemId,
                                                   firstVariant.selectedVariants,
                                                   target,
@@ -490,25 +427,15 @@ class _ProductCardState extends State<ProductCard> {
                                         }
                                       : null,
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: canIncrease
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context)
-                                            .colorScheme
-                                            .surfaceVariant,
-                                    foregroundColor: canIncrease
-                                        ? Theme.of(context)
-                                            .colorScheme
-                                            .onPrimary
-                                        : Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
+                                    backgroundColor:
+                                        canIncrease ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surfaceVariant,
+                                    foregroundColor:
+                                        canIncrease ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurfaceVariant,
                                     padding: EdgeInsets.zero,
                                     minimumSize: const Size(32, 32),
                                   ),
                                   child: Icon(
-                                    item.hasOptions
-                                        ? Icons.settings
-                                        : Icons.add,
+                                    item.hasOptions ? Icons.settings : Icons.add,
                                     size: 16,
                                   ),
                                 ),
@@ -517,8 +444,7 @@ class _ProductCardState extends State<ProductCard> {
                           );
                         } else {
                           // Товар не в корзине - показываем кнопку добавления
-                          final bool canAdd =
-                              (maxAmount == null || maxAmount.toDouble() > 0);
+                          final bool canAdd = (maxAmount == null || maxAmount.toDouble() > 0);
                           return Row(
                             children: [
                               Expanded(
@@ -527,8 +453,7 @@ class _ProductCardState extends State<ProductCard> {
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
+                                    color: Theme.of(context).colorScheme.primary,
                                   ),
                                 ),
                               ),
@@ -537,18 +462,9 @@ class _ProductCardState extends State<ProductCard> {
                                 width: 32,
                                 child: IconButton(
                                   style: IconButton.styleFrom(
-                                    backgroundColor: canAdd
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context)
-                                            .colorScheme
-                                            .surfaceVariant,
-                                    foregroundColor: canAdd
-                                        ? Theme.of(context)
-                                            .colorScheme
-                                            .onPrimary
-                                        : Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
+                                    backgroundColor: canAdd ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surfaceVariant,
+                                    foregroundColor:
+                                        canAdd ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurfaceVariant,
                                     padding: EdgeInsets.zero,
                                     minimumSize: const Size(32, 32),
                                   ),
@@ -557,12 +473,10 @@ class _ProductCardState extends State<ProductCard> {
                                           if (item.hasOptions) {
                                             showDialog(
                                               context: context,
-                                              builder: (context) =>
-                                                  ItemOptionsDialog(item: item),
+                                              builder: (context) => ItemOptionsDialog(item: item),
                                             );
                                           } else {
-                                            final stepQuantity =
-                                                item.effectiveStepQuantity;
+                                            final stepQuantity = item.effectiveStepQuantity;
                                             final newCartItem = CartItem(
                                               itemId: item.itemId,
                                               name: item.name,
@@ -571,17 +485,14 @@ class _ProductCardState extends State<ProductCard> {
                                               stepQuantity: stepQuantity,
                                               selectedVariants: [],
                                               promotions: [],
-                                              maxAmount:
-                                                  item.amount?.toDouble(),
+                                              maxAmount: item.amount?.toDouble(),
                                             );
                                             cartProvider.addItem(newCartItem);
                                           }
                                         }
                                       : null,
                                   icon: Icon(
-                                    item.hasOptions
-                                        ? Icons.tune
-                                        : Icons.add_shopping_cart,
+                                    item.hasOptions ? Icons.tune : Icons.add_shopping_cart,
                                     size: 14,
                                   ),
                                 ),

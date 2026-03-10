@@ -26,15 +26,9 @@ class CartItem {
       price: (json['price'] as num).toDouble(),
       quantity: (json['quantity'] as num).toDouble(),
       stepQuantity: (json['stepQuantity'] as num).toDouble(),
-      selectedVariants: (json['selectedVariants'] as List<dynamic>)
-          .map((e) => Map<String, dynamic>.from(e as Map))
-          .toList(),
-      promotions: (json['promotions'] as List<dynamic>)
-          .map((e) => Map<String, dynamic>.from(e as Map))
-          .toList(),
-      maxAmount: json['maxAmount'] != null
-          ? (json['maxAmount'] as num).toDouble()
-          : null,
+      selectedVariants: (json['selectedVariants'] as List<dynamic>).map((e) => Map<String, dynamic>.from(e as Map)).toList(),
+      promotions: (json['promotions'] as List<dynamic>).map((e) => Map<String, dynamic>.from(e as Map)).toList(),
+      maxAmount: json['maxAmount'] != null ? (json['maxAmount'] as num).toDouble() : null,
     );
   }
 
@@ -58,10 +52,7 @@ class CartItem {
       'options': selectedVariants.map((variant) {
         // API ожидает option_item_relation_id
         // Ищем ID варианта в разных возможных полях
-        final relationId = variant['variant_id'] ??
-            variant['relation_id'] ??
-            variant['variant']?['relation_id'] ??
-            variant['variant']?['variant_id'];
+        final relationId = variant['variant_id'] ?? variant['relation_id'] ?? variant['variant']?['relation_id'] ?? variant['variant']?['variant_id'];
         return {
           'option_item_relation_id': relationId,
           'amount': 1, // Обычно количество опций 1, если не указано иное
@@ -97,12 +88,9 @@ class CartItem {
 
     // Учитываем стоимость опций: price * (quantity / parent_item_amount)
     for (final variant in selectedVariants) {
-      print(quantity);
-      print('Variant: $variant');
       double? parentAmt;
       double? varPrice;
-      if (variant.containsKey('parent_item_amount') &&
-          variant.containsKey('price')) {
+      if (variant.containsKey('parent_item_amount') && variant.containsKey('price')) {
         parentAmt = (variant['parent_item_amount'] as num?)?.toDouble();
         varPrice = (variant['price'] as num?)?.toDouble();
       } else if (variant.containsKey('variant') && variant['variant'] is Map) {
@@ -119,16 +107,10 @@ class CartItem {
 
     // SUBTRACT акции (учитываем ключи type/baseAmount/addAmount и discount_type/base_amount/add_amount)
     for (final promo in promotions) {
-      final type =
-          (promo['type'] as String?) ?? (promo['discount_type'] as String?);
+      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
       if (type == 'SUBTRACT') {
-        final base = ((promo['baseAmount'] as num?) ??
-                (promo['base_amount'] as num?) ??
-                0)
-            .toInt();
-        final add =
-            ((promo['addAmount'] as num?) ?? (promo['add_amount'] as num?) ?? 0)
-                .toInt();
+        final base = ((promo['baseAmount'] as num?) ?? (promo['base_amount'] as num?) ?? 0).toInt();
+        final add = ((promo['addAmount'] as num?) ?? (promo['add_amount'] as num?) ?? 0).toInt();
         final groupSize = base + add;
         if (groupSize > 0 && base > 0) {
           // Платим только за полные группы baseAmount, остаток игнорируем
@@ -141,12 +123,10 @@ class CartItem {
             for (final variant in selectedVariants) {
               double? parentAmt;
               double? varPrice;
-              if (variant.containsKey('parent_item_amount') &&
-                  variant.containsKey('price')) {
+              if (variant.containsKey('parent_item_amount') && variant.containsKey('price')) {
                 parentAmt = (variant['parent_item_amount'] as num?)?.toDouble();
                 varPrice = (variant['price'] as num?)?.toDouble();
-              } else if (variant.containsKey('variant') &&
-                  variant['variant'] is Map) {
+              } else if (variant.containsKey('variant') && variant['variant'] is Map) {
                 final v = variant['variant'] as Map;
                 parentAmt = (v['parent_item_amount'] as num?)?.toDouble();
                 varPrice = (v['price'] as num?)?.toDouble();
@@ -164,13 +144,9 @@ class CartItem {
 
     // DISCOUNT акции (учитываем ключи discount и discount_value)
     for (final promo in promotions) {
-      final type =
-          (promo['type'] as String?) ?? (promo['discount_type'] as String?);
+      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
       if (type == 'DISCOUNT') {
-        final disc = ((promo['discount'] as num?) ??
-                (promo['discount_value'] as num?) ??
-                0)
-            .toDouble();
+        final disc = ((promo['discount'] as num?) ?? (promo['discount_value'] as num?) ?? 0).toDouble();
         total = total * (1 - disc / 100);
       }
     }

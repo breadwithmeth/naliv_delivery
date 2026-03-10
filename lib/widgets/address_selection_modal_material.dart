@@ -39,33 +39,21 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
     });
 
     try {
-      print('🌍 Начинаем определение адреса по геолокации');
-
       final locationService = LocationService.instance;
-
-      // Сначала явно проверяем и запрашиваем разрешения
-      print('🔐 Проверяем разрешения на геолокацию...');
-      final permissionResult =
-          await locationService.checkAndRequestPermissions();
+      final permissionResult = await locationService.checkAndRequestPermissions();
 
       if (!permissionResult.success) {
-        print('❌ Разрешения не получены: ${permissionResult.message}');
         if (permissionResult.needsSettingsRedirect) {
           _showLocationErrorDialog();
         } else {
           // Если разрешение просто отклонено, показываем обычную ошибку
-          _showErrorDialog(
-              'Необходимо разрешение на доступ к геолокации для определения адреса.');
+          _showErrorDialog('Необходимо разрешение на доступ к геолокации для определения адреса.');
         }
         return;
       }
 
-      print('✅ Разрешения получены, начинаем определение координат...');
-
-      // Проверяем доступность GPS сервисов
       final isServiceEnabled = await locationService.isLocationServiceEnabled();
       if (!isServiceEnabled) {
-        print('❌ Службы геолокации отключены');
         _showLocationErrorDialog();
         return;
       }
@@ -74,18 +62,13 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
         _locationAttemptStatus = 'Попытка 1/3 - высокая точность...';
       });
 
-      // Первая попытка - быстрая проверка с высокой точностью
-      print('🎯 Первая попытка - высокая точность...');
       Position? position;
       try {
         position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high,
           timeLimit: const Duration(seconds: 8),
         );
-        print('✅ Координаты (high): $position');
-      } catch (e) {
-        print('⚠️ Первая попытка неудачна: $e');
-      }
+      } catch (e) {}
 
       // Вторая попытка
       if (position == null) {
@@ -99,10 +82,7 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
             desiredAccuracy: LocationAccuracy.medium,
             timeLimit: const Duration(seconds: 10),
           );
-          print('✅ Координаты (medium): $position');
-        } catch (e) {
-          print('⚠️ Вторая попытка неудачна: $e');
-        }
+        } catch (e) {}
       }
 
       // Третья попытка
@@ -117,15 +97,11 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
             desiredAccuracy: LocationAccuracy.low,
             timeLimit: const Duration(seconds: 12),
           );
-          print('✅ Координаты (low): $position');
-        } catch (e) {
-          print('❌ Третья попытка неудачна: $e');
-        }
+        } catch (e) {}
       }
 
       if (position == null) {
-        _showErrorDialog(
-            'Не удалось получить координаты. Выберите адрес вручную.');
+        _showErrorDialog('Не удалось получить координаты. Выберите адрес вручную.');
         return;
       }
 
@@ -137,17 +113,13 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
 
       if (addressData != null && addressData.isNotEmpty) {
         final selectedAddress = {
-          'address': addressData.first['name'] ??
-              addressData.first['description'] ??
-              'Неизвестный адрес',
+          'address': addressData.first['name'] ?? addressData.first['description'] ?? 'Неизвестный адрес',
           'lat': position.latitude,
           'lon': position.longitude,
           'accuracy': position.accuracy,
           'source': 'geolocation',
           'timestamp': DateTime.now().toIso8601String(),
         };
-
-        print('💾 Сохраняем базовый адрес: ${selectedAddress['address']}');
         if (mounted) {
           await Navigator.of(context).push(MaterialPageRoute(
             builder: (_) => MapAddressPage(
@@ -158,21 +130,16 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
           ));
         }
       } else {
-        print('❌ API не вернул данные об адресе');
-        _showErrorDialog(
-            'Не удалось определить адрес по координатам. Попробуйте выбрать адрес вручную.');
+        _showErrorDialog('Не удалось определить адрес по координатам. Попробуйте выбрать адрес вручную.');
       }
     } catch (e) {
-      print('❌ Ошибка при определении адреса: $e');
+      debugPrint('Ошибка при определении адреса: $e');
 
       // Дополнительная информация об ошибке
-      if (e.toString().contains('permission') ||
-          e.toString().contains('PERMISSION') ||
-          e.toString().contains('denied')) {
+      if (e.toString().contains('permission') || e.toString().contains('PERMISSION') || e.toString().contains('denied')) {
         _showLocationErrorDialog();
       } else {
-        _showErrorDialog(
-            'Ошибка при определении местоположения: ${e.toString()}');
+        _showErrorDialog('Ошибка при определении местоположения: ${e.toString()}');
       }
     } finally {
       if (mounted) {
@@ -360,8 +327,7 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.blue),
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -429,16 +395,12 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
                   double initLon = 76.8512;
 
                   try {
-                    final selected =
-                        await AddressStorageService.getSelectedAddress();
-                    if (selected != null &&
-                        selected['lat'] != null &&
-                        selected['lon'] != null) {
+                    final selected = await AddressStorageService.getSelectedAddress();
+                    if (selected != null && selected['lat'] != null && selected['lon'] != null) {
                       initLat = (selected['lat'] as num).toDouble();
                       initLon = (selected['lon'] as num).toDouble();
                     } else {
-                      final hist =
-                          await AddressStorageService.getAddressHistory();
+                      final hist = await AddressStorageService.getAddressHistory();
                       if (hist.isNotEmpty && hist.first['point'] != null) {
                         final p = hist.first['point'];
                         if (p['lat'] != null && p['lon'] != null) {
@@ -474,8 +436,7 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
                     SizedBox(width: 10),
                     Text(
                       'Выбрать адрес на карте',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
@@ -492,8 +453,7 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                       child: Text(
                         'Сохранённые адреса',
                         style: TextStyle(
@@ -517,19 +477,16 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
                             };
 
                             // Добавляем детали адреса если они есть
-                            if (addr['apartment']?.toString().isNotEmpty ==
-                                true) {
+                            if (addr['apartment']?.toString().isNotEmpty == true) {
                               fullAddress['apartment'] = addr['apartment'];
                             }
-                            if (addr['entrance']?.toString().isNotEmpty ==
-                                true) {
+                            if (addr['entrance']?.toString().isNotEmpty == true) {
                               fullAddress['entrance'] = addr['entrance'];
                             }
                             if (addr['floor']?.toString().isNotEmpty == true) {
                               fullAddress['floor'] = addr['floor'];
                             }
-                            if (addr['comment']?.toString().isNotEmpty ==
-                                true) {
+                            if (addr['comment']?.toString().isNotEmpty == true) {
                               fullAddress['comment'] = addr['comment'];
                             }
 

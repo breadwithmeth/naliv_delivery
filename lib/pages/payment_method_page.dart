@@ -5,15 +5,13 @@ import 'package:url_launcher/url_launcher.dart';
 class PaymentMethodPage extends StatefulWidget {
   final Map<String, dynamic> orderData;
 
-  const PaymentMethodPage({Key? key, required this.orderData})
-      : super(key: key);
+  const PaymentMethodPage({Key? key, required this.orderData}) : super(key: key);
 
   @override
   _PaymentMethodPageState createState() => _PaymentMethodPageState();
 }
 
-class _PaymentMethodPageState extends State<PaymentMethodPage>
-    with WidgetsBindingObserver {
+class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindingObserver {
   List<Map<String, dynamic>>? _cards;
   bool _isLoading = true;
   String? _selectedCardId;
@@ -22,7 +20,6 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
   @override
   void initState() {
     super.initState();
-    print('Order data received: ${widget.orderData}');
     WidgetsBinding.instance.addObserver(this);
     _loadCards();
   }
@@ -48,7 +45,6 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     });
     try {
       final cards = await ApiService.getUserCards(source: 'halyk');
-      print(cards);
       setState(() {
         _cards = cards;
         _isLoading = false;
@@ -68,7 +64,6 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
 
   Future<void> _addCard() async {
     final link = await ApiService.generateAddCardLink();
-    print('Generated link for adding card: $link');
     if (link != null) {
       final uri = Uri.parse(link);
       if (await canLaunchUrl(uri)) {
@@ -76,14 +71,12 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Не удалось открыть ссылку для добавления карты')),
+          const SnackBar(content: Text('Не удалось открыть ссылку для добавления карты')),
         );
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Не удалось получить ссылку для добавления карты')),
+        const SnackBar(content: Text('Не удалось получить ссылку для добавления карты')),
       );
     }
   }
@@ -106,8 +99,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     );
 
     try {
-      final orderId = widget.orderData['order_id']?.toString() ??
-          widget.orderData['order_uuid']?.toString();
+      final orderId = widget.orderData['order_id']?.toString() ?? widget.orderData['order_uuid']?.toString();
       if (orderId == null) {
         Navigator.pop(context); // Закрываем диалог загрузки
         ScaffoldMessenger.of(context).showSnackBar(
@@ -136,9 +128,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
         Navigator.of(context).popUntil((route) => route.isFirst);
       } else {
         // Ошибка оплаты
-        final errorMessage = result['error'] is Map
-            ? result['error']['message']
-            : result['error'].toString();
+        final errorMessage = result['error'] is Map ? result['error']['message'] : result['error'].toString();
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -206,9 +196,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
                       return Card(
                         child: RadioListTile<String>(
                           title: Text(card['card_mask'] ?? 'Неизвестная карта'),
-                          subtitle: Text(card['payer_name']?.isNotEmpty == true
-                              ? card['payer_name']
-                              : 'Банковская карта'),
+                          subtitle: Text(card['payer_name']?.isNotEmpty == true ? card['payer_name'] : 'Банковская карта'),
                           value: card['halyk_id'].toString(),
                           groupValue: _selectedCardId,
                           onChanged: (value) {

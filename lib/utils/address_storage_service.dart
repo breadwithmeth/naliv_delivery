@@ -1,5 +1,6 @@
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Сервис для работы с сохраненными адресами пользователя
@@ -27,10 +28,6 @@ class AddressStorageService {
     final addressJson = prefs.getString(_selectedAddressKey);
     final hasAddress = addressJson != null && addressJson.isNotEmpty;
 
-    print('🔍 AddressStorageService.hasSelectedAddress():');
-    print('   addressJson: $addressJson');
-    print('   hasAddress: $hasAddress');
-
     return hasAddress;
   }
 
@@ -43,7 +40,7 @@ class AddressStorageService {
       try {
         return json.decode(addressJson);
       } catch (e) {
-        print('Ошибка при декодировании адреса: $e');
+        debugPrint('Ошибка при декодировании адреса: $e');
         return null;
       }
     }
@@ -51,13 +48,10 @@ class AddressStorageService {
   }
 
   // StreamController для уведомления об изменении выбранного адреса
-  static final StreamController<Map<String, dynamic>?>
-      _selectedAddressController =
-      StreamController<Map<String, dynamic>?>.broadcast();
+  static final StreamController<Map<String, dynamic>?> _selectedAddressController = StreamController<Map<String, dynamic>?>.broadcast();
 
   /// Поток изменений выбранного адреса
-  static Stream<Map<String, dynamic>?> get selectedAddressStream =>
-      _selectedAddressController.stream;
+  static Stream<Map<String, dynamic>?> get selectedAddressStream => _selectedAddressController.stream;
 
   /// Сохраняет выбранный адрес
   static Future<bool> saveSelectedAddress(Map<String, dynamic> address) async {
@@ -69,7 +63,7 @@ class AddressStorageService {
       _selectedAddressController.add(address);
       return result;
     } catch (e) {
-      print('Ошибка при сохранении адреса: $e');
+      debugPrint('Ошибка при сохранении адреса: $e');
       return false;
     }
   }
@@ -89,11 +83,9 @@ class AddressStorageService {
     final historyJson = prefs.getStringList(_addressHistoryKey) ?? [];
 
     try {
-      return historyJson
-          .map((item) => json.decode(item) as Map<String, dynamic>)
-          .toList();
+      return historyJson.map((item) => json.decode(item) as Map<String, dynamic>).toList();
     } catch (e) {
-      print('Ошибка при получении истории адресов: $e');
+      debugPrint('Ошибка при получении истории адресов: $e');
       return [];
     }
   }
@@ -105,9 +97,7 @@ class AddressStorageService {
 
       // Проверяем, нет ли уже такого адреса в истории
       final existingIndex = history.indexWhere((item) =>
-          item['name'] == address['name'] &&
-          item['point']['lat'] == address['point']['lat'] &&
-          item['point']['lon'] == address['point']['lon']);
+          item['name'] == address['name'] && item['point']['lat'] == address['point']['lat'] && item['point']['lon'] == address['point']['lon']);
 
       if (existingIndex != -1) {
         // Удаляем существующий и добавляем в начало
@@ -126,7 +116,7 @@ class AddressStorageService {
       final historyJson = history.map((item) => json.encode(item)).toList();
       return await prefs.setStringList(_addressHistoryKey, historyJson);
     } catch (e) {
-      print('Ошибка при добавлении адреса в историю: $e');
+      debugPrint('Ошибка при добавлении адреса в историю: $e');
       return false;
     }
   }

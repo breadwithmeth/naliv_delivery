@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -61,8 +62,7 @@ class LocationService {
       if (!serviceEnabled) {
         return LocationPermissionResult(
           success: false,
-          message:
-              'Сервисы геолокации отключены. Включите GPS в настройках устройства.',
+          message: 'Сервисы геолокации отключены. Включите GPS в настройках устройства.',
           permissionStatus: LocationPermission.denied,
         );
       }
@@ -81,8 +81,7 @@ class LocationService {
         case LocationPermission.deniedForever:
           return LocationPermissionResult(
             success: false,
-            message:
-                'Разрешение на геолокацию отклонено навсегда. Разрешите доступ в настройках приложения.',
+            message: 'Разрешение на геолокацию отклонено навсегда. Разрешите доступ в настройках приложения.',
             permissionStatus: permission,
             needsSettingsRedirect: true,
           );
@@ -118,10 +117,9 @@ class LocationService {
   }) async {
     try {
       // Проверяем разрешения
-      LocationPermissionResult permissionResult =
-          await checkAndRequestPermissions();
+      LocationPermissionResult permissionResult = await checkAndRequestPermissions();
       if (!permissionResult.success) {
-        print('Не удалось получить разрешение: ${permissionResult.message}');
+        debugPrint('Не удалось получить разрешение: ${permissionResult.message}');
         return null;
       }
 
@@ -133,16 +131,14 @@ class LocationService {
 
       return _currentPosition;
     } catch (e) {
-      print('Ошибка при получении геолокации: $e');
+      debugPrint('Ошибка при получении геолокации: $e');
       return null;
     }
   }
 
   /// Вычисляет расстояние между двумя точками в метрах
-  double calculateDistance(double startLatitude, double startLongitude,
-      double endLatitude, double endLongitude) {
-    return Geolocator.distanceBetween(
-        startLatitude, startLongitude, endLatitude, endLongitude);
+  double calculateDistance(double startLatitude, double startLongitude, double endLatitude, double endLongitude) {
+    return Geolocator.distanceBetween(startLatitude, startLongitude, endLatitude, endLongitude);
   }
 
   /// Отслеживает позицию пользователя (стрим)
@@ -222,9 +218,7 @@ class LocationPermissionDialog {
   }
 
   /// Показывает диалог с ошибкой и предложением перейти в настройки
-  static Future<bool> showPermissionDeniedDialog(
-      BuildContext context, String message,
-      {bool canOpenSettings = true}) async {
+  static Future<bool> showPermissionDeniedDialog(BuildContext context, String message, {bool canOpenSettings = true}) async {
     bool? result = await showCupertinoDialog<bool>(
       context: context,
       builder: (context) => CupertinoAlertDialog(
@@ -279,20 +273,17 @@ mixin LocationMixin<T extends StatefulWidget> on State<T> {
   /// Запрашивает разрешение и получает текущую позицию
   Future<bool> requestLocationAndGetPosition() async {
     // Показываем объяснение пользователю
-    bool userAccepted =
-        await LocationPermissionDialog.showPermissionExplanation(context);
+    bool userAccepted = await LocationPermissionDialog.showPermissionExplanation(context);
     if (!userAccepted) {
       return false;
     }
 
     // Проверяем и запрашиваем разрешения
-    LocationPermissionResult result =
-        await locationService.checkAndRequestPermissions();
+    LocationPermissionResult result = await locationService.checkAndRequestPermissions();
 
     if (!result.success) {
       // Показываем диалог с ошибкой
-      bool openSettings =
-          await LocationPermissionDialog.showPermissionDeniedDialog(
+      bool openSettings = await LocationPermissionDialog.showPermissionDeniedDialog(
         context,
         result.message,
         canOpenSettings: result.needsSettingsRedirect,

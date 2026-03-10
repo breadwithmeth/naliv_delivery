@@ -4,6 +4,7 @@ import '../utils/api.dart';
 import '../services/agreement_service.dart';
 import '../services/auth_service.dart';
 import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
+import 'package:naliv_delivery/shared/app_theme.dart';
 
 class ProfilePage extends StatefulWidget {
   final Map<String, dynamic> userInfo;
@@ -15,14 +16,16 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  late final Future<Map<String, dynamic>?> _profileFuture;
+
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
+    _profileFuture = ApiService.getFullInfo();
     _checkAuth();
   }
 
-  void _checkAuth() async {
+  Future<void> _checkAuth() async {
     final isLoggedIn = await ApiService.isUserLoggedIn();
     if (!mounted) return; // виджет мог быть удалён пока ждали
 
@@ -39,7 +42,7 @@ class _ProfilePageState extends State<ProfilePage> {
       return;
     }
 
-    final data = await ApiService.getFullInfo();
+    final data = await _profileFuture;
     if (!mounted) return;
 
     if (data == null) {
@@ -68,249 +71,259 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.bgDeep,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Профиль'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        foregroundColor: AppColors.text,
+        title: const Text('Профиль', style: TextStyle(fontWeight: FontWeight.w800)),
       ),
-      body: FutureBuilder<Map<String, dynamic>?>(
-        future: ApiService.getFullInfo(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError || snapshot.data == null) {
-            return Center(
-                child: ElevatedButton(
+      body: Stack(
+        children: [
+          const AppBackground(),
+          FutureBuilder<Map<String, dynamic>?>(
+            future: _profileFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation(AppColors.orange),
+                  ),
+                );
+              }
+              if (snapshot.hasError || snapshot.data == null) {
+                return Center(
+                  child: ElevatedButton(
                     onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => const LoginPage(
-                                  redirectTabIndex: 4,
-                                )),
-                      );
-                    },
-                    child: Text('Войти')));
-          }
-          final data = snapshot.data!;
-          final user = data['user'] as Map<String, dynamic>;
-          final addresses =
-              (data['addresses'] as List<dynamic>).cast<Map<String, dynamic>>();
-          final cards =
-              (data['cards'] as List<dynamic>).cast<Map<String, dynamic>>();
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Logout button
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      await AuthService.clearToken();
-                      if (!mounted) return;
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                            builder: (_) => const AuthenticationWrapper(
-                                  initialTabIndex: 0,
-                                )),
-                        (route) => false,
-                      );
-                    },
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Выйти'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Card(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.person,
-                              size: 40,
-                            ),
-                            const SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(user['name'] ?? '',
-                                    style:
-                                        Theme.of(context).textTheme.titleLarge),
-                                Text(user['login'] ?? '',
-                                    style:
-                                        Theme.of(context).textTheme.bodySmall),
-                              ],
-                            ),
-                          ],
+                          builder: (context) => const LoginPage(redirectTabIndex: 4),
                         ),
-                        if (user['date_of_birth'] != null) ...[
-                          const SizedBox(height: 8),
-                          Text('Дата рождения: ${user['date_of_birth']}',
-                              style: Theme.of(context).textTheme.bodyMedium),
-                        ],
-                        if (user['sex'] != null) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                              'Пол: ${user['sex'] == 1 ? 'Мужской' : 'Женский'}',
-                              style: Theme.of(context).textTheme.bodyMedium),
-                        ],
-                      ],
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.orange,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
+                    child: const Text('Войти', style: TextStyle(fontWeight: FontWeight.w800)),
                   ),
-                ),
-                // Addresses
-                Card(
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  elevation: 1,
-                  child: ExpansionTile(
-                    leading: Icon(
-                      Icons.location_on,
-                    ),
-                    title: Text('Адреса',
-                        style: Theme.of(context).textTheme.titleMedium),
-                    children: addresses
-                        .map((addr) => Card(
-                              margin: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 4),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8)),
-                              elevation: 1,
-                              child: ListTile(
-                                leading: Icon(
-                                  Icons.home,
-                                ),
-                                title: Text(addr['address'] ?? '',
-                                    style:
-                                        Theme.of(context).textTheme.bodyLarge),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if ((addr['name'] as String).isNotEmpty)
-                                      Text('Имя: ${addr['name']}',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall),
-                                    if ((addr['apartment'] as String)
-                                        .isNotEmpty)
-                                      Text('Кв.: ${addr['apartment']}',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall),
-                                    if ((addr['entrance'] as String).isNotEmpty)
-                                      Text('Под.: ${addr['entrance']}',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall),
-                                    if ((addr['floor'] as String).isNotEmpty)
-                                      Text('Эт.: ${addr['floor']}',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall),
-                                    if ((addr['other'] as String).isNotEmpty)
-                                      Text('Прим.: ${addr['other']}',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall),
-                                  ],
-                                ),
-                              ),
-                            ))
-                        .toList(),
-                  ),
-                ),
-                // Cards
-                Card(
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  elevation: 1,
-                  child: ExpansionTile(
-                    leading: Icon(
-                      Icons.credit_card,
-                    ),
-                    title: Text('Карты',
-                        style: Theme.of(context).textTheme.titleMedium),
-                    children: cards
-                        .map((card) => ListTile(
-                              leading: const Icon(Icons.credit_card),
-                              title: Text(card['mask'] ?? ''),
-                            ))
-                        .toList(),
-                  ),
-                ),
+                );
+              }
+              final data = snapshot.data!;
+              final user = data['user'] as Map<String, dynamic>;
+              final addresses = (data['addresses'] as List<dynamic>).cast<Map<String, dynamic>>();
+              final cards = (data['cards'] as List<dynamic>).cast<Map<String, dynamic>>();
 
-                // Раздел настроек (только для разработки/отладки)
-                Card(
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  elevation: 1,
-                  child: ExpansionTile(
-                    leading: const Icon(Icons.settings),
-                    title: Text('Настройки разработчика',
-                        style: Theme.of(context).textTheme.titleMedium),
+              return SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ListTile(
-                        leading: const Icon(Icons.description),
-                        title: const Text('Сбросить согласие с офертой'),
-                        subtitle: const Text('Для тестирования экрана оферты'),
-                        onTap: () async {
-                          await AgreementService.resetAllAgreements();
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                    'Согласия сброшены. Перезапустите приложение.'),
-                                backgroundColor: Colors.orange,
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            await AuthService.clearToken();
+                            if (!mounted) return;
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (_) => const AuthenticationWrapper(initialTabIndex: 0),
                               ),
+                              (route) => false,
                             );
-                          }
-                        },
+                          },
+                          icon: const Icon(Icons.logout),
+                          label: const Text('Выйти'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.orange,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                        ),
                       ),
-                      ListTile(
-                        leading: const Icon(Icons.info),
-                        title: const Text('Проверить статус согласий'),
-                        onTap: () async {
-                          final isAccepted =
-                              await AgreementService.isOfferAccepted();
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Оферта ${isAccepted ? "принята" : "не принята"}',
-                                ),
-                                backgroundColor:
-                                    isAccepted ? Colors.green : Colors.red,
-                              ),
-                            );
-                          }
-                        },
-                      ),
+                      const SizedBox(height: 12),
+                      _infoCard(user),
+                      _addressesCard(addresses),
+                      _cardsCard(cards),
+                      _devSettingsCard(),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
-                const SizedBox(height: 16),
-              ],
+  Widget _infoCard(Map<String, dynamic> user) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: AppDecorations.card(radius: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: AppDecorations.pill(color: AppColors.blue),
+                child: const Icon(Icons.person, color: AppColors.orange, size: 28),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(user['name'] ?? '', style: const TextStyle(color: AppColors.text, fontSize: 18, fontWeight: FontWeight.w800)),
+                  Text(user['login'] ?? '', style: TextStyle(color: AppColors.textMute, fontSize: 13)),
+                ],
+              ),
+            ],
+          ),
+          if (user['date_of_birth'] != null) ...[
+            const SizedBox(height: 8),
+            Text('Дата рождения: ${user['date_of_birth']}', style: TextStyle(color: AppColors.textMute, fontSize: 13)),
+          ],
+          if (user['sex'] != null) ...[
+            const SizedBox(height: 4),
+            Text('Пол: ${user['sex'] == 1 ? 'Мужской' : 'Женский'}', style: TextStyle(color: AppColors.textMute, fontSize: 13)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _addressesCard(List<Map<String, dynamic>> addresses) {
+    final normalized = addresses
+        .map((addr) => {
+              'address': (addr['address'] as String?) ?? '',
+              'name': (addr['name'] as String?) ?? '',
+              'apartment': (addr['apartment'] as String?) ?? '',
+              'entrance': (addr['entrance'] as String?) ?? '',
+              'floor': (addr['floor'] as String?) ?? '',
+              'other': (addr['other'] as String?) ?? '',
+            })
+        .toList();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      decoration: AppDecorations.card(radius: 16),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.white.withValues(alpha: 0.06)),
+        child: ExpansionTile(
+          leading: const Icon(Icons.location_on, color: AppColors.orange),
+          title: const Text('Адреса', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+          children: normalized
+              .map(
+                (addr) => Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.all(12),
+                  decoration: AppDecorations.card(radius: 12, shadow: false, color: AppColors.cardDark),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.home, color: AppColors.textMute),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(addr['address']!, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      ...[
+                        if (addr['name']!.isNotEmpty) 'Имя: ${addr['name']}',
+                        if (addr['apartment']!.isNotEmpty) 'Кв.: ${addr['apartment']}',
+                        if (addr['entrance']!.isNotEmpty) 'Под.: ${addr['entrance']}',
+                        if (addr['floor']!.isNotEmpty) 'Эт.: ${addr['floor']}',
+                        if (addr['other']!.isNotEmpty) 'Прим.: ${addr['other']}',
+                      ].map((text) => Text(text, style: TextStyle(color: AppColors.textMute, fontSize: 12))).toList(),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _cardsCard(List<Map<String, dynamic>> cards) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      decoration: AppDecorations.card(radius: 16),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.white.withValues(alpha: 0.06)),
+        child: ExpansionTile(
+          leading: const Icon(Icons.credit_card, color: AppColors.orange),
+          title: const Text('Карты', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+          children: cards
+              .map(
+                (card) => ListTile(
+                  leading: const Icon(Icons.credit_card, color: AppColors.textMute),
+                  title: Text(card['mask'] ?? '', style: const TextStyle(color: AppColors.text)),
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _devSettingsCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      decoration: AppDecorations.card(radius: 16),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.white.withValues(alpha: 0.06)),
+        child: ExpansionTile(
+          leading: const Icon(Icons.settings, color: AppColors.orange),
+          title: const Text('Настройки разработчика', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+          children: [
+            ListTile(
+              leading: const Icon(Icons.description, color: AppColors.textMute),
+              title: const Text('Сбросить согласие с офертой', style: TextStyle(color: AppColors.text)),
+              subtitle: Text('Для тестирования экрана оферты', style: TextStyle(color: AppColors.textMute)),
+              onTap: () async {
+                await AgreementService.resetAllAgreements();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Согласия сброшены. Перезапустите приложение.'),
+                      backgroundColor: AppColors.orange,
+                    ),
+                  );
+                }
+              },
             ),
-          );
-        },
+            ListTile(
+              leading: const Icon(Icons.info, color: AppColors.textMute),
+              title: const Text('Проверить статус согласий', style: TextStyle(color: AppColors.text)),
+              onTap: () async {
+                final isAccepted = await AgreementService.isOfferAccepted();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Оферта ${isAccepted ? "принята" : "не принята"}'),
+                      backgroundColor: isAccepted ? Colors.green : Colors.red,
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

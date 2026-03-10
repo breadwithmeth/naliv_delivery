@@ -4,14 +4,12 @@ import "dart:math";
 
 import "dart:io" show Platform;
 
-import 'dart:ui';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import 'package:intl/intl.dart';
 
-final _random = new Random();
+final _random = Random();
 
 // List<Color> primaryColors = [Colors.lightBlueAccent, Colors.lightGreenAccent, Colors.deepOrangeAccent, Colors.indigoAccent, Colors.primaries];
 
@@ -78,8 +76,7 @@ String formatQuantity(double quantity, String unit) {
   if (unit == "л" || unit == "л.") {
     formattedQuantity = (quantity % 1 == 0)
         ? quantity.toStringAsFixed(0) // Целое число без знаков после запятой
-        : quantity
-            .toStringAsFixed(1); // Дробное число с 3 знаками после запятой
+        : quantity.toStringAsFixed(1); // Дробное число с 3 знаками после запятой
   } else {
     formattedQuantity = (quantity % 1 == 0)
         ? quantity.toStringAsFixed(0) // Целое число без знаков после запятой

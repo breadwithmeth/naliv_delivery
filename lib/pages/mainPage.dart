@@ -1,18 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:barcode_widget/barcode_widget.dart';
-import 'package:naliv_delivery/utils/address_storage_service.dart';
-import 'package:naliv_delivery/utils/cart_provider.dart';
-import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
-import 'package:naliv_delivery/pages/map_address_page.dart';
 import 'package:provider/provider.dart';
-import '../utils/location_service.dart';
+
+import '../utils/address_storage_service.dart';
 import '../utils/api.dart';
-import 'promotion_items_page.dart';
-import 'order_detail_page.dart';
+import '../utils/cart_provider.dart';
+import '../utils/location_service.dart';
+import '../widgets/address_selection_modal_material.dart';
 import 'categoryPage.dart';
+import 'promotion_items_page.dart';
 import 'search_page.dart';
 
 class MainPage extends StatefulWidget {
@@ -40,649 +37,74 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  // Контроллер и таймер для автопрокрутки промо
+  // Palette
+  static const Color _bgDeep = Color(0xFF0B0D14);
+  static const Color _bgTop = Color(0xFF0E1119);
+  static const Color _card = Color(0xFF111A2D);
+  static const Color _cardDark = Color(0xFF0F1726);
+  static const Color _blue = Color(0xFF1C273A);
+  static const Color _orange = Color(0xFFF38B2A);
+  static const Color _red = Color(0xFFC22624);
+  static const Color _text = Colors.white;
+  static const Color _textMute = Color(0xFF9FB0C8);
+
   final PageController _promoPageController = PageController();
   Timer? _promoAutoScrollTimer;
   int _currentPromoPage = 0;
-  final LocationService locationService = LocationService.instance;
+  final LocationService _locationService = LocationService.instance;
   StreamSubscription<Map<String, dynamic>?>? _addressSubscription;
-  String?
-      _lastPromptKey; // чтобы не спамить диалогами при одной и той же комбинации
+  String? _lastPromptKey;
 
-  // Состояние для акций
   List<Promotion> _promotions = [];
   bool _isLoadingPromotions = false;
   String? _promotionsError;
 
-  // Состояние для бонусов
-  Map<String, dynamic>? _bonusData;
-
-  // Состояние для категорий
   List<Map<String, dynamic>> _categories = [];
   bool _isLoadingCategories = false;
   String? _categoriesError;
-
-  // Состояние для активных заказов
-  List<Map<String, dynamic>> _activeOrders = [];
-  bool _isLoadingActiveOrders = false;
-  String? _activeOrdersError;
-
-  /// Вычисляет расстояние до магазина если доступна геолокация
-  double? _calculateDistance(Map<String, dynamic> business) {
-    if (widget.userPosition != null &&
-        business['lat'] != null &&
-        business['lon'] != null) {
-      return locationService.calculateDistance(
-        widget.userPosition!.latitude,
-        widget.userPosition!.longitude,
-        business['lat'].toDouble(),
-        business['lon'].toDouble(),
-      );
-    }
-    return null;
-  }
-
-  /// Вычисляет расстояние до магазина по заданным координатам
-  double? _calculateDistanceFromCoords(
-      Map<String, dynamic> business, double lat, double lon) {
-    if (business['lat'] != null && business['lon'] != null) {
-      try {
-        final businessLat = business['lat'].toDouble();
-        final businessLon = business['lon'].toDouble();
-
-        print('🧮 Расчет расстояния:');
-        print('   От: $lat, $lon');
-        print('   До: ${business['name']} ($businessLat, $businessLon)');
-
-        final distance = locationService.calculateDistance(
-          lat,
-          lon,
-          businessLat,
-          businessLon,
-        );
-
-        print('   Результат: ${(distance / 1000).toStringAsFixed(2)} км');
-        return distance;
-      } catch (e) {
-        print('❌ Ошибка при расчете расстояния до ${business['name']}: $e');
-        return null;
-      }
-    } else {
-      print(
-          '❌ У магазина ${business['name']} отсутствуют координаты: lat=${business['lat']}, lon=${business['lon']}');
-    }
-    return null;
-  }
-
-  /// Находит ближайший магазин к указанным координатам
-  Map<String, dynamic>? _findNearestBusiness(double lat, double lon) {
-    if (widget.businesses.isEmpty) return null;
-
-    Map<String, dynamic>? nearestBusiness;
-    double minDistance = double.infinity;
-
-    print('🔍 Поиск ближайшего магазина к координатам: $lat, $lon');
-    print('📍 Количество доступных магазинов: ${widget.businesses.length}');
-
-    for (var business in widget.businesses) {
-      final distance = _calculateDistanceFromCoords(business, lat, lon);
-      if (distance != null) {
-        print(
-            '🏪 ${business['name']}: ${(distance / 1000).toStringAsFixed(2)} км');
-        if (distance < minDistance) {
-          minDistance = distance;
-          nearestBusiness = {
-            ...business,
-            'distance': distance,
-          };
-        }
-      } else {
-        print('❌ Не удалось рассчитать расстояние до ${business['name']}');
-      }
-    }
-
-    if (nearestBusiness != null) {
-      print(
-          '🎯 Ближайший магазин: ${nearestBusiness['name']} (${(minDistance / 1000).toStringAsFixed(2)} км)');
-    } else {
-      print('❌ Ближайший магазин не найден');
-    }
-
-    return nearestBusiness;
-  }
-
-  /// Автоматически выбирает ближайший магазин при смене адреса
-  void _autoSelectNearestBusiness() {
-    // Если уже есть выбранный магазин, не меняем его автоматически
-    if (widget.selectedBusiness != null) {
-      print(
-          '✅ Магазин уже выбран: ${widget.selectedBusiness!['name']}, автоматический выбор пропущен');
-      return;
-    }
-
-    if (_selectedAddress != null &&
-        _selectedAddress!['lat'] != null &&
-        _selectedAddress!['lon'] != null) {
-      final currentLat = _selectedAddress!['lat'].toDouble();
-      final currentLon = _selectedAddress!['lon'].toDouble();
-
-      print('🎯 Автоматический выбор ближайшего магазина для адреса:');
-      print('   ${_selectedAddress!['address']}');
-      print('   Координаты: $currentLat, $currentLon');
-
-      final nearestBusiness = _findNearestBusiness(currentLat, currentLon);
-
-      if (nearestBusiness != null) {
-        print(
-            '🏪 Автоматически выбран ближайший магазин: ${nearestBusiness['name']}');
-        print(
-            '   Расстояние: ${(nearestBusiness['distance'] / 1000).toStringAsFixed(2)} км');
-
-        // Важно: вызываем onBusinessSelected для обновления состояния в родительском виджете
-        widget.onBusinessSelected(nearestBusiness);
-
-        // Показываем уведомление пользователю после небольшой задержки
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            _showNearestBusinessNotification(nearestBusiness);
-          }
-        });
-      } else {
-        print('❌ Не удалось найти ближайший магазин');
-      }
-    } else {
-      print('❌ Нет координат адреса для автоматического выбора магазина');
-    }
-  }
-
-  /// Показывает уведомление о выборе ближайшего магазина
-  void _showNearestBusinessNotification(Map<String, dynamic> business) {
-    final distance = business['distance'];
-    final distanceText =
-        distance != null ? ' (${(distance / 1000).toStringAsFixed(1)} км)' : '';
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(
-              Icons.store,
-              color: Colors.white,
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Выбран ближайший магазин: ${business['name']}$distanceText',
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        action: SnackBarAction(
-          label: 'Изменить',
-          textColor: Colors.white,
-          onPressed: _showBusinessSelector,
-        ),
-        duration: const Duration(seconds: 5),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-    );
-  }
-
-  /// Обрабатывает выбор магазина с проверкой корзины
-  Future<void> _handleBusinessSelection(Map<String, dynamic> business) async {
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-
-    // Проверяем, есть ли товары в корзине
-    if (cartProvider.items.isNotEmpty) {
-      // Проверяем, отличается ли выбранный магазин от текущего
-      final currentBusinessId = widget.selectedBusiness?['id'] ??
-          widget.selectedBusiness?['business_id'] ??
-          widget.selectedBusiness?['businessId'];
-      final newBusinessId =
-          business['id'] ?? business['business_id'] ?? business['businessId'];
-
-      if (currentBusinessId != newBusinessId) {
-        // Показываем предупреждение
-        final bool? shouldClear = await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext dialogContext) {
-            return AlertDialog(
-              title: const Text('Смена магазина'),
-              content: const Text(
-                  'При смене магазина все товары из корзины будут удалены. Продолжить?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('Отмена'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(true),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Theme.of(context).colorScheme.error,
-                  ),
-                  child: const Text('Очистить корзину'),
-                ),
-              ],
-            );
-          },
-        );
-
-        if (shouldClear == true) {
-          // Очищаем корзину
-          cartProvider.clearCart();
-
-          // Показываем уведомление
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Корзина очищена'),
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          }
-
-          // Выбираем новый магазин
-          widget.onBusinessSelected(business);
-          Navigator.of(context).pop();
-        }
-        // Если пользователь отменил, ничего не делаем
-      } else {
-        // Тот же магазин, просто закрываем диалог
-        Navigator.of(context).pop();
-      }
-    } else {
-      // Корзина пуста, просто выбираем магазин
-      widget.onBusinessSelected(business);
-      Navigator.of(context).pop();
-    }
-  }
-
-  /// Загружает акции для выбранного магазина
-  Future<void> _loadPromotions() async {
-    if (!mounted) return;
-
-    setState(() {
-      _isLoadingPromotions = true;
-      _promotionsError = null;
-    });
-
-    try {
-      // Получаем ID выбранного магазина
-      int? businessId;
-      if (widget.selectedBusiness != null) {
-        // Проверяем различные варианты поля ID
-        businessId = widget.selectedBusiness!['id'] ??
-            widget.selectedBusiness!['business_id'] ??
-            widget.selectedBusiness!['businessId'];
-
-        print('🔄 Загружаем акции для магазина ID: $businessId');
-        print('📊 Данные магазина: ${widget.selectedBusiness}');
-      }
-
-      // Загружаем акции
-      final promotions = await ApiService.getActivePromotionsTyped(
-        businessId: businessId,
-        limit: 10,
-      );
-
-      if (mounted) {
-        setState(() {
-          _promotions = promotions ?? [];
-          _isLoadingPromotions = false;
-        });
-        _startPromoAutoScroll();
-
-        print('✅ Загружено акций: ${_promotions.length}');
-      }
-    } catch (e) {
-      print('❌ Ошибка загрузки акций: $e');
-      if (mounted) {
-        setState(() {
-          _promotionsError = 'Ошибка загрузки акций: $e';
-          _isLoadingPromotions = false;
-        });
-      }
-    }
-  }
-
-  /// Загрузить данные о бонусах пользователя
-  Future<void> _loadUserBonuses() async {
-    if (!mounted) return;
-
-    // Проверяем авторизацию
-    final isLoggedIn = await ApiService.isUserLoggedIn();
-    if (!isLoggedIn) return;
-
-    try {
-      final bonuses = await ApiService.getUserBonuses();
-      if (mounted) {
-        setState(() {
-          _bonusData = bonuses;
-        });
-      }
-    } catch (e) {
-      print('❌ Ошибка загрузки бонусов: $e');
-    }
-  }
-
-  /// Загрузить активные заказы пользователя
-  Future<void> _loadActiveOrders() async {
-    if (!mounted) return;
-
-    // Проверяем авторизацию
-    final isLoggedIn = await ApiService.isUserLoggedIn();
-    if (!isLoggedIn) {
-      setState(() {
-        _activeOrders = [];
-        _isLoadingActiveOrders = false;
-        _activeOrdersError = null;
-      });
-      return;
-    }
-
-    setState(() {
-      _isLoadingActiveOrders = true;
-      _activeOrdersError = null;
-    });
-
-    try {
-      final result = await ApiService.getMyActiveOrders();
-      if (mounted && result != null && result['success'] == true) {
-        final data = result['data'];
-        final activeOrdersList = data['active_orders'] as List<dynamic>? ?? [];
-        print(activeOrdersList);
-        // Фильтруем заказы за последние 36 часов
-        final now = DateTime.now();
-        final cutoffTime = now.subtract(const Duration(hours: 36));
-
-        final filteredOrders =
-            activeOrdersList.cast<Map<String, dynamic>>().where((order) {
-          try {
-            final createdAt = order['log_timestamp'];
-            if (createdAt == null) return true; // Показываем если нет даты
-
-            final orderDate = DateTime.parse(createdAt.toString());
-            return orderDate.isAfter(cutoffTime);
-          } catch (e) {
-            print('❌ Ошибка парсинга даты заказа ${order['order_id']}: $e');
-            return true; // Показываем заказ если не удалось распарсить дату
-          }
-        }).toList();
-
-        setState(() {
-          _activeOrders = filteredOrders;
-          _isLoadingActiveOrders = false;
-        });
-
-        print(
-            '✅ Загружено активных заказов за последние 36 часов: ${_activeOrders.length} из ${activeOrdersList.length}');
-      } else {
-        setState(() {
-          _activeOrders = [];
-          _isLoadingActiveOrders = false;
-        });
-      }
-    } catch (e) {
-      print('❌ Ошибка загрузки активных заказов: $e');
-      if (mounted) {
-        setState(() {
-          _activeOrdersError = 'Ошибка загрузки заказов: $e';
-          _isLoadingActiveOrders = false;
-        });
-      }
-    }
-  }
-
-  /// Загрузить категории товаров
-  Future<void> _loadCategories() async {
-    if (!mounted) return;
-
-    setState(() {
-      _isLoadingCategories = true;
-      _categoriesError = null;
-    });
-
-    try {
-      // Получаем ID выбранного магазина
-      int? businessId;
-      if (widget.selectedBusiness != null) {
-        businessId = widget.selectedBusiness!['id'] ??
-            widget.selectedBusiness!['business_id'] ??
-            widget.selectedBusiness!['businessId'];
-
-        print('🔄 Загружаем категории для магазина ID: $businessId');
-      }
-
-      // Загружаем категории из API
-      final categoriesData = await ApiService.getCategories(
-        businessId: businessId,
-      );
-
-      if (mounted) {
-        if (categoriesData != null) {
-          setState(() {
-            _categories = categoriesData;
-            _isLoadingCategories = false;
-          });
-          print('✅ Загружено категорий: ${_categories.length}');
-        } else {
-          setState(() {
-            _categories = [];
-            _isLoadingCategories = false;
-          });
-          print('⚠️ Категории не найдены');
-        }
-      }
-    } catch (e) {
-      print('❌ Ошибка загрузки категорий: $e');
-      if (mounted) {
-        setState(() {
-          _categoriesError = 'Ошибка загрузки категорий: $e';
-          _isLoadingCategories = false;
-        });
-      }
-    }
-  }
 
   Map<String, dynamic>? _selectedAddress;
 
   @override
   void initState() {
     super.initState();
-    // Подписка на изменение сохраненного адреса
-    _addressSubscription =
-        AddressStorageService.selectedAddressStream.listen((address) {
-      if (mounted) {
-        setState(() {
-          _selectedAddress = address;
-        });
-        if (address != null) {
-          if (widget.selectedBusiness == null) {
-            _autoSelectNearestBusiness();
-          } else {
-            _maybePromptNearestSwitch();
-          }
+    _selectedAddress = widget.selectedAddress;
+
+    _addressSubscription = AddressStorageService.selectedAddressStream.listen((addr) {
+      if (!mounted) return;
+      setState(() => _selectedAddress = addr);
+      if (addr != null) {
+        if (widget.selectedBusiness == null) {
+          _autoSelectNearestBusiness();
+        } else {
+          _maybePromptNearestSwitch();
         }
       }
     });
 
-    print('🚀 MainPage initState:');
-    print('   Количество магазинов: ${widget.businesses.length}');
-    print('   Выбранный магазин: ${widget.selectedBusiness?['name']}');
-    print('   Выбранный адрес: ${widget.selectedAddress?['address']}');
-
-    // Инициализируем адрес из widget или загружаем из хранилища
-    _selectedAddress = widget.selectedAddress;
     if (_selectedAddress == null) {
       _initAddressSelection();
     } else {
-      // Если адрес уже есть, автоматически выбираем ближайший магазин
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _autoSelectNearestBusiness();
-      });
-      // Дополнительно проверяем актуальность адреса относительно текущей позиции
+      WidgetsBinding.instance.addPostFrameCallback((_) => _autoSelectNearestBusiness());
       _maybeSuggestCloserAddress();
     }
 
-    // Загружаем акции если магазин уже выбран
     if (widget.selectedBusiness != null) {
       _loadPromotions();
-      _loadCategories(); // Также загружаем категории если магазин выбран
+      _loadCategories();
     }
-
-    // Загружаем бонусы пользователя
-    _loadUserBonuses();
-
-    // Загружаем активные заказы
-    _loadActiveOrders();
   }
 
-  /// Проверяет, далеко ли сохраненный адрес от текущей геопозиции и предлагает более близкий из истории
-  Future<void> _maybeSuggestCloserAddress() async {
-    if (_selectedAddress == null) return;
-    if (_selectedAddress!['lat'] == null || _selectedAddress!['lon'] == null)
-      return;
-
-    // Пытаемся получить текущее местоположение быстро (низкая точность достаточна)
-    Position? pos;
-    try {
-      pos = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.low,
-        timeLimit: const Duration(seconds: 4),
-      );
-    } catch (e) {
-      print(
-          '⚠️ Не удалось получить позицию для проверки более близкого адреса: $e');
-      return;
+  @override
+  void didUpdateWidget(covariant MainPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedBusiness != widget.selectedBusiness) {
+      _loadPromotions();
+      _loadCategories();
     }
-    final savedLat = (_selectedAddress!['lat'] as num).toDouble();
-    final savedLon = (_selectedAddress!['lon'] as num).toDouble();
-    final currentDistance = locationService.calculateDistance(
-      pos.latitude,
-      pos.longitude,
-      savedLat,
-      savedLon,
-    );
-
-    // Порог (метры), после которого считаем адрес "не актуальным" (например 1500 м)
-    const staleThresholdMeters = 1500.0;
-    if (currentDistance <= staleThresholdMeters) return; // достаточно близко
-
-    // Загружаем историю и ищем адрес ближе к текущему положению
-    final history = await AddressStorageService.getAddressHistory();
-    if (history.isEmpty) return;
-
-    double bestDistance = double.infinity;
-    Map<String, dynamic>? bestEntry;
-    for (final entry in history) {
-      final point = entry['point'];
-      if (point == null) continue;
-      final lat = (point['lat'] as num?)?.toDouble();
-      final lon = (point['lon'] as num?)?.toDouble();
-      if (lat == null || lon == null) continue;
-      final d = locationService.calculateDistance(
-        pos.latitude,
-        pos.longitude,
-        lat,
-        lon,
-      );
-      if (d < bestDistance) {
-        bestDistance = d;
-        bestEntry = entry;
-      }
-    }
-
-    if (bestEntry == null) return;
-
-    // Если ближайший из истории не существенно ближе (разница < 400 м) — не предлагаем
-    if (currentDistance - bestDistance < 400) return;
-
-    final promptKey =
-        '${pos.latitude.toStringAsFixed(4)}_${pos.longitude.toStringAsFixed(4)}_${savedLat.toStringAsFixed(4)}_${savedLon.toStringAsFixed(4)}';
-    final lastKey = await AddressStorageService.getLastReaddressPromptKey();
-    if (lastKey == promptKey) return; // уже спрашивали в аналогичной ситуации
-
-    await AddressStorageService.setLastReaddressPromptKey(promptKey);
-
-    final bestKm = (bestDistance / 1000).toStringAsFixed(2);
-    final currentKm = (currentDistance / 1000).toStringAsFixed(2);
-
-    if (!mounted) return;
-    final decision = await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        return AlertDialog(
-          title: const Text('Обновить адрес?'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                  'Текущий выбранный адрес находится примерно в $currentKm км от вашего текущего местоположения.'),
-              const SizedBox(height: 8),
-              Text(
-                  'В истории есть более близкий адрес (~$bestKm км). Заменить?'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop('keep'),
-              child: const Text('Оставить'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop('switch'),
-              child: const Text('Заменить'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop('dontask'),
-              child: const Text('Не спрашивать'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (!mounted) return;
-    if (decision == 'switch') {
-      final newAddress = {
-        'address': bestEntry['name'],
-        'lat': bestEntry['point']['lat'],
-        'lon': bestEntry['point']['lon'],
-        if (bestEntry['apartment'] != null) 'apartment': bestEntry['apartment'],
-        if (bestEntry['entrance'] != null) 'entrance': bestEntry['entrance'],
-        if (bestEntry['floor'] != null) 'floor': bestEntry['floor'],
-        if (bestEntry['comment'] != null) 'comment': bestEntry['comment'],
-        'source': 'history_replacement',
-        'timestamp': DateTime.now().toIso8601String(),
-      };
-      await AddressStorageService.saveSelectedAddress(newAddress);
-      setState(() => _selectedAddress = newAddress);
-      // После смены может потребоваться пересчитать ближайший магазин
-      if (widget.selectedBusiness == null) {
-        _autoSelectNearestBusiness();
-      } else {
-        _maybePromptNearestSwitch();
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:
-              Text('Адрес обновлён на более близкий: ${newAddress['address']}'),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    } else if (decision == 'dontask') {
-      // Сохраняем специальный ключ, чтобы не спрашивать до смены координат/адреса заметно
-      await AddressStorageService.setLastReaddressPromptKey(promptKey);
+    if (oldWidget.selectedAddress != widget.selectedAddress && widget.selectedAddress != null) {
+      setState(() => _selectedAddress = widget.selectedAddress);
+      _autoSelectNearestBusiness();
     }
   }
 
@@ -694,379 +116,110 @@ class _MainPageState extends State<MainPage> {
     super.dispose();
   }
 
-  @override
-  void didUpdateWidget(MainPage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    print('🔄 MainPage didUpdateWidget:');
-    print(
-        '   Магазины изменились: ${widget.businesses.length} vs ${oldWidget.businesses.length}');
-    print(
-        '   Адрес изменился: ${widget.selectedAddress != oldWidget.selectedAddress}');
-    print(
-        '   Магазин изменился: ${widget.selectedBusiness != oldWidget.selectedBusiness}');
-
-    // Обновляем локальный адрес при изменении widget.selectedAddress
-    if (widget.selectedAddress != oldWidget.selectedAddress) {
+  // ---------------- Data loading ----------------
+  Future<void> _loadPromotions() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingPromotions = true;
+      _promotionsError = null;
+    });
+    try {
+      final int? businessId = widget.selectedBusiness != null
+          ? widget.selectedBusiness!['id'] ?? widget.selectedBusiness!['business_id'] ?? widget.selectedBusiness!['businessId']
+          : null;
+      final promos = await ApiService.getActivePromotionsTyped(businessId: businessId, limit: 12);
+      if (!mounted) return;
       setState(() {
-        _selectedAddress = widget.selectedAddress;
+        _promotions = promos ?? [];
+        _isLoadingPromotions = false;
       });
-
-      // Автоматически выбираем ближайший магазин при смене адреса после сборки
-      if (_selectedAddress != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _autoSelectNearestBusiness();
-        });
-      }
-    }
-
-    // Перезагружаем акции при смене магазина
-    if (widget.selectedBusiness != oldWidget.selectedBusiness) {
-      if (widget.selectedBusiness != null) {
-        _loadPromotions();
-        _loadCategories(); // Загружаем категории для нового магазина
-      } else {
-        // Очищаем акции и категории если магазин не выбран
-        setState(() {
-          _promotions = [];
-          _isLoadingPromotions = false;
-          _promotionsError = null;
-          _categories = [];
-          _isLoadingCategories = false;
-          _categoriesError = null;
-        });
-      }
-    }
-
-    // Если магазины загрузились, а адрес уже есть - выбираем ближайший
-    if (oldWidget.businesses.isEmpty &&
-        widget.businesses.isNotEmpty &&
-        _selectedAddress != null &&
-        widget.selectedBusiness == null) {
-      print('🏪 Магазины загрузились, выбираем ближайший');
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _autoSelectNearestBusiness();
-        }
+      _startPromoAutoScroll();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _promotionsError = 'Ошибка загрузки акций: $e';
+        _isLoadingPromotions = false;
       });
     }
-
-    // Перезагружаем бонусы если изменились данные пользователя
-    _loadUserBonuses();
-
-    // Перезагружаем активные заказы
-    _loadActiveOrders();
   }
 
+  Future<void> _loadCategories() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingCategories = true;
+      _categoriesError = null;
+    });
+    try {
+      final int? businessId = widget.selectedBusiness != null
+          ? widget.selectedBusiness!['id'] ?? widget.selectedBusiness!['business_id'] ?? widget.selectedBusiness!['businessId']
+          : null;
+      final cats = await ApiService.getCategories(businessId: businessId);
+      if (!mounted) return;
+      setState(() {
+        _categories = cats ?? [];
+        _isLoadingCategories = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _categoriesError = 'Ошибка загрузки категорий: $e';
+        _isLoadingCategories = false;
+      });
+    }
+  }
+
+  // ---------------- Address / business selection ----------------
   Future<void> _initAddressSelection() async {
-    // Инициализация адреса, если он не выбран
-    final address = await AddressStorageService.getSelectedAddress();
-    if (address != null) {
-      setState(() {
-        _selectedAddress = address;
-      });
-
-      // Автоматически выбираем ближайший магазин после загрузки адреса
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _autoSelectNearestBusiness();
-        }
-      });
+    final saved = await AddressStorageService.getSelectedAddress();
+    if (saved != null) {
+      setState(() => _selectedAddress = saved);
+      WidgetsBinding.instance.addPostFrameCallback((_) => _autoSelectNearestBusiness());
+      return;
+    }
+    final isFirst = await AddressStorageService.isFirstLaunch();
+    if (isFirst) {
+      _attemptAutoDetectAddress();
     } else {
-      // Попытка автоматического определения адреса при первом запуске
-      final isFirst = await AddressStorageService.isFirstLaunch();
-      if (isFirst) {
-        print('🆕 Первый запуск приложения – пробуем автоопределение адреса');
-        _attemptAutoDetectAddress();
-      } else {
-        // Не первый запуск: пробуем взять ближайший адрес из истории к текущей геопозиции, если можем
-        try {
-          final history = await AddressStorageService.getAddressHistory();
-          if (history.isNotEmpty) {
-            // Получаем текущую позицию (быстрая попытка, без сложной многоступенчатой логики)
-            Position? pos;
-            try {
-              pos = await Geolocator.getCurrentPosition(
-                desiredAccuracy: LocationAccuracy.low,
-                timeLimit: const Duration(seconds: 5),
-              );
-            } catch (e) {
-              print(
-                  '⚠️ Не удалось получить текущую позицию для выбора ближайшего адреса из истории: $e');
-            }
-
-            if (pos != null) {
-              double bestDistance = double.infinity;
-              Map<String, dynamic>? bestEntry;
-              for (final entry in history) {
-                final point = entry['point'];
-                if (point == null) continue;
-                final lat = (point['lat'] as num?)?.toDouble();
-                final lon = (point['lon'] as num?)?.toDouble();
-                if (lat == null || lon == null) continue;
-                final d = locationService.calculateDistance(
-                  pos.latitude,
-                  pos.longitude,
-                  lat,
-                  lon,
-                );
-                if (d < bestDistance) {
-                  bestDistance = d;
-                  bestEntry = entry;
-                }
-              }
-              if (bestEntry != null) {
-                const nearThresholdMeters = 1000.0; // 1 км
-                if (bestDistance <= nearThresholdMeters) {
-                  // Ближайший адрес достаточно близко — используем автоматически
-                  final reconstructed = {
-                    'address': bestEntry['name'],
-                    'lat': bestEntry['point']['lat'],
-                    'lon': bestEntry['point']['lon'],
-                    if (bestEntry['apartment'] != null)
-                      'apartment': bestEntry['apartment'],
-                    if (bestEntry['entrance'] != null)
-                      'entrance': bestEntry['entrance'],
-                    if (bestEntry['floor'] != null) 'floor': bestEntry['floor'],
-                    if (bestEntry['comment'] != null)
-                      'comment': bestEntry['comment'],
-                    'source': 'history_nearest_auto',
-                    'timestamp': DateTime.now().toIso8601String(),
-                  };
-                  print(
-                      '📌 Автовыбор адреса из истории: ${reconstructed['address']} (~${(bestDistance / 1000).toStringAsFixed(2)} км)');
-                  await AddressStorageService.saveSelectedAddress(
-                      reconstructed);
-                  if (!mounted) return;
-                  setState(() => _selectedAddress = reconstructed);
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted) _autoSelectNearestBusiness();
-                  });
-                  return; // Завершаем, не показываем модалку
-                } else {
-                  // Слишком далеко — предлагаем создать новый адрес
-                  if (!mounted) return;
-                  final distanceKm = (bestDistance / 1000).toStringAsFixed(2);
-                  final decision = await showDialog<String>(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (ctx) => AlertDialog(
-                      title: const Text('Создать новый адрес?'),
-                      content: Text(
-                        'Ближайший сохранённый адрес находится в ~${distanceKm} км от вас. Хотите создать новый ближе или использовать существующий?',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(ctx).pop('use_old'),
-                          child: const Text('Использовать'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.of(ctx).pop('new'),
-                          child: const Text('Создать новый'),
-                        ),
-                      ],
-                    ),
-                  );
-
-                  if (decision == 'use_old') {
-                    final reconstructed = {
-                      'address': bestEntry['name'],
-                      'lat': bestEntry['point']['lat'],
-                      'lon': bestEntry['point']['lon'],
-                      if (bestEntry['apartment'] != null)
-                        'apartment': bestEntry['apartment'],
-                      if (bestEntry['entrance'] != null)
-                        'entrance': bestEntry['entrance'],
-                      if (bestEntry['floor'] != null)
-                        'floor': bestEntry['floor'],
-                      if (bestEntry['comment'] != null)
-                        'comment': bestEntry['comment'],
-                      'source': 'history_far_confirmed',
-                      'timestamp': DateTime.now().toIso8601String(),
-                    };
-                    await AddressStorageService.saveSelectedAddress(
-                        reconstructed);
-                    if (!mounted) return;
-                    setState(() => _selectedAddress = reconstructed);
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) _autoSelectNearestBusiness();
-                    });
-                    return;
-                  } else if (decision == 'new') {
-                    // Показать модалку создания нового адреса
-                    WidgetsBinding.instance.addPostFrameCallback((_) async {
-                      if (!mounted) return;
-                      await Future.delayed(const Duration(milliseconds: 120));
-                      if (mounted) _showAddressSelectionModal();
-                    });
-                    return; // ждём выбора
-                  } else {
-                    // Если диалог закрыт системно — просто показываем модалку
-                    WidgetsBinding.instance.addPostFrameCallback((_) async {
-                      if (!mounted) return;
-                      await Future.delayed(const Duration(milliseconds: 120));
-                      if (mounted) _showAddressSelectionModal();
-                    });
-                    return;
-                  }
-                }
-              }
-            }
-          }
-        } catch (e) {
-          print('⚠️ Ошибка при попытке выбрать ближайший адрес из истории: $e');
-        }
-
-        // Если история пустая или не удалось определить позицию/найти ближайший — показываем модалку
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
-          if (!mounted) return;
-          await Future.delayed(const Duration(milliseconds: 100));
-          if (mounted) _showAddressSelectionModal();
-        });
-      }
+      _fallbackShowAddressModal();
     }
   }
 
-  /// Пытается автоматически определить текущий адрес пользователя и выбрать ближайший магазин
   Future<void> _attemptAutoDetectAddress() async {
     try {
-      // Проверяем и запрашиваем разрешения
-      final locationService = LocationService.instance;
-      final permission = await locationService.checkAndRequestPermissions();
-      if (!permission.success) {
-        print(
-            '❌ Автоопределение адреса: нет разрешений (${permission.message})');
-        // Фоллбек — показать модальное окно выбора
-        _fallbackShowAddressModal();
-        return;
-      }
+      final permission = await _locationService.checkAndRequestPermissions();
+      if (!permission.success) return _fallbackShowAddressModal();
+      final enabled = await _locationService.isLocationServiceEnabled();
+      if (!enabled) return _fallbackShowAddressModal();
 
-      final enabled = await locationService.isLocationServiceEnabled();
-      if (!enabled) {
-        print('❌ Службы геолокации отключены – показать модалку');
-        _fallbackShowAddressModal();
-        return;
-      }
-
-      // Многоступенчатая стратегия точности (упрощённая относительно модалки)
-      Position? position;
-      final attempts = [
-        {
-          'accuracy': LocationAccuracy.high,
-          'timeout': const Duration(seconds: 8)
-        },
-        {
-          'accuracy': LocationAccuracy.medium,
-          'timeout': const Duration(seconds: 10)
-        },
-        {
-          'accuracy': LocationAccuracy.low,
-          'timeout': const Duration(seconds: 12)
-        },
-      ];
-      for (final attempt in attempts) {
+      Position? pos;
+      for (final acc in [LocationAccuracy.high, LocationAccuracy.medium, LocationAccuracy.low]) {
         try {
-          position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: attempt['accuracy'] as LocationAccuracy,
-            timeLimit: attempt['timeout'] as Duration,
-          );
-          break; // Позиция получена – выходим из цикла
-        } catch (e) {
-          print('⚠️ Не удалось получить позицию (${attempt['accuracy']}): $e');
-        }
+          pos = await Geolocator.getCurrentPosition(desiredAccuracy: acc, timeLimit: const Duration(seconds: 8));
+          break;
+        } catch (_) {}
       }
+      if (pos == null) return _fallbackShowAddressModal();
 
-      if (position == null) {
-        print('❌ Не удалось определить координаты – показываем модалку');
-        _fallbackShowAddressModal();
-        return;
-      }
-
-      print(
-          '📍 Координаты auto-detect: ${position.latitude}, ${position.longitude} (accuracy ${position.accuracy})');
-
-      // Обратное геокодирование через API
-      final reverse = await ApiService.searchAddresses(
-        lat: position.latitude,
-        lon: position.longitude,
-      );
-
-      if (reverse == null || reverse.isEmpty) {
-        print(
-            '⚠️ API не вернул человекочитаемый адрес, открываем карту для уточнения');
-        if (!mounted) return;
-        final lat = position.latitude;
-        final lon = position.longitude;
-        // Переходим сразу на карту с текущими координатами для уточнения и обратного вызова
-        await Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => MapAddressPage(
-            initialLat: lat,
-            initialLon: lon,
-            onAddressSelected: (data) async {
-              _selectedAddress = data;
-              _autoSelectNearestBusiness();
-            },
-          ),
-        ));
-        await AddressStorageService.markAsLaunched();
-        return;
-      }
-
-      final base = reverse.first;
+      final reverse = await ApiService.searchAddresses(lat: pos.latitude, lon: pos.longitude);
       final autoAddress = {
-        'address': base['name'] ?? base['description'] ?? 'Определённый адрес',
-        'lat': position.latitude,
-        'lon': position.longitude,
-        'accuracy': position.accuracy,
+        'address': (reverse?.isNotEmpty ?? false)
+            ? (reverse!.first['name'] ?? reverse.first['description'] ?? '*Определённый адрес')
+            : '*Определённый адрес',
+        'lat': pos.latitude,
+        'lon': pos.longitude,
         'source': 'auto_geolocation',
         'timestamp': DateTime.now().toIso8601String(),
       };
-
-      // Сохраняем адрес
       await AddressStorageService.saveSelectedAddress(autoAddress);
       await AddressStorageService.addToAddressHistory({
         'name': autoAddress['address'],
-        'point': {'lat': autoAddress['lat'], 'lon': autoAddress['lon']},
+        'point': {'lat': pos.latitude, 'lon': pos.longitude},
       });
       await AddressStorageService.markAsLaunched();
-
       if (!mounted) return;
       setState(() => _selectedAddress = autoAddress);
-
-      // Если магазины уже есть – сразу выбираем, иначе поставим отложенный хук
-      if (widget.businesses.isNotEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _autoSelectNearestBusiness();
-        });
-      } else {
-        // Одноразовый ожидатель появления магазинов через микротаймеры
-        int attempts = 0;
-        Timer.periodic(const Duration(milliseconds: 400), (t) {
-          attempts++;
-          if (!mounted || attempts > 25) {
-            // максимум ~10 секунд ожидания
-            t.cancel();
-            return;
-          }
-          if (widget.businesses.isNotEmpty && widget.selectedBusiness == null) {
-            t.cancel();
-            _autoSelectNearestBusiness();
-          }
-        });
-      }
-
-      // Отобразим ненавязчивый snackbar
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Адрес определён автоматически: ${autoAddress['address']}'),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    } catch (e) {
-      print('❌ Ошибка автоопределения адреса: $e');
+      WidgetsBinding.instance.addPostFrameCallback((_) => _autoSelectNearestBusiness());
+    } catch (_) {
       _fallbackShowAddressModal();
     }
   }
@@ -1074,187 +227,176 @@ class _MainPageState extends State<MainPage> {
   void _fallbackShowAddressModal() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      await Future.delayed(const Duration(milliseconds: 150));
+      await Future.delayed(const Duration(milliseconds: 120));
       if (mounted) _showAddressSelectionModal();
     });
   }
 
   Future<void> _showAddressSelectionModal() async {
-    print('🔥 _showAddressSelectionModal вызван');
-
-    // Проверяем, что контекст доступен и виджет mounted
-    if (!mounted) {
-      print('❌ Виджет не mounted при показе модального окна');
-      return;
+    if (!mounted) return;
+    await Future.delayed(const Duration(milliseconds: 200));
+    if (!mounted) return;
+    final selectedAddress = await AddressSelectionModalHelper.show(context);
+    if (selectedAddress != null && mounted) {
+      await AddressStorageService.saveSelectedAddress(selectedAddress);
+      await AddressStorageService.addToAddressHistory({
+        'name': selectedAddress['address'],
+        'point': {'lat': selectedAddress['lat'], 'lon': selectedAddress['lon']},
+      });
+      setState(() => _selectedAddress = selectedAddress);
+      if (widget.selectedBusiness == null) {
+        _autoSelectNearestBusiness();
+      } else {
+        _maybePromptNearestSwitch();
+      }
     }
+  }
 
-    // Ждем несколько кадров, чтобы убедиться что Navigator готов
-    await Future.delayed(const Duration(milliseconds: 300));
+  void _autoSelectNearestBusiness() {
+    if (_selectedAddress == null || widget.businesses.isEmpty || widget.selectedBusiness != null) return;
+    final coords = _extractAddressLatLon(_selectedAddress!);
+    if (coords == null) return;
+    final nearest = _findNearestBusiness(coords['lat']!, coords['lon']!);
+    if (nearest != null) widget.onBusinessSelected(nearest);
+  }
 
-    if (!mounted) {
-      print('❌ Виджет не mounted после ожидания');
-      return;
-    }
-
+  Map<String, double>? _extractAddressLatLon(Map<String, dynamic> address) {
     try {
-      print('🎭 Вызываем AddressSelectionModalHelper.show');
-      final selectedAddress = await AddressSelectionModalHelper.show(context);
+      dynamic lat = address['lat'] ?? address['latitude'];
+      dynamic lon = address['lon'] ?? address['lng'] ?? address['longitude'];
+      if (lat == null || lon == null) {
+        final point = address['point'];
+        if (point is Map) {
+          lat = point['lat'];
+          lon = point['lon'] ?? point['lng'];
+        }
+      }
+      if (lat == null || lon == null) return null;
+      final dLat = double.tryParse(lat.toString());
+      final dLon = double.tryParse(lon.toString());
+      if (dLat == null || dLon == null) return null;
+      return {'lat': dLat, 'lon': dLon};
+    } catch (_) {
+      return null;
+    }
+  }
 
-      print('🎯 Результат модального окна: $selectedAddress');
+  Map<String, dynamic>? _findNearestBusiness(double lat, double lon) {
+    Map<String, dynamic>? nearest;
+    double best = double.infinity;
+    for (final b in widget.businesses) {
+      final bLat = double.tryParse(b['lat']?.toString() ?? '');
+      final bLon = double.tryParse(b['lon']?.toString() ?? '');
+      if (bLat == null || bLon == null) continue;
+      final dist = Geolocator.distanceBetween(lat, lon, bLat, bLon);
+      if (dist < best) {
+        best = dist;
+        nearest = {...b, 'distance': dist};
+      }
+    }
+    return nearest;
+  }
 
-      if (selectedAddress != null && mounted) {
-        print('💾 Сохраняем выбранный адрес');
-        // Сохраняем в SharedPreferences
-        await AddressStorageService.saveSelectedAddress(selectedAddress);
-        // Сохраняем в историю с полными данными адреса
-        await AddressStorageService.addToAddressHistory({
-          'name': selectedAddress['address'],
-          'point': {
-            'lat': selectedAddress['lat'],
-            'lon': selectedAddress['lon']
-          },
-          if (selectedAddress['apartment']?.toString().isNotEmpty == true)
-            'apartment': selectedAddress['apartment'],
-          if (selectedAddress['entrance']?.toString().isNotEmpty == true)
-            'entrance': selectedAddress['entrance'],
-          if (selectedAddress['floor']?.toString().isNotEmpty == true)
-            'floor': selectedAddress['floor'],
-          if (selectedAddress['other']?.toString().isNotEmpty == true)
-            'other': selectedAddress['other'],
-          if (selectedAddress['comment']?.toString().isNotEmpty == true)
-            'comment': selectedAddress['comment'],
-        });
-        setState(() {
-          _selectedAddress = selectedAddress;
-        });
-
-        // Отмечаем, что приложение уже запускалось
-        await AddressStorageService.markAsLaunched();
-        print('✅ Приложение отмечено как запущенное');
-
-        // Уведомляем родительский виджет об изменении адреса
-        //widget.onAddressChangeRequested(); // убираем автоматическое открытие выбора магазина
-
-        // Если магазин ещё не выбран – выбираем автоматически, иначе проверяем необходимость предложения смены
+  Future<void> _maybeSuggestCloserAddress() async {
+    if (_selectedAddress == null || _selectedAddress!['lat'] == null || _selectedAddress!['lon'] == null) return;
+    try {
+      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.low, timeLimit: const Duration(seconds: 4));
+      final savedLat = (_selectedAddress!['lat'] as num).toDouble();
+      final savedLon = (_selectedAddress!['lon'] as num).toDouble();
+      final currentDistance = _locationService.calculateDistance(pos.latitude, pos.longitude, savedLat, savedLon);
+      if (currentDistance <= 1500) return;
+      final history = await AddressStorageService.getAddressHistory();
+      if (history.isEmpty) return;
+      double bestDistance = double.infinity;
+      Map<String, dynamic>? bestEntry;
+      for (final entry in history) {
+        final point = entry['point'];
+        if (point == null) continue;
+        final lat = (point['lat'] as num?)?.toDouble();
+        final lon = (point['lon'] as num?)?.toDouble();
+        if (lat == null || lon == null) continue;
+        final d = _locationService.calculateDistance(pos.latitude, pos.longitude, lat, lon);
+        if (d < bestDistance) {
+          bestDistance = d;
+          bestEntry = entry;
+        }
+      }
+      if (bestEntry == null) return;
+      if (currentDistance - bestDistance < 400) return;
+      final promptKey =
+          '${pos.latitude.toStringAsFixed(4)}_${pos.longitude.toStringAsFixed(4)}_${savedLat.toStringAsFixed(4)}_${savedLon.toStringAsFixed(4)}';
+      final lastKey = await AddressStorageService.getLastReaddressPromptKey();
+      if (lastKey == promptKey) return;
+      await AddressStorageService.setLastReaddressPromptKey(promptKey);
+      if (!mounted) return;
+      final decision = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Обновить адрес?'),
+          content: Text('Найден более близкий адрес (~${(bestDistance / 1000).toStringAsFixed(2)} км). Заменить?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, 'keep'), child: const Text('Оставить')),
+            TextButton(onPressed: () => Navigator.pop(ctx, 'switch'), child: const Text('Заменить')),
+            TextButton(onPressed: () => Navigator.pop(ctx, 'dontask'), child: const Text('Не спрашивать')),
+          ],
+        ),
+      );
+      if (!mounted) return;
+      if (decision == 'switch') {
+        final newAddress = {
+          'address': bestEntry['name'],
+          'lat': bestEntry['point']['lat'],
+          'lon': bestEntry['point']['lon'],
+          'source': 'history_replacement',
+          'timestamp': DateTime.now().toIso8601String(),
+        };
+        await AddressStorageService.saveSelectedAddress(newAddress);
+        setState(() => _selectedAddress = newAddress);
         if (widget.selectedBusiness == null) {
           _autoSelectNearestBusiness();
         } else {
           _maybePromptNearestSwitch();
         }
-      } else {
-        print('ℹ️ Адрес не выбран или виджет не mounted');
       }
-    } catch (e) {
-      print('❌ Ошибка при показе модального окна выбора адреса: $e');
-    }
+    } catch (_) {}
   }
 
-  /// Предлагает переключиться на ближайший магазин, если текущий не ближайший
   Future<void> _maybePromptNearestSwitch() async {
-    if (_selectedAddress == null) return;
-    if (_selectedAddress!['lat'] == null || _selectedAddress!['lon'] == null)
-      return;
-    if (widget.businesses.isEmpty) return;
-    if (widget.selectedBusiness == null)
-      return; // тогда пусть авто выбор сделает другая логика
-
-    final lat = (_selectedAddress!['lat'] as num).toDouble();
-    final lon = (_selectedAddress!['lon'] as num).toDouble();
-    final nearest = _findNearestBusiness(lat, lon);
+    if (_selectedAddress == null || widget.businesses.isEmpty || widget.selectedBusiness == null) return;
+    final coords = _extractAddressLatLon(_selectedAddress!);
+    if (coords == null) return;
+    final nearest = _findNearestBusiness(coords['lat']!, coords['lon']!);
     if (nearest == null) return;
-
-    // ID текущего и ближайшего магазина
-    final currentBusinessId = widget.selectedBusiness!['id'] ??
-        widget.selectedBusiness!['business_id'] ??
-        widget.selectedBusiness!['businessId'];
-    final nearestBusinessId =
-        nearest['id'] ?? nearest['business_id'] ?? nearest['businessId'];
-    if (currentBusinessId == null || nearestBusinessId == null) return;
-
-    // Уже и так ближайший
-    if (currentBusinessId == nearestBusinessId) return;
-
-    // Ключ для предотвращения повторных диалогов
-    final promptKey =
-        '${lat.toStringAsFixed(5)}_${lon.toStringAsFixed(5)}_${currentBusinessId}_${nearestBusinessId}';
-    if (_lastPromptKey == promptKey) return; // уже показывали
+    final currentId = widget.selectedBusiness!['id'] ?? widget.selectedBusiness!['business_id'] ?? widget.selectedBusiness!['businessId'];
+    final nearestId = nearest['id'] ?? nearest['business_id'] ?? nearest['businessId'];
+    if (currentId == null || nearestId == null || currentId == nearestId) return;
+    final promptKey = '${coords['lat']!.toStringAsFixed(5)}_${coords['lon']!.toStringAsFixed(5)}_${currentId}_${nearestId}';
+    if (_lastPromptKey == promptKey) return;
     _lastPromptKey = promptKey;
-
-    // Расстояния
-    final nearestDistanceM = (nearest['distance'] as num?)?.toDouble() ??
-        _calculateDistanceFromCoords(nearest, lat, lon) ??
-        0;
-    final currentDistanceM =
-        _calculateDistanceFromCoords(widget.selectedBusiness!, lat, lon) ?? 0;
-
-    final nearestKm = (nearestDistanceM / 1000).toStringAsFixed(2);
-    final currentKm = (currentDistanceM / 1000).toStringAsFixed(2);
-
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final hasCartItems = cartProvider.items.isNotEmpty;
-
-    // Диалог-предложение
+    final hasItems = cartProvider.items.isNotEmpty;
     final shouldSwitch = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) {
-        return AlertDialog(
-          title: const Text('Ближайший магазин'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Текущий магазин находится на ~${currentKm} км от выбранного адреса.',
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Ближайший магазин: ${nearest['name']} (~${nearestKm} км).',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                hasCartItems
-                    ? 'Переключение очистит текущую корзину. Перейти к ближайшему магазину?'
-                    : 'Переключить на ближайший магазин?',
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Оставить'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Переключить'),
-            ),
-          ],
-        );
-      },
+      builder: (ctx) => AlertDialog(
+        title: const Text('Ближайший магазин'),
+        content: Text(hasItems
+            ? 'Ближайший магазин: ${nearest['name']}. При переключении корзина очистится. Переключить?'
+            : 'Ближайший магазин: ${nearest['name']}. Переключить?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Оставить')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Переключить')),
+        ],
+      ),
     );
-
     if (shouldSwitch == true) {
-      if (hasCartItems) {
-        cartProvider.clearCart();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Корзина очищена из-за смены магазина'),
-              duration: const Duration(seconds: 2),
-              backgroundColor: Theme.of(context).colorScheme.primary,
-            ),
-          );
-        }
-      }
-
+      if (hasItems) cartProvider.clearCart();
       widget.onBusinessSelected(nearest);
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-                'Вы переключились на ближайший магазин: ${nearest['name']}'),
+            content: Text('Вы переключились на ближайший магазин: ${nearest['name']}'),
             duration: const Duration(seconds: 3),
           ),
         );
@@ -1262,221 +404,42 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
-  /// Показывает модальное окно с выбором магазина
-  void _showBusinessSelector() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        color: Theme.of(context).colorScheme.surfaceDim,
-        child: Column(
+  // ---------------- UI helpers ----------------
+  Widget _background() {
+    return Positioned.fill(
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [_bgTop, _bgDeep],
+          ),
+        ),
+        child: Stack(
           children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: Colors.grey.shade300,
-                    width: 0.5,
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: const Alignment(-0.4, -0.6),
+                    radius: 1.2,
+                    colors: [Colors.white.withValues(alpha: 0.04), Colors.transparent],
+                    stops: const [0.0, 1.0],
                   ),
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Отмена'),
-                  ),
-                  const Text(
-                    'Выберите магазин',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(width: 80), // Балансировка кнопки
-                ],
-              ),
             ),
-            Expanded(
-              child: widget.isLoadingBusinesses
-                  ? const Center(
-                      child: CircularProgressIndicator(),
-                    )
-                  : Builder(
-                      builder: (context) {
-                        // Создаем список магазинов с расстояниями для сортировки
-                        List<Map<String, dynamic>> businessesWithDistance =
-                            widget.businesses.map((business) {
-                          final distance = _selectedAddress != null &&
-                                  _selectedAddress!['lat'] != null &&
-                                  _selectedAddress!['lon'] != null
-                              ? _calculateDistanceFromCoords(
-                                  business,
-                                  _selectedAddress!['lat'].toDouble(),
-                                  _selectedAddress!['lon'].toDouble(),
-                                )
-                              : _calculateDistance(business);
-
-                          return {
-                            ...business,
-                            'calculatedDistance': distance,
-                          };
-                        }).toList();
-
-                        // Сортируем по расстоянию (ближайшие сверху)
-                        businessesWithDistance.sort((a, b) {
-                          final distanceA = a['calculatedDistance'];
-                          final distanceB = b['calculatedDistance'];
-
-                          // Если у одного есть расстояние, а у другого нет
-                          if (distanceA == null && distanceB != null) return 1;
-                          if (distanceA != null && distanceB == null) return -1;
-                          if (distanceA == null && distanceB == null) return 0;
-
-                          // Сравниваем расстояния
-                          return distanceA.compareTo(distanceB);
-                        });
-
-                        return ListView.builder(
-                          itemCount: businessesWithDistance.length,
-                          itemBuilder: (context, index) {
-                            final business = businessesWithDistance[index];
-                            final distance = business['calculatedDistance'];
-                            final isSelected = widget.selectedBusiness?['id'] ==
-                                business['id'];
-
-                            return Container(
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: Colors.grey.shade300,
-                                    width: 0.5,
-                                  ),
-                                ),
-                              ),
-                              child: TextButton(
-                                onPressed: () {
-                                  _handleBusinessSelection(business);
-                                },
-                                child: Container(
-                                  width: double.infinity,
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 8),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    business['name'] ??
-                                                        'Без названия',
-                                                    style: TextStyle(
-                                                      fontSize: 16,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      color: isSelected
-                                                          ? Theme.of(context)
-                                                              .colorScheme
-                                                              .primary
-                                                          : Theme.of(context)
-                                                              .colorScheme
-                                                              .onSurface,
-                                                    ),
-                                                  ),
-                                                ),
-                                                if (distance != null &&
-                                                    _selectedAddress != null &&
-                                                    _selectedAddress!['lat'] !=
-                                                        null)
-                                                  Container(
-                                                    margin:
-                                                        const EdgeInsets.only(
-                                                            left: 8),
-                                                    child: Icon(
-                                                      Icons.near_me,
-                                                      size: 16,
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .primary,
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                            if (business['address'] != null)
-                                              Text(
-                                                business['address'],
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.end,
-                                        children: [
-                                          if (distance != null)
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .primary
-                                                    .withOpacity(0.1),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: Text(
-                                                '${(distance / 1000).toStringAsFixed(1)} км',
-                                                style: TextStyle(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .primary,
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ),
-                                          if (isSelected)
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.only(top: 4),
-                                              child: Icon(
-                                                Icons.check_circle,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .primary,
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: const Alignment(0.6, 0.8),
+                    radius: 1.4,
+                    colors: [Colors.white.withValues(alpha: 0.03), Colors.transparent],
+                    stops: const [0.0, 1.0],
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -1484,1477 +447,526 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Widget _buildDistanceInfo() {
-    if (widget.selectedBusiness == null) return const SizedBox.shrink();
-
-    double? distance;
-    if (_selectedAddress != null &&
-        _selectedAddress!['lat'] != null &&
-        _selectedAddress!['lon'] != null) {
-      distance = _calculateDistanceFromCoords(
-        widget.selectedBusiness!,
-        _selectedAddress!['lat'].toDouble(),
-        _selectedAddress!['lon'].toDouble(),
-      );
-    } else {
-      distance = _calculateDistance(widget.selectedBusiness!);
-    }
-
-    if (distance == null) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.near_me,
-            size: 14,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            '${(distance / 1000).toStringAsFixed(1)} км',
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.primary,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final selectedBusiness = widget.selectedBusiness;
-
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // SliverAppBar(
-          //   pinned: true,
-          //   backgroundColor: Theme.of(context).colorScheme.surface,
-          //   surfaceTintColor: Colors.transparent,
-          //   elevation: 0,
-          //   shadowColor: Colors.transparent,
-          //   forceElevated: false,
-          //   toolbarHeight: 56,
-          //   titleSpacing: 12,
-          //   title: GestureDetector(
-          //     onTap: () {
-          //       Navigator.of(context).push(
-          //         MaterialPageRoute(
-          //           builder: (_) => const SearchPage(),
-          //         ),
-          //       );
-          //     },
-          //     child: Container(
-          //       height: 40,
-          //       decoration: BoxDecoration(
-          //         color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          //         borderRadius: BorderRadius.circular(10),
-          //         border: Border.all(
-          //           color:
-          //               Theme.of(context).colorScheme.outline.withOpacity(0.2),
-          //         ),
-          //       ),
-          //       padding: const EdgeInsets.symmetric(horizontal: 12),
-          //       alignment: Alignment.centerLeft,
-          //       child: Row(
-          //         children: [
-          //           Icon(
-          //             Icons.search,
-          //             size: 20,
-          //             color: Theme.of(context).colorScheme.onSurfaceVariant,
-          //           ),
-          //           const SizedBox(width: 8),
-          //           Expanded(
-          //             child: Text(
-          //               'Поиск товаров',
-          //               maxLines: 1,
-          //               overflow: TextOverflow.ellipsis,
-          //               style: TextStyle(
-          //                 color: Theme.of(context).colorScheme.onSurfaceVariant,
-          //                 fontSize: 14,
-          //               ),
-          //             ),
-          //           ),
-          //         ],
-          //       ),
-          //     ),
-          //   ),
-          // ),
-          SliverToBoxAdapter(
-            child: widget.selectedBusiness != null
-                ? _buildPromotionsHeroCarousel()
-                : const SizedBox.shrink(),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const SearchPage(),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .outline
-                              .withOpacity(0.2),
-                        ),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      alignment: Alignment.centerLeft,
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.search,
-                            size: 20,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Поиск товаров',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Адрес и магазин: компактный ряд из двух плиток
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Адрес доставки
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: _showAddressSelectionModal,
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 10),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              // border: Border.all(
-                              //   color: Theme.of(context)
-                              //       .colorScheme
-                              //       .outline
-                              //       .withOpacity(0.2),
-                              //   width: 1.0,
-                              // ),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        'Доставка по адресу',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 0.2,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        _selectedAddress != null
-                                            ? _selectedAddress!['address']
-                                            : 'Выберите адрес доставки',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700,
-                                          height: 1.15,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                        maxLines: 3,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                // Container(
-                                //   padding: const EdgeInsets.all(4),
-                                //   decoration: BoxDecoration(
-                                //     color: Theme.of(context)
-                                //         .colorScheme
-                                //         .secondary
-                                //         .withOpacity(0.12),
-                                //     borderRadius: BorderRadius.circular(8),
-                                //   ),
-                                //   child: Icon(
-                                //     Icons.keyboard_arrow_down,
-                                //     size: 18,
-                                //   ),
-                                // ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      // Магазин
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: widget.businesses.isNotEmpty &&
-                                  !widget.isLoadingBusinesses
-                              ? _showBusinessSelector
-                              : null,
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(12),
-                              // border: Border.all(
-                              //   color: Theme.of(context)
-                              //       .colorScheme
-                              //       .outline
-                              //       .withOpacity(0.2),
-                              //   width: 1.0,
-                              // ),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                // Container(
-                                //   padding: const EdgeInsets.all(8),
-                                //   decoration: BoxDecoration(
-                                //     color:
-                                //         Theme.of(context).colorScheme.surface,
-                                //     borderRadius: BorderRadius.circular(10),
-                                //   ),
-                                //   child: Icon(
-                                //     Icons.store,
-                                //     color:
-                                //         Theme.of(context).colorScheme.secondary,
-                                //     size: 18,
-                                //   ),
-                                // ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      if (widget.isLoadingBusinesses)
-                                        Text(
-                                          'Загрузка магазинов...',
-                                          style: TextStyle(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .secondary
-                                                .withOpacity(0.8),
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            letterSpacing: 0.2,
-                                          ),
-                                        )
-                                      else if (selectedBusiness != null) ...[
-                                        Text(
-                                          'Магазин',
-                                          style: TextStyle(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .secondary
-                                                .withOpacity(0.8),
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            letterSpacing: 0.2,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                selectedBusiness['name'] ??
-                                                    'Магазин',
-                                                style: TextStyle(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurface,
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w700,
-                                                  height: 1.15,
-                                                ),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                            // const SizedBox(width: 8),
-                                            _buildDistanceInfo(),
-                                          ],
-                                        ),
-                                        if (selectedBusiness['address'] !=
-                                            null) ...[
-                                          const SizedBox(height: 3),
-                                          Text(
-                                            selectedBusiness['address'],
-                                            style: TextStyle(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurfaceVariant,
-                                              fontSize: 11.5,
-                                              fontWeight: FontWeight.w500,
-                                              height: 1.25,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                            maxLines: 2,
-                                          ),
-                                        ],
-                                      ] else
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              'Магазин для заказа',
-                                              style: TextStyle(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .secondary
-                                                    .withOpacity(0.8),
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600,
-                                                letterSpacing: 0.2,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              'Выберите магазин',
-                                              style: TextStyle(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurfaceVariant,
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w700,
-                                                height: 1.15,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .secondary
-                                        .withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Icon(
-                                    Icons.keyboard_arrow_down,
-                                    color:
-                                        Theme.of(context).colorScheme.secondary,
-                                    size: 18,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Hero карусель акций
-
-                  // Бонусная карта
-                  if (_bonusData != null && _bonusData!['success'] == true) ...[
-                    const SizedBox(height: 12),
-                    _buildBonusCard(),
-                  ],
-
-                  // Категории товаров
-                  if (_categories.isNotEmpty ||
-                      _isLoadingCategories ||
-                      _categoriesError != null) ...[
-                    const SizedBox(height: 12),
-                    _buildCategoriesSection(),
-                  ],
-
-                  // Активные заказы
-                  if (_activeOrders.isNotEmpty ||
-                      _isLoadingActiveOrders ||
-                      _activeOrdersError != null) ...[
-                    const SizedBox(height: 12),
-                    _buildActiveOrdersSection(),
-                  ],
-                ],
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: const SizedBox(height: 500),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Строит секцию с активными заказами
-  Widget _buildActiveOrdersSection() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.receipt_long,
-                  color: Theme.of(context).colorScheme.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  "Активные заказы",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
+                const Text('ГРАДУСЫ', style: TextStyle(color: _text, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: _orange, borderRadius: BorderRadius.circular(10)),
+                  child: const Text('24', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w800, fontSize: 12)),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            if (_isLoadingActiveOrders)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(width: 12),
-                      Text('Загрузка заказов...'),
-                    ],
-                  ),
-                ),
-              )
-            else if (_activeOrdersError != null)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        color: Theme.of(context).colorScheme.error,
-                        size: 24,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _activeOrdersError!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                          fontSize: 14,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: _loadActiveOrders,
-                        child: const Text('Повторить'),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else if (_activeOrders.isEmpty)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.receipt_long_outlined,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        size: 32,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'У вас нет активных заказов',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              Column(
-                children: [
-                  for (int i = 0; i < _activeOrders.length; i++)
-                    _buildActiveOrderCard(_activeOrders[i], i),
-                ],
-              ),
           ],
         ),
+        const Spacer(),
+        _circleBadge(icon: Icons.local_shipping, label: '24/7'),
+        const SizedBox(width: 10),
+        _circleBadge(icon: Icons.notifications_none_rounded),
+      ],
+    );
+  }
+
+  Widget _circleBadge({required IconData icon, String? label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration:
+          BoxDecoration(color: _card, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.white.withValues(alpha: 0.06))),
+      child: Row(
+        children: [
+          Icon(icon, color: _orange, size: 18),
+          if (label != null) ...[
+            const SizedBox(width: 6),
+            Text(label, style: const TextStyle(color: _text, fontWeight: FontWeight.w700, fontSize: 12)),
+          ],
+        ],
       ),
     );
   }
 
-  /// Строит карточку активного заказа
-  Widget _buildActiveOrderCard(Map<String, dynamic> order, int index) {
-    final business = order['business'] as Map<String, dynamic>?;
-    final currentStatus = order['current_status'] as Map<String, dynamic>?;
-    final deliveryAddress = order['delivery_address'] as Map<String, dynamic>?;
-    final itemsSummary = order['items_summary'] as Map<String, dynamic>?;
-
-    return InkWell(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => OrderDetailPage(
-              order: order,
-            ),
-          ),
-        );
-      },
-      borderRadius: BorderRadius.circular(12),
+  Widget _addressCard() {
+    final addressText = _selectedAddress != null ? _selectedAddress!['address'] ?? '*Укажите адрес доставки' : '*Укажите адрес доставки';
+    return GestureDetector(
+      onTap: _showAddressSelectionModal,
       child: Container(
-        margin:
-            EdgeInsets.only(bottom: index < _activeOrders.length - 1 ? 12 : 0),
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-          ),
+          color: _card,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Заголовок заказа
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: _blue, borderRadius: BorderRadius.circular(14)),
+              child: const Icon(Icons.location_pin, color: _orange, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Заказ #${order['order_id']}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      if (business != null)
-                        Text(
-                          business['name'] ?? 'Неизвестный магазин',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                    ],
-                  ),
-                  if (currentStatus != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: _parseColor(currentStatus['status_color'])
-                            .withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: _parseColor(currentStatus['status_color']),
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        currentStatus['status_description'] ?? 'Неизвестно',
-                        style: TextStyle(
-                          color: _parseColor(currentStatus['status_color']),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                  Text('*Доставка по адресу', style: TextStyle(color: _textMute.withValues(alpha: 0.9), fontSize: 12, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Text(addressText,
+                      maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _text, fontSize: 15, fontWeight: FontWeight.w800)),
                 ],
               ),
-
-              const SizedBox(height: 12),
-
-              // Информация о доставке
-              if (deliveryAddress != null) ...[
-                Row(
-                  children: [
-                    Icon(
-                      Icons.location_on,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        deliveryAddress["address_id"] == 1
-                            ? 'Самовывоз'
-                            : (deliveryAddress['address'] ?? 'Адрес не указан'),
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-              ],
-
-              // Информация о товарах
-              if (itemsSummary != null) ...[
-                Row(
-                  children: [
-                    Icon(
-                      Icons.shopping_bag,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Товаров: ${itemsSummary['items_count'] ?? 0} (${itemsSummary['total_amount'] ?? 0} шт.)',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-              ],
-
-              // Сумма заказа
-              // if (costSummary != null)
-              //   Row(
-              //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              //     children: [
-              //       const Text(
-              //         'Сумма заказа:',
-              //         style: TextStyle(
-              //           fontSize: 14,
-              //           fontWeight: FontWeight.w500,
-              //         ),
-              //       ),
-              //       Text(
-              //         '${costSummary['total_sum']} ₸',
-              //         style: TextStyle(
-              //           fontSize: 16,
-              //           fontWeight: FontWeight.w600,
-              //           color: Theme.of(context).colorScheme.primary,
-              //         ),
-              //       ),
-              //     ],
-              //   ),
-
-              // Индикатор того, что заказ кликабельный
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    'Нажмите для подробностей',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).colorScheme.primary,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    size: 12,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+            const Icon(Icons.keyboard_arrow_down, color: _textMute),
+          ],
         ),
       ),
     );
   }
 
-  /// Парсит цвет из строки
-  Color _parseColor(String? colorString) {
-    if (colorString == null || !colorString.startsWith('#')) {
-      return Theme.of(context).colorScheme.primary;
-    }
-
-    try {
-      return Color(int.parse(colorString.substring(1), radix: 16) + 0xFF000000);
-    } catch (e) {
-      return Theme.of(context).colorScheme.primary;
-    }
-  }
-
-  /// Строит hero карусель акций
-  Widget _buildPromotionsHeroCarousel() {
-    final width = MediaQuery.of(context).size.width; // учёт внешних отступов
-    return SizedBox(
-      height: (width / 3) * 2, // квадрат
-      child: _buildPromotionsCarousel(width),
+  Widget _searchBar() {
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchPage())),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: _card,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        child: Row(
+          children: const [
+            Icon(Icons.search, color: _textMute),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text('*Найти любимый напиток...', style: TextStyle(color: _textMute, fontSize: 14, fontWeight: FontWeight.w600)),
+            ),
+            Icon(Icons.tune, color: _textMute),
+          ],
+        ),
+      ),
     );
   }
 
-  /// Строит карусель акций
-  Widget _buildPromotionsCarousel(double size) {
+  Promotion _fakePromotion(String name) {
+    final now = DateTime.now();
+    final bizId = widget.selectedBusiness != null
+        ? (widget.selectedBusiness!['id'] as int?) ??
+            (widget.selectedBusiness!['business_id'] as int?) ??
+            (widget.selectedBusiness!['businessId'] as int?)
+        : 0;
+    return Promotion(
+      marketingPromotionId: name.hashCode & 0x7fffffff,
+      name: name,
+      startPromotionDate: now.subtract(const Duration(days: 1)),
+      endPromotionDate: now.add(const Duration(days: 30)),
+      businessId: bizId ?? 0,
+      cover: null,
+      visible: 1,
+      isActive: true,
+      business: null,
+      details: const [],
+      stories: const [],
+      itemsCount: 0,
+      daysLeft: 0,
+    );
+  }
+
+  Widget _promotionsSection() {
+    final hasData = _promotions.isNotEmpty;
+    final items = hasData
+        ? _promotions
+        : [
+            _fakePromotion('*Премиальные вина Италии'),
+            _fakePromotion('*Коллекция виски'),
+          ];
+
     if (_isLoadingPromotions) {
-      return const Center(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 12),
-            Text('Загрузка акций...'),
-          ],
-        ),
-      );
+      return const SizedBox(height: 220, child: Center(child: CircularProgressIndicator()));
     }
-
     if (_promotionsError != null) {
-      return Center(
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              color: Theme.of(context).colorScheme.error,
-              size: 24,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Ошибка загрузки акций',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.error,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: _loadPromotions,
-              child: const Text('Повторить'),
-            ),
+            Text(_promotionsError!, style: const TextStyle(color: _text)),
+            TextButton(onPressed: _loadPromotions, child: const Text('Повторить')),
           ],
         ),
       );
     }
 
-    if (_promotions.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return SizedBox(
+      height: 230,
+      child: PageView.builder(
+        controller: _promoPageController,
+        onPageChanged: (i) => setState(() => _currentPromoPage = i),
+        itemCount: items.length,
+        itemBuilder: (_, i) => _promotionCard(items[i], hasData),
+      ),
+    );
+  }
+
+  Widget _promotionCard(Promotion promo, bool hasData) {
+    final bizId =
+        widget.selectedBusiness != null ? (widget.selectedBusiness!['id'] as int?) ?? (widget.selectedBusiness!['businessId'] as int?) : null;
+    return GestureDetector(
+      onTap: hasData && bizId != null
+          ? () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => PromotionItemsPage(
+                    promotionId: promo.marketingPromotionId,
+                    promotionName: promo.name,
+                    businessId: bizId,
+                  ),
+                ),
+              )
+          : null,
+      child: Container(
+        margin: const EdgeInsets.only(right: 16, top: 10, bottom: 10),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(colors: [_red, _cardDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 16, offset: const Offset(0, 12))],
+        ),
+        child: Stack(
           children: [
-            Icon(
-              Icons.local_offer_outlined,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              size: 32,
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.16,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment(-0.2, -0.4),
+                      radius: 1.1,
+                      colors: [Colors.white, Colors.transparent],
+                    ),
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'В данный момент нет активных акций',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 14,
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(color: _orange, borderRadius: BorderRadius.circular(12)),
+                    child: const Text('*Доставка за 30 мин', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w800, fontSize: 12)),
+                  ),
+                  const Spacer(),
+                  Text(promo.name ?? '*Акция',
+                      maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _text, fontSize: 20, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 6),
+                  Text(hasData && promo.details.isNotEmpty ? promo.details.first.name : '*Скидка 20%',
+                      style: TextStyle(color: _text.withValues(alpha: 0.9), fontSize: 14, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  Text('*Выбрать', style: TextStyle(color: _text.withValues(alpha: 0.8), fontSize: 13, fontWeight: FontWeight.w600)),
+                ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _categoriesSection() {
+    if (_isLoadingCategories) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: LinearProgressIndicator(minHeight: 3),
+      );
+    }
+    if (_categoriesError != null) {
+      return Row(
+        children: [
+          const Icon(Icons.error_outline, color: Colors.redAccent),
+          const SizedBox(width: 8),
+          Expanded(child: Text(_categoriesError!, style: const TextStyle(color: _text))),
+          TextButton(onPressed: _loadCategories, child: const Text('Повторить')),
+        ],
       );
     }
 
-    return Stack(
+    final visible = (_categories.isNotEmpty ? _categories : _placeholderCategories()).take(8).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        PageView.builder(
-          controller: _promoPageController,
-          itemCount: _promotions.length,
-          onPageChanged: (i) => setState(() => _currentPromoPage = i),
-          itemBuilder: (context, index) =>
-              _buildPromotionPage(_promotions[index], size),
-        ),
-        // Индикаторы
-        Positioned(
-          bottom: 8,
-          left: 0,
-          right: 0,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(_promotions.length, (i) {
-              final active = i == _currentPromoPage;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                height: 6,
-                width: active ? 18 : 6,
-                decoration: BoxDecoration(
-                  color: active
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(3),
+        const Text('Категории', style: TextStyle(color: _text, fontSize: 18, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 110,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: visible.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (_, i) {
+              final cat = visible[i];
+              final style = _getCategoryIconAndColor(cat['name'] ?? '');
+              return InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: () {
+                  final businessId =
+                      widget.selectedBusiness?['id'] ?? widget.selectedBusiness?['business_id'] ?? widget.selectedBusiness?['businessId'];
+                  if (businessId == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Сначала выберите магазин')));
+                    return;
+                  }
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => CategoryPage(
+                        category: Category.fromJson(cat),
+                        allCategories: _categories.map((c) => Category.fromJson(c)).toList(),
+                        businessId: businessId,
+                      ),
+                    ),
+                  );
+                },
+                child: Column(
+                  children: [
+                    Container(
+                      width: 78,
+                      height: 78,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _blue,
+                        gradient: LinearGradient(
+                            colors: (style['gradient'] as List<Color>?) ?? [_blue, _cardDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 10, offset: const Offset(0, 6))],
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                      ),
+                      child: Icon(style['icon'], color: style['color'], size: 30),
+                    ),
+                    const SizedBox(height: 6),
+                    SizedBox(
+                      width: 78,
+                      child: Text(cat['name'] ?? '*Категория',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: _text, fontSize: 12, fontWeight: FontWeight.w700)),
+                    ),
+                  ],
                 ),
               );
-            }),
+            },
           ),
         ),
       ],
     );
   }
 
-  /// Страница промо (квадрат)
-  Widget _buildPromotionPage(Promotion promotion, double size) {
-    final bizId = widget.selectedBusiness != null
-        ? (widget.selectedBusiness!['id'] as int?) ??
-            (widget.selectedBusiness!['businessId'] as int?)
-        : null;
-    return GestureDetector(
-      onTap: () {
-        if (bizId != null) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => PromotionItemsPage(
-                promotionId: promotion.marketingPromotionId,
-                promotionName: promotion.name,
-                businessId: bizId,
-              ),
-            ),
-          );
-        }
-      },
-      child: Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(0),
+  Widget _popularSection() {
+    final items = _promotions.isNotEmpty
+        ? _promotions.take(6).toList()
+        : [
+            _fakePromotion('*Chianti Classico Riserva DOCG'),
+            _fakePromotion('*Macallan 12 Years Double Cask'),
+          ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: const [
+            Text('Популярное сейчас', style: TextStyle(color: _text, fontSize: 18, fontWeight: FontWeight.w800)),
+            Spacer(),
+            Text('*Все', style: TextStyle(color: _orange, fontWeight: FontWeight.w700)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 280,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (_, i) => _popularCard(items[i]),
           ),
-          clipBehavior: Clip.hardEdge,
-          // borderRadius: BorderRadius.circular(16),
-          child: AspectRatio(
-            aspectRatio: 3 / 2,
-            child: Stack(
-              fit: StackFit.expand,
+        ),
+      ],
+    );
+  }
+
+  Widget _popularCard(Promotion promo) {
+    return Container(
+      width: 210,
+      decoration: BoxDecoration(
+        color: _blue,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 16, offset: const Offset(0, 12))],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
               children: [
-                // Фото
-                Image.network(
-                  promotion.cover ?? '',
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: Theme.of(context).colorScheme.surface,
-                    alignment: Alignment.center,
-                    child: Icon(
-                      Icons.broken_image,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      size: 48,
-                    ),
+                Container(
+                  height: 150,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [_card, _cardDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                    borderRadius: BorderRadius.circular(0),
+                  ),
+                  child: promo.cover != null ? Image.network(promo.cover!, fit: BoxFit.cover) : Container(color: _cardDark),
+                ),
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(color: _red, borderRadius: BorderRadius.circular(12)),
+                    child: const Text('-15%', style: TextStyle(color: _text, fontWeight: FontWeight.w800)),
                   ),
                 ),
-                // Градиент снизу
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(16, 32, 16, 14),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withOpacity(0.0),
-                          Colors.black.withOpacity(0.55),
-                        ],
-                      ),
-                    ),
-                    child: Text(
-                      promotion.name ?? 'Акция без названия',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        height: 1.2,
-                      ),
-                    ),
-                  ),
+                const Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Icon(Icons.favorite_border, color: _text, size: 20),
                 ),
               ],
             ),
-          )),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('*ИТАЛИЯ • 0.75 л', style: TextStyle(color: _textMute.withValues(alpha: 0.9), fontSize: 12, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Text(promo.name ?? '*Товар',
+                      maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _text, fontSize: 16, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Text('2 450₽', style: TextStyle(color: _text, fontSize: 18, fontWeight: FontWeight.w900)),
+                      const Spacer(),
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: const BoxDecoration(color: _orange, shape: BoxShape.circle),
+                        child: const Icon(Icons.add, color: Colors.black, size: 22),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
+  }
+
+  Map<String, dynamic> _getCategoryIconAndColor(String name) {
+    const accent = _orange;
+    const accentAlt = _red;
+    const defGrad = [_blue, _cardDark];
+    final lower = name.toLowerCase();
+    if (lower.contains('пиво')) return {'icon': Icons.sports_bar, 'color': accent, 'gradient': defGrad};
+    if (lower.contains('вино')) return {'icon': Icons.wine_bar, 'color': accent, 'gradient': defGrad};
+    if (lower.contains('виски') || lower.contains('коньяк') || lower.contains('бурбон')) {
+      return {'icon': Icons.local_bar, 'color': accent, 'gradient': defGrad};
+    }
+    if (lower.contains('игрист') || lower.contains('шампан')) {
+      return {'icon': Icons.celebration, 'color': accent, 'gradient': defGrad};
+    }
+    if (lower.contains('крепкий') || lower.contains('водка')) {
+      return {'icon': Icons.local_drink, 'color': accent, 'gradient': defGrad};
+    }
+    if (lower.contains('сигарет') || lower.contains('табак') || lower.contains('курение')) {
+      return {'icon': Icons.smoking_rooms, 'color': accent, 'gradient': defGrad};
+    }
+    if (lower.contains('сладост') || lower.contains('конфет') || lower.contains('шоколад') || lower.contains('печенье')) {
+      return {'icon': Icons.cake, 'color': accent, 'gradient': defGrad};
+    }
+    if (lower.contains('напитк') || lower.contains('сок') || lower.contains('вода') || lower.contains('газировка') || lower.contains('лимонад')) {
+      return {'icon': Icons.bubble_chart, 'color': accent, 'gradient': defGrad};
+    }
+    if (lower.contains('фрукт') || lower.contains('овощ') || lower.contains('ягод') || lower.contains('зелен')) {
+      return {'icon': Icons.eco, 'color': accent, 'gradient': defGrad};
+    }
+    if (lower.contains('снек') || lower.contains('чипс') || lower.contains('орех')) {
+      return {'icon': Icons.emoji_food_beverage, 'color': accent, 'gradient': defGrad};
+    }
+    if (lower.contains('молочн') || lower.contains('сыр')) {
+      return {'icon': Icons.icecream, 'color': accent, 'gradient': defGrad};
+    }
+    if (lower.contains('мясо') || lower.contains('рыба') || lower.contains('колбас') || lower.contains('сосиск')) {
+      return {'icon': Icons.set_meal, 'color': accent, 'gradient': defGrad};
+    }
+    if (lower.contains('хлеб') || lower.contains('выпечк') || lower.contains('булочк') || lower.contains('батон')) {
+      return {'icon': Icons.bakery_dining, 'color': accent, 'gradient': defGrad};
+    }
+    return {'icon': Icons.category, 'color': accentAlt, 'gradient': defGrad};
+  }
+
+  List<Map<String, dynamic>> _placeholderCategories() {
+    return [
+      {'name': '*Пиво'},
+      {'name': '*Вино'},
+      {'name': '*Виски'},
+      {'name': '*Игристое'},
+      {'name': '*Крепкий алкоголь'},
+      {'name': '*Снеки'},
+      {'name': '*Безалкогольное'},
+    ];
   }
 
   void _startPromoAutoScroll() {
     _promoAutoScrollTimer?.cancel();
-    if (_promotions.length <= 1) return; // не скроллим если одна акция
+    if (_promotions.length <= 1) return;
     _promoAutoScrollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (!mounted) return;
       final next = (_currentPromoPage + 1) % _promotions.length;
-      _promoPageController.animateToPage(
-        next,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
+      _promoPageController.animateToPage(next, duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
       _currentPromoPage = next;
       if (mounted) setState(() {});
     });
   }
 
-  void _showBarcodeModal(String cardUuid) {
-    showCupertinoModalPopup<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return CupertinoActionSheet(
-          title: Text(
-            'Бонусная карта',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          message: Container(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              children: [
-                Text(
-                  'Номер карты: $cardUuid',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                SizedBox(height: 20),
-                Container(
-                  color: Colors.white,
-                  padding: EdgeInsets.all(16),
-                  child: BarcodeWidget(
-                    barcode: Barcode.code128(),
-                    data: cardUuid,
-                    width: 250,
-                    height: 80,
-                    drawText: false,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  cardUuid,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'monospace',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          cancelButton: CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: Text('Закрыть'),
-          ),
-        );
-      },
-    );
-  }
-
-  /// Построить виджет бонусной карты
-  Widget _buildBonusCard() {
-    final bonusData = _bonusData!['data'];
-    final totalBonuses = bonusData['totalBonuses'] ?? 0;
-    final cardUuid = bonusData['bonusCard']?['cardUuid'] ?? '';
-
-    // Получаем последнее значение из истории бонусов
-    final bonusHistory = bonusData['bonusHistory'] as List?;
-    final latestBonusAmount = bonusHistory != null && bonusHistory.isNotEmpty
-        ? bonusHistory.first['amount'] ?? 0
-        : 0;
-
-    return GestureDetector(
-      onTap: () {
-        if (cardUuid.isNotEmpty) {
-          _showBarcodeModal(cardUuid);
-        }
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-          ),
-        ),
-        child: Row(
-          children: [
-            // Иконка и название
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.card_giftcard,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-
-            // Основная информация
-            Expanded(
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    const navHeight = 110.0;
+    final bottomPadding = bottomInset + navHeight;
+    return Scaffold(
+      backgroundColor: _bgDeep,
+      body: Stack(
+        children: [
+          _background(),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, bottomPadding),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Бонусная карта',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Нажмите для показа штрихкода',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: 11,
-                    ),
-                  ),
+                  _buildHeader(),
+                  const SizedBox(height: 14),
+                  _addressCard(),
+                  const SizedBox(height: 14),
+                  _searchBar(),
+                  const SizedBox(height: 18),
+                  _promotionsSection(),
+                  const SizedBox(height: 18),
+                  _categoriesSection(),
+                  const SizedBox(height: 20),
+                  _popularSection(),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
-
-            // Баланс
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '$totalBonuses ₸',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                if (latestBonusAmount > 0)
-                  Text(
-                    '+$latestBonusAmount ₸',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-              ],
-            ),
-
-            // Стрелка
-            const SizedBox(width: 8),
-            Icon(
-              Icons.arrow_forward_ios,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              size: 16,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Строит секцию с категориями товаров
-  Widget _buildCategoriesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Заголовок
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Row(
-            children: [
-              Icon(
-                Icons.category,
-                color: Theme.of(context).colorScheme.primary,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                "Категории",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
           ),
-        ),
-        SizedBox(
-          height: 8,
-        ),
-
-        // Горизонтальная сетка категорий
-        SizedBox(
-          height: 160, // Высота для 2 рядов
-          child: _buildCategoriesGrid(),
-        ),
-      ],
-    );
-  }
-
-  /// Строит горизонтальную сетку категорий
-  Widget _buildCategoriesGrid() {
-    if (_isLoadingCategories) {
-      return const Center(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 12),
-            Text('Загрузка категорий...'),
-          ],
-        ),
-      );
-    }
-
-    if (_categoriesError != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              color: Theme.of(context).colorScheme.error,
-              size: 24,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Ошибка загрузки категорий',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.error,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: _loadCategories,
-              child: const Text('Повторить'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_categories.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.category_outlined,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              size: 32,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Категории не найдены',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // Вычисляем ширину элемента
-    const itemWidth = 120.0;
-    const itemHeight = 120.0;
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: SizedBox(
-        height: itemHeight,
-        // width: columnsCount * (itemWidth + 8), // ширина + отступ
-        child: GridView.builder(
-          scrollDirection: Axis.horizontal,
-          physics: const NeverScrollableScrollPhysics(),
-          shrinkWrap: true,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, // 2 ряда
-            childAspectRatio: itemWidth / itemHeight,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-          ),
-          itemCount: _categories.length,
-          itemBuilder: (context, index) {
-            return _buildCategoryCard(_categories[index]);
-          },
-        ),
+        ],
       ),
     );
-  }
-
-  /// Строит карточку категории
-  Widget _buildCategoryCard(Map<String, dynamic> category) {
-    final categoryName = category['name'] ?? 'Без названия';
-
-    // Определяем иконку и цвет на основе названия категории
-    final iconAndColor = _getCategoryIconAndColor(categoryName);
-
-    return InkWell(
-      onTap: () {
-        // Получаем ID выбранного магазина
-        final businessId = widget.selectedBusiness?['id'] ??
-            widget.selectedBusiness?['business_id'] ??
-            widget.selectedBusiness?['businessId'];
-
-        if (businessId != null) {
-          // Создаем объект Category из данных
-          final categoryObj = Category.fromJson(category);
-
-          // Навигация в CategoryPage
-          Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => CategoryPage(
-              category: categoryObj,
-              allCategories:
-                  _categories.map((cat) => Category.fromJson(cat)).toList(),
-              businessId: businessId,
-            ),
-          ));
-        } else {
-          // Показываем сообщение если магазин не выбран
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Сначала выберите магазин'),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
-        }
-      },
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        height: 120,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            // Иконка категории
-            Container(
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color:
-                        Theme.of(context).colorScheme.outline.withOpacity(0.2),
-                  ),
-                ),
-                child: AspectRatio(
-                  aspectRatio: 4 / 3,
-                  child: Image.network(
-                    category["img"] ?? '',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Icon(
-                        iconAndColor['icon'],
-                        color: iconAndColor['color'],
-                        size: 24,
-                      );
-                    },
-                  ),
-                )),
-
-            // Название категории
-            Text(
-              categoryName,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-            ),
-
-            // Количество товаров
-            // if (itemsCount > 0)
-            //   Text(
-            //     '$itemsCount',
-            //     style: TextStyle(
-            //       fontSize: 10,
-            //       color: Theme.of(context).colorScheme.onSurfaceVariant,
-            //     ),
-            //   ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Возвращает иконку и цвет для категории на основе названия
-  Map<String, dynamic> _getCategoryIconAndColor(String categoryName) {
-    final lowerName = categoryName.toLowerCase();
-
-    // Алкоголь
-    if (lowerName.contains('алкоголь') ||
-        lowerName.contains('вино') ||
-        lowerName.contains('пиво') ||
-        lowerName.contains('водка') ||
-        lowerName.contains('виски') ||
-        lowerName.contains('коньяк')) {
-      return {
-        'icon': Icons.wine_bar,
-        'color': const Color(0xFFE91E63),
-      };
-    }
-
-    // Сигареты
-    if (lowerName.contains('сигарет') ||
-        lowerName.contains('табак') ||
-        lowerName.contains('курение')) {
-      return {
-        'icon': Icons.smoking_rooms,
-        'color': const Color(0xFF9C27B0),
-      };
-    }
-
-    // Сладости
-    if (lowerName.contains('сладост') ||
-        lowerName.contains('конфет') ||
-        lowerName.contains('шоколад') ||
-        lowerName.contains('торт') ||
-        lowerName.contains('печенье')) {
-      return {
-        'icon': Icons.cake,
-        'color': const Color(0xFF795548),
-      };
-    }
-
-    // Напитки
-    if (lowerName.contains('напитк') ||
-        lowerName.contains('сок') ||
-        lowerName.contains('вода') ||
-        lowerName.contains('газировка') ||
-        lowerName.contains('лимонад')) {
-      return {
-        'icon': Icons.local_drink,
-        'color': const Color(0xFF2196F3),
-      };
-    }
-
-    // Фрукты и овощи
-    if (lowerName.contains('фрукт') ||
-        lowerName.contains('овощ') ||
-        lowerName.contains('ягод') ||
-        lowerName.contains('зелен')) {
-      return {
-        'icon': Icons.eco,
-        'color': const Color(0xFF4CAF50),
-      };
-    }
-
-    // Снеки
-    if (lowerName.contains('снек') ||
-        lowerName.contains('чипс') ||
-        lowerName.contains('сухарик') ||
-        lowerName.contains('орех')) {
-      return {
-        'icon': Icons.lunch_dining,
-        'color': const Color(0xFFFF9800),
-      };
-    }
-
-    // Молочные продукты
-    if (lowerName.contains('молочн') ||
-        lowerName.contains('молоко') ||
-        lowerName.contains('кефир') ||
-        lowerName.contains('йогурт') ||
-        lowerName.contains('сыр')) {
-      return {
-        'icon': Icons.local_cafe,
-        'color': const Color(0xFF00BCD4),
-      };
-    }
-
-    // Мясо и рыба
-    if (lowerName.contains('мясо') ||
-        lowerName.contains('рыба') ||
-        lowerName.contains('колбас') ||
-        lowerName.contains('сосиск')) {
-      return {
-        'icon': Icons.restaurant,
-        'color': const Color(0xFFFF5722),
-      };
-    }
-
-    // Хлеб и выпечка
-    if (lowerName.contains('хлеб') ||
-        lowerName.contains('выпечк') ||
-        lowerName.contains('булочк') ||
-        lowerName.contains('батон')) {
-      return {
-        'icon': Icons.bakery_dining,
-        'color': const Color(0xFF8BC34A),
-      };
-    }
-
-    // По умолчанию
-    return {
-      'icon': Icons.category,
-      'color': Theme.of(context).colorScheme.primary,
-    };
   }
 }

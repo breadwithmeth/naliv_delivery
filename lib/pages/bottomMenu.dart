@@ -8,7 +8,6 @@ import 'package:naliv_delivery/pages/profile_page.dart';
 import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/liked_items_provider.dart';
-import 'package:naliv_delivery/utils/cartFloatingButton.dart';
 import 'package:naliv_delivery/utils/location_service.dart';
 import 'package:provider/provider.dart';
 import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
@@ -16,23 +15,27 @@ import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/utils/address_storage_service.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
+import 'package:naliv_delivery/shared/app_theme.dart';
 
 class BottomMenu extends StatefulWidget {
   final bool isAuthenticated;
   final Map<String, dynamic>? userInfo;
   final int? initialTabIndex;
 
-  const BottomMenu(
-      {required this.isAuthenticated,
-      this.userInfo,
-      this.initialTabIndex,
-      super.key});
+  const BottomMenu({required this.isAuthenticated, this.userInfo, this.initialTabIndex, super.key});
 
   @override
   State<BottomMenu> createState() => _BottomMenuState();
 }
 
 class _BottomMenuState extends State<BottomMenu> with LocationMixin {
+  // Palette to match main page design
+  static const Color _bgDeep = AppColors.bgDeep;
+  static const Color _bgTop = AppColors.bgTop;
+  static const Color _orange = AppColors.orange;
+  static const Color _text = AppColors.text;
+  static const Color _textMute = AppColors.textMute;
+
   List<Map<String, dynamic>> _businesses = [];
   bool _isLoadingBusinesses = true;
 
@@ -100,12 +103,9 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     setState(() {
       _selectedBusiness = business;
     });
-    await Provider.of<BusinessProvider>(context, listen: false)
-        .setSelectedBusiness(business);
-    final likedProvider =
-        Provider.of<LikedItemsProvider>(context, listen: false);
-    final businessId =
-        business['id'] ?? business['business_id'] ?? business['businessId'];
+    await Provider.of<BusinessProvider>(context, listen: false).setSelectedBusiness(business);
+    final likedProvider = Provider.of<LikedItemsProvider>(context, listen: false);
+    final businessId = business['id'] ?? business['business_id'] ?? business['businessId'];
     if (businessId != null) {
       likedProvider.loadLiked(int.tryParse(businessId.toString()) ?? 0);
     }
@@ -192,21 +192,17 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     return null;
   }
 
-  void _showBusinessChangeSnack(Map<String, dynamic> business,
-      {bool auto = false}) {
+  void _showBusinessChangeSnack(Map<String, dynamic> business, {bool auto = false}) {
     // Показываем уже после построения кадра, чтобы Scaffold был доступен
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final distanceM = business['distanceMeters'];
       String distanceText = '';
       if (distanceM is num) {
-        final km =
-            (distanceM / 1000).toStringAsFixed(distanceM >= 1000 ? 1 : 2);
+        final km = (distanceM / 1000).toStringAsFixed(distanceM >= 1000 ? 1 : 2);
         distanceText = ' ($km км)';
       }
-      final text = auto
-          ? 'Выбран ближайший магазин: ${business['name']}$distanceText'
-          : 'Магазин изменён: ${business['name']}$distanceText';
+      final text = auto ? 'Выбран ближайший магазин: ${business['name']}$distanceText' : 'Магазин изменён: ${business['name']}$distanceText';
       ScaffoldMessenger.of(context)
         ..removeCurrentSnackBar()
         ..showSnackBar(
@@ -255,20 +251,15 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     final nearest = _findNearestBusiness(coords['lat']!, coords['lon']!);
     if (nearest == null) return;
 
-    final currentId = _selectedBusiness!['id'] ??
-        _selectedBusiness!['business_id'] ??
-        _selectedBusiness!['businessId'];
-    final nearestId =
-        nearest['id'] ?? nearest['business_id'] ?? nearest['businessId'];
+    final currentId = _selectedBusiness!['id'] ?? _selectedBusiness!['business_id'] ?? _selectedBusiness!['businessId'];
+    final nearestId = nearest['id'] ?? nearest['business_id'] ?? nearest['businessId'];
     if (currentId == null || nearestId == null) return;
 
     // Уже ближайший
     if (currentId == nearestId) return;
 
-    final promptKey =
-        '${coords['lat']!.toStringAsFixed(5)}_${coords['lon']!.toStringAsFixed(5)}_${currentId}_${nearestId}';
-    if (_lastNearestPromptKey == promptKey)
-      return; // уже спрашивали в этой конфигурации
+    final promptKey = '${coords['lat']!.toStringAsFixed(5)}_${coords['lon']!.toStringAsFixed(5)}_${currentId}_${nearestId}';
+    if (_lastNearestPromptKey == promptKey) return; // уже спрашивали в этой конфигурации
     _lastNearestPromptKey = promptKey;
 
     // Расстояния
@@ -280,8 +271,7 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
         final dLat = double.tryParse(bLat.toString());
         final dLon = double.tryParse(bLon.toString());
         if (dLat != null && dLon != null) {
-          return Geolocator.distanceBetween(
-              coords['lat']!, coords['lon']!, dLat, dLon);
+          return Geolocator.distanceBetween(coords['lat']!, coords['lon']!, dLat, dLon);
         }
       }
       return 0.0;
@@ -302,15 +292,11 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-                'Текущий магазин находится на ~$currentKm км от выбранного адреса.'),
+            Text('Текущий магазин находится на ~$currentKm км от выбранного адреса.'),
             const SizedBox(height: 8),
-            Text('Ближайший магазин: ${nearest['name']} (~$nearestKm км).',
-                style: const TextStyle(fontWeight: FontWeight.w600)),
+            Text('Ближайший магазин: ${nearest['name']} (~$nearestKm км).', style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 12),
-            Text(hasCartItems
-                ? 'Переключение очистит текущую корзину. Перейти к ближайшему магазину?'
-                : 'Переключить на ближайший магазин?'),
+            Text(hasCartItems ? 'Переключение очистит текущую корзину. Перейти к ближайшему магазину?' : 'Переключить на ближайший магазин?'),
           ],
         ),
         actions: [
@@ -342,8 +328,7 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-                'Вы переключились на ближайший магазин: ${nearest['name']}'),
+            content: Text('Вы переключились на ближайший магазин: ${nearest['name']}'),
             duration: const Duration(seconds: 3),
           ),
         );
@@ -370,60 +355,10 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: CartFloatingButton(),
       extendBody: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: _bgDeep,
       body: _getCurrentPage(),
-      // floatingActionButton: const CartFloatingActionButton(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: Container(
-        margin: const EdgeInsets.all(16),
-        height: 70,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(35),
-          boxShadow: [
-            BoxShadow(
-              color:
-                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-              blurRadius: 1,
-              spreadRadius: 2,
-              offset: const Offset(2, 2),
-            ),
-          ],
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            // color: Theme.of(context).colorScheme.primary,
-            borderRadius: BorderRadius.circular(35),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildNavItem(
-                icon: Icons.home,
-                isActive: _currentIndex == 0,
-                onTap: () => _onTabTapped(0),
-              ),
-              _buildNavItem(
-                icon: Icons.manage_search_outlined,
-                isActive: _currentIndex == 1,
-                onTap: () => _onTabTapped(1),
-              ),
-              _buildNavItem(
-                icon: Icons.favorite,
-                isActive: _currentIndex == 2,
-                onTap: () => _onTabTapped(2),
-              ),
-              _buildNavItem(
-                icon: Icons.person,
-                isActive: _currentIndex == 4,
-                onTap: () => _onTabTapped(4),
-              ),
-            ],
-          ),
-        ),
-      ),
+      bottomNavigationBar: _buildBottomNav(),
     );
   }
 
@@ -435,24 +370,87 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     });
   }
 
-  Widget _buildNavItem({
-    required IconData icon,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildBottomNav() {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    return SafeArea(
+      top: false,
+      child: SizedBox(
+        height: 96 + bottomInset,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: Container(
+                margin: EdgeInsets.fromLTRB(18, 12, 18, 18 + bottomInset / 2),
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [_bgTop, _bgDeep],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 10))],
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _navItem(icon: Icons.home_rounded, label: '*Главная', index: 0),
+                    _navItem(icon: Icons.grid_view_rounded, label: '*Каталог', index: 1),
+                    const SizedBox(width: 70),
+                    _navItem(icon: Icons.favorite_border, label: '*Избранное', index: 2),
+                    _navItem(icon: Icons.person_outline, label: '*Профиль', index: 4),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              top: -18,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: GestureDetector(
+                  onTap: () => _onTabTapped(3),
+                  child: Container(
+                    width: 78,
+                    height: 78,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(colors: [_orange, Color(0xFFFFB457)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 14, offset: const Offset(0, 10))],
+                    ),
+                    child: const Center(
+                      child: Icon(Icons.shopping_cart_outlined, color: Colors.black, size: 30),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _navItem({required IconData icon, required String label, required int index}) {
+    final isActive = _currentIndex == index;
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.orange : Colors.transparent,
-          borderRadius: BorderRadius.circular(25),
-        ),
-        child: Icon(
-          icon,
-          color: isActive ? Colors.black87 : Colors.grey,
-          size: 28,
-        ),
+      onTap: () => _onTabTapped(index),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: isActive ? _orange.withValues(alpha: 0.12) : Colors.transparent,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: isActive ? _orange : _textMute, size: 24),
+          ),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(color: isActive ? _text : _textMute, fontSize: 12, fontWeight: FontWeight.w700)),
+        ],
       ),
     );
   }
@@ -482,9 +480,7 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       case 1:
         // Каталог доступен всем
         return Catalog(
-          businessId: _selectedBusiness?['id'] ??
-              _selectedBusiness?['business_id'] ??
-              _selectedBusiness?['businessId'],
+          businessId: _selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId'],
         );
       case 2:
         // Избранное требует авторизации
@@ -492,9 +488,7 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
           return const LoginPage(redirectTabIndex: 2);
         }
         return LikedPage(
-          businessId: _selectedBusiness?['id'] ??
-              _selectedBusiness?['business_id'] ??
-              _selectedBusiness?['businessId'],
+          businessId: _selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId'],
         );
       case 3:
         // Корзина доступна всем

@@ -49,19 +49,7 @@ class Item {
 
   /// Создание из JSON API
   factory Item.fromJson(Map<String, dynamic> json) {
-    final stepQuantityValue = _parseDouble(json['step_quantity']) ??
-        _parseDouble(json['quantity_step']) ??
-        _parseDouble(json['parent_item_amount']);
-
-    // Debug вывод для отладки
-    print('=== Item.fromJson DEBUG ===');
-    print('Item ID: ${json['item_id']}');
-    print('Name: ${json['name']}');
-    print('step_quantity: ${json['step_quantity']}');
-    print('quantity_step: ${json['quantity_step']}');
-    print('parent_item_amount: ${json['parent_item_amount']}');
-    print('Parsed stepQuantity: $stepQuantityValue');
-    print('===========================');
+    final stepQuantityValue = _parseDouble(json['step_quantity']) ?? _parseDouble(json['quantity_step']) ?? _parseDouble(json['parent_item_amount']);
 
     return Item(
       itemId: _parseInt(json['item_id']),
@@ -71,23 +59,13 @@ class Item {
       image: json['image'] ?? json['img'], // Поддержка обоих вариантов
       code: json['code'],
       categoryId: _parseInt(json['category_id']),
-      category: json['category'] != null
-          ? ItemCategory.fromJson(json['category'])
-          : null,
+      category: json['category'] != null ? ItemCategory.fromJson(json['category']) : null,
       businessId: _parseInt(json['business_id']),
       visible: _parseInt(json['visible']),
       amount: _parseInt(json['amount']),
       stepQuantity: stepQuantityValue,
-      options: json['options'] != null
-          ? (json['options'] as List)
-              .map((option) => ItemOption.fromJson(option))
-              .toList()
-          : null,
-      promotions: json['promotions'] != null
-          ? (json['promotions'] as List)
-              .map((promotion) => ItemPromotion.fromJson(promotion))
-              .toList()
-          : null,
+      options: json['options'] != null ? (json['options'] as List).map((option) => ItemOption.fromJson(option)).toList() : null,
+      promotions: json['promotions'] != null ? (json['promotions'] as List).map((promotion) => ItemPromotion.fromJson(promotion)).toList() : null,
     );
   }
 
@@ -97,42 +75,20 @@ class Item {
   /// Создание из CategoryItem (для миграции существующего кода)
   factory Item.fromCategoryItem(dynamic categoryItem) {
     if (categoryItem is Map<String, dynamic>) {
-      print('=== Item.fromCategoryItem (Map) DEBUG ===');
-      print('Item ID: ${categoryItem['item_id']}');
-      print('Name: ${categoryItem['name']}');
-      print('step_quantity: ${categoryItem['step_quantity']}');
-      print('quantity_step: ${categoryItem['quantity_step']}');
-      print('parent_item_amount: ${categoryItem['parent_item_amount']}');
-      print('amount: ${categoryItem['amount']}');
-      print('==========================================');
       return Item.fromJson(categoryItem);
     }
-
-    print('=== Item.fromCategoryItem (Object) DEBUG ===');
-    print('Item ID: ${categoryItem.itemId}');
-    print('Name: ${categoryItem.name}');
-    print('CategoryItem stepQuantity: ${categoryItem.stepQuantity}');
-    print('amount: ${categoryItem.amount}');
-    print(
-        'Has options: ${categoryItem.options != null && categoryItem.options!.isNotEmpty}');
-    print('=============================================');
 
     // Если это объект CategoryItem, конвертируем его поля
     // Сначала пробуем взять stepQuantity из CategoryItem
     double? stepQuantity = categoryItem.stepQuantity;
 
     // Если stepQuantity нет, пробуем извлечь из опций
-    if (stepQuantity == null &&
-        categoryItem.options != null &&
-        categoryItem.options!.isNotEmpty) {
+    if (stepQuantity == null && categoryItem.options != null && categoryItem.options!.isNotEmpty) {
       final firstOption = categoryItem.options!.first;
       if (firstOption.variants != null && firstOption.variants!.isNotEmpty) {
         stepQuantity = firstOption.variants!.first.parentItemAmount.toDouble();
-        print('Found stepQuantity from options: $stepQuantity');
       }
     }
-
-    print('Final stepQuantity: $stepQuantity');
 
     return Item(
       itemId: categoryItem.itemId ?? 0,
@@ -143,20 +99,12 @@ class Item {
       code: categoryItem.code,
       amount: categoryItem.amount,
       categoryId: categoryItem.category?.categoryId,
-      category: categoryItem.category != null
-          ? ItemCategory.fromApiCategory(categoryItem.category)
-          : null,
+      category: categoryItem.category != null ? ItemCategory.fromApiCategory(categoryItem.category) : null,
       visible: categoryItem.visible,
       stepQuantity: stepQuantity,
-      options: categoryItem.options != null
-          ? (categoryItem.options as List?)
-              ?.map((opt) => ItemOption.fromCategoryItemOption(opt))
-              .toList()
-          : null,
+      options: categoryItem.options != null ? (categoryItem.options as List?)?.map((opt) => ItemOption.fromCategoryItemOption(opt)).toList() : null,
       promotions: categoryItem.promotions != null
-          ? (categoryItem.promotions as List?)
-              ?.map((promo) => ItemPromotion.fromCategoryItemPromotion(promo))
-              .toList()
+          ? (categoryItem.promotions as List?)?.map((promo) => ItemPromotion.fromCategoryItemPromotion(promo)).toList()
           : null,
     );
   }
@@ -176,10 +124,8 @@ class Item {
       if (visible != null) 'visible': visible,
       if (amount != null) 'amount': amount,
       if (stepQuantity != null) 'step_quantity': stepQuantity,
-      if (options != null)
-        'options': options!.map((option) => option.toJson()).toList(),
-      if (promotions != null)
-        'promotions': promotions!.map((promo) => promo.toJson()).toList(),
+      if (options != null) 'options': options!.map((option) => option.toJson()).toList(),
+      if (promotions != null) 'promotions': promotions!.map((promo) => promo.toJson()).toList(),
     };
   }
 
@@ -298,11 +244,7 @@ class ItemCategory {
       name: json['name'] ?? '',
       parentId: Item._parseInt(json['parent_id']),
       itemsCount: Item._parseInt(json['items_count']),
-      subcategories: json['subcategories'] != null
-          ? (json['subcategories'] as List)
-              .map((cat) => ItemCategory.fromJson(cat))
-              .toList()
-          : null,
+      subcategories: json['subcategories'] != null ? (json['subcategories'] as List).map((cat) => ItemCategory.fromJson(cat)).toList() : null,
     );
   }
 
@@ -327,8 +269,7 @@ class ItemCategory {
       'name': name,
       if (parentId != null) 'parent_id': parentId,
       if (itemsCount != null) 'items_count': itemsCount,
-      if (subcategories != null)
-        'subcategories': subcategories!.map((cat) => cat.toJson()).toList(),
+      if (subcategories != null) 'subcategories': subcategories!.map((cat) => cat.toJson()).toList(),
     };
   }
 
@@ -360,9 +301,7 @@ class ItemOption {
       name: json['name'] ?? '',
       required: Item._parseInt(json['required']),
       selection: json['selection'] ?? '',
-      optionItems: (json['option_items'] as List? ?? [])
-          .map((item) => ItemOptionItem.fromJson(item))
-          .toList(),
+      optionItems: (json['option_items'] as List? ?? []).map((item) => ItemOptionItem.fromJson(item)).toList(),
     );
   }
 
@@ -378,11 +317,7 @@ class ItemOption {
       required: categoryOption.required ? 1 : 0,
       selection: categoryOption.selection ?? '',
       optionItems: categoryOption.variants != null
-          ? (categoryOption.variants as List?)
-                  ?.map(
-                      (item) => ItemOptionItem.fromCategoryItemOptionItem(item))
-                  .toList() ??
-              []
+          ? (categoryOption.variants as List?)?.map((item) => ItemOptionItem.fromCategoryItemOptionItem(item)).toList() ?? []
           : [],
     );
   }
@@ -433,8 +368,7 @@ class ItemOptionItem {
   }
 
   /// Создание из CategoryItemOptionItem для совместимости
-  factory ItemOptionItem.fromCategoryItemOptionItem(
-      dynamic categoryOptionItem) {
+  factory ItemOptionItem.fromCategoryItemOptionItem(dynamic categoryOptionItem) {
     if (categoryOptionItem is Map<String, dynamic>) {
       return ItemOptionItem.fromJson(categoryOptionItem);
     }
@@ -443,8 +377,7 @@ class ItemOptionItem {
       relationId: categoryOptionItem.relationId,
       itemId: categoryOptionItem.itemId,
       priceType: categoryOptionItem.priceType,
-      item_name:
-          categoryOptionItem.item_name ?? '', // Добавлено поле для имени товара
+      item_name: categoryOptionItem.item_name ?? '', // Добавлено поле для имени товара
       price: categoryOptionItem.price,
       parentItemAmount: categoryOptionItem.parentItemAmount,
     );
@@ -499,11 +432,8 @@ class ItemPromotion {
       discountValue: Item._parseDouble(json['discount_value']) ?? 0.0,
       baseAmount: Item._parseInt(json['base_amount'] ?? json['baseAmount']),
       addAmount: Item._parseInt(json['add_amount'] ?? json['addAmount']),
-      startDate: json['start_date'] != null
-          ? DateTime.tryParse(json['start_date'])
-          : null,
-      endDate:
-          json['end_date'] != null ? DateTime.tryParse(json['end_date']) : null,
+      startDate: json['start_date'] != null ? DateTime.tryParse(json['start_date']) : null,
+      endDate: json['end_date'] != null ? DateTime.tryParse(json['end_date']) : null,
     );
   }
 
@@ -516,8 +446,7 @@ class ItemPromotion {
     return ItemPromotion(
       promotionId: categoryPromotion.detailId ?? 0,
       name: categoryPromotion.name ?? '',
-      description:
-          categoryPromotion.formattedDescription ?? categoryPromotion.name,
+      description: categoryPromotion.formattedDescription ?? categoryPromotion.name,
       discountType: categoryPromotion.type ?? '',
       discountValue: 0.0, // CategoryItemPromotion не имеет discountValue
       startDate: null, // CategoryItemPromotion не имеет дат

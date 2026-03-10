@@ -22,12 +22,10 @@ class MapAddressPage extends StatefulWidget {
   State<MapAddressPage> createState() => _MapAddressPageState();
 }
 
-class _MapAddressPageState extends State<MapAddressPage>
-    with TickerProviderStateMixin {
+class _MapAddressPageState extends State<MapAddressPage> with TickerProviderStateMixin {
   late LatLng _markerPos;
   final MapController _mapController = MapController();
-  final DraggableScrollableController _sheetController =
-      DraggableScrollableController();
+  final DraggableScrollableController _sheetController = DraggableScrollableController();
   bool _isSheetExpanded = false;
   // Current address string from reverse geocoding
   String _currentAddress = '';
@@ -42,7 +40,6 @@ class _MapAddressPageState extends State<MapAddressPage>
     // Get initial address
     _reverseAddress(_markerPos.latitude, _markerPos.longitude);
     _sheetController.addListener(() {
-      print(_sheetController.size);
       if (_sheetController.size > .7) {
         // _sheetController.animateTo(
         //   0.85,
@@ -65,7 +62,6 @@ class _MapAddressPageState extends State<MapAddressPage>
       lat: lat,
       lon: lon,
     );
-    print(addressData);
     // Update current address text
     if (addressData != null && addressData.isNotEmpty) {
       final first = addressData.first;
@@ -149,19 +145,15 @@ class _MapAddressPageState extends State<MapAddressPage>
                             child: ListView(
                               children: [
                                 Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       'Поиск адреса',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleLarge,
+                                      style: Theme.of(context).textTheme.titleLarge,
                                     ),
                                     IconButton(
                                       icon: const Icon(Icons.close),
-                                      onPressed: () =>
-                                          Navigator.of(context).pop(),
+                                      onPressed: () => Navigator.of(context).pop(),
                                     ),
                                   ],
                                 ),
@@ -172,8 +164,7 @@ class _MapAddressPageState extends State<MapAddressPage>
                                     suffixIcon: IconButton(
                                       icon: const Icon(Icons.search),
                                       onPressed: () async {
-                                        final res = await ApiService
-                                            .searchAddressByText(query);
+                                        final res = await ApiService.searchAddressByText(query);
                                         if (res != null) {
                                           setModalState(() => results = res);
                                         }
@@ -182,9 +173,7 @@ class _MapAddressPageState extends State<MapAddressPage>
                                   ),
                                   onChanged: (v) async {
                                     query = v;
-                                    final res =
-                                        await ApiService.searchAddressByText(
-                                            query);
+                                    final res = await ApiService.searchAddressByText(query);
                                     if (res != null) {
                                       setModalState(() => results = res);
                                     }
@@ -199,36 +188,22 @@ class _MapAddressPageState extends State<MapAddressPage>
                                   itemBuilder: (context, i) {
                                     final item = results[i];
                                     double lat, lon;
-                                    if (item['geometry'] != null &&
-                                        item['geometry']['coordinates']
-                                            is List) {
-                                      final coords = item['geometry']
-                                          ['coordinates'] as List;
+                                    if (item['geometry'] != null && item['geometry']['coordinates'] is List) {
+                                      final coords = item['geometry']['coordinates'] as List;
                                       lon = (coords[0] as num).toDouble();
                                       lat = (coords[1] as num).toDouble();
                                     } else if (item['point'] != null) {
-                                      lat = (item['point']['lat'] as num)
-                                          .toDouble();
-                                      lon = (item['point']['lon'] as num)
-                                          .toDouble();
+                                      lat = (item['point']['lat'] as num).toDouble();
+                                      lon = (item['point']['lon'] as num).toDouble();
                                     } else {
-                                      lat = ((item['lat'] as num?) ?? 0)
-                                          .toDouble();
-                                      lon = ((item['lon'] as num?) ?? 0)
-                                          .toDouble();
+                                      lat = ((item['lat'] as num?) ?? 0).toDouble();
+                                      lon = ((item['lon'] as num?) ?? 0).toDouble();
                                     }
                                     String name;
-                                    if (item['properties'] != null &&
-                                        item['properties']['geocoding'] !=
-                                            null) {
-                                      name = (item['properties']['geocoding']
-                                              ['label'] as String?) ??
-                                          '';
+                                    if (item['properties'] != null && item['properties']['geocoding'] != null) {
+                                      name = (item['properties']['geocoding']['label'] as String?) ?? '';
                                     } else {
-                                      name =
-                                          (item['display_name'] as String?) ??
-                                              (item['label'] as String?) ??
-                                              '';
+                                      name = (item['display_name'] as String?) ?? (item['label'] as String?) ?? '';
                                     }
                                     return ListTile(
                                       contentPadding: EdgeInsets.all(4),
@@ -236,13 +211,9 @@ class _MapAddressPageState extends State<MapAddressPage>
                                       onTap: () {
                                         setState(() {
                                           _isSheetExpanded = true;
-                                          _sheetController.animateTo(0.85,
-                                              duration: const Duration(
-                                                  milliseconds: 300),
-                                              curve: Curves.easeInOut);
+                                          _sheetController.animateTo(0.85, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
                                         });
-                                        Navigator.of(context)
-                                            .pop({'lat': lat, 'lon': lon});
+                                        Navigator.of(context).pop({'lat': lat, 'lon': lon});
                                       },
                                     );
                                   },
@@ -279,18 +250,16 @@ class _MapAddressPageState extends State<MapAddressPage>
                           mapController: _mapController,
                           options: MapOptions(
                             onPointerUp: (event, point) {
-                              print(point);
                               setState(() {
                                 _markerPos = _mapController.camera.center;
-                                _reverseAddress(
-                                    _markerPos.latitude, _markerPos.longitude);
+                                _reverseAddress(_markerPos.latitude, _markerPos.longitude);
                               });
                             },
                             onPositionChanged: (position, hasGesture) {
                               if (!hasGesture) {}
                             },
-                            center: _markerPos,
-                            zoom: 16.0,
+                            initialCenter: _markerPos,
+                            initialZoom: 16.0,
                             onTap: (tapPos, latlng) {
                               setState(() {
                                 _markerPos = latlng;
@@ -300,8 +269,7 @@ class _MapAddressPageState extends State<MapAddressPage>
                           children: [
                             TileLayer(
                               // tileBuilder: _darkModeTileBuilder,
-                              urlTemplate:
-                                  'https://tile3.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
+                              urlTemplate: 'https://tile3.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
                               subdomains: ['tile0', 'tile1', 'tile2', 'tile3'],
 
                               // urlTemplate:
@@ -347,8 +315,7 @@ class _MapAddressPageState extends State<MapAddressPage>
               initialChildSize: 0.4,
               minChildSize: 0.4,
               maxChildSize: 0.85,
-              builder:
-                  (BuildContext context, ScrollController scrollController) {
+              builder: (BuildContext context, ScrollController scrollController) {
                 return !_isSheetExpanded
                     ? Container(
                         decoration: BoxDecoration(
@@ -360,8 +327,7 @@ class _MapAddressPageState extends State<MapAddressPage>
                             ),
                           ],
                           color: Theme.of(context).colorScheme.surface,
-                          borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(16)),
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                         ),
                         child: ListView(
                           controller: scrollController,
@@ -382,16 +348,8 @@ class _MapAddressPageState extends State<MapAddressPage>
                             Padding(
                               padding: const EdgeInsets.all(16.0),
                               child: Text(
-                                _currentAddress.isNotEmpty
-                                    ? _currentAddress
-                                    : 'Загрузка адреса...',
-                                style: TextStyle(
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.color,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w900),
+                                _currentAddress.isNotEmpty ? _currentAddress : 'Загрузка адреса...',
+                                style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 16, fontWeight: FontWeight.w900),
                               ),
                             ),
                             // Apartment, entrance, comment inputs
@@ -416,8 +374,7 @@ class _MapAddressPageState extends State<MapAddressPage>
                     : Container(
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.surface,
-                          borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(16)),
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                         ),
                         child: ListView(
                           controller: scrollController,
@@ -438,16 +395,13 @@ class _MapAddressPageState extends State<MapAddressPage>
                             Padding(
                               padding: const EdgeInsets.all(16.0),
                               child: Text(
-                                _currentAddress.isNotEmpty
-                                    ? _currentAddress
-                                    : 'Загрузка адреса...',
+                                _currentAddress.isNotEmpty ? _currentAddress : 'Загрузка адреса...',
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ),
                             // Apartment, entrance, comment inputs
                             Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0, vertical: 8.0),
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                               child: TextField(
                                 controller: _apartmentController,
                                 decoration: InputDecoration(
@@ -457,8 +411,7 @@ class _MapAddressPageState extends State<MapAddressPage>
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0, vertical: 8.0),
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                               child: TextField(
                                 controller: _entranceController,
                                 decoration: InputDecoration(
@@ -468,8 +421,7 @@ class _MapAddressPageState extends State<MapAddressPage>
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0, vertical: 8.0),
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                               child: TextField(
                                 controller: _commentController,
                                 decoration: InputDecoration(
@@ -492,16 +444,11 @@ class _MapAddressPageState extends State<MapAddressPage>
                                     'comment': _commentController.text,
                                   };
                                   // Save as selected address
-                                  await AddressStorageService
-                                      .saveSelectedAddress(data);
+                                  await AddressStorageService.saveSelectedAddress(data);
                                   // Add to address history
-                                  await AddressStorageService
-                                      .addToAddressHistory({
+                                  await AddressStorageService.addToAddressHistory({
                                     'name': data['address'],
-                                    'point': {
-                                      'lat': data['lat'],
-                                      'lon': data['lon']
-                                    },
+                                    'point': {'lat': data['lat'], 'lon': data['lon']},
                                     'apartment': data['apartment'],
                                     'entrance': data['entrance'],
                                     'comment': data['comment'],

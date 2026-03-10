@@ -3,6 +3,7 @@ import 'package:naliv_delivery/utils/cartFloatingButton.dart';
 import '../utils/api.dart';
 import '../shared/product_card.dart';
 import '../model/item.dart' as ItemModel;
+import 'package:naliv_delivery/shared/app_theme.dart';
 
 class CategoryPage extends StatefulWidget {
   final Category category;
@@ -19,7 +20,6 @@ class CategoryPage extends StatefulWidget {
   @override
   State<CategoryPage> createState() => _CategoryPageState();
 }
-
 
 class _CategoryPageState extends State<CategoryPage> {
   Category? _selectedCategory;
@@ -48,17 +48,9 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels ==
-        _scrollController.position.maxScrollExtent) {
+    if (_scrollController.position.pixels == _scrollController.position.maxScrollExtent) {
       _loadMoreItems();
     }
-  }
-
-  // Получаем только основные категории (без родительских)
-  List<Category> get _mainCategories {
-    return widget.allCategories
-        .where((category) => !category.isSubcategory)
-        .toList();
   }
 
   Future<void> _loadCategoryItems({bool isLoadMore = false}) async {
@@ -76,8 +68,7 @@ class _CategoryPageState extends State<CategoryPage> {
     }
 
     try {
-      final categoryId =
-          _selectedSubcategory?.categoryId ?? _selectedCategory!.categoryId;
+      final categoryId = _selectedSubcategory?.categoryId ?? _selectedCategory!.categoryId;
       final currentPage = isLoadMore ? (_pagination?.page ?? 0) + 1 : 1;
 
       final response = await ApiService.getCategoryItemsTyped(
@@ -90,10 +81,7 @@ class _CategoryPageState extends State<CategoryPage> {
       if (mounted) {
         setState(() {
           if (response != null) {
-            final convertedItems = response.data.items
-                .map((categoryItem) =>
-                    ItemModel.Item.fromCategoryItem(categoryItem))
-                .toList();
+            final convertedItems = response.data.items.map((categoryItem) => ItemModel.Item.fromCategoryItem(categoryItem)).toList();
             if (isLoadMore) {
               _items.addAll(convertedItems);
             } else {
@@ -108,12 +96,8 @@ class _CategoryPageState extends State<CategoryPage> {
           _isLoading = false;
           _isLoadingMore = false;
         });
-
-        print(
-            '✅ Загружено товаров категории ${_selectedCategory!.name}: ${_items.length}');
       }
     } catch (e) {
-      print('❌ Ошибка загрузки товаров категории: $e');
       if (mounted) {
         setState(() {
           _error = 'Ошибка загрузки товаров: $e';
@@ -131,17 +115,6 @@ class _CategoryPageState extends State<CategoryPage> {
     await _loadCategoryItems(isLoadMore: true);
   }
 
-  void _onCategorySelected(Category category) {
-    if (_selectedCategory == category) return;
-
-    setState(() {
-      _selectedCategory = category;
-      _selectedSubcategory = null; // Сбрасываем выбранную подкатегорию
-    });
-
-    _loadCategoryItems();
-  }
-
   void _onSubcategorySelected(Category? subcategory) {
     if (_selectedSubcategory == subcategory) return;
 
@@ -154,158 +127,123 @@ class _CategoryPageState extends State<CategoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    final hasSubcategories = _selectedCategory != null && _selectedCategory!.hasSubcategories;
+
     return Scaffold(
-      floatingActionButton: CartFloatingButton(),
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            SliverAppBar(
-              title: Text(_selectedCategory?.name ?? 'Каталог'),
-              pinned: true,
-              floating: true,
-              snap: true,
-              // backgroundColor: Theme.of(context).colorScheme.surface,
-              // foregroundColor: Theme.of(context).colorScheme.onSurface,
-              elevation: 0,
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(60),
-                child: Column(
-                  children: [
-                    // Горизонтальный список категорий
-                    // Container(
-                    //   height: 60,
-                    //   color: Theme.of(context).colorScheme.surface,
-                    //   child: ListView.builder(
-                    //     scrollDirection: Axis.horizontal,
-                    //     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    //     itemCount: _mainCategories.length,
-                    //     itemBuilder: (context, index) {
-                    //       final category = _mainCategories[index];
-                    //       final isSelected = _selectedCategory == category;
-
-                    //       return Padding(
-                    //         padding: const EdgeInsets.only(right: 12),
-                    //         child: FilterChip(
-                    //           selected: isSelected,
-                    //           onSelected: (_) => _onCategorySelected(category),
-                    //           label: Text(category.name),
-                    //           labelStyle: TextStyle(
-                    //             color: isSelected
-                    //                 ? Theme.of(context).colorScheme.onPrimary
-                    //                 : Theme.of(context).colorScheme.onSurface,
-                    //             fontWeight: isSelected
-                    //                 ? FontWeight.w600
-                    //                 : FontWeight.w500,
-                    //           ),
-                    //           backgroundColor: isSelected
-                    //               ? Theme.of(context).colorScheme.primary
-                    //               : Theme.of(context)
-                    //                   .colorScheme
-                    //                   .surfaceContainerHighest,
-                    //           selectedColor:
-                    //               Theme.of(context).colorScheme.primary,
-                    //           checkmarkColor:
-                    //               Theme.of(context).colorScheme.onPrimary,
-                    //           side: BorderSide.none,
-                    //         ),
-                    //       );
-                    //     },
-                    //   ),
-                    // ),
-
-                    // Горизонтальный список подкатегорий
-                    if (_selectedCategory != null &&
-                        _selectedCategory!.hasSubcategories)
-                      Container(
-                        height: 60,
-                        // color:
-                        //     Theme.of(context).colorScheme.surfaceContainerLow,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: _selectedCategory!.subcategories.length +
-                              1, // +1 для "Все"
-                          itemBuilder: (context, index) {
-                            if (index == 0) {
-                              // Кнопка "Все товары"
-                              final isSelected = _selectedSubcategory == null;
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 12),
-                                child: FilterChip(
-                                  selected: isSelected,
-                                  onSelected: (_) =>
-                                      _onSubcategorySelected(null),
-                                  label: const Text('Все товары'),
-                                  labelStyle: TextStyle(
-                                    color: isSelected
-                                        ? Theme.of(context)
-                                            .colorScheme
-                                            .onSecondary
-                                        : Theme.of(context)
-                                            .colorScheme
-                                            .onSurface,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w600
-                                        : FontWeight.w500,
-                                  ),
-                                  backgroundColor: isSelected
-                                      ? Theme.of(context).colorScheme.secondary
-                                      : Theme.of(context)
-                                          .colorScheme
-                                          .surfaceContainerHighest,
-                                  selectedColor:
-                                      Theme.of(context).colorScheme.secondary,
-                                  checkmarkColor:
-                                      Theme.of(context).colorScheme.onSecondary,
-                                  side: BorderSide.none,
-                                ),
-                              );
-                            }
-
-                            final subcategory =
-                                _selectedCategory!.subcategories[index - 1];
-                            final isSelected =
-                                _selectedSubcategory == subcategory;
-
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 12),
-                              child: FilterChip(
-                                selected: isSelected,
-                                onSelected: (_) =>
-                                    _onSubcategorySelected(subcategory),
-                                label: Text(subcategory.name),
-                                labelStyle: TextStyle(
-                                  color: isSelected
-                                      ? Theme.of(context)
-                                          .colorScheme
-                                          .onSecondary
-                                      : Theme.of(context).colorScheme.onSurface,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w600
-                                      : FontWeight.w500,
-                                ),
-                                backgroundColor: isSelected
-                                    ? Theme.of(context).colorScheme.secondary
-                                    : Theme.of(context)
-                                        .colorScheme
-                                        .surfaceContainerHighest,
-                                selectedColor:
-                                    Theme.of(context).colorScheme.secondary,
-                                checkmarkColor:
-                                    Theme.of(context).colorScheme.onSecondary,
-                                side: BorderSide.none,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
+      backgroundColor: AppColors.bgDeep,
+      extendBodyBehindAppBar: true,
+      floatingActionButton: const CartFloatingButton(),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        foregroundColor: AppColors.text,
+        title: Text(
+          _selectedCategory?.name ?? 'Каталог',
+          style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800),
+        ),
+      ),
+      body: Stack(
+        children: [
+          const AppBackground(),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 140),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  _buildCategoryBadge(),
+                  if (hasSubcategories) ...[
+                    const SizedBox(height: 12),
+                    _buildSubcategoryChips(),
                   ],
-                ),
+                  const SizedBox(height: 12),
+                  Expanded(child: _buildBody()),
+                ],
               ),
             ),
-          ];
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryBadge() {
+    final subtitle = _selectedSubcategory?.name ?? _selectedCategory?.name ?? 'Каталог';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: AppDecorations.card(radius: 18),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: AppDecorations.pill(color: AppColors.blue),
+            child: const Icon(Icons.category, color: AppColors.orange, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _selectedCategory?.name ?? 'Каталог',
+                  style: const TextStyle(color: AppColors.text, fontSize: 18, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.9), fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubcategoryChips() {
+    final subs = _selectedCategory?.subcategories ?? [];
+    return SizedBox(
+      height: 54,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: subs.length + 1,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            final isSelected = _selectedSubcategory == null;
+            return ChoiceChip(
+              selected: isSelected,
+              onSelected: (_) => _onSubcategorySelected(null),
+              label: const Text('Все товары'),
+              labelStyle: TextStyle(
+                color: isSelected ? Colors.black : AppColors.text,
+                fontWeight: FontWeight.w700,
+              ),
+              backgroundColor: AppColors.card,
+              selectedColor: AppColors.orange,
+              side: BorderSide(color: isSelected ? AppColors.orange.withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.08)),
+            );
+          }
+
+          final sub = subs[index - 1];
+          final isSelected = _selectedSubcategory == sub;
+          return ChoiceChip(
+            selected: isSelected,
+            onSelected: (_) => _onSubcategorySelected(sub),
+            label: Text(sub.name),
+            labelStyle: TextStyle(
+              color: isSelected ? Colors.black : AppColors.text,
+              fontWeight: FontWeight.w700,
+            ),
+            backgroundColor: AppColors.card,
+            selectedColor: AppColors.orange,
+            side: BorderSide(color: isSelected ? AppColors.orange.withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.08)),
+          );
         },
-        body: _buildBody(),
       ),
     );
   }
@@ -318,7 +256,7 @@ class _CategoryPageState extends State<CategoryPage> {
           children: [
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            Text('Загрузка товаров...'),
+            Text('Загрузка товаров...', style: TextStyle(color: AppColors.text)),
           ],
         ),
       );
@@ -333,16 +271,13 @@ class _CategoryPageState extends State<CategoryPage> {
             children: [
               Icon(
                 Icons.error_outline,
-                color: Theme.of(context).colorScheme.error,
+                color: AppColors.red,
                 size: 48,
               ),
               const SizedBox(height: 16),
               Text(
                 _error!,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
-                  fontSize: 16,
-                ),
+                style: const TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w700),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -350,6 +285,10 @@ class _CategoryPageState extends State<CategoryPage> {
                 onPressed: () => _loadCategoryItems(),
                 icon: const Icon(Icons.refresh),
                 label: const Text('Повторить'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.orange,
+                  foregroundColor: Colors.black,
+                ),
               ),
             ],
           ),
@@ -364,26 +303,20 @@ class _CategoryPageState extends State<CategoryPage> {
           children: [
             Icon(
               Icons.inventory_2_outlined,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color: AppColors.textMute,
               size: 48,
             ),
             const SizedBox(height: 16),
             Text(
               'Товары не найдены',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 16,
-              ),
+              style: const TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             Text(
               _selectedSubcategory != null
                   ? 'В подкатегории "${_selectedSubcategory!.name}" нет товаров'
                   : 'В категории "${_selectedCategory!.name}" нет товаров',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: AppColors.textMute, fontSize: 14),
               textAlign: TextAlign.center,
             ),
           ],
@@ -393,7 +326,7 @@ class _CategoryPageState extends State<CategoryPage> {
 
     return GridView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         childAspectRatio: 0.6, // Делаем карточки вытянутыми вертикально
@@ -414,6 +347,7 @@ class _CategoryPageState extends State<CategoryPage> {
           item: item,
         );
       },
+      physics: const BouncingScrollPhysics(),
     );
   }
 }

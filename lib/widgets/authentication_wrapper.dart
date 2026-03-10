@@ -46,7 +46,7 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
           _isLoading = false;
         });
       }
-      print('Error checking authentication: $e');
+      debugPrint('Error checking authentication: $e');
     }
   }
 

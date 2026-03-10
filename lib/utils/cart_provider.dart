@@ -1,4 +1,3 @@
-import 'dart:collection';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,10 +15,7 @@ class CartProvider extends ChangeNotifier {
   CartItem? getItem(int itemId, [List<Map<String, dynamic>>? variants]) {
     if (variants != null) {
       return _items.firstWhereOrNull(
-        (item) =>
-            item.itemId == itemId &&
-            const DeepCollectionEquality()
-                .equals(item.selectedVariants, variants),
+        (item) => item.itemId == itemId && const DeepCollectionEquality().equals(item.selectedVariants, variants),
       );
     }
     return _items.firstWhereOrNull((item) => item.itemId == itemId);
@@ -40,10 +36,7 @@ class CartProvider extends ChangeNotifier {
       }
     }
     final index = _items.indexWhere(
-      (item) =>
-          item.itemId == newItem.itemId &&
-          const DeepCollectionEquality()
-              .equals(item.selectedVariants, newItem.selectedVariants),
+      (item) => item.itemId == newItem.itemId && const DeepCollectionEquality().equals(item.selectedVariants, newItem.selectedVariants),
     );
     if (index >= 0) {
       _items[index].updateQuantity(_items[index].quantity + newItem.quantity);
@@ -59,10 +52,7 @@ class CartProvider extends ChangeNotifier {
   void removeItem(int itemId, [List<Map<String, dynamic>>? variants]) {
     if (variants != null) {
       _items.removeWhere(
-        (item) =>
-            item.itemId == itemId &&
-            const DeepCollectionEquality()
-                .equals(item.selectedVariants, variants),
+        (item) => item.itemId == itemId && const DeepCollectionEquality().equals(item.selectedVariants, variants),
       );
     } else {
       _items.removeWhere((item) => item.itemId == itemId);
@@ -79,8 +69,7 @@ class CartProvider extends ChangeNotifier {
   }
 
   /// Обновить количество товара, удалит при <=0
-  void updateQuantity(int itemId, double newQuantity,
-      [List<Map<String, dynamic>>? variants]) {
+  void updateQuantity(int itemId, double newQuantity, [List<Map<String, dynamic>>? variants]) {
     final item = getItem(itemId, variants);
     if (item == null) return;
     item.updateQuantity(newQuantity);
@@ -90,8 +79,7 @@ class CartProvider extends ChangeNotifier {
   }
 
   /// Общая сумма корзины с учетом скидок
-  double getTotalPrice() =>
-      _items.fold(0.0, (sum, item) => sum + item.totalPrice);
+  double getTotalPrice() => _items.fold(0.0, (sum, item) => sum + item.totalPrice);
 
   /// Сохранить корзину
   Future<void> _saveCart() async {
@@ -110,8 +98,7 @@ class CartProvider extends ChangeNotifier {
       final decoded = jsonDecode(jsonString) as List<dynamic>;
       _items
         ..clear()
-        ..addAll(
-            decoded.map((e) => CartItem.fromJson(e as Map<String, dynamic>)));
+        ..addAll(decoded.map((e) => CartItem.fromJson(e as Map<String, dynamic>)));
       notifyListeners();
     }
   }
@@ -123,13 +110,11 @@ class CartProvider extends ChangeNotifier {
 
   /// Общее количество товара в корзине по ID (учитывает все варианты)
   double getTotalQuantityForItem(int itemId) {
-    return getItemVariants(itemId)
-        .fold(0.0, (sum, item) => sum + item.quantity);
+    return getItemVariants(itemId).fold(0.0, (sum, item) => sum + item.quantity);
   }
 
   /// Обновление количества с учетом выбранных вариантов
-  void updateQuantityWithVariants(
-      int itemId, List<Map<String, dynamic>> variants, double newQuantity) {
+  void updateQuantityWithVariants(int itemId, List<Map<String, dynamic>> variants, double newQuantity) {
     updateQuantity(itemId, newQuantity, variants);
   }
 
@@ -147,8 +132,7 @@ class CartProvider extends ChangeNotifier {
     final variantMaps = List<Map<String, dynamic>>.from(selectedVariants);
     final promoMaps = List<Map<String, dynamic>>.from(promotions);
     // Определяем шаг изменения из parent_item_amount или stepQuantity
-    double step = variantMaps.isNotEmpty &&
-            variantMaps.first['parent_item_amount'] != null
+    double step = variantMaps.isNotEmpty && variantMaps.first['parent_item_amount'] != null
         ? (variantMaps.first['parent_item_amount'] as num).toDouble()
         : quantity;
     final newItem = CartItem(

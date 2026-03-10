@@ -33,7 +33,7 @@ class _MandatoryOfferPageState extends State<MandatoryOfferPage> {
         _offerContent = content;
       });
     } catch (e) {
-      print('Ошибка загрузки оферты: $e');
+      debugPrint('Ошибка загрузки оферты: $e');
       setState(() {
         _offerContent = '''# Публичная оферта
 
@@ -136,7 +136,7 @@ class _MandatoryOfferPageState extends State<MandatoryOfferPage> {
                       color: const Color(0xFF1E1E1E),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Colors.grey.withOpacity(0.3),
+                        color: Colors.grey.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -144,28 +144,17 @@ class _MandatoryOfferPageState extends State<MandatoryOfferPage> {
                       data: _offerContent!,
                       styleSheet: MarkdownStyleSheet(
                         p: const TextStyle(color: Colors.white70, fontSize: 14),
-                        h1: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold),
-                        h2: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600),
-                        h3: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500),
+                        h1: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                        h2: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600),
+                        h3: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500),
                         blockquoteDecoration: BoxDecoration(
-                          color: Colors.grey.withOpacity(0.1),
+                          color: Colors.grey.withValues(alpha: 0.1),
                           border: Border(
-                            left: BorderSide(
-                                color: Theme.of(context).primaryColor,
-                                width: 4),
+                            left: BorderSide(color: Theme.of(context).primaryColor, width: 4),
                           ),
                         ),
                         codeblockDecoration: BoxDecoration(
-                          color: Colors.grey.withOpacity(0.1),
+                          color: Colors.grey.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
@@ -182,9 +171,7 @@ class _MandatoryOfferPageState extends State<MandatoryOfferPage> {
                     color: const Color(0xFF1E1E1E),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: _isAccepted
-                          ? Theme.of(context).primaryColor
-                          : Colors.grey.withOpacity(0.3),
+                      color: _isAccepted ? Theme.of(context).primaryColor : Colors.grey.withValues(alpha: 0.3),
                       width: 2,
                     ),
                   ),
@@ -222,9 +209,7 @@ class _MandatoryOfferPageState extends State<MandatoryOfferPage> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _acceptOffer,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _isAccepted
-                          ? Theme.of(context).primaryColor
-                          : Colors.grey.withOpacity(0.3),
+                      backgroundColor: _isAccepted ? Theme.of(context).primaryColor : Colors.grey.withValues(alpha: 0.3),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -238,8 +223,7 @@ class _MandatoryOfferPageState extends State<MandatoryOfferPage> {
                             width: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
                         : const Text(
@@ -254,8 +238,7 @@ class _MandatoryOfferPageState extends State<MandatoryOfferPage> {
 
                 // Предупреждение
                 Container(
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: const Text(
                     'Для использования приложения необходимо принять условия публичной оферты',
                     textAlign: TextAlign.center,

@@ -4,6 +4,7 @@ import '../utils/api.dart';
 import '../utils/business_provider.dart';
 import '../shared/product_card.dart';
 import '../model/item.dart' as ItemModel;
+import 'package:naliv_delivery/shared/app_theme.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -45,8 +46,7 @@ class _SearchPageState extends State<SearchPage> {
     if (!_isLoadingMore &&
         _pagination != null &&
         _pagination!.hasNextPage &&
-        _scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent - 200) {
+        _scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
       _loadMore();
     }
   }
@@ -54,8 +54,7 @@ class _SearchPageState extends State<SearchPage> {
   Future<void> _search(String query) async {
     if (query.isEmpty) return;
 
-    final businessProvider =
-        Provider.of<BusinessProvider>(context, listen: false);
+    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
     final businessId = businessProvider.selectedBusinessId;
 
     setState(() {
@@ -85,9 +84,7 @@ class _SearchPageState extends State<SearchPage> {
         return;
       }
 
-      final mapped = resp.data.items
-          .map((ci) => ItemModel.Item.fromCategoryItem(ci))
-          .toList();
+      final mapped = resp.data.items.map((ci) => ItemModel.Item.fromCategoryItem(ci)).toList();
 
       setState(() {
         _items = mapped;
@@ -107,9 +104,7 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Future<void> _loadMore() async {
-    if (_currentQuery.isEmpty ||
-        _pagination == null ||
-        !_pagination!.hasNextPage) {
+    if (_currentQuery.isEmpty || _pagination == null || !_pagination!.hasNextPage) {
       return;
     }
 
@@ -128,9 +123,7 @@ class _SearchPageState extends State<SearchPage> {
       if (!mounted) return;
 
       if (resp != null) {
-        final mapped = resp.data.items
-            .map((ci) => ItemModel.Item.fromCategoryItem(ci))
-            .toList();
+        final mapped = resp.data.items.map((ci) => ItemModel.Item.fromCategoryItem(ci)).toList();
 
         setState(() {
           _items.addAll(mapped);
@@ -152,9 +145,9 @@ class _SearchPageState extends State<SearchPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
+            CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(AppColors.orange)),
             SizedBox(height: 16),
-            Text('Загрузка товаров...'),
+            Text('Загрузка товаров...', style: TextStyle(color: AppColors.text)),
           ],
         ),
       );
@@ -169,16 +162,13 @@ class _SearchPageState extends State<SearchPage> {
             children: [
               Icon(
                 Icons.error_outline,
-                color: Theme.of(context).colorScheme.error,
+                color: AppColors.red,
                 size: 48,
               ),
               const SizedBox(height: 16),
               Text(
                 _error!,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
-                  fontSize: 16,
-                ),
+                style: const TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w700),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -186,6 +176,10 @@ class _SearchPageState extends State<SearchPage> {
                 onPressed: () => _search(_controller.text),
                 icon: const Icon(Icons.refresh),
                 label: const Text('Повторить'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.orange,
+                  foregroundColor: Colors.black,
+                ),
               ),
             ],
           ),
@@ -200,16 +194,13 @@ class _SearchPageState extends State<SearchPage> {
           children: [
             Icon(
               Icons.inventory_2_outlined,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color: AppColors.textMute,
               size: 48,
             ),
             const SizedBox(height: 16),
             Text(
               'Товары не найдены',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 16,
-              ),
+              style: const TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -218,7 +209,7 @@ class _SearchPageState extends State<SearchPage> {
 
     return GridView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         childAspectRatio: 0.6,
@@ -228,36 +219,78 @@ class _SearchPageState extends State<SearchPage> {
       itemCount: _items.length + (_isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (_isLoadingMore && index == _items.length) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation(AppColors.orange),
+            ),
+          );
         }
         final item = _items[index];
         return ProductCard(item: item);
       },
+      physics: const BouncingScrollPhysics(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.bgDeep,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: TextField(
-          controller: _controller,
-          decoration: const InputDecoration(
-            hintText: 'Поиск товаров...',
-            border: InputBorder.none,
-          ),
-          textInputAction: TextInputAction.search,
-          onSubmitted: _search,
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () => _search(_controller.text),
-            tooltip: 'Поиск',
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        foregroundColor: AppColors.text,
+        title: const Text('Поиск', style: TextStyle(fontWeight: FontWeight.w800)),
+      ),
+      body: Stack(
+        children: [
+          const AppBackground(),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+              child: Column(
+                children: [
+                  _buildSearchField(),
+                  const SizedBox(height: 12),
+                  Expanded(child: _buildBody()),
+                ],
+              ),
+            ),
           ),
         ],
       ),
-      body: _buildBody(),
+    );
+  }
+
+  Widget _buildSearchField() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: AppDecorations.card(radius: 16),
+      child: Row(
+        children: [
+          const Icon(Icons.search, color: AppColors.textMute),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              style: const TextStyle(color: AppColors.text),
+              decoration: const InputDecoration(
+                hintText: 'Найти товары...',
+                hintStyle: TextStyle(color: AppColors.textMute),
+                border: InputBorder.none,
+              ),
+              textInputAction: TextInputAction.search,
+              onSubmitted: _search,
+            ),
+          ),
+          IconButton(
+            onPressed: () => _search(_controller.text),
+            icon: const Icon(Icons.tune, color: AppColors.textMute),
+          ),
+        ],
+      ),
     );
   }
 }

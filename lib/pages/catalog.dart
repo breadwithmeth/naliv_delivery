@@ -54,11 +54,8 @@ class _CatalogState extends State<Catalog> {
           _superCategories = supercats ?? [];
           _isLoading = false;
         });
-
-        print('✅ Загружено категорий: ${_superCategories.length}');
       }
     } catch (e) {
-      print('❌ Ошибка загрузки категорий: $e');
       if (mounted) {
         setState(() {
           _error = 'Ошибка загрузки категорий: $e';
@@ -148,9 +145,7 @@ class _CatalogState extends State<Catalog> {
             ),
             const SizedBox(height: 8),
             Text(
-              widget.businessId != null
-                  ? 'Для выбранного магазина нет категорий'
-                  : 'Выберите магазин для просмотра каталога',
+              widget.businessId != null ? 'Для выбранного магазина нет категорий' : 'Выберите магазин для просмотра каталога',
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 14,
@@ -173,9 +168,7 @@ class _CatalogState extends State<Catalog> {
             itemCount: _superCategories.length,
             itemBuilder: (context, index) {
               final supercat = _superCategories[index];
-              final List<Map<String, dynamic>> cats =
-                  (supercat['categories'] as List<dynamic>)
-                      .cast<Map<String, dynamic>>();
+              final List<Map<String, dynamic>> cats = (supercat['categories'] as List<dynamic>).cast<Map<String, dynamic>>();
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                 child: Column(
@@ -183,10 +176,7 @@ class _CatalogState extends State<Catalog> {
                     Row(
                       children: [
                         Text(supercat['name'] ?? '',
-                            style: TextStyle(
-                                color: Theme.of(context).colorScheme.primary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 24)),
+                            style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 24)),
                       ],
                     ),
                     SizedBox(height: 8),
@@ -195,8 +185,7 @@ class _CatalogState extends State<Catalog> {
                       primary: false,
                       shrinkWrap: true,
                       itemCount: cats.length,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 3,
                         childAspectRatio: 0.8,
                         crossAxisSpacing: 8,
@@ -204,16 +193,13 @@ class _CatalogState extends State<Catalog> {
                       ),
                       itemBuilder: (context, index) {
                         final cat = cats[index];
-                        print(cat);
                         return GestureDetector(
                             onTap: () {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
                                   builder: (_) => CategoryPage(
                                     category: Category.fromJson(cat),
-                                    allCategories: cats
-                                        .map((c) => Category.fromJson(c))
-                                        .toList(),
+                                    allCategories: cats.map((c) => Category.fromJson(c)).toList(),
                                     businessId: widget.businessId,
                                   ),
                                 ),
@@ -228,12 +214,9 @@ class _CatalogState extends State<Catalog> {
                                     clipBehavior: Clip.antiAliasWithSaveLayer,
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(5),
-                                      color:
-                                          Theme.of(context).colorScheme.surface,
+                                      color: Theme.of(context).colorScheme.surface,
                                     ),
-                                    child: Image.network(cat['img'] ?? '',
-                                        fit: BoxFit.cover, errorBuilder:
-                                            (context, error, stackTrace) {
+                                    child: Image.network(cat['img'] ?? '', fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) {
                                       return const Icon(Icons.error, size: 48);
                                     }),
                                   ),
@@ -244,9 +227,7 @@ class _CatalogState extends State<Catalog> {
                                   child: Text(
                                     cat['name'] ?? '',
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 12),
+                                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
                                     maxLines: 2,
                                   ),
                                 ),

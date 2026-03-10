@@ -16,7 +16,6 @@ class AgreementService {
   static Future<void> acceptOffer() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_offerAcceptedKey, true);
-    print('✅ Оферта принята пользователем');
   }
 
   /// Проверить, принята ли политика конфиденциальности
@@ -29,7 +28,6 @@ class AgreementService {
   static Future<void> acceptPrivacy() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_privacyAcceptedKey, true);
-    print('✅ Политика конфиденциальности принята пользователем');
   }
 
   /// Проверить, приняты ли условия использования
@@ -42,7 +40,6 @@ class AgreementService {
   static Future<void> acceptTerms() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_termsAcceptedKey, true);
-    print('✅ Условия использования приняты пользователем');
   }
 
   /// Проверить, приняты ли все необходимые соглашения
@@ -61,7 +58,6 @@ class AgreementService {
     await prefs.remove(_offerAcceptedKey);
     await prefs.remove(_privacyAcceptedKey);
     await prefs.remove(_termsAcceptedKey);
-    print('🔄 Все согласия сброшены');
   }
 
   /// Принять все соглашения разом
@@ -69,6 +65,5 @@ class AgreementService {
     await acceptOffer();
     await acceptPrivacy();
     await acceptTerms();
-    print('✅ Все соглашения приняты');
   }
 }
