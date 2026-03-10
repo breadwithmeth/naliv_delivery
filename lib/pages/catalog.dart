@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/shared/app_theme.dart';
 import 'package:naliv_delivery/utils/searchButton.dart';
 import '../utils/api.dart';
 import 'categoryPage.dart';
@@ -20,6 +21,7 @@ class _CatalogState extends State<Catalog> {
   List<Map<String, dynamic>> _superCategories = [];
   bool _isLoading = false;
   String? _error;
+  int _selectedSuperIndex = 0;
 
   @override
   void initState() {
@@ -68,13 +70,28 @@ class _CatalogState extends State<Catalog> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.bgDeep,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Каталог'),
-        centerTitle: true,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        foregroundColor: AppColors.text,
+        centerTitle: true,
+        title: const Text('Категории', style: TextStyle(fontWeight: FontWeight.w800)),
         actions: [SearchButton()],
       ),
-      body: _buildBody(),
+      body: Stack(
+        children: [
+          const AppBackground(),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+              child: _buildBody(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -84,9 +101,9 @@ class _CatalogState extends State<Catalog> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
+            CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(AppColors.orange)),
             SizedBox(height: 16),
-            Text('Загрузка каталога...'),
+            Text('Загрузка каталога...', style: TextStyle(color: AppColors.text)),
           ],
         ),
       );
@@ -99,18 +116,11 @@ class _CatalogState extends State<Catalog> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.error_outline,
-                color: Theme.of(context).colorScheme.error,
-                size: 48,
-              ),
+              const Icon(Icons.error_outline, color: AppColors.red, size: 48),
               const SizedBox(height: 16),
               Text(
                 _error!,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
-                  fontSize: 16,
-                ),
+                style: const TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w700),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -118,6 +128,7 @@ class _CatalogState extends State<Catalog> {
                 onPressed: _loadCategories,
                 icon: const Icon(Icons.refresh),
                 label: const Text('Повторить'),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.orange, foregroundColor: Colors.black),
               ),
             ],
           ),
@@ -132,138 +143,184 @@ class _CatalogState extends State<Catalog> {
           children: [
             Icon(
               Icons.category_outlined,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color: AppColors.textMute,
               size: 48,
             ),
             const SizedBox(height: 16),
             Text(
               'Категории не найдены',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 16,
-              ),
+              style: const TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             Text(
               widget.businessId != null ? 'Для выбранного магазина нет категорий' : 'Выберите магазин для просмотра каталога',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.9), fontSize: 14),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
       );
     }
 
-    // Отображаем суперкатегории и вложенные категории
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          ListView.builder(
-            physics: const NeverScrollableScrollPhysics(),
-            primary: false,
-            shrinkWrap: true,
-            padding: const EdgeInsets.all(0),
-            itemCount: _superCategories.length,
-            itemBuilder: (context, index) {
-              final supercat = _superCategories[index];
-              final List<Map<String, dynamic>> cats = (supercat['categories'] as List<dynamic>).cast<Map<String, dynamic>>();
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Text(supercat['name'] ?? '',
-                            style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 24)),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    GridView.builder(
-                      padding: const EdgeInsets.all(0),
-                      primary: false,
-                      shrinkWrap: true,
-                      itemCount: cats.length,
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        childAspectRatio: 0.8,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                      ),
-                      itemBuilder: (context, index) {
-                        final cat = cats[index];
-                        return GestureDetector(
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => CategoryPage(
-                                    category: Category.fromJson(cat),
-                                    allCategories: cats.map((c) => Category.fromJson(c)).toList(),
-                                    businessId: widget.businessId,
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                AspectRatio(
-                                  aspectRatio: 4 / 3,
-                                  child: Container(
-                                    clipBehavior: Clip.antiAliasWithSaveLayer,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(5),
-                                      color: Theme.of(context).colorScheme.surface,
-                                    ),
-                                    child: Image.network(cat['img'] ?? '', fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) {
-                                      return const Icon(Icons.error, size: 48);
-                                    }),
-                                  ),
-                                ),
-                                Container(
-                                  padding: EdgeInsets.all(3),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    cat['name'] ?? '',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
-                                    maxLines: 2,
-                                  ),
-                                ),
-                              ],
-                            ));
-                      },
-                    ),
-                  ],
-                ),
-              );
+    final tabs = _superCategories;
+    final selected = tabs[_selectedSuperIndex];
+    final List<Map<String, dynamic>> cats = (selected['categories'] as List<dynamic>).cast<Map<String, dynamic>>();
 
-              // return ExpansionTile(
-              //   title: Text(supercat['name'] ?? ''),
-              //   children: cats.map((cat) {
-              //     return ListTile(
-              //       title: Text(cat['name'] ?? ''),
-              //       onTap: () {
-              //         // Навигация к странице категории
-              //         Navigator.of(context).push(
-              //           MaterialPageRoute(
-              //             builder: (_) => CategoryPage(
-              //               category: Category.fromJson(cat),
-              //               allCategories:
-              //                   cats.map((c) => Category.fromJson(c)).toList(),
-              //               businessId: widget.businessId,
-              //             ),
-              //           ),
-              //         );
-              //       },
-              //     );
-              //   }).toList(),
-              // );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _superChips(tabs),
+        const SizedBox(height: 12),
+        _gridHeader(title: selected['name']?.toString() ?? 'Категории'),
+        const SizedBox(height: 12),
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.only(bottom: 12),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.72,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
+            itemCount: cats.length,
+            itemBuilder: (context, index) {
+              final cat = cats[index];
+              return _categoryTile(cat, cats);
             },
           ),
-          SizedBox(height: 160),
-        ],
+        ),
+      ],
+    );
+  }
+
+  Widget _superChips(List<Map<String, dynamic>> tabs) {
+    return SizedBox(
+      height: 46,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: tabs.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final isSelected = index == _selectedSuperIndex;
+          final label = tabs[index]['name']?.toString() ?? 'Раздел';
+          return GestureDetector(
+            onTap: () {
+              if (_selectedSuperIndex != index) {
+                setState(() {
+                  _selectedSuperIndex = index;
+                });
+              }
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                gradient: isSelected
+                    ? const LinearGradient(colors: [Color(0xFF8B1F1E), AppColors.red])
+                    : const LinearGradient(colors: [AppColors.card, AppColors.cardDark]),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: isSelected ? AppColors.orange.withValues(alpha: 0.7) : Colors.white.withValues(alpha: 0.08)),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: isSelected ? 0.32 : 0.18), blurRadius: 12, offset: const Offset(0, 8)),
+                ],
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : AppColors.text,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _gridHeader({required String title}) {
+    return Row(
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Популярно сейчас', style: TextStyle(color: AppColors.textMute, fontSize: 12, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            Text(title, style: const TextStyle(color: AppColors.text, fontSize: 18, fontWeight: FontWeight.w900)),
+          ],
+        ),
+        const Spacer(),
+      ],
+    );
+  }
+
+  Widget _categoryTile(Map<String, dynamic> cat, List<Map<String, dynamic>> cats) {
+    final name = cat['name']?.toString() ?? 'Категория';
+    final img = cat['img']?.toString();
+    final count = cat['items_count'] ?? cat['items']?.length;
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CategoryPage(
+              category: Category.fromJson(cat),
+              allCategories: cats.map((c) => Category.fromJson(c)).toList(),
+              businessId: widget.businessId,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          color: AppColors.cardDark,
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.26), blurRadius: 18, offset: const Offset(0, 12)),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: img != null && img.isNotEmpty
+                  ? Image.network(
+                      img,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(color: AppColors.cardDark, child: const Icon(Icons.photo, color: AppColors.textMute)),
+                    )
+                  : Container(color: AppColors.cardDark, child: const Icon(Icons.photo, color: AppColors.textMute)),
+            ),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.black.withValues(alpha: 0.05), Colors.black.withValues(alpha: 0.65)],
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 12,
+              right: 12,
+              bottom: 12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name, style: const TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w800)),
+                  if (count != null) ...[
+                    const SizedBox(height: 4),
+                    Text('$count товаров', style: const TextStyle(color: AppColors.textMute, fontSize: 12, fontWeight: FontWeight.w600)),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

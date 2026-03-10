@@ -9,6 +9,7 @@ import '../utils/api.dart';
 import '../utils/liked_storage_service.dart';
 import '../utils/business_provider.dart';
 import '../utils/liked_items_provider.dart';
+import 'package:naliv_delivery/shared/app_theme.dart';
 
 class ProductCard extends StatefulWidget {
   final ItemModel.Item item;
@@ -94,21 +95,7 @@ class _ProductCardState extends State<ProductCard> {
     final item = widget.item;
     return GestureDetector(
       child: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          // border: Border.all(
-          //   color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
-          //   width: 1,
-          // ),
-          // boxShadow: [
-          //   BoxShadow(
-          //     color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.1),
-          //     blurRadius: 4,
-          //     offset: const Offset(0, 2),
-          //   ),
-          // ],
-        ),
+        decoration: AppDecorations.card(radius: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -119,14 +106,7 @@ class _ProductCardState extends State<ProductCard> {
                   aspectRatio: 1.0, // Квадратное соотношение
                   child: Container(
                     decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      color: AppColors.cardDark,
                       borderRadius: const BorderRadius.all(Radius.circular(15)),
                     ),
                     child: item.image != null && item.image!.isNotEmpty
@@ -138,7 +118,7 @@ class _ProductCardState extends State<ProductCard> {
                               errorBuilder: (context, error, stackTrace) {
                                 return Icon(
                                   Icons.inventory_2_outlined,
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  color: AppColors.textMute,
                                   size: 48,
                                 );
                               },
@@ -146,7 +126,7 @@ class _ProductCardState extends State<ProductCard> {
                           )
                         : Icon(
                             Icons.inventory_2_outlined,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: AppColors.textMute,
                             size: 48,
                           ),
                   ),
@@ -183,7 +163,7 @@ class _ProductCardState extends State<ProductCard> {
                                                   vertical: 2,
                                                 ),
                                                 decoration: BoxDecoration(
-                                                  color: Theme.of(context).colorScheme.surfaceContainer,
+                                                  color: AppColors.card,
                                                   borderRadius: BorderRadius.circular(6),
                                                 ),
                                                 child: Text(
@@ -191,7 +171,7 @@ class _ProductCardState extends State<ProductCard> {
                                                   style: TextStyle(
                                                     fontSize: 11,
                                                     fontWeight: FontWeight.w700,
-                                                    color: Theme.of(context).colorScheme.onSurface,
+                                                    color: AppColors.text,
                                                   ),
                                                 ),
                                               );
@@ -210,13 +190,13 @@ class _ProductCardState extends State<ProductCard> {
                                       child: Container(
                                         padding: const EdgeInsets.all(4),
                                         decoration: BoxDecoration(
-                                          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
+                                          color: AppColors.cardDark.withValues(alpha: 0.7),
                                           shape: BoxShape.circle,
                                         ),
                                         child: Icon(
                                           _isLiked ? Icons.favorite : Icons.favorite_border,
                                           size: 18,
-                                          color: _isLiked ? Colors.redAccent : Theme.of(context).colorScheme.onSurfaceVariant,
+                                          color: _isLiked ? AppColors.orange : AppColors.textMute,
                                         ),
                                       ),
                                     ),
@@ -231,7 +211,7 @@ class _ProductCardState extends State<ProductCard> {
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.surfaceContainer,
+                                    color: AppColors.card,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Row(
@@ -240,14 +220,14 @@ class _ProductCardState extends State<ProductCard> {
                                       Icon(
                                         Icons.tune,
                                         size: 12,
-                                        color: Theme.of(context).colorScheme.onSurface,
+                                        color: AppColors.text,
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
                                         '+ опции (${item.options!.length})',
                                         style: TextStyle(
                                           fontSize: 11,
-                                          color: Theme.of(context).colorScheme.onSurface,
+                                          color: AppColors.text,
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -281,6 +261,7 @@ class _ProductCardState extends State<ProductCard> {
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
+                        color: AppColors.text,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -353,8 +334,8 @@ class _ProductCardState extends State<ProductCard> {
                                     }
                                   },
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Theme.of(context).colorScheme.primary,
-                                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                                    backgroundColor: AppColors.orange,
+                                    foregroundColor: Colors.black,
                                     padding: EdgeInsets.zero,
                                     minimumSize: const Size(32, 32),
                                   ),
@@ -367,7 +348,7 @@ class _ProductCardState extends State<ProductCard> {
                                 child: Container(
                                   height: 32,
                                   decoration: BoxDecoration(
-                                    border: Border.all(color: Theme.of(context).colorScheme.primary),
+                                    border: Border.all(color: AppColors.orange),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Center(
@@ -376,7 +357,7 @@ class _ProductCardState extends State<ProductCard> {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
-                                        color: Theme.of(context).colorScheme.primary,
+                                        color: AppColors.orange,
                                       ),
                                     ),
                                   ),
@@ -427,10 +408,8 @@ class _ProductCardState extends State<ProductCard> {
                                         }
                                       : null,
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        canIncrease ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surfaceVariant,
-                                    foregroundColor:
-                                        canIncrease ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurfaceVariant,
+                                    backgroundColor: canIncrease ? AppColors.orange : AppColors.cardDark,
+                                    foregroundColor: canIncrease ? Colors.black : AppColors.textMute,
                                     padding: EdgeInsets.zero,
                                     minimumSize: const Size(32, 32),
                                   ),
@@ -453,7 +432,7 @@ class _ProductCardState extends State<ProductCard> {
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color: AppColors.orange,
                                   ),
                                 ),
                               ),
@@ -462,9 +441,8 @@ class _ProductCardState extends State<ProductCard> {
                                 width: 32,
                                 child: IconButton(
                                   style: IconButton.styleFrom(
-                                    backgroundColor: canAdd ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surfaceVariant,
-                                    foregroundColor:
-                                        canAdd ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurfaceVariant,
+                                    backgroundColor: canAdd ? AppColors.orange : AppColors.cardDark,
+                                    foregroundColor: canAdd ? Colors.black : AppColors.textMute,
                                     padding: EdgeInsets.zero,
                                     minimumSize: const Size(32, 32),
                                   ),

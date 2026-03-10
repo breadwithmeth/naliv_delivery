@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../model/item.dart' as ItemModel;
 // import '../models/CartItem.dart';
 import '../utils/cart_provider.dart';
+import 'package:naliv_delivery/shared/app_theme.dart';
 
 class ItemOptionsDialog extends StatefulWidget {
   final ItemModel.Item item;
@@ -45,8 +46,17 @@ class _ItemOptionsDialogState extends State<ItemOptionsDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      backgroundColor: AppColors.card,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
       child: Container(
         padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 18, offset: const Offset(0, 10)),
+          ],
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -60,8 +70,7 @@ class _ItemOptionsDialogState extends State<ItemOptionsDialog> {
                   height: 60,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
-                    color:
-                        Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color: AppColors.cardDark,
                   ),
                   child: widget.item.hasImage
                       ? ClipRRect(
@@ -72,16 +81,14 @@ class _ItemOptionsDialogState extends State<ItemOptionsDialog> {
                             errorBuilder: (context, error, stackTrace) {
                               return Icon(
                                 Icons.inventory_2_outlined,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
+                                color: AppColors.textMute,
                               );
                             },
                           ),
                         )
                       : Icon(
                           Icons.inventory_2_outlined,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          color: AppColors.textMute,
                         ),
                 ),
                 const SizedBox(width: 12),
@@ -95,6 +102,7 @@ class _ItemOptionsDialogState extends State<ItemOptionsDialog> {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
+                          color: AppColors.text,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -105,7 +113,7 @@ class _ItemOptionsDialogState extends State<ItemOptionsDialog> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: Theme.of(context).colorScheme.primary,
+                          color: AppColors.orange,
                         ),
                       ),
                     ],
@@ -122,6 +130,7 @@ class _ItemOptionsDialogState extends State<ItemOptionsDialog> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
+                  color: AppColors.text,
                 ),
               ),
               const SizedBox(height: 12),
@@ -137,6 +146,7 @@ class _ItemOptionsDialogState extends State<ItemOptionsDialog> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
+                    color: AppColors.text,
                   ),
                 ),
                 const Spacer(),
@@ -157,14 +167,12 @@ class _ItemOptionsDialogState extends State<ItemOptionsDialog> {
                           setState(() => quantity = quantity - step);
                         }
                       },
-                      icon: const Icon(Icons.remove),
+                      icon: const Icon(Icons.remove, color: AppColors.text),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        border: Border.all(
-                            color: Theme.of(context).colorScheme.outline),
+                        border: Border.all(color: AppColors.textMute),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -178,13 +186,12 @@ class _ItemOptionsDialogState extends State<ItemOptionsDialog> {
                             }
                           }
                           // Если step != 1.0, показываем дробные значения
-                          return step == 1.0
-                              ? quantity.toStringAsFixed(0)
-                              : quantity.toStringAsFixed(2);
+                          return step == 1.0 ? quantity.toStringAsFixed(0) : quantity.toStringAsFixed(2);
                         }(),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
+                          color: AppColors.text,
                         ),
                       ),
                     ),
@@ -200,7 +207,7 @@ class _ItemOptionsDialogState extends State<ItemOptionsDialog> {
                         }
                         setState(() => quantity = quantity + step);
                       },
-                      icon: const Icon(Icons.add),
+                      icon: const Icon(Icons.add, color: AppColors.text),
                     ),
                   ],
                 ),
@@ -214,6 +221,11 @@ class _ItemOptionsDialogState extends State<ItemOptionsDialog> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => Navigator.of(context).pop(),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.textMute),
+                      foregroundColor: AppColors.text,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                     child: const Text('Отмена'),
                   ),
                 ),
@@ -222,8 +234,11 @@ class _ItemOptionsDialogState extends State<ItemOptionsDialog> {
                   child: ElevatedButton(
                     onPressed: _canAddToCart() ? _addToCart : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                      backgroundColor: AppColors.orange,
+                      foregroundColor: Colors.black,
+                      disabledBackgroundColor: AppColors.cardDark,
+                      disabledForegroundColor: AppColors.textMute,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: const Text('В корзину'),
                   ),
@@ -247,13 +262,14 @@ class _ItemOptionsDialogState extends State<ItemOptionsDialog> {
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
+                color: AppColors.text,
               ),
             ),
             if (option.required == 1)
               Text(
                 ' *',
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
+                  color: AppColors.red,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -275,13 +291,13 @@ class _ItemOptionsDialogState extends State<ItemOptionsDialog> {
         return RadioListTile<ItemModel.ItemOptionItem>(
           title: Text(
             _getOptionItemName(optionItem),
-            style: const TextStyle(fontSize: 14),
+            style: const TextStyle(fontSize: 14, color: AppColors.text),
           ),
           subtitle: optionItem.price > 0
               ? Text(
                   '+${optionItem.price.toStringAsFixed(0)} ₸',
                   style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
+                    color: AppColors.orange,
                     fontWeight: FontWeight.w500,
                   ),
                 )
@@ -297,6 +313,7 @@ class _ItemOptionsDialogState extends State<ItemOptionsDialog> {
           },
           dense: true,
           contentPadding: EdgeInsets.zero,
+          activeColor: AppColors.orange,
         );
       }).toList(),
     );
@@ -307,7 +324,7 @@ class _ItemOptionsDialogState extends State<ItemOptionsDialog> {
     return Text(
       'Множественный выбор пока не поддерживается',
       style: TextStyle(
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        color: AppColors.textMute,
         fontStyle: FontStyle.italic,
       ),
     );

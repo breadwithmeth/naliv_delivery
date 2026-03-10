@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/models/cart_item.dart';
 import 'package:naliv_delivery/pages/checkout_page.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
+import 'package:naliv_delivery/shared/app_theme.dart';
 import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:provider/provider.dart';
 import '../utils/cart_provider.dart';
-import 'package:naliv_delivery/shared/app_theme.dart';
 
 class CartPage extends StatelessWidget {
   static const routeName = '/cart';
@@ -24,9 +25,16 @@ class CartPage extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
+        centerTitle: true,
         foregroundColor: AppColors.text,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
         title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const Text('Корзина', style: TextStyle(fontWeight: FontWeight.w800)),
             if (businessProvider.selectedBusinessName != null)
@@ -44,217 +52,37 @@ class CartPage extends StatelessWidget {
           const AppBackground(),
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 140),
-              child: items.isEmpty
-                  ? _buildEmptyState()
-                  : Column(
-                      children: [
-                        Expanded(
-                          child: ListView.builder(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            itemCount: items.length,
-                            itemBuilder: (context, index) {
-                              final item = items[index];
-                              final double? maxAmount = item.maxAmount;
-                              final bool canIncrease = maxAmount == null || item.quantity < maxAmount;
-                              final bool canDecrease = item.quantity > 0;
-                              return Container(
-                                margin: const EdgeInsets.symmetric(vertical: 8),
-                                padding: const EdgeInsets.all(14),
-                                decoration: AppDecorations.card(),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            item.name,
-                                            style: const TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w800),
-                                          ),
-                                          if (item.promotions.isNotEmpty) ...[
-                                            const SizedBox(height: 6),
-                                            Wrap(
-                                              spacing: 6,
-                                              runSpacing: 6,
-                                              children: item.promotions.map((promo) {
-                                                final type = promo['type'] as String?;
-                                                String label = '';
-                                                if (type == 'SUBTRACT') {
-                                                  final base = promo['baseAmount'] ?? promo['base_amount'];
-                                                  final add = promo['addAmount'] ?? promo['add_amount'];
-                                                  label = 'Акция: ${base}+${add}';
-                                                } else if (type == 'DISCOUNT') {
-                                                  final disc = (promo['discount'] as num?)?.toDouble() ?? 0;
-                                                  label = 'Скидка ${disc.toStringAsFixed(0)}%';
-                                                }
-                                                return Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                  decoration: BoxDecoration(
-                                                    color: AppColors.red.withValues(alpha: 0.14),
-                                                    borderRadius: BorderRadius.circular(10),
-                                                    border: Border.all(color: AppColors.red.withValues(alpha: 0.4), width: 1),
-                                                  ),
-                                                  child: Text(
-                                                    label,
-                                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.red),
-                                                  ),
-                                                );
-                                              }).toList(),
-                                            ),
-                                          ],
-                                          if (item.selectedVariants.isNotEmpty) ...[
-                                            const SizedBox(height: 6),
-                                            Text(
-                                              'Опции: ${item.selectedVariants.length}',
-                                              style: TextStyle(color: AppColors.textMute, fontSize: 12, fontWeight: FontWeight.w600),
-                                            ),
-                                          ],
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            '${item.price.toStringAsFixed(0)} ₸ за ${item.stepQuantity}',
-                                            style: TextStyle(color: AppColors.textMute, fontSize: 12),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            'Всего: ${item.totalPrice.toStringAsFixed(0)} ₸',
-                                            style: const TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w700),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Column(
-                                      children: [
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            _quantityButton(
-                                              icon: Icons.remove,
-                                              onPressed: canDecrease
-                                                  ? () {
-                                                      double step = item.stepQuantity;
-                                                      for (var v in item.selectedVariants) {
-                                                        if (v.containsKey('parent_item_amount')) {
-                                                          step = (v['parent_item_amount'] as num).toDouble();
-                                                          break;
-                                                        }
-                                                      }
-                                                      cartProvider.updateQuantityWithVariants(
-                                                        item.itemId,
-                                                        item.selectedVariants,
-                                                        item.quantity - step,
-                                                      );
-                                                    }
-                                                  : null,
-                                            ),
-                                            Padding(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8),
-                                              child: Text(
-                                                item.quantity.toStringAsFixed(2),
-                                                style: const TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w700),
-                                              ),
-                                            ),
-                                            _quantityButton(
-                                              icon: Icons.add,
-                                              onPressed: canIncrease
-                                                  ? () {
-                                                      double step = item.stepQuantity;
-                                                      for (var v in item.selectedVariants) {
-                                                        if (v.containsKey('parent_item_amount')) {
-                                                          step = (v['parent_item_amount'] as num).toDouble();
-                                                          break;
-                                                        }
-                                                      }
-                                                      final target = item.quantity + step;
-                                                      final newValue = maxAmount != null && target > maxAmount ? maxAmount : target;
-                                                      cartProvider.updateQuantityWithVariants(
-                                                        item.itemId,
-                                                        item.selectedVariants,
-                                                        newValue,
-                                                      );
-                                                    }
-                                                  : null,
-                                            ),
-                                          ],
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Icons.delete_outline, color: AppColors.textMute),
-                                          onPressed: () {
-                                            cartProvider.removeItem(
-                                              item.itemId,
-                                              item.selectedVariants,
-                                            );
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: AppDecorations.card(radius: 18),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Text('Сумма товаров', style: TextStyle(color: AppColors.text, fontSize: 18, fontWeight: FontWeight.w800)),
-                                  Text(
-                                    '${cartProvider.getTotalPrice().toStringAsFixed(0)} ₸',
-                                    style: const TextStyle(color: AppColors.text, fontSize: 18, fontWeight: FontWeight.w900),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                '* Стоимость доставки будет рассчитана на следующем шаге',
-                                style: TextStyle(color: AppColors.textMute, fontSize: 12),
-                              ),
-                              const SizedBox(height: 12),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    backgroundColor: AppColors.orange,
-                                    foregroundColor: Colors.black,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                  ),
-                                  onPressed: () async {
-                                    final loggedIn = await ApiService.isUserLoggedIn();
-                                    if (loggedIn) {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(builder: (context) => const CheckoutPage()),
-                                      );
-                                    } else {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(builder: (context) => const LoginPage()),
-                                      );
-                                    }
-                                  },
-                                  child: const Text('Оформить заказ', style: TextStyle(fontWeight: FontWeight.w800)),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+              child: items.isEmpty ? _buildEmptyState() : _buildFilled(context, cartProvider, items),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFilled(BuildContext context, CartProvider cartProvider, List<CartItem> items) {
+    final total = cartProvider.getTotalPrice();
+    const double deliveryFee = 0; // нет данных для доставки, показываем заглушку
+    const String etaLabel = '~30 мин';
+
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 14),
+            itemBuilder: (context, index) => _cartItemTile(context, cartProvider, items[index]),
+          ),
+        ),
+        const SizedBox(height: 18),
+        _summaryCard(total: total, deliveryFee: deliveryFee, etaLabel: etaLabel),
+        const SizedBox(height: 18),
+        _checkoutButton(context),
+        const SizedBox(height: 14),
+        _footerBadge(),
+      ],
     );
   }
 
@@ -271,17 +99,261 @@ class CartPage extends StatelessWidget {
     );
   }
 
-  Widget _quantityButton({required IconData icon, required VoidCallback? onPressed}) {
-    return IconButton(
-      onPressed: onPressed,
-      icon: Icon(icon, color: AppColors.text),
-      style: IconButton.styleFrom(
-        backgroundColor: AppColors.blue,
-        disabledBackgroundColor: AppColors.blue.withValues(alpha: 0.4),
-        padding: const EdgeInsets.all(8),
-        minimumSize: const Size(36, 36),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  Widget _cartItemTile(BuildContext context, CartProvider cartProvider, CartItem item) {
+    final double? maxAmount = item.maxAmount;
+    final bool canIncrease = maxAmount == null || item.quantity < maxAmount;
+    final bool canDecrease = item.quantity > 0;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.08)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 18, offset: const Offset(0, 10)),
+        ],
+      ),
+      child: Row(
+        children: [
+          _itemThumb(item),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: AppColors.text, fontSize: 15, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${item.price.toStringAsFixed(0)} ₸',
+                  style: const TextStyle(color: AppColors.orange, fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          _quantityCapsule(
+            onDecrement: canDecrease
+                ? () {
+                    double step = item.stepQuantity;
+                    for (var v in item.selectedVariants) {
+                      if (v.containsKey('parent_item_amount')) {
+                        step = (v['parent_item_amount'] as num).toDouble();
+                        break;
+                      }
+                    }
+                    cartProvider.updateQuantityWithVariants(item.itemId, item.selectedVariants, item.quantity - step);
+                  }
+                : null,
+            onIncrement: canIncrease
+                ? () {
+                    double step = item.stepQuantity;
+                    for (var v in item.selectedVariants) {
+                      if (v.containsKey('parent_item_amount')) {
+                        step = (v['parent_item_amount'] as num).toDouble();
+                        break;
+                      }
+                    }
+                    final target = item.quantity + step;
+                    final newValue = maxAmount != null && target > maxAmount ? maxAmount : target;
+                    cartProvider.updateQuantityWithVariants(item.itemId, item.selectedVariants, newValue);
+                  }
+                : null,
+            value: item.quantity.toStringAsFixed(item.stepQuantity == 1 ? 0 : 2),
+          ),
+        ],
       ),
     );
   }
+
+  Widget _itemThumb(CartItem item) {
+    return Container(
+      width: 58,
+      height: 58,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withValues(alpha: 0.06),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: ClipOval(
+        child: item.image != null && item.image!.isNotEmpty
+            ? Image.network(
+                item.image!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Icon(Icons.inventory_2_outlined, color: AppColors.textMute.withValues(alpha: 0.8)),
+              )
+            : Icon(Icons.inventory_2_outlined, color: AppColors.textMute.withValues(alpha: 0.8)),
+      ),
+    );
+  }
+
+  Widget _quantityCapsule({required VoidCallback? onDecrement, required VoidCallback? onIncrement, required String value}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.blue.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _quantityButton(icon: Icons.remove, onPressed: onDecrement, filled: false),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(value, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+          ),
+          _quantityButton(icon: Icons.add, onPressed: onIncrement, filled: true),
+        ],
+      ),
+    );
+  }
+
+  Widget _quantityButton({required IconData icon, required VoidCallback? onPressed, required bool filled}) {
+    final Color bg = filled ? AppColors.orange : AppColors.bgDeep;
+    final Color fg = filled ? Colors.black : AppColors.text;
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: onPressed == null ? bg.withValues(alpha: 0.5) : bg,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+        child: Icon(icon, size: 18, color: fg.withValues(alpha: onPressed == null ? 0.5 : 1)),
+      ),
+    );
+  }
+
+  Widget _summaryCard({required double total, required double deliveryFee, required String etaLabel}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.08)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.32), blurRadius: 20, offset: const Offset(0, 12)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.receipt_long, color: AppColors.orange),
+              SizedBox(width: 8),
+              Text('Детали заказа', style: TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w800)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _summaryRow('Сумма товаров', _money(total)),
+          const SizedBox(height: 10),
+          _summaryRow('Доставка', deliveryFee > 0 ? _money(deliveryFee) : '—'),
+          const SizedBox(height: 10),
+          _etaRow('Время доставки', etaLabel),
+          const SizedBox(height: 16),
+          Divider(color: Colors.white.withValues(alpha: 0.07)),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('ИТОГО', style: TextStyle(color: AppColors.text, fontSize: 17, fontWeight: FontWeight.w800)),
+              Text(_money(total + deliveryFee), style: const TextStyle(color: AppColors.orange, fontSize: 20, fontWeight: FontWeight.w900)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(color: AppColors.textMute, fontSize: 13)),
+        Text(value, style: const TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w700)),
+      ],
+    );
+  }
+
+  Widget _etaRow(String label, String eta) {
+    return Row(
+      children: [
+        const Icon(Icons.access_time, color: AppColors.textMute, size: 18),
+        const SizedBox(width: 8),
+        Expanded(child: Text(label, style: const TextStyle(color: AppColors.textMute, fontSize: 13))),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: AppDecorations.pill(color: AppColors.orange.withValues(alpha: 0.15)),
+          child: Text(eta, style: const TextStyle(color: AppColors.orange, fontWeight: FontWeight.w800, fontSize: 12)),
+        ),
+      ],
+    );
+  }
+
+  Widget _checkoutButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        final loggedIn = await ApiService.isUserLoggedIn();
+        if (loggedIn) {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const CheckoutPage()));
+        } else {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginPage()));
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(26),
+          gradient: const LinearGradient(colors: [Color(0xFF8B1F1E), AppColors.red]),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 18, offset: const Offset(0, 10)),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(Icons.credit_card, color: Colors.white, size: 18),
+            SizedBox(width: 10),
+            Text('Оформить заказ', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _footerBadge() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: const [
+        SizedBox(height: 4),
+        CircleAvatar(
+          radius: 24,
+          backgroundColor: Colors.transparent,
+          child: CircleAvatar(
+            radius: 22,
+            backgroundColor: Colors.black,
+            child: Text('24', style: TextStyle(color: AppColors.orange, fontWeight: FontWeight.w800)),
+          ),
+        ),
+        SizedBox(height: 10),
+        Text('ВСЕГДА В ВАШЕМ КРУГУ', style: TextStyle(color: AppColors.orange, fontSize: 11, fontWeight: FontWeight.w800)),
+        SizedBox(height: 4),
+        Text('ӘРҚАШАН СІЗДІҢ АРАҢЫЗДА', style: TextStyle(color: AppColors.textMute, fontSize: 10, fontWeight: FontWeight.w700)),
+      ],
+    );
+  }
+
+  static String _money(double value) => '${value.toStringAsFixed(0)} ₸';
 }

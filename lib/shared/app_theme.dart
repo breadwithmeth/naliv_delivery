@@ -39,6 +39,48 @@ class AppDecorations {
   }
 }
 
+class AppDialogs {
+  static AlertDialog dialog({
+    String? title,
+    Widget? content,
+    List<Widget>? actions,
+  }) {
+    return AlertDialog(
+      backgroundColor: AppColors.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      title: title != null
+          ? Text(
+              title,
+              style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800),
+            )
+          : null,
+      content: content,
+      actions: actions,
+      contentTextStyle: const TextStyle(color: AppColors.textMute, fontSize: 14),
+      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+      contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+    );
+  }
+
+  static Future<T?> show<T>(
+    BuildContext context, {
+    String? title,
+    Widget? content,
+    List<Widget>? actions,
+    bool barrierDismissible = true,
+  }) {
+    return showDialog<T>(
+      context: context,
+      barrierDismissible: barrierDismissible,
+      builder: (ctx) => dialog(title: title, content: content, actions: actions),
+    );
+  }
+}
+
 class AppBackground extends StatelessWidget {
   const AppBackground({super.key});
 

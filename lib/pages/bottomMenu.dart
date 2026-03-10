@@ -287,26 +287,31 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('Ближайший магазин'),
+        backgroundColor: _bgTop,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+        title: const Text('Ближайший магазин', style: TextStyle(color: _text, fontWeight: FontWeight.w800)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Текущий магазин находится на ~$currentKm км от выбранного адреса.'),
+            Text('Текущий магазин находится на ~$currentKm км от выбранного адреса.', style: const TextStyle(color: _textMute)),
             const SizedBox(height: 8),
-            Text('Ближайший магазин: ${nearest['name']} (~$nearestKm км).', style: const TextStyle(fontWeight: FontWeight.w600)),
+            Text('Ближайший магазин: ${nearest['name']} (~$nearestKm км).', style: const TextStyle(fontWeight: FontWeight.w600, color: _text)),
             const SizedBox(height: 12),
-            Text(hasCartItems ? 'Переключение очистит текущую корзину. Перейти к ближайшему магазину?' : 'Переключить на ближайший магазин?'),
+            Text(
+              hasCartItems ? 'Переключение очистит текущую корзину. Перейти к ближайшему магазину?' : 'Переключить на ближайший магазин?',
+              style: const TextStyle(color: _textMute),
+            ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Оставить'),
+            child: const Text('Оставить', style: TextStyle(color: _text)),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Переключить'),
+            child: const Text('Переключить', style: TextStyle(color: _orange)),
           ),
         ],
       ),

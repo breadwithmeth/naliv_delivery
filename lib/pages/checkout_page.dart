@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/payment_method_page.dart';
+import 'package:naliv_delivery/shared/app_theme.dart';
+import 'package:naliv_delivery/utils/address_storage_service.dart';
+import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:provider/provider.dart';
 import '../utils/cart_provider.dart';
-import 'package:naliv_delivery/utils/address_storage_service.dart';
 import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
-import 'package:naliv_delivery/utils/api.dart';
-import 'package:naliv_delivery/pages/payment_method_page.dart';
 
 class CheckoutPage extends StatefulWidget {
   static const routeName = '/checkout';
@@ -20,6 +21,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Map<String, dynamic>? _selectedAddress;
   Map<String, dynamic>? _deliveryData;
   Map<String, dynamic>? _bonusData;
+  bool _isCalculatingDelivery = false;
+  bool _isSubmitting = false;
   // Тип доставки: DELIVERY, PICKUP, SCHEDULED
   String _deliveryType = 'DELIVERY';
   // Время доставки: NOW или конкретное время
@@ -47,7 +50,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         }
       });
     }
-    _calculateDelivery();
+    await _calculateDelivery();
   }
 
   Future<void> _loadUserBonuses() async {
@@ -74,7 +77,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       await AddressStorageService.saveSelectedAddress(selected);
       await AddressStorageService.markAsLaunched();
       // Рассчитываем доставку по новому адресу
-      _calculateDelivery();
+      await _calculateDelivery();
     }
   }
 
@@ -88,15 +91,26 @@ class _CheckoutPageState extends State<CheckoutPage> {
       return;
     }
 
-    // TODO: Собрать тело заказа из выбранного адреса и корзины
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
+
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
     final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
     if (businessProvider.selectedBusiness == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Пожалуйста, выберите магазин')),
       );
+      setState(() => _isSubmitting = false);
       return;
     }
+    if (_selectedAddress == null && _deliveryType == 'DELIVERY') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Пожалуйста, выберите адрес доставки')),
+      );
+      setState(() => _isSubmitting = false);
+      return;
+    }
+
     final body = <String, dynamic>{
       'business_id': businessProvider.selectedBusiness!['id'],
       'street': _selectedAddress?['street'] ?? _selectedAddress?['address'] ?? '',
@@ -116,90 +130,112 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (_selectedDeliveryDateTime != null) 'scheduled_time': _selectedDeliveryDateTime!.toIso8601String(),
       'saved_card_id': 1,
     };
-    final result = await ApiService.createUserOrder(body);
+    try {
+      final result = await ApiService.createUserOrder(body);
+      if (!mounted) return;
 
-    if (result['success'] == true) {
-      final orderData = result['data'];
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Заказ создан: ID ${orderData['order_id']}')),
-      );
-      // Переход на страницу выбора способа оплаты
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => PaymentMethodPage(orderData: orderData),
-        ),
-      );
-    } else {
-      final errorMessage = result['error'] is Map ? result['error']['message'] : result['error'];
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка создания заказа: $errorMessage')),
-      );
+      if (result['success'] == true) {
+        final orderData = result['data'];
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Заказ создан: ID ${orderData['order_id']}')),
+        );
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PaymentMethodPage(orderData: orderData),
+          ),
+        );
+      } else {
+        final errorMessage = result['error'] is Map ? result['error']['message'] : result['error'];
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка создания заказа: $errorMessage')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
   /// Рассчитать стоимость доставки по адресу
   Future<void> _calculateDelivery() async {
-    if (_selectedAddress == null) return;
+    if (_selectedAddress == null || _deliveryType != 'DELIVERY') return;
+    if (_isCalculatingDelivery) return;
+    setState(() => _isCalculatingDelivery = true);
     final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
     if (businessProvider.selectedBusiness == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Пожалуйста, выберите магазин')),
       );
+      setState(() => _isCalculatingDelivery = false);
       return;
     }
     // Предполагаем, что в _selectedAddress есть ключ 'address_id'
     final businessId = businessProvider.selectedBusiness!['id'];
-    final data = await ApiService.calculateDeliveryByAddress(
-      businessId: businessId,
-      lat: _selectedAddress!['lat'],
-      lon: _selectedAddress!['lon'],
-    );
+    try {
+      final data = await ApiService.calculateDeliveryByAddress(
+        businessId: businessId,
+        lat: _selectedAddress!['lat'],
+        lon: _selectedAddress!['lon'],
+      );
 
-    if (mounted) {
-      setState(() {
-        _deliveryData = data;
-      });
+      if (mounted) {
+        setState(() {
+          _deliveryData = data;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Не удалось рассчитать доставку: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isCalculatingDelivery = false);
     }
   }
 
   /// Показать диалог выбора времени доставки
   Future<void> _showDeliveryTimeSelection() async {
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Выберите время доставки'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+    final result = await AppDialogs.show<String>(
+      context,
+      title: 'Выберите время доставки',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.schedule, color: AppColors.orange),
+            title: const Text('Сейчас', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
+            subtitle: const Text('Доставка в ближайшее время', style: TextStyle(color: AppColors.textMute)),
+            onTap: () => Navigator.pop(context, 'NOW'),
+          ),
+          const Divider(color: Color(0x229FB0C8)),
+          ListTile(
+            leading: const Icon(Icons.calendar_today, color: AppColors.orange),
+            title: const Text('Запланировать', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
+            subtitle: const Text('Выберите дату и время', style: TextStyle(color: AppColors.textMute)),
+            onTap: () async {
+              Navigator.pop(context);
+              await _showDateTimePicker();
+            },
+          ),
+          if (_deliveryTime != 'NOW' && _selectedDeliveryDateTime != null) ...[
+            const Divider(color: Color(0x229FB0C8)),
             ListTile(
-              leading: const Icon(Icons.schedule),
-              title: const Text('Сейчас'),
-              subtitle: const Text('Доставка в ближайшее время'),
-              onTap: () => Navigator.pop(context, 'NOW'),
+              leading: const Icon(Icons.clear, color: AppColors.orange),
+              title: const Text('Сбросить', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
+              subtitle: const Text('Очистить выбранное время', style: TextStyle(color: AppColors.textMute)),
+              onTap: () => Navigator.pop(context, 'RESET'),
             ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.calendar_today),
-              title: const Text('Запланировать'),
-              subtitle: const Text('Выберите дату и время'),
-              onTap: () async {
-                Navigator.pop(context);
-                await _showDateTimePicker();
-              },
-            ),
-            if (_deliveryTime != 'NOW' && _selectedDeliveryDateTime != null) ...[
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.clear),
-                title: const Text('Сбросить'),
-                subtitle: const Text('Очистить выбранное время'),
-                onTap: () => Navigator.pop(context, 'RESET'),
-              ),
-            ],
           ],
-        ),
+        ],
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          style: TextButton.styleFrom(foregroundColor: AppColors.textMute),
+          child: const Text('Отмена'),
+        ),
+      ],
     );
 
     if (result != null && mounted) {
@@ -354,56 +390,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return [availableBonuses, maxBonusUsage, total].reduce((a, b) => a < b ? a : b);
   }
 
-  /// Построить подзаголовок с информацией о бонусах
-  Widget _buildBonusSubtitle() {
-    if (_bonusData == null || _bonusData!['success'] != true) {
-      return const Text('Загрузка...');
-    }
-
-    final bonusData = _bonusData!['data'];
-    final totalBonuses = bonusData['totalBonuses'] ?? 0;
-
-    // Получаем последнее значение из истории бонусов
-    final bonusHistory = bonusData['bonusHistory'] as List?;
-    final latestBonusAmount = bonusHistory != null && bonusHistory.isNotEmpty ? bonusHistory.first['amount'] ?? 0 : 0;
-    final latestBonusDate = bonusHistory != null && bonusHistory.isNotEmpty ? bonusHistory.first['timestamp'] ?? '' : '';
-
-    // Рассчитываем максимальную сумму для использования бонусов (25% от заказа)
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final cartTotal = cartProvider.getTotalPrice();
-    double orderTotal = cartTotal;
-    if (_deliveryType == 'DELIVERY' && _deliveryData != null) {
-      final deliveryCost = (_deliveryData!['delivery_cost'] as num?)?.toDouble() ?? 0.0;
-      orderTotal += deliveryCost;
-    }
-    final maxBonusUsage = orderTotal * 0.25;
-    final availableToUse = totalBonuses > maxBonusUsage ? maxBonusUsage : totalBonuses;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Доступно: $totalBonuses бонусов'),
-        if (orderTotal > 0)
-          Text(
-            'Можно использовать: ${availableToUse.toStringAsFixed(0)} ₸ ',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        if (latestBonusAmount > 0)
-          Text(
-            'Последнее: +$latestBonusAmount ₸ ${_formatBonusDate(latestBonusDate)}',
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey[600],
-            ),
-          ),
-      ],
-    );
-  }
-
   /// Форматировать дату бонуса
   String _formatBonusDate(String timestamp) {
     try {
@@ -429,340 +415,388 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
     final businessProvider = Provider.of<BusinessProvider>(context);
-    final total = cartProvider.getTotalPrice();
+    final deliveryCost = (_deliveryData?['delivery_cost'] as num?)?.toDouble() ?? 0.0;
+    final itemsTotal = cartProvider.getTotalPrice();
+    final totalWithDelivery = _getTotalWithDelivery();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Оформление заказа')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Отображение выбранного магазина
-            if (businessProvider.selectedBusiness != null)
-              Card(
-                child: ListTile(
-                  leading: Icon(
-                    Icons.store,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  title: Text(businessProvider.selectedBusinessName ?? 'Неизвестный магазин'),
-                  subtitle: Text(businessProvider.selectedBusiness!["address"] ?? 'Неизвестный магазин'),
-                  // trailing: const Icon(Icons.keyboard_arrow_right),
-                  // onTap: () {
-                  //   // Возвращаемся на главную страницу для смены магазина
-                  //   Navigator.of(context).pop();
-                  // },
-                ),
-              ),
-            if (businessProvider.selectedBusiness != null) const SizedBox(height: 16),
-
-            Row(mainAxisAlignment: MainAxisAlignment.start, mainAxisSize: MainAxisSize.max, children: [
-              Expanded(
-                child: ToggleButtons(
-                  renderBorder: true,
-                  isSelected: [
-                    _deliveryType == 'DELIVERY',
-                    _deliveryType == 'PICKUP',
-                  ],
-                  onPressed: (index) {
-                    const options = ['DELIVERY', 'PICKUP'];
-                    setState(() {
-                      _deliveryType = options[index];
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(800),
-                  selectedBorderColor: Theme.of(context).colorScheme.secondary,
-                  borderColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                  selectedColor: Theme.of(context).colorScheme.onPrimary,
-                  fillColor: Theme.of(context).colorScheme.secondary,
-                  children: const [
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'Доставка',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'Самовывоз',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ]),
-            const SizedBox(height: 16),
-            Card(
-              child: ListTile(
-                title: const Text('Адрес доставки'),
-                subtitle: _selectedAddress != null
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(_selectedAddress!['address'] ?? 'Адрес не указан'),
-                          if (_selectedAddress!['apartment']?.toString().isNotEmpty == true ||
-                              _selectedAddress!['entrance']?.toString().isNotEmpty == true ||
-                              _selectedAddress!['floor']?.toString().isNotEmpty == true) ...[
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                if (_selectedAddress!['entrance']?.toString().isNotEmpty == true) ...[
-                                  Text(
-                                    'Под. ${_selectedAddress!['entrance']}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  if (_selectedAddress!['apartment']?.toString().isNotEmpty == true ||
-                                      _selectedAddress!['floor']?.toString().isNotEmpty == true)
-                                    Text(
-                                      ', ',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                ],
-                                if (_selectedAddress!['floor']?.toString().isNotEmpty == true) ...[
-                                  Text(
-                                    'Эт. ${_selectedAddress!['floor']}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  if (_selectedAddress!['apartment']?.toString().isNotEmpty == true)
-                                    Text(
-                                      ', ',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                ],
-                                if (_selectedAddress!['apartment']?.toString().isNotEmpty == true)
-                                  Text(
-                                    'Кв. ${_selectedAddress!['apartment']}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ],
-                          if (_selectedAddress!['other']?.toString().isNotEmpty == true) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              'Комментарий: ${_selectedAddress!['other']}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ],
-                        ],
-                      )
-                    : const Text('Адрес не выбран'),
-                trailing: const Icon(Icons.keyboard_arrow_right),
-                onTap: _showAddressSelectionModal,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            const SizedBox(height: 24),
-            // Показать информацию о доставке, если рассчитана
-            _deliveryType == 'DELIVERY' && _deliveryData != null
-                ? Card(
-                    child: ListTile(
-                      title: const Text('Стоимость доставки'),
-                      subtitle: Text(
-                        '${_deliveryData!['delivery_cost']} ₸',
-                        style: const TextStyle(fontSize: 18),
-                      ),
-                    ),
-                  )
-                : const SizedBox.shrink(),
-
-            // Выбор времени доставки
-            if (_deliveryType == 'DELIVERY')
-              Card(
-                child: ListTile(
-                  title: const Text('Время доставки'),
-                  subtitle: Text(_getDeliveryTimeText()),
-                  trailing: const Icon(Icons.keyboard_arrow_right),
-                  onTap: _showDeliveryTimeSelection,
-                ),
-              ),
-            // Выбор типа доставки
-
-            // Горизонтальная прокрутка для кнопок доставки
-
-            const SizedBox(height: 16),
-            // if (_userCards != null)
-            //   Card(
-            //     child: ListTile(
-            //       title: const Text('Способ оплаты'),
-            //       subtitle: Text(_selectedCard != null
-            //           ? _selectedCard!['mask']
-            //           : 'Выберите карту'),
-            //       onTap: () async {
-            //         if (_userCards == null || _userCards!.isEmpty) return;
-            //         final choice = await showDialog<Map<String, dynamic>>(
-            //           context: context,
-            //           builder: (_) => SimpleDialog(
-            //             title: const Text('Выберите карту'),
-            //             children: _userCards!
-            //                 .map((card) => SimpleDialogOption(
-            //                       onPressed: () => Navigator.pop(context, card),
-            //                       child: Text(card['mask']),
-            //                     ))
-            //                 .toList(),
-            //           ),
-            //         );
-            //         if (choice != null) {
-            //           setState(() {
-            //             _selectedCard = choice;
-            //           });
-            //         }
-            //       },
-            //     ),
-            //   ),
-            const Text(
-              'Товары в корзине',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            ...cartProvider.items.map((item) {
-              return Card(
-                margin: const EdgeInsets.symmetric(vertical: 4),
-                child: ListTile(
-                  title: Text(item.name),
-                  subtitle: Text('x${item.stepQuantity == 1.0 ? item.quantity.toStringAsFixed(0) : item.quantity.toStringAsFixed(2)}'),
-                  trailing: Text('${item.totalPrice.toStringAsFixed(0)} ₸'),
-                ),
-              );
-            }).toList(),
-            const SizedBox(height: 16),
-            SwitchListTile(
-              title: Row(
+      backgroundColor: AppColors.bgDeep,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: true,
+        foregroundColor: AppColors.text,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
+        title: const Text('Оформление заказа', style: TextStyle(fontWeight: FontWeight.w800)),
+      ),
+      body: Stack(
+        children: [
+          const AppBackground(),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text('Использовать бонусы'),
-                  if (_bonusData != null && _bonusData!['success'] == true) ...[
-                    const SizedBox(width: 8),
-                    // Container(
-                    //   padding: const EdgeInsets.symmetric(
-                    //       horizontal: 8, vertical: 2),
-                    //   decoration: BoxDecoration(
-                    //     color: Theme.of(context)
-                    //         .colorScheme
-                    //         .primary
-                    //         .withOpacity(0.1),
-                    //     borderRadius: BorderRadius.circular(12),
-                    //     border: Border.all(
-                    //       color: Theme.of(context)
-                    //           .colorScheme
-                    //           .primary
-                    //           .withOpacity(0.3),
-                    //     ),
-                    //   ),
-                    //   child: Text(
-                    //     '${_bonusData!['data']['totalBonuses']} ₸',
-                    //     style: TextStyle(
-                    //       fontSize: 12,
-                    //       fontWeight: FontWeight.w600,
-                    //       color: Theme.of(context).colorScheme.primary,
-                    //     ),
-                    //   ),
-                    // ),
+                  const SizedBox(height: 12),
+                  _deliveryTabs(),
+                  const SizedBox(height: 12),
+                  _infoCard(
+                    icon: Icons.store,
+                    title: businessProvider.selectedBusinessName ?? 'Магазин не выбран',
+                    subtitle: businessProvider.selectedBusiness != null
+                        ? businessProvider.selectedBusiness!['address'] ?? ''
+                        : 'Выберите магазин на предыдущем экране',
+                    onTap: () => Navigator.pop(context),
+                  ),
+                  if (_deliveryType == 'DELIVERY') ...[
+                    const SizedBox(height: 10),
+                    _infoCard(
+                      icon: Icons.location_on_outlined,
+                      title: 'Адрес доставки',
+                      subtitle: _addressText(),
+                      trailing: const Icon(Icons.chevron_right, color: AppColors.textMute),
+                      onTap: _showAddressSelectionModal,
+                    ),
+                    const SizedBox(height: 10),
+                    _infoCard(
+                      icon: Icons.local_shipping_outlined,
+                      title: 'Стоимость доставки',
+                      subtitle: _isCalculatingDelivery ? 'Рассчитываем…' : (deliveryCost > 0 ? _money(deliveryCost) : '—'),
+                      onTap: _calculateDelivery,
+                    ),
+                    const SizedBox(height: 10),
+                    _infoCard(
+                      icon: Icons.access_time,
+                      title: 'Время доставки',
+                      subtitle: _getDeliveryTimeText(),
+                      trailing: const Icon(Icons.chevron_right, color: AppColors.textMute),
+                      onTap: _showDeliveryTimeSelection,
+                    ),
                   ],
+                  const SizedBox(height: 14),
+                  _sectionHeader('Товары в корзине'),
+                  const SizedBox(height: 10),
+                  ...cartProvider.items.map((item) => _itemTile(item)).toList(),
+                  const SizedBox(height: 14),
+                  _bonusCard(),
+                  const SizedBox(height: 14),
+                  _totalCard(itemsTotal: itemsTotal, deliveryCost: _deliveryType == 'DELIVERY' ? deliveryCost : 0, total: totalWithDelivery),
+                  const SizedBox(height: 20),
+                  _primaryButton(
+                    label: _isSubmitting ? 'Отправка…' : 'Подтвердить заказ',
+                    onTap: _isSubmitting ? null : _submitOrder,
+                  ),
                 ],
               ),
-              subtitle: _bonusData != null && _bonusData!['success'] == true ? _buildBonusSubtitle() : const Text('Загрузка...'),
-              value: _useBonus,
-              onChanged: _bonusData != null && _bonusData!['success'] == true
-                  ? (value) {
-                      setState(() {
-                        _useBonus = value;
-                      });
-                    }
-                  : null,
             ),
-            const SizedBox(height: 16),
-            // Показать итоговую сумму с разбивкой
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Товары:'),
-                        Text('${total.toStringAsFixed(0)} ₸'),
-                      ],
-                    ),
-                    if (_deliveryType == 'DELIVERY' && _deliveryData != null) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Доставка:'),
-                          Text('${_deliveryData!['delivery_cost']} ₸'),
-                        ],
-                      ),
-                    ],
-                    if (_useBonus && _getUsedBonuses() > 0) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Бонусы:',
-                            style: TextStyle(color: Colors.green),
-                          ),
-                          Text(
-                            '-${_getUsedBonuses().toStringAsFixed(0)} ₸',
-                            style: const TextStyle(color: Colors.green),
-                          ),
-                        ],
-                      ),
-                    ],
-                    const Divider(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Итого:',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          '${_getTotalWithDelivery().toStringAsFixed(0)} ₸',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              onPressed: _submitOrder,
-              child: const Text('Подтвердить заказ'),
-            ),
-          ], // end children
-        ), // end Column
-      ), // end SingleChildScrollView
-    ); // end Scaffold
+          ),
+        ],
+      ),
+    );
   }
+
+  Widget _deliveryTabs() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Row(
+        children: [
+          _deliveryTab('Доставка', 'DELIVERY'),
+          _deliveryTab('Самовывоз', 'PICKUP'),
+        ],
+      ),
+    );
+  }
+
+  Widget _deliveryTab(String label, String value) {
+    final bool active = _deliveryType == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          if (_deliveryType == value) return;
+          setState(() {
+            _deliveryType = value;
+            if (value == 'PICKUP') {
+              _deliveryData = null;
+            } else {
+              _calculateDelivery();
+            }
+          });
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: active ? AppColors.orange : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: active ? Colors.black : AppColors.text,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _infoCard({required IconData icon, required String title, String? subtitle, Widget? trailing, VoidCallback? onTap}) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: AppDecorations.card(radius: 18, color: AppColors.cardDark.withValues(alpha: 0.95)),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.orange.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: AppColors.orange, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 4),
+                  Text(subtitle, style: const TextStyle(color: AppColors.textMute, fontSize: 13)),
+                ],
+              ],
+            ),
+          ),
+          if (trailing != null)
+            InkWell(onTap: onTap, child: trailing)
+          else if (onTap != null)
+            IconButton(
+              icon: const Icon(Icons.chevron_right, color: AppColors.textMute),
+              onPressed: onTap,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionHeader(String text) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(color: AppColors.orange.withValues(alpha: 0.2), shape: BoxShape.circle),
+          child: const Icon(Icons.shopping_bag, color: AppColors.orange, size: 16),
+        ),
+        const SizedBox(width: 8),
+        Text(text, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 16)),
+      ],
+    );
+  }
+
+  Widget _itemTile(item) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.all(14),
+      decoration: AppDecorations.card(radius: 16, color: AppColors.cardDark.withValues(alpha: 0.9)),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 6),
+                Text('x${item.stepQuantity == 1.0 ? item.quantity.toStringAsFixed(0) : item.quantity.toStringAsFixed(2)}',
+                    style: const TextStyle(color: AppColors.textMute, fontSize: 12)),
+              ],
+            ),
+          ),
+          Text(_money(item.totalPrice), style: const TextStyle(color: AppColors.orange, fontWeight: FontWeight.w900)),
+        ],
+      ),
+    );
+  }
+
+  Widget _bonusCard() {
+    final bool canUseBonus = _bonusData != null && _bonusData!['success'] == true;
+    final subtitle = canUseBonus ? _buildBonusSubtitle() : const Text('Загрузка...', style: TextStyle(color: AppColors.textMute));
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: AppDecorations.card(radius: 18, color: AppColors.cardDark.withValues(alpha: 0.95)),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Использовать бонусы', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 6),
+                subtitle,
+              ],
+            ),
+          ),
+          Switch(
+            value: _useBonus,
+            activeColor: Colors.black,
+            activeTrackColor: AppColors.orange,
+            inactiveThumbColor: AppColors.text,
+            inactiveTrackColor: AppColors.blue,
+            onChanged: canUseBonus
+                ? (value) {
+                    setState(() {
+                      _useBonus = value;
+                    });
+                  }
+                : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _totalCard({required double itemsTotal, required double deliveryCost, required double total}) {
+    final bonusUsed = _useBonus ? _getUsedBonuses() : 0.0;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: AppDecorations.card(radius: 20, color: AppColors.cardDark.withValues(alpha: 0.96)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.receipt_long, color: AppColors.orange),
+              SizedBox(width: 8),
+              Text('Итоги', style: TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w800)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _summaryRow('Товары', _money(itemsTotal)),
+          if (_deliveryType == 'DELIVERY') ...[
+            const SizedBox(height: 8),
+            _summaryRow('Доставка', deliveryCost > 0 ? _money(deliveryCost) : '—'),
+          ],
+          if (bonusUsed > 0) ...[
+            const SizedBox(height: 8),
+            _summaryRow('Бонусы', '-${_money(bonusUsed)}', valueColor: Colors.greenAccent),
+          ],
+          const Divider(color: Color(0x229FB0C8), height: 18),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Итого', style: TextStyle(color: AppColors.text, fontSize: 18, fontWeight: FontWeight.w800)),
+              Text(_money(total), style: const TextStyle(color: AppColors.orange, fontSize: 20, fontWeight: FontWeight.w900)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryRow(String label, String value, {Color valueColor = AppColors.text}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(color: AppColors.textMute, fontSize: 13)),
+        Text(value, style: TextStyle(color: valueColor, fontSize: 14, fontWeight: FontWeight.w700)),
+      ],
+    );
+  }
+
+  Widget _primaryButton({required String label, required VoidCallback? onTap}) {
+    final bool disabled = onTap == null;
+    return GestureDetector(
+      onTap: disabled ? null : onTap,
+      child: Opacity(
+        opacity: disabled ? 0.7 : 1,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(26),
+            gradient: const LinearGradient(colors: [Color(0xFF8B1F1E), AppColors.red]),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 18, offset: const Offset(0, 10)),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white, size: 18),
+              const SizedBox(width: 10),
+              Text(label, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _addressText() {
+    if (_selectedAddress == null) return 'Выберите адрес';
+    final parts = <String>[_selectedAddress!['address'] ?? _selectedAddress!['street'] ?? 'Адрес не указан'];
+    final detail = <String>[];
+    if (_selectedAddress!['entrance']?.toString().isNotEmpty == true) detail.add('Под. ${_selectedAddress!['entrance']}');
+    if (_selectedAddress!['floor']?.toString().isNotEmpty == true) detail.add('Эт. ${_selectedAddress!['floor']}');
+    if (_selectedAddress!['apartment']?.toString().isNotEmpty == true) detail.add('Кв. ${_selectedAddress!['apartment']}');
+    if (detail.isNotEmpty) parts.add(detail.join(', '));
+    return parts.join(' • ');
+  }
+
+  Widget _buildBonusSubtitle() {
+    if (_bonusData == null || _bonusData!['success'] != true) {
+      return const Text('Загрузка...', style: TextStyle(color: AppColors.textMute));
+    }
+
+    final bonusData = _bonusData!['data'];
+    final totalBonuses = bonusData['totalBonuses'] ?? 0;
+    final bonusHistory = bonusData['bonusHistory'] as List?;
+    final latestBonusAmount = bonusHistory != null && bonusHistory.isNotEmpty ? bonusHistory.first['amount'] ?? 0 : 0;
+    final latestBonusDate = bonusHistory != null && bonusHistory.isNotEmpty ? bonusHistory.first['timestamp'] ?? '' : '';
+
+    // Рассчитываем максимальную сумму для использования бонусов (25% от заказа)
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final cartTotal = cartProvider.getTotalPrice();
+    double orderTotal = cartTotal;
+    if (_deliveryType == 'DELIVERY' && _deliveryData != null) {
+      final deliveryCost = (_deliveryData!['delivery_cost'] as num?)?.toDouble() ?? 0.0;
+      orderTotal += deliveryCost;
+    }
+    final maxBonusUsage = orderTotal * 0.25;
+    final availableToUse = totalBonuses > maxBonusUsage ? maxBonusUsage : totalBonuses;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Доступно: $totalBonuses бонусов', style: const TextStyle(color: AppColors.text, fontSize: 13)),
+        if (orderTotal > 0)
+          Text(
+            'Можно использовать: ${availableToUse.toStringAsFixed(0)} ₸ ',
+            style: const TextStyle(color: AppColors.textMute, fontSize: 12),
+          ),
+        if (latestBonusAmount > 0)
+          Text(
+            'Последнее: +$latestBonusAmount ₸ ${_formatBonusDate(latestBonusDate)}',
+            style: const TextStyle(color: AppColors.textMute, fontSize: 11),
+          ),
+      ],
+    );
+  }
+
+  static String _money(double value) => '${value.toStringAsFixed(0)} ₸';
 }

@@ -333,12 +333,17 @@ class _MainPageState extends State<MainPage> {
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          title: const Text('Обновить адрес?'),
-          content: Text('Найден более близкий адрес (~${(bestDistance / 1000).toStringAsFixed(2)} км). Заменить?'),
+          backgroundColor: _card,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+          title: const Text('Обновить адрес?', style: TextStyle(color: _text, fontWeight: FontWeight.w800)),
+          content: Text(
+            'Найден более близкий адрес (~${(bestDistance / 1000).toStringAsFixed(2)} км). Заменить?',
+            style: const TextStyle(color: _textMute),
+          ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, 'keep'), child: const Text('Оставить')),
-            TextButton(onPressed: () => Navigator.pop(ctx, 'switch'), child: const Text('Заменить')),
-            TextButton(onPressed: () => Navigator.pop(ctx, 'dontask'), child: const Text('Не спрашивать')),
+            TextButton(onPressed: () => Navigator.pop(ctx, 'keep'), child: const Text('Оставить', style: TextStyle(color: _text))),
+            TextButton(onPressed: () => Navigator.pop(ctx, 'switch'), child: const Text('Заменить', style: TextStyle(color: _orange))),
+            TextButton(onPressed: () => Navigator.pop(ctx, 'dontask'), child: const Text('Не спрашивать', style: TextStyle(color: _textMute))),
           ],
         ),
       );
@@ -380,13 +385,18 @@ class _MainPageState extends State<MainPage> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('Ближайший магазин'),
-        content: Text(hasItems
-            ? 'Ближайший магазин: ${nearest['name']}. При переключении корзина очистится. Переключить?'
-            : 'Ближайший магазин: ${nearest['name']}. Переключить?'),
+        backgroundColor: _card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+        title: const Text('Ближайший магазин', style: TextStyle(color: _text, fontWeight: FontWeight.w800)),
+        content: Text(
+          hasItems
+              ? 'Ближайший магазин: ${nearest['name']}. При переключении корзина очистится. Переключить?'
+              : 'Ближайший магазин: ${nearest['name']}. Переключить?',
+          style: const TextStyle(color: _textMute),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Оставить')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Переключить')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Оставить', style: TextStyle(color: _text))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Переключить', style: TextStyle(color: _orange))),
         ],
       ),
     );

@@ -48,7 +48,7 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels == _scrollController.position.maxScrollExtent) {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 240) {
       _loadMoreItems();
     }
   }
@@ -69,6 +69,9 @@ class _CategoryPageState extends State<CategoryPage> {
 
     try {
       final categoryId = _selectedSubcategory?.categoryId ?? _selectedCategory!.categoryId;
+      if (widget.businessId == null) {
+        throw Exception('businessId is required to load categories');
+      }
       final currentPage = isLoadMore ? (_pagination?.page ?? 0) + 1 : 1;
 
       final response = await ApiService.getCategoryItemsTyped(
@@ -109,7 +112,7 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   Future<void> _loadMoreItems() async {
-    if (_isLoadingMore || _pagination == null || !_pagination!.hasNextPage) {
+    if (_isLoading || _isLoadingMore || _pagination == null || !_pagination!.hasNextPage) {
       return;
     }
     await _loadCategoryItems(isLoadMore: true);
@@ -142,13 +145,19 @@ class _CategoryPageState extends State<CategoryPage> {
           _selectedCategory?.name ?? 'Каталог',
           style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800),
         ),
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 4),
+            child: Icon(Icons.search, color: AppColors.text),
+          ),
+        ],
       ),
       body: Stack(
         children: [
           const AppBackground(),
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 140),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -159,6 +168,8 @@ class _CategoryPageState extends State<CategoryPage> {
                     _buildSubcategoryChips(),
                   ],
                   const SizedBox(height: 12),
+                  _buildHeaderRow(),
+                  const SizedBox(height: 12),
                   Expanded(child: _buildBody()),
                 ],
               ),
@@ -166,6 +177,24 @@ class _CategoryPageState extends State<CategoryPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildHeaderRow() {
+    return Row(
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Популярно сейчас', style: TextStyle(color: AppColors.textMute, fontSize: 12, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            Text(_selectedSubcategory?.name ?? 'Все товары',
+                style: const TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w800)),
+          ],
+        ),
+        const Spacer(),
+        if (_items.isNotEmpty) Text('${_items.length} шт.', style: const TextStyle(color: AppColors.textMute, fontSize: 12)),
+      ],
     );
   }
 
@@ -215,35 +244,45 @@ class _CategoryPageState extends State<CategoryPage> {
         itemBuilder: (context, index) {
           if (index == 0) {
             final isSelected = _selectedSubcategory == null;
-            return ChoiceChip(
-              selected: isSelected,
-              onSelected: (_) => _onSubcategorySelected(null),
-              label: const Text('Все товары'),
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.black : AppColors.text,
-                fontWeight: FontWeight.w700,
-              ),
-              backgroundColor: AppColors.card,
-              selectedColor: AppColors.orange,
-              side: BorderSide(color: isSelected ? AppColors.orange.withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.08)),
-            );
+            return _chip(label: 'Все товары', selected: isSelected, onTap: () => _onSubcategorySelected(null));
           }
 
           final sub = subs[index - 1];
           final isSelected = _selectedSubcategory == sub;
-          return ChoiceChip(
-            selected: isSelected,
-            onSelected: (_) => _onSubcategorySelected(sub),
-            label: Text(sub.name),
-            labelStyle: TextStyle(
-              color: isSelected ? Colors.black : AppColors.text,
-              fontWeight: FontWeight.w700,
-            ),
-            backgroundColor: AppColors.card,
-            selectedColor: AppColors.orange,
-            side: BorderSide(color: isSelected ? AppColors.orange.withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.08)),
-          );
+          return _chip(label: sub.name, selected: isSelected, onTap: () => _onSubcategorySelected(sub));
         },
+      ),
+    );
+  }
+
+  Widget _chip({required String label, required bool selected, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: selected
+              ? const LinearGradient(colors: [Color(0xFF8B1F1E), AppColors.red])
+              : const LinearGradient(colors: [AppColors.card, AppColors.cardDark]),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: selected ? AppColors.orange.withValues(alpha: 0.7) : Colors.white.withValues(alpha: 0.08)),
+          boxShadow: selected
+              ? [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 14, offset: const Offset(0, 8)),
+                ]
+              : [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 10, offset: const Offset(0, 6)),
+                ],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : AppColors.text,
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+          ),
+        ),
       ),
     );
   }
@@ -254,7 +293,7 @@ class _CategoryPageState extends State<CategoryPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
+            CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(AppColors.orange)),
             SizedBox(height: 16),
             Text('Загрузка товаров...', style: TextStyle(color: AppColors.text)),
           ],
@@ -329,7 +368,7 @@ class _CategoryPageState extends State<CategoryPage> {
       padding: const EdgeInsets.all(8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.6, // Делаем карточки вытянутыми вертикально
+        childAspectRatio: 0.62, // card proportions closer to design
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
@@ -337,9 +376,7 @@ class _CategoryPageState extends State<CategoryPage> {
       itemBuilder: (context, index) {
         if (index == _items.length) {
           // Показываем индикатор загрузки в конце списка
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+          return const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(AppColors.orange)));
         }
 
         final item = _items[index];

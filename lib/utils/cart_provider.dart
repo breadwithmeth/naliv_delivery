@@ -141,6 +141,7 @@ class CartProvider extends ChangeNotifier {
       price: price,
       quantity: quantity,
       stepQuantity: step,
+      image: img.isNotEmpty ? img : null,
       selectedVariants: variantMaps,
       promotions: promoMaps,
     );
