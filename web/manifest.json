@@ -1,11 +1,11 @@
 {
-    "name": "naliv_delivery",
-    "short_name": "naliv_delivery",
+    "name": "Налив/Градусы24",
+    "short_name": "Градусы24",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#hexcode",
-    "theme_color": "#hexcode",
-    "description": "A new Flutter project.",
+    "background_color": "#121212",
+    "theme_color": "#121212",
+    "description": "Доставка напитков Налив/Градусы24.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

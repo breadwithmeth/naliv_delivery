@@ -67,43 +67,12 @@ class _MapAddressPageState extends State<MapAddressPage> with TickerProviderStat
     );
     // Update current address text
     if (addressData != null && addressData.isNotEmpty) {
-      final first = addressData.first;
-      String result;
-      // Check if this is a GeoJSON FeatureCollection
-      if (first.containsKey('features') && first['features'] is List) {
-        final features = first['features'] as List<dynamic>;
-        if (features.isNotEmpty) {
-          final feature = features.first as Map<String, dynamic>;
-          final properties = feature['properties'] as Map<String, dynamic>;
-          final geo = properties['geocoding'] as Map<String, dynamic>;
-          // Extract relevant fields
-          final streetVal = geo['street']?.toString() ?? '';
-          final houseVal = geo['housenumber']?.toString() ?? '';
-          final districtVal = geo['district']?.toString() ?? '';
-          final cityVal = geo['city']?.toString() ?? '';
-          final nameVal = geo['name']?.toString() ?? '';
-
-          // Build single-line address: city, street, house
-          final parts = <String>[];
-          if (nameVal.isNotEmpty) parts.add(nameVal);
-          if (streetVal.isNotEmpty) parts.add(' $streetVal');
-          if (houseVal.isNotEmpty) {
-            parts.add('дом $houseVal');
-          } else {
-            // Use coordinates if no house number
-            parts.add('${lat.toStringAsFixed(6)}, ${lon.toStringAsFixed(6)}');
-          }
-          if (districtVal.isNotEmpty) parts.add(districtVal);
-          if (cityVal.isNotEmpty) parts.add(cityVal);
-
-          result = parts.join(', ');
-        } else {
-          result = 'Адрес не найден';
-        }
-      } else {
-        // Fallback to display_name
-        result = first['display_name'] as String? ?? '';
-      }
+      final result = ApiService.extractAddressLabel(
+            addressData.first,
+            lat: lat,
+            lon: lon,
+          ) ??
+          'Адрес не найден';
       if (mounted) {
         setState(() {
           _currentAddress = result;

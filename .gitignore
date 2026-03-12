@@ -33,7 +33,8 @@ local.properties
 .packages
 .pub-cache/
 .pub/
-/build/
+/build/*
+!/build/web/
 
 # Symbolication related
 app.*.symbols

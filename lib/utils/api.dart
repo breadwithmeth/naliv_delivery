@@ -7,7 +7,9 @@ import '../model/item.dart' as ItemModel;
 /// Класс для работы с API
 class ApiService {
   static const String baseUrl = 'https://njt25.naliv.kz/api';
+  // static const String baseUrl = 'http://192.168.100.63:3009/api';
   // static const String baseUrl = 'http://localhost:3000/api';
+  static const JsonEncoder _prettyJsonEncoder = JsonEncoder.withIndent('  ');
 
   // Ключ для хранения токена аутентификации
   static const String _authTokenKey = 'auth_token';
@@ -313,6 +315,11 @@ class ApiService {
         // Декодируем JSON ответ
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
 
+        if (kDebugMode) {
+          debugPrint('Reverse geocode request: lat=$lat, lon=$lon');
+          debugPrint('Reverse geocode raw response:\n${_prettyJsonEncoder.convert(jsonResponse)}');
+        }
+
         // Проверяем успешность запроса
         if (jsonResponse['success'] == true) {
           final dynamic data = jsonResponse['data'];
@@ -362,6 +369,93 @@ class ApiService {
     }
 
     debugPrint('Error: Either query or coordinates (lat, lon) must be provided');
+    return null;
+  }
+
+  /// Извлекает человекочитаемое название адреса из разных форматов ответа API.
+  static String? extractAddressLabel(
+    Map<String, dynamic>? rawAddress, {
+    double? lat,
+    double? lon,
+  }) {
+    if (rawAddress == null) return null;
+
+    final directLabel = _firstNonEmptyString([
+      rawAddress['display_name'],
+      rawAddress['label'],
+      rawAddress['name'],
+      rawAddress['description'],
+    ]);
+    if (directLabel != null) return directLabel;
+
+    final feature = _extractGeoFeature(rawAddress);
+    if (feature == null) return null;
+
+    final properties = feature['properties'];
+    if (properties is! Map) return null;
+
+    final geocoding = properties['geocoding'];
+    if (geocoding is! Map) return null;
+
+    final geoLabel = _firstNonEmptyString([
+      geocoding['label'],
+      geocoding['name'],
+    ]);
+    if (geoLabel != null) return geoLabel;
+
+    final street = geocoding['street']?.toString().trim();
+    final houseNumber = _firstNonEmptyString([
+      geocoding['housenumber'],
+      geocoding['house_number'],
+    ]);
+    final district = geocoding['district']?.toString().trim();
+    final city = geocoding['city']?.toString().trim();
+
+    final parts = <String>[];
+    if (street != null && street.isNotEmpty) {
+      parts.add(street);
+    }
+    if (houseNumber != null) {
+      parts.add('дом $houseNumber');
+    }
+    if (district != null && district.isNotEmpty) {
+      parts.add(district);
+    }
+    if (city != null && city.isNotEmpty) {
+      parts.add(city);
+    }
+
+    if (parts.isNotEmpty) {
+      return parts.join(', ');
+    }
+
+    if (lat != null && lon != null) {
+      return '${lat.toStringAsFixed(6)}, ${lon.toStringAsFixed(6)}';
+    }
+
+    return null;
+  }
+
+  static Map<String, dynamic>? _extractGeoFeature(Map<String, dynamic> rawAddress) {
+    if (rawAddress['type'] == 'Feature') {
+      return rawAddress;
+    }
+
+    final features = rawAddress['features'];
+    if (features is List && features.isNotEmpty && features.first is Map<String, dynamic>) {
+      return features.first as Map<String, dynamic>;
+    }
+
+    return null;
+  }
+
+  static String? _firstNonEmptyString(List<dynamic> values) {
+    for (final value in values) {
+      final text = value?.toString().trim();
+      if (text != null && text.isNotEmpty) {
+        return text;
+      }
+    }
     return null;
   }
 

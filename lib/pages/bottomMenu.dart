@@ -359,10 +359,37 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
 
   @override
   Widget build(BuildContext context) {
+    final pages = <Widget>[
+      MainPage(
+        key: const PageStorageKey('tab-home'),
+        businesses: _businesses,
+        selectedBusiness: _selectedBusiness,
+        selectedAddress: _selectedAddress,
+        userPosition: _userPosition,
+        onBusinessSelected: _selectBusiness,
+        onAddressChangeRequested: _changeAddress,
+        isLoadingBusinesses: _isLoadingBusinesses,
+      ),
+      Catalog(
+        key: ValueKey('tab-catalog-${_selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId']}'),
+        businessId: _selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId'],
+      ),
+      widget.isAuthenticated
+          ? LikedPage(
+              key: ValueKey('tab-liked-${_selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId']}'),
+              businessId: _selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId'],
+            )
+          : const LoginPage(redirectTabIndex: 2),
+      const CartPage(key: PageStorageKey('tab-cart')),
+      widget.isAuthenticated
+          ? ProfilePage(key: const PageStorageKey('tab-profile'), userInfo: widget.userInfo!)
+          : const LoginPage(redirectTabIndex: 4),
+    ];
+
     return Scaffold(
       extendBody: true,
       backgroundColor: _bgDeep,
-      body: _getCurrentPage(),
+      body: IndexedStack(index: _currentIndex, children: pages),
       bottomNavigationBar: _buildBottomNav(),
     );
   }
@@ -376,17 +403,16 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
   }
 
   Widget _buildBottomNav() {
-    final bottomInset = MediaQuery.of(context).padding.bottom;
     return SafeArea(
       top: false,
       child: SizedBox(
-        height: 96 + bottomInset,
+        height: 96,
         child: Stack(
           clipBehavior: Clip.none,
           children: [
             Positioned.fill(
               child: Container(
-                margin: EdgeInsets.fromLTRB(18, 12, 18, 18 + bottomInset / 2),
+                margin: const EdgeInsets.fromLTRB(18, 12, 18, 18),
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
@@ -401,11 +427,11 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _navItem(icon: Icons.home_rounded, label: '*Главная', index: 0),
-                    _navItem(icon: Icons.grid_view_rounded, label: '*Каталог', index: 1),
+                    _navItem(icon: Icons.home_rounded, label: 'Главная', index: 0),
+                    _navItem(icon: Icons.grid_view_rounded, label: 'Каталог', index: 1),
                     const SizedBox(width: 70),
-                    _navItem(icon: Icons.favorite_border, label: '*Избранное', index: 2),
-                    _navItem(icon: Icons.person_outline, label: '*Профиль', index: 4),
+                    _navItem(icon: Icons.favorite_border, label: 'Избранное', index: 2),
+                    _navItem(icon: Icons.person_outline, label: 'Профиль', index: 4),
                   ],
                 ),
               ),
@@ -443,10 +469,11 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     return GestureDetector(
       onTap: () => _onTabTapped(index),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: isActive ? _orange.withValues(alpha: 0.12) : Colors.transparent,
               borderRadius: BorderRadius.circular(14),
@@ -458,55 +485,6 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
         ],
       ),
     );
-  }
-
-  Widget _getCurrentPage() {
-    // Показываем индикатор загрузки, если данные еще загружаются
-    if (_isLoadingBusinesses) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    switch (_currentIndex) {
-      case 0:
-        // Главная страница доступна всем
-        return MainPage(
-          businesses: _businesses,
-          selectedBusiness: _selectedBusiness,
-          selectedAddress: _selectedAddress,
-          userPosition: _userPosition,
-          onBusinessSelected: _selectBusiness,
-          onAddressChangeRequested: _changeAddress,
-          isLoadingBusinesses: _isLoadingBusinesses,
-        );
-      case 1:
-        // Каталог доступен всем
-        return Catalog(
-          businessId: _selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId'],
-        );
-      case 2:
-        // Избранное требует авторизации
-        if (!widget.isAuthenticated) {
-          return const LoginPage(redirectTabIndex: 2);
-        }
-        return LikedPage(
-          businessId: _selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId'],
-        );
-      case 3:
-        // Корзина доступна всем
-        return const CartPage();
-      case 4:
-        // Профиль требует авторизации
-        if (!widget.isAuthenticated) {
-          return const LoginPage(redirectTabIndex: 4);
-        }
-        return ProfilePage(userInfo: widget.userInfo!);
-      default:
-        return Container();
-    }
   }
 
   @override

@@ -25,6 +25,50 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
+  String _formatAccuracy(double accuracy) {
+    if (accuracy >= 1000) {
+      return '${(accuracy / 1000).toStringAsFixed(1)} км';
+    }
+    return '${accuracy.toStringAsFixed(0)} м';
+  }
+
+  Future<void> _openMapForDetectedPosition(Position position) async {
+    if (!mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => MapAddressPage(
+        initialLat: position.latitude,
+        initialLon: position.longitude,
+        onAddressSelected: widget.onAddressSelected,
+      ),
+    ));
+  }
+
+  Future<void> _handleApproximateLocation(Position position) async {
+    final accuracyLabel = _formatAccuracy(position.accuracy);
+    await showDialog(
+      context: context,
+      builder: (context) => AppDialogs.dialog(
+        title: 'Геолокация неточная',
+        content: Text(
+          'Текущее местоположение определено приблизительно ($accuracyLabel). Проверьте точку на карте и подтвердите адрес вручную.',
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Отмена', style: TextStyle(color: AppColors.textMute)),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          TextButton(
+            child: const Text('Открыть карту', style: TextStyle(color: AppColors.orange)),
+            onPressed: () {
+              Navigator.of(context).pop();
+              _openMapForDetectedPosition(position);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -109,6 +153,18 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
         return;
       }
 
+      if (locationService.requiresManualConfirmation(position)) {
+        _showErrorDialog(
+          'Текущее местоположение определено слишком грубо (${_formatAccuracy(position.accuracy)}). Выберите адрес на карте вручную.',
+        );
+        return;
+      }
+
+      if (!locationService.isAccurateEnoughForAutoSelection(position)) {
+        await _handleApproximateLocation(position);
+        return;
+      }
+
       // Обратное геокодирование
       final addressData = await ApiService.searchAddresses(
         lat: position.latitude,
@@ -116,23 +172,7 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
       );
 
       if (addressData != null && addressData.isNotEmpty) {
-        final selectedAddress = {
-          'address': addressData.first['name'] ?? addressData.first['description'] ?? 'Неизвестный адрес',
-          'lat': position.latitude,
-          'lon': position.longitude,
-          'accuracy': position.accuracy,
-          'source': 'geolocation',
-          'timestamp': DateTime.now().toIso8601String(),
-        };
-        if (mounted) {
-          await Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => MapAddressPage(
-              initialLat: selectedAddress['lat'],
-              initialLon: selectedAddress['lon'],
-              onAddressSelected: widget.onAddressSelected,
-            ),
-          ));
-        }
+        await _openMapForDetectedPosition(position);
       } else {
         _showErrorDialog('Не удалось определить адрес по координатам. Попробуйте выбрать адрес вручную.');
       }
@@ -253,116 +293,104 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
-      decoration: const BoxDecoration(
-        color: Colors.transparent,
-      ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [AppColors.cardDark, AppColors.bgDeep]),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 22, offset: const Offset(0, -12)),
-            ],
-          ),
-          child: ListView(
-            physics: const ClampingScrollPhysics(),
-            padding: EdgeInsets.zero,
-            children: [
-              _modalHeader(),
-              _geoButton(),
-              _dividerLabel('или'),
-              _mapSelectButton(),
-              _historyList(),
-            ],
-          ),
+    return SafeArea(
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.72,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _modalHeader(),
+            Expanded(
+              child: ListView(
+                physics: const ClampingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                children: [
+                  _geoButton(),
+                  _dividerLabel('или'),
+                  _mapSelectButton(),
+                  _historyList(),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget _modalHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
-        ),
-        color: AppColors.card.withValues(alpha: 0.9),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
       child: Column(
-        children: const [
-          SizedBox(height: 6),
-          SizedBox(
-            width: 48,
-            height: 5,
-            child: DecoratedBox(
-              decoration: BoxDecoration(color: Color(0x33FFFFFF), borderRadius: BorderRadius.all(Radius.circular(30))),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 44,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(30),
+              ),
             ),
           ),
-          SizedBox(height: 14),
-          Text('Выберите адрес доставки',
-              style: TextStyle(color: AppColors.text, fontSize: 18, fontWeight: FontWeight.w800), textAlign: TextAlign.center),
+          const SizedBox(height: 18),
+          const Text('Выберите адрес доставки', style: TextStyle(color: AppColors.text, fontSize: 18, fontWeight: FontWeight.w800)),
         ],
       ),
     );
   }
 
   Widget _geoButton() {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: _isLoadingLocation ? null : _detectLocationAddress,
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.all(16),
-            backgroundColor: AppColors.orange,
-            foregroundColor: Colors.black,
-            elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          ),
-          child: _isLoadingLocation
-              ? Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.black)),
-                        ),
-                        SizedBox(width: 12),
-                        Text('Определяем местоположение...', style: TextStyle(fontWeight: FontWeight.w700)),
-                      ],
-                    ),
-                    if (_locationAttemptStatus.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text(_locationAttemptStatus, style: const TextStyle(color: Colors.black87, fontSize: 12)),
-                    ],
-                  ],
-                )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.my_location, color: Colors.black, size: 22),
-                    SizedBox(width: 10),
-                    Text('Определить по геолокации', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-                  ],
-                ),
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _isLoadingLocation ? null : _detectLocationAddress,
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.all(16),
+          backgroundColor: AppColors.orange,
+          foregroundColor: Colors.black,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
+        child: _isLoadingLocation
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.black)),
+                      ),
+                      SizedBox(width: 12),
+                      Text('Определяем местоположение...', style: TextStyle(fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                  if (_locationAttemptStatus.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(_locationAttemptStatus, style: const TextStyle(color: Colors.black87, fontSize: 12)),
+                  ],
+                ],
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.my_location, color: Colors.black, size: 22),
+                  SizedBox(width: 10),
+                  Text('Определить по геолокации', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                ],
+              ),
       ),
     );
   }
 
   Widget _dividerLabel(String label) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
         children: [
           Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.08))),
@@ -377,57 +405,54 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
   }
 
   Widget _mapSelectButton() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
-      child: SizedBox(
-        width: double.infinity,
-        child: OutlinedButton(
-          onPressed: () async {
-            double initLat = 43.2220;
-            double initLon = 76.8512;
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: () async {
+          double initLat = 43.2220;
+          double initLon = 76.8512;
 
-            try {
-              final selected = await AddressStorageService.getSelectedAddress();
-              if (selected != null && selected['lat'] != null && selected['lon'] != null) {
-                initLat = (selected['lat'] as num).toDouble();
-                initLon = (selected['lon'] as num).toDouble();
-              } else {
-                final hist = await AddressStorageService.getAddressHistory();
-                if (hist.isNotEmpty && hist.first['point'] != null) {
-                  final p = hist.first['point'];
-                  if (p['lat'] != null && p['lon'] != null) {
-                    initLat = (p['lat'] as num).toDouble();
-                    initLon = (p['lon'] as num).toDouble();
-                  }
+          try {
+            final selected = await AddressStorageService.getSelectedAddress();
+            if (selected != null && selected['lat'] != null && selected['lon'] != null) {
+              initLat = (selected['lat'] as num).toDouble();
+              initLon = (selected['lon'] as num).toDouble();
+            } else {
+              final hist = await AddressStorageService.getAddressHistory();
+              if (hist.isNotEmpty && hist.first['point'] != null) {
+                final p = hist.first['point'];
+                if (p['lat'] != null && p['lon'] != null) {
+                  initLat = (p['lat'] as num).toDouble();
+                  initLon = (p['lon'] as num).toDouble();
                 }
               }
-            } catch (_) {}
+            }
+          } catch (_) {}
 
-            if (!mounted) return;
-            await Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => MapAddressPage(
-                  initialLat: initLat,
-                  initialLon: initLon,
-                  onAddressSelected: widget.onAddressSelected,
-                ),
+          if (!mounted) return;
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => MapAddressPage(
+                initialLat: initLat,
+                initialLon: initLon,
+                onAddressSelected: widget.onAddressSelected,
               ),
-            );
-          },
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.all(16),
-            side: const BorderSide(color: AppColors.orange, width: 1.2),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            backgroundColor: Colors.white.withValues(alpha: 0.02),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.map_outlined, size: 20, color: AppColors.orange),
-              SizedBox(width: 10),
-              Text('Выбрать адрес на карте', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.orange)),
-            ],
-          ),
+            ),
+          );
+        },
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.all(16),
+          side: const BorderSide(color: AppColors.orange, width: 1.2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: Colors.white.withValues(alpha: 0.02),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(Icons.map_outlined, size: 20, color: AppColors.orange),
+            SizedBox(width: 10),
+            Text('Выбрать адрес на карте', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.orange)),
+          ],
         ),
       ),
     );
@@ -438,14 +463,21 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
       future: AddressStorageService.getAddressHistory(),
       builder: (context, snapshot) {
         if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+          final latestAddresses = snapshot.data!.take(5).toList();
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
-                child: Text('Сохранённые адреса', style: const TextStyle(color: AppColors.text, fontSize: 15, fontWeight: FontWeight.w800)),
+                padding: const EdgeInsets.fromLTRB(0, 18, 0, 10),
+                child: Text('Последние адреса', style: const TextStyle(color: AppColors.text, fontSize: 15, fontWeight: FontWeight.w800)),
               ),
-              ...snapshot.data!.map((addr) => ListTile(
+              ...latestAddresses.map(
+                (addr) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    tileColor: AppColors.cardDark,
                     leading: const Icon(Icons.history, color: AppColors.orange),
                     title: Text(addr['name'] ?? '', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
                     subtitle: _buildAddressSubtitle(addr),
@@ -473,7 +505,9 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
 
                       widget.onAddressSelected(fullAddress);
                     },
-                  )),
+                  ),
+                ),
+              ),
             ],
           );
         }
@@ -492,7 +526,10 @@ class AddressSelectionModalHelper {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (ctx) => SafeArea(
         child: AddressSelectionModal(
           onAddressSelected: (address) {

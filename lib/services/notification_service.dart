@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -19,12 +18,18 @@ class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   static NotificationService get instance => _instance;
   NotificationService._internal();
+  static const String _webVapidKey = String.fromEnvironment('FIREBASE_WEB_VAPID_KEY');
 
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
   bool _isInitialized = false;
+  bool _tokenRefreshRegistered = false;
   String? _fcmToken;
+
+  bool get _isWeb => kIsWeb;
+  bool get _isAndroid => !_isWeb && defaultTargetPlatform == TargetPlatform.android;
+  bool get _isIOS => !_isWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
   /// Инициализация сервиса уведомлений
   Future<void> initialize() async {
@@ -33,14 +38,20 @@ class NotificationService {
     try {
       debugPrint('🔔 Инициализация сервиса уведомлений...');
 
+      if (_isWeb) {
+        final supported = await FirebaseMessaging.instance.isSupported();
+        if (!supported) {
+          debugPrint('🔕 Firebase Messaging не поддерживается в этом браузере');
+          _isInitialized = true;
+          return;
+        }
+      }
+
       // Инициализация локальных уведомлений
       await _initializeLocalNotifications();
 
-      // Запрос разрешений
-      await _requestPermissions();
-
-      // Получение FCM токена
-      await _getFCMToken();
+      // Восстанавливаем ранее полученный токен, если он уже был сохранён.
+      await _loadTokenFromStorage();
 
       // Настройка обработчиков сообщений
       _setupMessageHandlers();
@@ -57,11 +68,13 @@ class NotificationService {
 
   /// Инициализация локальных уведомлений
   Future<void> _initializeLocalNotifications() async {
+    if (_isWeb) return;
+
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
 
     const initSettings = InitializationSettings(
@@ -75,7 +88,7 @@ class NotificationService {
     );
 
     // Создание канала уведомлений для Android
-    if (Platform.isAndroid) {
+    if (_isAndroid) {
       const channel = AndroidNotificationChannel(
         'naliv_orders',
         'Заказы Naliv',
@@ -90,44 +103,105 @@ class NotificationService {
   }
 
   /// Запрос разрешений на уведомления
-  Future<void> _requestPermissions() async {
-    if (Platform.isIOS) {
-      await _firebaseMessaging.requestPermission(
+  Future<bool> _requestPermissions() async {
+    if (_isWeb) {
+      final settings = await _firebaseMessaging.requestPermission(
         alert: true,
         badge: true,
         sound: true,
         provisional: false,
       );
+
+      return settings.authorizationStatus == AuthorizationStatus.authorized || settings.authorizationStatus == AuthorizationStatus.provisional;
     }
 
-    if (Platform.isAndroid) {
+    if (_isIOS) {
+      final settings = await _firebaseMessaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
+      );
+
+      await _localNotifications.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()?.requestPermissions(
+            alert: true,
+            badge: true,
+            sound: true,
+          );
+
+      return settings.authorizationStatus == AuthorizationStatus.authorized || settings.authorizationStatus == AuthorizationStatus.provisional;
+    }
+
+    if (_isAndroid) {
       final androidImplementation = _localNotifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
 
-      await androidImplementation?.requestNotificationsPermission();
+      final granted = await androidImplementation?.requestNotificationsPermission();
+      return granted ?? true;
     }
+
+    return true;
+  }
+
+  Future<bool> enablePushNotifications() async {
+    await initialize();
+
+    if (_isWeb) {
+      final supported = await FirebaseMessaging.instance.isSupported();
+      if (!supported) {
+        debugPrint('🔕 Firebase Messaging не поддерживается в этом браузере');
+        return false;
+      }
+    }
+
+    final granted = await _requestPermissions();
+    if (!granted) {
+      debugPrint('🔕 Разрешение на уведомления не выдано');
+      return false;
+    }
+
+    return await _getFCMToken();
   }
 
   /// Получение FCM токена
-  Future<void> _getFCMToken() async {
+  Future<bool> _getFCMToken() async {
     try {
-      _fcmToken = await _firebaseMessaging.getToken();
+      if (_isWeb && _webVapidKey.trim().isEmpty) {
+        debugPrint('❌ Для web push не задан FIREBASE_WEB_VAPID_KEY');
+        return false;
+      }
+
+      _fcmToken = _isWeb ? await _firebaseMessaging.getToken(vapidKey: _webVapidKey) : await _firebaseMessaging.getToken();
       if (_fcmToken != null) {
         debugPrint('📱 FCM Token: $_fcmToken');
         await _saveTokenToStorage(_fcmToken!);
         // Здесь можно отправить токен на сервер
         await _sendTokenToServer(_fcmToken!);
+      } else {
+        debugPrint('❌ FCM token не был получен');
+        return false;
       }
     } catch (e) {
       debugPrint('❌ Ошибка получения FCM токена: $e');
+      return false;
     }
 
     // Обновление токена
-    _firebaseMessaging.onTokenRefresh.listen((newToken) async {
-      debugPrint('🔄 Новый FCM Token: $newToken');
-      _fcmToken = newToken;
-      await _saveTokenToStorage(newToken);
-      await _sendTokenToServer(newToken);
-    });
+    if (!_tokenRefreshRegistered) {
+      _tokenRefreshRegistered = true;
+      _firebaseMessaging.onTokenRefresh.listen((newToken) async {
+        debugPrint('🔄 Новый FCM Token: $newToken');
+        _fcmToken = newToken;
+        await _saveTokenToStorage(newToken);
+        await _sendTokenToServer(newToken);
+      });
+    }
+
+    return true;
+  }
+
+  Future<void> _loadTokenFromStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    _fcmToken = prefs.getString('fcm_token');
   }
 
   /// Сохранение токена в локальное хранилище
@@ -183,6 +257,8 @@ class NotificationService {
   /// Показ локального уведомления
   Future<void> showNotification(RemoteMessage message) async {
     try {
+      if (_isWeb) return;
+
       final notification = message.notification;
 
       if (notification != null) {
@@ -305,6 +381,8 @@ class NotificationService {
   /// Получить текущий FCM токен
   String? get fcmToken => _fcmToken;
 
+  bool get isWebVapidKeyConfigured => _webVapidKey.trim().isNotEmpty;
+
   /// Подписка на топик
   Future<void> subscribeToTopic(String topic) async {
     try {
@@ -327,12 +405,13 @@ class NotificationService {
 
   /// Очистка всех уведомлений
   Future<void> clearAllNotifications() async {
+    if (_isWeb) return;
     await _localNotifications.cancelAll();
   }
 
   /// Получить количество непрочитанных уведомлений (только iOS)
   Future<int> getBadgeCount() async {
-    if (Platform.isIOS) {
+    if (_isIOS) {
       // Реализация для iOS
       return 0;
     }
@@ -341,7 +420,7 @@ class NotificationService {
 
   /// Установить количество непрочитанных уведомлений (только iOS)
   Future<void> setBadgeCount(int count) async {
-    if (Platform.isIOS) {
+    if (_isIOS) {
       // TODO: Реализовать установку badge для iOS
     }
   }

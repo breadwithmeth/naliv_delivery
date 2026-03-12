@@ -9,6 +9,9 @@ class LocationService {
   static LocationService get instance => _instance ??= LocationService._();
   LocationService._();
 
+  static const double autoAcceptAccuracyMeters = 200;
+  static const double manualConfirmationAccuracyMeters = 1000;
+
   /// Текущая позиция пользователя
   Position? _currentPosition;
   Position? get currentPosition => _currentPosition;
@@ -134,6 +137,20 @@ class LocationService {
       debugPrint('Ошибка при получении геолокации: $e');
       return null;
     }
+  }
+
+  bool isAccurateEnoughForAutoSelection(
+    Position position, {
+    double maxAccuracyMeters = autoAcceptAccuracyMeters,
+  }) {
+    return position.accuracy > 0 && position.accuracy <= maxAccuracyMeters;
+  }
+
+  bool requiresManualConfirmation(
+    Position position, {
+    double maxAccuracyMeters = manualConfirmationAccuracyMeters,
+  }) {
+    return position.accuracy <= 0 || position.accuracy > maxAccuracyMeters;
   }
 
   /// Вычисляет расстояние между двумя точками в метрах

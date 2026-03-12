@@ -56,6 +56,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Future<void> _loadUserBonuses() async {
     if (await ApiService.isUserLoggedIn()) {
       final bonuses = await ApiService.getUserBonuses();
+      debugPrint('Loaded bonuses: $bonuses');
       if (mounted) {
         setState(() {
           _bonusData = bonuses;

@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:barcode_widget/barcode_widget.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 
@@ -8,7 +10,9 @@ import '../utils/api.dart';
 import '../utils/cart_provider.dart';
 import '../utils/location_service.dart';
 import '../widgets/address_selection_modal_material.dart';
+import 'bonus_history_page.dart';
 import 'categoryPage.dart';
+import 'login_page.dart';
 import 'promotion_items_page.dart';
 import 'search_page.dart';
 
@@ -38,19 +42,18 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   // Palette
-  static const Color _bgDeep = Color(0xFF0B0D14);
-  static const Color _bgTop = Color(0xFF0E1119);
-  static const Color _card = Color(0xFF111A2D);
-  static const Color _cardDark = Color(0xFF0F1726);
-  static const Color _blue = Color(0xFF1C273A);
-  static const Color _orange = Color(0xFFF38B2A);
-  static const Color _red = Color(0xFFC22624);
+  static const Color _bgDeep = Color(0xFF121212); // matte black base
+  static const Color _bgTop = Color(0xFF161616); // subtle top tint
+  static const Color _card = Color(0xFF1E1E1E); // surface
+  static const Color _cardDark = Color(0xFF181818); // deep surface
+  static const Color _blue = Color(0xFF242A32); // cool accent for chips
+  static const Color _orange = Color(0xFFF6A10C); // vivid amber/gold
+  static const Color _red = Color(0xFFC23B30);
   static const Color _text = Colors.white;
   static const Color _textMute = Color(0xFF9FB0C8);
+  static const double _selectorMinHeight = 84;
 
-  final PageController _promoPageController = PageController();
-  Timer? _promoAutoScrollTimer;
-  int _currentPromoPage = 0;
+  final CarouselSliderController _promoCarouselController = CarouselSliderController();
   final LocationService _locationService = LocationService.instance;
   StreamSubscription<Map<String, dynamic>?>? _addressSubscription;
   String? _lastPromptKey;
@@ -64,6 +67,13 @@ class _MainPageState extends State<MainPage> {
   String? _categoriesError;
 
   Map<String, dynamic>? _selectedAddress;
+
+  Map<String, dynamic>? _bonuses;
+  bool _isLoadingBonuses = true;
+  String? _bonusesError;
+  String? _activeCardUuid;
+  String? _qrPayload;
+  Timer? _qrTimer;
 
   @override
   void initState() {
@@ -89,51 +99,40 @@ class _MainPageState extends State<MainPage> {
       _maybeSuggestCloserAddress();
     }
 
-    if (widget.selectedBusiness != null) {
-      _loadPromotions();
-      _loadCategories();
-    }
+    _loadPromotions();
+    _loadCategories();
+    _loadBonuses();
   }
 
   @override
   void didUpdateWidget(covariant MainPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedBusiness != widget.selectedBusiness) {
+    final oldBusinessId =
+        oldWidget.selectedBusiness?['id'] ?? oldWidget.selectedBusiness?['business_id'] ?? oldWidget.selectedBusiness?['businessId'];
+    final newBusinessId = widget.selectedBusiness?['id'] ?? widget.selectedBusiness?['business_id'] ?? widget.selectedBusiness?['businessId'];
+    if (oldBusinessId != newBusinessId) {
       _loadPromotions();
       _loadCategories();
     }
-    if (oldWidget.selectedAddress != widget.selectedAddress && widget.selectedAddress != null) {
+
+    if (oldWidget.selectedAddress != widget.selectedAddress) {
       setState(() => _selectedAddress = widget.selectedAddress);
-      _autoSelectNearestBusiness();
     }
   }
 
-  @override
-  void dispose() {
-    _promoAutoScrollTimer?.cancel();
-    _promoPageController.dispose();
-    _addressSubscription?.cancel();
-    super.dispose();
-  }
-
-  // ---------------- Data loading ----------------
   Future<void> _loadPromotions() async {
-    if (!mounted) return;
     setState(() {
       _isLoadingPromotions = true;
       _promotionsError = null;
     });
     try {
-      final int? businessId = widget.selectedBusiness != null
-          ? widget.selectedBusiness!['id'] ?? widget.selectedBusiness!['business_id'] ?? widget.selectedBusiness!['businessId']
-          : null;
+      final int? businessId = widget.selectedBusiness?['id'] ?? widget.selectedBusiness?['business_id'] ?? widget.selectedBusiness?['businessId'];
       final promos = await ApiService.getActivePromotionsTyped(businessId: businessId, limit: 12);
       if (!mounted) return;
       setState(() {
         _promotions = promos ?? [];
         _isLoadingPromotions = false;
       });
-      _startPromoAutoScroll();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -168,6 +167,51 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
+  Future<void> _loadBonuses() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingBonuses = true;
+      _bonusesError = null;
+    });
+
+    try {
+      final data = await ApiService.getUserBonuses();
+      if (!mounted) return;
+      if (data == null) {
+        setState(() {
+          _bonuses = null;
+          _bonusesError = 'Авторизуйтесь, чтобы видеть бонусы';
+          _isLoadingBonuses = false;
+        });
+        _stopQrUpdates();
+        return;
+      }
+
+      final success = data['success'] == true;
+      final cardUuid = data['data']?['bonusCard']?['cardUuid']?.toString();
+      setState(() {
+        _bonuses = data;
+        _activeCardUuid = cardUuid;
+        _qrPayload = _buildQrPayload(cardUuid);
+        _isLoadingBonuses = false;
+        _bonusesError = success ? null : (data['message']?.toString() ?? 'Не удалось загрузить бонусы');
+      });
+
+      if (success && cardUuid != null) {
+        _restartQrUpdates();
+      } else {
+        _stopQrUpdates();
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _bonusesError = 'Ошибка загрузки бонусов: $e';
+        _isLoadingBonuses = false;
+      });
+      _stopQrUpdates();
+    }
+  }
+
   // ---------------- Address / business selection ----------------
   Future<void> _initAddressSelection() async {
     final saved = await AddressStorageService.getSelectedAddress();
@@ -199,14 +243,18 @@ class _MainPageState extends State<MainPage> {
         } catch (_) {}
       }
       if (pos == null) return _fallbackShowAddressModal();
+      if (!_locationService.isAccurateEnoughForAutoSelection(pos)) {
+        return _fallbackShowAddressModal();
+      }
 
       final reverse = await ApiService.searchAddresses(lat: pos.latitude, lon: pos.longitude);
+      final resolvedAddress =
+          (reverse?.isNotEmpty ?? false) ? ApiService.extractAddressLabel(reverse!.first, lat: pos.latitude, lon: pos.longitude) : null;
       final autoAddress = {
-        'address': (reverse?.isNotEmpty ?? false)
-            ? (reverse!.first['name'] ?? reverse.first['description'] ?? '*Определённый адрес')
-            : '*Определённый адрес',
+        'address': resolvedAddress ?? 'Определённый адрес',
         'lat': pos.latitude,
         'lon': pos.longitude,
+        'accuracy': pos.accuracy,
         'source': 'auto_geolocation',
         'timestamp': DateTime.now().toIso8601String(),
       };
@@ -301,6 +349,7 @@ class _MainPageState extends State<MainPage> {
     if (_selectedAddress == null || _selectedAddress!['lat'] == null || _selectedAddress!['lon'] == null) return;
     try {
       final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.low, timeLimit: const Duration(seconds: 4));
+      if (!_locationService.isAccurateEnoughForAutoSelection(pos)) return;
       final savedLat = (_selectedAddress!['lat'] as num).toDouble();
       final savedLon = (_selectedAddress!['lon'] as num).toDouble();
       final currentDistance = _locationService.calculateDistance(pos.latitude, pos.longitude, savedLat, savedLon);
@@ -458,81 +507,119 @@ class _MainPageState extends State<MainPage> {
   }
 
   Widget _buildHeader() {
-    return Row(
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Text('ГРАДУСЫ', style: TextStyle(color: _text, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: _orange, borderRadius: BorderRadius.circular(10)),
-                  child: const Text('24', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w800, fontSize: 12)),
-                ),
-              ],
-            ),
-          ],
-        ),
-        const Spacer(),
-        _circleBadge(icon: Icons.local_shipping, label: '24/7'),
-        const SizedBox(width: 10),
-        _circleBadge(icon: Icons.notifications_none_rounded),
-      ],
+    return const Align(
+      alignment: Alignment.centerLeft,
+      child: Text('ГРАДУСЫ', style: TextStyle(color: _text, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
     );
   }
 
-  Widget _circleBadge({required IconData icon, String? label}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration:
-          BoxDecoration(color: _card, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.white.withValues(alpha: 0.06))),
+  Widget _slimAddressBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       child: Row(
         children: [
-          Icon(icon, color: _orange, size: 18),
-          if (label != null) ...[
-            const SizedBox(width: 6),
-            Text(label, style: const TextStyle(color: _text, fontWeight: FontWeight.w700, fontSize: 12)),
-          ],
+          Expanded(child: _addressCard()),
+          const SizedBox(width: 10),
+          Expanded(child: _businessSelector()),
         ],
       ),
     );
   }
 
   Widget _addressCard() {
-    final addressText = _selectedAddress != null ? _selectedAddress!['address'] ?? '*Укажите адрес доставки' : '*Укажите адрес доставки';
-    return GestureDetector(
-      onTap: _showAddressSelectionModal,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: _card,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-        ),
+    final addressText = _selectedAddress != null ? _selectedAddress!['address'] ?? 'Укажите адрес доставки' : 'Укажите адрес доставки';
+    return Container(
+      constraints: const BoxConstraints(minHeight: _selectorMinHeight),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: _showAddressSelectionModal,
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: _blue, borderRadius: BorderRadius.circular(14)),
-              child: const Icon(Icons.location_pin, color: _orange, size: 18),
-            ),
-            const SizedBox(width: 12),
+            const Icon(Icons.location_pin, color: _orange, size: 18),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('*Доставка по адресу', style: TextStyle(color: _textMute.withValues(alpha: 0.9), fontSize: 12, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 4),
-                  Text(addressText,
-                      maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _text, fontSize: 15, fontWeight: FontWeight.w800)),
+                  Text(
+                    'Адрес доставки',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: _textMute.withValues(alpha: 0.9), fontSize: 11, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    addressText,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: _text, fontSize: 14, fontWeight: FontWeight.w800, height: 1.15),
+                  ),
                 ],
               ),
             ),
+            const SizedBox(width: 8),
             const Icon(Icons.keyboard_arrow_down, color: _textMute),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _businessSelector() {
+    final selected = widget.selectedBusiness;
+    final title = selected != null ? (selected['name'] ?? selected['title'] ?? 'Магазин') : 'Выберите магазин';
+
+    return Container(
+      constraints: const BoxConstraints(minHeight: _selectorMinHeight),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: widget.isLoadingBusinesses ? null : _showBusinessSelectorSheet,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Icon(Icons.storefront, color: _orange, size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Магазин',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: _textMute.withValues(alpha: 0.9), fontSize: 11, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: _text, fontSize: 14, fontWeight: FontWeight.w800, height: 1.15),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            widget.isLoadingBusinesses
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.keyboard_arrow_down, color: _textMute),
           ],
         ),
       ),
@@ -554,7 +641,7 @@ class _MainPageState extends State<MainPage> {
             Icon(Icons.search, color: _textMute),
             SizedBox(width: 10),
             Expanded(
-              child: Text('*Найти любимый напиток...', style: TextStyle(color: _textMute, fontSize: 14, fontWeight: FontWeight.w600)),
+              child: Text('Найти любимый напиток...', style: TextStyle(color: _textMute, fontSize: 14, fontWeight: FontWeight.w600)),
             ),
             Icon(Icons.tune, color: _textMute),
           ],
@@ -563,39 +650,7 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Promotion _fakePromotion(String name) {
-    final now = DateTime.now();
-    final bizId = widget.selectedBusiness != null
-        ? (widget.selectedBusiness!['id'] as int?) ??
-            (widget.selectedBusiness!['business_id'] as int?) ??
-            (widget.selectedBusiness!['businessId'] as int?)
-        : 0;
-    return Promotion(
-      marketingPromotionId: name.hashCode & 0x7fffffff,
-      name: name,
-      startPromotionDate: now.subtract(const Duration(days: 1)),
-      endPromotionDate: now.add(const Duration(days: 30)),
-      businessId: bizId ?? 0,
-      cover: null,
-      visible: 1,
-      isActive: true,
-      business: null,
-      details: const [],
-      stories: const [],
-      itemsCount: 0,
-      daysLeft: 0,
-    );
-  }
-
   Widget _promotionsSection() {
-    final hasData = _promotions.isNotEmpty;
-    final items = hasData
-        ? _promotions
-        : [
-            _fakePromotion('*Премиальные вина Италии'),
-            _fakePromotion('*Коллекция виски'),
-          ];
-
     if (_isLoadingPromotions) {
       return const SizedBox(height: 220, child: Center(child: CircularProgressIndicator()));
     }
@@ -611,22 +666,43 @@ class _MainPageState extends State<MainPage> {
       );
     }
 
-    return SizedBox(
-      height: 230,
-      child: PageView.builder(
-        controller: _promoPageController,
-        onPageChanged: (i) => setState(() => _currentPromoPage = i),
-        itemCount: items.length,
-        itemBuilder: (_, i) => _promotionCard(items[i], hasData),
+    if (_promotions.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Text('Акции пока не найдены', style: TextStyle(color: _text, fontWeight: FontWeight.w700)),
+            SizedBox(height: 4),
+            Text('Попробуйте выбрать другой магазин или обновить страницу.', style: TextStyle(color: _textMute)),
+          ],
+        ),
+      );
+    }
+
+    return CarouselSlider.builder(
+      carouselController: _promoCarouselController,
+      itemCount: _promotions.length,
+      itemBuilder: (_, i, __) => _promotionCard(_promotions[i]),
+      options: CarouselOptions(
+        height: 230,
+        viewportFraction: 0.95,
+        autoPlay: true,
+        autoPlayInterval: const Duration(seconds: 5),
+        enlargeCenterPage: true,
+        enlargeStrategy: CenterPageEnlargeStrategy.height,
+        disableCenter: true,
+        padEnds: true,
       ),
     );
   }
 
-  Widget _promotionCard(Promotion promo, bool hasData) {
+  Widget _promotionCard(Promotion promo) {
     final bizId =
         widget.selectedBusiness != null ? (widget.selectedBusiness!['id'] as int?) ?? (widget.selectedBusiness!['businessId'] as int?) : null;
+    final hasCover = promo.cover != null && promo.cover!.trim().isNotEmpty;
     return GestureDetector(
-      onTap: hasData && bizId != null
+      onTap: bizId != null
           ? () => Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => PromotionItemsPage(
@@ -638,51 +714,130 @@ class _MainPageState extends State<MainPage> {
               )
           : null,
       child: Container(
-        margin: const EdgeInsets.only(right: 16, top: 10, bottom: 10),
+        margin: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [_red, _cardDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
           borderRadius: BorderRadius.circular(22),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 16, offset: const Offset(0, 12))],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.45), blurRadius: 18, offset: const Offset(0, 14))],
         ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.16,
-                child: Container(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: hasCover
+                    ? Image.network(
+                        promo.cover!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _promotionPlaceholder(promo),
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return _promotionPlaceholder(promo, showLoader: true);
+                        },
+                      )
+                    : Container(
+                        child: _promotionPlaceholder(promo),
+                      ),
+              ),
+              Positioned.fill(
+                child: DecoratedBox(
                   decoration: const BoxDecoration(
-                    gradient: RadialGradient(
-                      center: Alignment(-0.2, -0.4),
-                      radius: 1.1,
-                      colors: [Colors.white, Colors.transparent],
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [Color(0xAA000000), Colors.transparent],
                     ),
                   ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(color: _orange, borderRadius: BorderRadius.circular(12)),
-                    child: const Text('*Доставка за 30 мин', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w800, fontSize: 12)),
-                  ),
-                  const Spacer(),
-                  Text(promo.name ?? '*Акция',
-                      maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _text, fontSize: 20, fontWeight: FontWeight.w900)),
-                  const SizedBox(height: 6),
-                  Text(hasData && promo.details.isNotEmpty ? promo.details.first.name : '*Скидка 20%',
-                      style: TextStyle(color: _text.withValues(alpha: 0.9), fontSize: 14, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 4),
-                  Text('*Выбрать', style: TextStyle(color: _text.withValues(alpha: 0.8), fontSize: 13, fontWeight: FontWeight.w600)),
-                ],
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 16,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(color: _orange, borderRadius: BorderRadius.circular(12)),
+                      child: const Text('Акция', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w800, fontSize: 12)),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      promo.name ?? 'Акция',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: _text, fontSize: 20, fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      promo.details.isNotEmpty ? promo.details.first.name : 'Скидка и спецпредложения',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: _text.withValues(alpha: 0.9), fontSize: 14, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _promotionPlaceholder(Promotion promo, {bool showLoader = false}) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(colors: [_red, _cardDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -18,
+            top: -12,
+            child: Icon(Icons.local_offer_outlined, size: 92, color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          Positioned(
+            left: 18,
+            top: 18,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+              ),
+              child: const Text('Нет изображения', style: TextStyle(color: _text, fontWeight: FontWeight.w700, fontSize: 12)),
+            ),
+          ),
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.photo_size_select_actual_outlined, color: Colors.white.withValues(alpha: 0.82), size: 38),
+                const SizedBox(height: 10),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  child: Text(
+                    promo.name ?? 'Акция',
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: _text, fontSize: 18, fontWeight: FontWeight.w800),
+                  ),
+                ),
+                if (showLoader) ...[
+                  const SizedBox(height: 14),
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.2, valueColor: AlwaysStoppedAnimation<Color>(_text)),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -705,14 +860,27 @@ class _MainPageState extends State<MainPage> {
       );
     }
 
-    final visible = (_categories.isNotEmpty ? _categories : _placeholderCategories()).take(8).toList();
+    if (_categories.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: const [
+            Icon(Icons.inbox, color: _textMute),
+            SizedBox(width: 8),
+            Expanded(child: Text('Категории недоступны для выбранного магазина', style: TextStyle(color: _text))),
+          ],
+        ),
+      );
+    }
+
+    final visible = _categories.take(12).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Категории', style: TextStyle(color: _text, fontSize: 18, fontWeight: FontWeight.w800)),
         const SizedBox(height: 12),
         SizedBox(
-          height: 110,
+          height: 72,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: visible.length,
@@ -720,8 +888,9 @@ class _MainPageState extends State<MainPage> {
             itemBuilder: (_, i) {
               final cat = visible[i];
               final style = _getCategoryIconAndColor(cat['name'] ?? '');
+              final categoryImage = _extractCategoryImage(cat);
               return InkWell(
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(16),
                 onTap: () {
                   final businessId =
                       widget.selectedBusiness?['id'] ?? widget.selectedBusiness?['business_id'] ?? widget.selectedBusiness?['businessId'];
@@ -739,31 +908,28 @@ class _MainPageState extends State<MainPage> {
                     ),
                   );
                 },
-                child: Column(
-                  children: [
-                    Container(
-                      width: 78,
-                      height: 78,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _blue,
-                        gradient: LinearGradient(
-                            colors: (style['gradient'] as List<Color>?) ?? [_blue, _cardDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 10, offset: const Offset(0, 6))],
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    gradient: LinearGradient(
+                        colors: (style['gradient'] as List<Color>?) ?? [_blue, _cardDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 10, offset: const Offset(0, 8))],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildCategoryLeading(categoryImage, style),
+                      const SizedBox(width: 10),
+                      Flexible(
+                        child: Text(cat['name'] ?? 'Категория',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: _text, fontSize: 14, fontWeight: FontWeight.w700)),
                       ),
-                      child: Icon(style['icon'], color: style['color'], size: 30),
-                    ),
-                    const SizedBox(height: 6),
-                    SizedBox(
-                      width: 78,
-                      child: Text(cat['name'] ?? '*Категория',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: _text, fontSize: 12, fontWeight: FontWeight.w700)),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
@@ -773,106 +939,69 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Widget _popularSection() {
-    final items = _promotions.isNotEmpty
-        ? _promotions.take(6).toList()
-        : [
-            _fakePromotion('*Chianti Classico Riserva DOCG'),
-            _fakePromotion('*Macallan 12 Years Double Cask'),
-          ];
+  Widget _productDiscoveryRow() {
+    final cart = Provider.of<CartProvider>(context);
+    if (cart.items.isEmpty) return const SizedBox.shrink();
+    final items = cart.items.take(10).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: const [
-            Text('Популярное сейчас', style: TextStyle(color: _text, fontSize: 18, fontWeight: FontWeight.w800)),
-            Spacer(),
-            Text('*Все', style: TextStyle(color: _orange, fontWeight: FontWeight.w700)),
-          ],
-        ),
-        const SizedBox(height: 12),
+        const Text('Недавно в корзине', style: TextStyle(color: _text, fontSize: 18, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 10),
         SizedBox(
-          height: 280,
+          height: 170,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: items.length,
             separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (_, i) => _popularCard(items[i]),
+            itemBuilder: (_, i) {
+              final item = items[i];
+              return Container(
+                width: 200,
+                decoration: BoxDecoration(
+                  color: _card,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 12, offset: const Offset(0, 10))],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: item.image != null
+                              ? Image.network(item.image!, width: double.infinity, fit: BoxFit.cover)
+                              : Container(
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(colors: [_blue, _cardDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(item.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: _text, fontSize: 14, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 4),
+                      Text('${item.quantity} шт • ${item.price.toStringAsFixed(0)} ₸',
+                          style: TextStyle(color: _textMute.withValues(alpha: 0.9), fontSize: 12, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 6),
+                      Text('Итого: ${item.totalPrice.toStringAsFixed(0)} ₸',
+                          style: const TextStyle(color: _orange, fontWeight: FontWeight.w900, fontSize: 14)),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ],
-    );
-  }
-
-  Widget _popularCard(Promotion promo) {
-    return Container(
-      width: 210,
-      decoration: BoxDecoration(
-        color: _blue,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 16, offset: const Offset(0, 12))],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                Container(
-                  height: 150,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [_card, _cardDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                    borderRadius: BorderRadius.circular(0),
-                  ),
-                  child: promo.cover != null ? Image.network(promo.cover!, fit: BoxFit.cover) : Container(color: _cardDark),
-                ),
-                Positioned(
-                  top: 10,
-                  left: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(color: _red, borderRadius: BorderRadius.circular(12)),
-                    child: const Text('-15%', style: TextStyle(color: _text, fontWeight: FontWeight.w800)),
-                  ),
-                ),
-                const Positioned(
-                  top: 10,
-                  right: 10,
-                  child: Icon(Icons.favorite_border, color: _text, size: 20),
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('*ИТАЛИЯ • 0.75 л', style: TextStyle(color: _textMute.withValues(alpha: 0.9), fontSize: 12, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  Text(promo.name ?? '*Товар',
-                      maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _text, fontSize: 16, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      const Text('2 450₽', style: TextStyle(color: _text, fontSize: 18, fontWeight: FontWeight.w900)),
-                      const Spacer(),
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: const BoxDecoration(color: _orange, shape: BoxShape.circle),
-                        child: const Icon(Icons.add, color: Colors.black, size: 22),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -919,28 +1048,222 @@ class _MainPageState extends State<MainPage> {
     return {'icon': Icons.category, 'color': accentAlt, 'gradient': defGrad};
   }
 
-  List<Map<String, dynamic>> _placeholderCategories() {
-    return [
-      {'name': '*Пиво'},
-      {'name': '*Вино'},
-      {'name': '*Виски'},
-      {'name': '*Игристое'},
-      {'name': '*Крепкий алкоголь'},
-      {'name': '*Снеки'},
-      {'name': '*Безалкогольное'},
-    ];
+  String? _extractCategoryImage(Map<String, dynamic> category) {
+    final image = category['image'] ?? category['img'];
+    if (image == null) return null;
+    final value = image.toString().trim();
+    return value.isEmpty ? null : value;
   }
 
-  void _startPromoAutoScroll() {
-    _promoAutoScrollTimer?.cancel();
-    if (_promotions.length <= 1) return;
-    _promoAutoScrollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (!mounted) return;
-      final next = (_currentPromoPage + 1) % _promotions.length;
-      _promoPageController.animateToPage(next, duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
-      _currentPromoPage = next;
-      if (mounted) setState(() {});
+  Widget _buildCategoryLeading(String? imageUrl, Map<String, dynamic> style) {
+    if (imageUrl == null) {
+      return Icon(style['icon'], color: style['color'], size: 20);
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: SizedBox(
+        width: 28,
+        height: 28,
+        child: Image.network(
+          imageUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(
+            color: Colors.white.withValues(alpha: 0.08),
+            alignment: Alignment.center,
+            child: Icon(style['icon'], color: style['color'], size: 18),
+          ),
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(
+              color: Colors.white.withValues(alpha: 0.08),
+              alignment: Alignment.center,
+              child: SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>((style['color'] as Color?) ?? _orange),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  String? _buildQrPayload(String? cardUuid) {
+    if (cardUuid == null) return null;
+    final minuteBucket = DateTime.now().millisecondsSinceEpoch ~/ 60000;
+    return '$cardUuid:$minuteBucket';
+  }
+
+  void _restartQrUpdates() {
+    _qrTimer?.cancel();
+    _qrTimer = Timer.periodic(const Duration(minutes: 1), (_) => _updateQrPayload());
+  }
+
+  void _stopQrUpdates() {
+    _qrTimer?.cancel();
+    _qrTimer = null;
+  }
+
+  void _updateQrPayload() {
+    if (!mounted) return;
+    setState(() {
+      _qrPayload = _buildQrPayload(_activeCardUuid);
     });
+  }
+
+  Future<void> _openLoginPage() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const LoginPage(),
+      ),
+    );
+
+    if (mounted) {
+      _loadBonuses();
+    }
+  }
+
+  Widget _bonusesSection() {
+    final bonusData = _bonuses?['data'];
+    final totalBonuses = (bonusData?['totalBonuses'] as num?)?.toDouble();
+    final cardUuid = bonusData?['bonusCard']?['cardUuid']?.toString();
+    final history = (bonusData?['bonusHistory'] as List?) ?? const [];
+    final isLoginRequired = _bonuses == null && _bonusesError != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text('Бонусы', style: TextStyle(color: _text, fontSize: 18, fontWeight: FontWeight.w800)),
+            const Spacer(),
+            if (isLoginRequired)
+              TextButton(
+                onPressed: _openLoginPage,
+                style: TextButton.styleFrom(
+                  foregroundColor: _orange,
+                  textStyle: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                child: const Text('Войти'),
+              )
+            else
+              IconButton(
+                onPressed: _isLoadingBonuses ? null : _loadBonuses,
+                icon: const Icon(Icons.refresh, color: _textMute),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: _card,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 14, offset: const Offset(0, 10))],
+          ),
+          child: _isLoadingBonuses
+              ? const SizedBox(height: 160, child: Center(child: CircularProgressIndicator()))
+              : _bonusesError != null
+                  ? Column(
+                      crossAxisAlignment: _bonuses == null ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+                      children: [
+                        if (_bonuses == null)
+                          SizedBox(
+                            width: double.infinity,
+                            child: Column(
+                              children: [
+                                Text(_bonusesError!, textAlign: TextAlign.center, style: const TextStyle(color: _text)),
+                                const SizedBox(height: 8),
+                              ],
+                            ),
+                          )
+                        else ...[
+                          Text(_bonusesError!, style: const TextStyle(color: _text)),
+                          const SizedBox(height: 8),
+                        ],
+                        ElevatedButton(
+                          onPressed: isLoginRequired ? _openLoginPage : _loadBonuses,
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: _orange,
+                              foregroundColor: Colors.black,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                          child: Text(isLoginRequired ? 'Войти' : 'Обновить'),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Ваш баланс', style: TextStyle(color: _textMute, fontWeight: FontWeight.w600)),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    totalBonuses != null ? totalBonuses.toStringAsFixed(0) : '—',
+                                    style: const TextStyle(color: _text, fontSize: 32, fontWeight: FontWeight.w900),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => BonusHistoryPage(history: history),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _orange,
+                                foregroundColor: Colors.black,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              ),
+                              child: const Text('История'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        if (cardUuid != null && _qrPayload != null)
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: _cardDark,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                            ),
+                            child: Column(
+                              children: [
+                                BarcodeWidget(
+                                  data: _qrPayload!,
+                                  barcode: Barcode.qrCode(),
+                                  color: _text,
+                                  width: double.infinity,
+                                  height: 200,
+                                  backgroundColor: Colors.transparent,
+                                ),
+                                const SizedBox(height: 10),
+                                Text('QR обновляется каждую минуту', style: TextStyle(color: _textMute.withValues(alpha: 0.9))),
+                              ],
+                            ),
+                          )
+                        else
+                          const Text('Карта не найдена', style: TextStyle(color: _textMute)),
+                      ],
+                    ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -948,35 +1271,159 @@ class _MainPageState extends State<MainPage> {
     final bottomInset = MediaQuery.of(context).padding.bottom;
     const navHeight = 110.0;
     final bottomPadding = bottomInset + navHeight;
+
     return Scaffold(
       backgroundColor: _bgDeep,
       body: Stack(
         children: [
           _background(),
           SafeArea(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(16, 12, 16, bottomPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(),
-                  const SizedBox(height: 14),
-                  _addressCard(),
-                  const SizedBox(height: 14),
-                  _searchBar(),
-                  const SizedBox(height: 18),
-                  _promotionsSection(),
-                  const SizedBox(height: 18),
-                  _categoriesSection(),
-                  const SizedBox(height: 20),
-                  _popularSection(),
-                  const SizedBox(height: 24),
-                ],
-              ),
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                SliverAppBar(
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  floating: true,
+                  snap: true,
+                  pinned: false,
+                  automaticallyImplyLeading: false,
+                  toolbarHeight: 72,
+                  title: _buildHeader(),
+                ),
+                SliverPersistentHeader(
+                  pinned: true,
+                  floating: false,
+                  delegate: _SlimHeaderDelegate(
+                    minExtent: 92,
+                    maxExtent: 96,
+                    child: _slimAddressBar(),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        _searchBar(),
+                        const SizedBox(height: 12),
+                      ],
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  sliver: SliverToBoxAdapter(child: _promotionsSection()),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  sliver: SliverToBoxAdapter(child: _categoriesSection()),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  sliver: SliverToBoxAdapter(child: _productDiscoveryRow()),
+                ),
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(16, 14, 16, bottomPadding),
+                  sliver: SliverToBoxAdapter(child: _bonusesSection()),
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _showBusinessSelectorSheet() async {
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      backgroundColor: _card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      builder: (ctx) {
+        if (widget.businesses.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.store_mall_directory, color: _textMute, size: 28),
+                SizedBox(height: 10),
+                Text('Магазины не найдены', style: TextStyle(color: _text)),
+              ],
+            ),
+          );
+        }
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Выберите магазин', style: TextStyle(color: _text, fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: widget.businesses.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (_, i) {
+                      final b = widget.businesses[i];
+                      final name = b['name'] ?? b['title'] ?? 'Магазин';
+                      final addr = b['address'] ?? b['subtitle'] ?? '';
+                      return ListTile(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        tileColor: _cardDark,
+                        leading: const Icon(Icons.storefront, color: _orange),
+                        title: Text(name, style: const TextStyle(color: _text, fontWeight: FontWeight.w800)),
+                        subtitle: addr.isNotEmpty ? Text(addr.toString(), style: TextStyle(color: _textMute.withValues(alpha: 0.9))) : null,
+                        onTap: () => Navigator.pop(ctx, b),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (result != null && mounted) {
+      widget.onBusinessSelected(result);
+    }
+  }
+
+  @override
+  void dispose() {
+    _addressSubscription?.cancel();
+    _stopQrUpdates();
+    super.dispose();
+  }
+}
+
+class _SlimHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final double minExtent;
+  final double maxExtent;
+  final Widget child;
+
+  _SlimHeaderDelegate({required this.minExtent, required this.maxExtent, required this.child});
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: const Color(0x00000000),
+      alignment: Alignment.centerLeft,
+      child: child,
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _SlimHeaderDelegate oldDelegate) {
+    return oldDelegate.minExtent != minExtent || oldDelegate.maxExtent != maxExtent || oldDelegate.child != child;
   }
 }
