@@ -28,6 +28,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
   // Время доставки: NOW или конкретное время
   String _deliveryTime = 'NOW';
   DateTime? _selectedDeliveryDateTime;
+  final TextEditingController _entranceController = TextEditingController();
+  final TextEditingController _floorController = TextEditingController();
+  final TextEditingController _apartmentController = TextEditingController();
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    _floorController.dispose();
+    _apartmentController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -42,6 +53,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       setState(() {
         _selectedAddress = address;
       });
+      _syncAddressDetailControllers(address);
     } else {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (mounted) {
@@ -74,6 +86,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         _selectedAddress = selected;
         _deliveryData = null;
       });
+      _syncAddressDetailControllers(selected);
       // Сохраняем выбранный адрес со всеми деталями
       await AddressStorageService.saveSelectedAddress(selected);
       await AddressStorageService.markAsLaunched();
@@ -112,16 +125,31 @@ class _CheckoutPageState extends State<CheckoutPage> {
       return;
     }
 
+    if (_deliveryType == 'DELIVERY' && !_validateAddressDetails()) {
+      setState(() => _isSubmitting = false);
+      return;
+    }
+
+    final normalizedAddress = _addressWithDetails();
+    if (_deliveryType == 'DELIVERY') {
+      await AddressStorageService.saveSelectedAddress(normalizedAddress);
+      if (mounted) {
+        setState(() {
+          _selectedAddress = normalizedAddress;
+        });
+      }
+    }
+
     final body = <String, dynamic>{
       'business_id': businessProvider.selectedBusiness!['id'],
-      'street': _selectedAddress?['street'] ?? _selectedAddress?['address'] ?? '',
-      'house': _selectedAddress?['house'] ?? '-',
-      'lat': _selectedAddress?['lat'] ?? 0.0,
-      'lon': _selectedAddress?['lon'] ?? 0.0,
-      'apartment': _selectedAddress?['apartment'] ?? '',
-      'entrance': _selectedAddress?['entrance'] ?? '',
-      'floor': _selectedAddress?['floor'] ?? '',
-      'extra': _selectedAddress?['comment'] ?? '',
+      'street': normalizedAddress['street'] ?? normalizedAddress['address'] ?? '',
+      'house': normalizedAddress['house'] ?? '-',
+      'lat': normalizedAddress['lat'] ?? 0.0,
+      'lon': normalizedAddress['lon'] ?? 0.0,
+      'apartment': normalizedAddress['apartment'] ?? '',
+      'entrance': normalizedAddress['entrance'] ?? '',
+      'floor': normalizedAddress['floor'] ?? '',
+      'extra': normalizedAddress['comment'] ?? '',
       'items': cartProvider.items.map((item) => item.toJsonForOrder()).toList(),
       'delivery_type': _deliveryType,
       'delivery_time': _deliveryTime,
@@ -467,6 +495,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       onTap: _showAddressSelectionModal,
                     ),
                     const SizedBox(height: 10),
+                    _addressDetailsCard(),
+                    const SizedBox(height: 10),
                     _infoCard(
                       icon: Icons.local_shipping_outlined,
                       title: 'Стоимость доставки',
@@ -749,14 +779,105 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   String _addressText() {
-    if (_selectedAddress == null) return 'Выберите адрес';
-    final parts = <String>[_selectedAddress!['address'] ?? _selectedAddress!['street'] ?? 'Адрес не указан'];
-    final detail = <String>[];
-    if (_selectedAddress!['entrance']?.toString().isNotEmpty == true) detail.add('Под. ${_selectedAddress!['entrance']}');
-    if (_selectedAddress!['floor']?.toString().isNotEmpty == true) detail.add('Эт. ${_selectedAddress!['floor']}');
-    if (_selectedAddress!['apartment']?.toString().isNotEmpty == true) detail.add('Кв. ${_selectedAddress!['apartment']}');
-    if (detail.isNotEmpty) parts.add(detail.join(', '));
-    return parts.join(' • ');
+    return ApiService.formatAddressSummary(_selectedAddress, emptyText: 'Выберите адрес');
+  }
+
+  void _syncAddressDetailControllers(Map<String, dynamic>? address) {
+    _entranceController.text = address?['entrance']?.toString() ?? '';
+    _floorController.text = address?['floor']?.toString() ?? '';
+    _apartmentController.text = address?['apartment']?.toString() ?? '';
+  }
+
+  Map<String, dynamic> _addressWithDetails() {
+    return {
+      ...?_selectedAddress,
+      'entrance': _entranceController.text.trim(),
+      'floor': _floorController.text.trim(),
+      'apartment': _apartmentController.text.trim(),
+    };
+  }
+
+  bool _validateAddressDetails() {
+    final missing = <String>[];
+    if (_entranceController.text.trim().isEmpty) missing.add('подъезд');
+    if (_floorController.text.trim().isEmpty) missing.add('этаж');
+    if (_apartmentController.text.trim().isEmpty) missing.add('квартиру');
+
+    if (missing.isEmpty) return true;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Укажите ${missing.join(', ')} для адреса доставки')),
+    );
+    return false;
+  }
+
+  Widget _addressDetailsCard() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: AppDecorations.card(radius: 18, color: AppColors.cardDark.withValues(alpha: 0.95)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.apartment_rounded, color: AppColors.orange),
+              SizedBox(width: 8),
+              Text('Детали адреса', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Подъезд, этаж и квартира обязательны для оформления доставки.',
+            style: TextStyle(color: AppColors.textMute, fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _detailField(controller: _entranceController, label: 'Подъезд')),
+              const SizedBox(width: 8),
+              Expanded(child: _detailField(controller: _floorController, label: 'Этаж')),
+              const SizedBox(width: 8),
+              Expanded(child: _detailField(controller: _apartmentController, label: 'Квартира')),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailField({required TextEditingController controller, required String label}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: AppColors.textMute, fontSize: 12, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700),
+          decoration: InputDecoration(
+            hintText: 'Обязательно',
+            hintStyle: const TextStyle(color: AppColors.textMute, fontSize: 12),
+            isDense: true,
+            filled: true,
+            fillColor: AppColors.card,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+            ),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(14)),
+              borderSide: BorderSide(color: AppColors.orange),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildBonusSubtitle() {

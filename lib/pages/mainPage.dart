@@ -13,25 +13,32 @@ import '../widgets/address_selection_modal_material.dart';
 import 'bonus_history_page.dart';
 import 'categoryPage.dart';
 import 'login_page.dart';
+import 'orders_history_page.dart';
 import 'promotion_items_page.dart';
 import 'search_page.dart';
 
 class MainPage extends StatefulWidget {
   final List<Map<String, dynamic>> businesses;
+  final List<String> availableCities;
   final Map<String, dynamic>? selectedBusiness;
   final Map<String, dynamic>? selectedAddress;
+  final String? selectedCity;
   final Position? userPosition;
   final Function(Map<String, dynamic>) onBusinessSelected;
+  final ValueChanged<String> onCityChanged;
   final VoidCallback onAddressChangeRequested;
   final bool isLoadingBusinesses;
 
   const MainPage({
     super.key,
     required this.businesses,
+    required this.availableCities,
     this.selectedBusiness,
     this.selectedAddress,
+    this.selectedCity,
     this.userPosition,
     required this.onBusinessSelected,
+    required this.onCityChanged,
     required this.onAddressChangeRequested,
     required this.isLoadingBusinesses,
   });
@@ -74,6 +81,7 @@ class _MainPageState extends State<MainPage> {
   String? _activeCardUuid;
   String? _qrPayload;
   Timer? _qrTimer;
+  List<Map<String, dynamic>> _activeOrders = <Map<String, dynamic>>[];
 
   @override
   void initState() {
@@ -102,6 +110,7 @@ class _MainPageState extends State<MainPage> {
     _loadPromotions();
     _loadCategories();
     _loadBonuses();
+    _loadActiveOrders();
   }
 
   @override
@@ -117,6 +126,21 @@ class _MainPageState extends State<MainPage> {
 
     if (oldWidget.selectedAddress != widget.selectedAddress) {
       setState(() => _selectedAddress = widget.selectedAddress);
+    }
+  }
+
+  Future<void> _loadActiveOrders() async {
+    try {
+      final orders = await ApiService.getMyActiveOrdersList();
+      if (!mounted) return;
+      setState(() {
+        _activeOrders = orders;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _activeOrders = <Map<String, dynamic>>[];
+      });
     }
   }
 
@@ -247,9 +271,10 @@ class _MainPageState extends State<MainPage> {
         return _fallbackShowAddressModal();
       }
 
-      final reverse = await ApiService.searchAddresses(lat: pos.latitude, lon: pos.longitude);
-      final resolvedAddress =
-          (reverse?.isNotEmpty ?? false) ? ApiService.extractAddressLabel(reverse!.first, lat: pos.latitude, lon: pos.longitude) : null;
+      final reverse = await ApiService.searchAddresses(lat: pos.latitude, lon: pos.longitude, city: widget.selectedCity);
+      final resolvedAddress = (reverse?.isNotEmpty ?? false)
+          ? ApiService.extractAddressLabel(reverse!.first, lat: pos.latitude, lon: pos.longitude, preferredCity: widget.selectedCity)
+          : null;
       final autoAddress = {
         'address': resolvedAddress ?? 'Определённый адрес',
         'lat': pos.latitude,
@@ -507,9 +532,55 @@ class _MainPageState extends State<MainPage> {
   }
 
   Widget _buildHeader() {
-    return const Align(
-      alignment: Alignment.centerLeft,
-      child: Text('ГРАДУСЫ', style: TextStyle(color: _text, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+    return Row(
+      children: [
+        const Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text('ГРАДУСЫ', style: TextStyle(color: _text, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+          ),
+        ),
+        const SizedBox(width: 12),
+        _citySwitcher(),
+      ],
+    );
+  }
+
+  Widget _citySwitcher() {
+    final cityLabel = widget.selectedCity ?? 'Выбрать город';
+    final shopsLabel = widget.businesses.isEmpty ? 'нет магазинов' : '${widget.businesses.length} магаз.';
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: _showCitySelectorSheet,
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: _card,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.location_city_rounded, color: _orange, size: 18),
+              const SizedBox(width: 8),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(cityLabel, style: const TextStyle(color: _text, fontSize: 13, fontWeight: FontWeight.w800)),
+                  Text(shopsLabel, style: TextStyle(color: _textMute.withValues(alpha: 0.92), fontSize: 10.5, fontWeight: FontWeight.w700)),
+                ],
+              ),
+              const SizedBox(width: 6),
+              const Icon(Icons.unfold_more_rounded, color: _textMute, size: 16),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -527,7 +598,7 @@ class _MainPageState extends State<MainPage> {
   }
 
   Widget _addressCard() {
-    final addressText = _selectedAddress != null ? _selectedAddress!['address'] ?? 'Укажите адрес доставки' : 'Укажите адрес доставки';
+    final addressText = ApiService.formatAddressSummary(_selectedAddress, emptyText: 'Укажите адрес доставки');
     return Container(
       constraints: const BoxConstraints(minHeight: _selectorMinHeight),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -576,7 +647,11 @@ class _MainPageState extends State<MainPage> {
 
   Widget _businessSelector() {
     final selected = widget.selectedBusiness;
-    final title = selected != null ? (selected['name'] ?? selected['title'] ?? 'Магазин') : 'Выберите магазин';
+    final title = selected != null
+        ? (selected['name'] ?? selected['title'] ?? 'Магазин')
+        : widget.businesses.isEmpty
+            ? 'Нет магазинов в городе'
+            : 'Выберите магазин';
 
     return Container(
       constraints: const BoxConstraints(minHeight: _selectorMinHeight),
@@ -1305,6 +1380,10 @@ class _MainPageState extends State<MainPage> {
                   sliver: SliverToBoxAdapter(
                     child: Column(
                       children: [
+                        if (widget.selectedCity != null && widget.businesses.isEmpty) ...[
+                          _emptyCityBanner(),
+                          const SizedBox(height: 12),
+                        ],
                         _searchBar(),
                         const SizedBox(height: 12),
                       ],
@@ -1330,7 +1409,96 @@ class _MainPageState extends State<MainPage> {
               ],
             ),
           ),
+          if (_activeOrders.isNotEmpty) _floatingActiveOrdersButton(),
         ],
+      ),
+    );
+  }
+
+  Widget _floatingActiveOrdersButton() {
+    final primaryOrder = _activeOrders.first;
+    final status = (primaryOrder['current_status'] as Map<String, dynamic>?)?['status_description']?.toString() ?? 'В обработке';
+    final businessName = (primaryOrder['business'] as Map<String, dynamic>?)?['name']?.toString() ?? 'Магазин';
+    final total = _activeOrders.length;
+
+    return Positioned(
+      top: 92,
+      left: 0,
+      right: 0,
+      child: SafeArea(
+        bottom: false,
+        child: Center(
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(999),
+              onTap: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => OrdersHistoryPage(initialActiveOrders: _activeOrders),
+                  ),
+                );
+                _loadActiveOrders();
+              },
+              child: Ink(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: _orange,
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.28),
+                      blurRadius: 16,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: const BoxDecoration(
+                        color: Colors.black,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '$total',
+                          style: const TextStyle(color: _orange, fontWeight: FontWeight.w900, fontSize: 16),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          total == 1 ? 'Активный заказ' : 'Активные заказы',
+                          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 13),
+                        ),
+                        const SizedBox(height: 2),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 180),
+                          child: Text(
+                            '$businessName • $status',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w700, fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 10),
+                    const Icon(Icons.chevron_right, color: Colors.black),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1364,7 +1532,10 @@ class _MainPageState extends State<MainPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Выберите магазин', style: TextStyle(color: _text, fontSize: 18, fontWeight: FontWeight.w800)),
+                Text(
+                  widget.selectedCity == null ? 'Выберите магазин' : 'Магазины: ${widget.selectedCity}',
+                  style: const TextStyle(color: _text, fontSize: 18, fontWeight: FontWeight.w800),
+                ),
                 const SizedBox(height: 12),
                 Flexible(
                   child: ListView.separated(
@@ -1396,6 +1567,88 @@ class _MainPageState extends State<MainPage> {
     if (result != null && mounted) {
       widget.onBusinessSelected(result);
     }
+  }
+
+  Future<void> _showCitySelectorSheet() async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: _card,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Выберите город', style: TextStyle(color: _text, fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 8),
+                const Text(
+                  'От выбранного города зависят адресный поиск и доступные магазины.',
+                  style: TextStyle(color: _textMute),
+                ),
+                const SizedBox(height: 14),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: widget.availableCities.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (_, i) {
+                      final city = widget.availableCities[i];
+                      final isSelected = city == widget.selectedCity;
+                      return ListTile(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        tileColor: isSelected ? _orange.withValues(alpha: 0.14) : _cardDark,
+                        leading: Icon(isSelected ? Icons.check_circle : Icons.location_city_rounded, color: isSelected ? _orange : _textMute),
+                        title: Text(city, style: const TextStyle(color: _text, fontWeight: FontWeight.w800)),
+                        subtitle: Text(
+                          isSelected ? 'Selected' : '',
+                          style: TextStyle(color: _textMute.withValues(alpha: 0.92)),
+                        ),
+                        onTap: () => Navigator.pop(ctx, city),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (result != null && mounted && result != widget.selectedCity) {
+      widget.onCityChanged(result);
+    }
+  }
+
+  Widget _emptyCityBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Icon(Icons.info_outline, color: _orange, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'В городе ${widget.selectedCity} пока не найдено доступных магазинов. Можно выбрать другой город.',
+              style: const TextStyle(color: _text, height: 1.3, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

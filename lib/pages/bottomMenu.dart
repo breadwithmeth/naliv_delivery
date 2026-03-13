@@ -5,6 +5,7 @@ import 'package:naliv_delivery/pages/catalog.dart';
 import 'package:naliv_delivery/pages/likedPage.dart';
 import 'package:naliv_delivery/pages/mainPage.dart';
 import 'package:naliv_delivery/pages/profile_page.dart';
+import 'package:naliv_delivery/services/onboarding_service.dart';
 import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/liked_items_provider.dart';
@@ -36,8 +37,11 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
   static const Color _text = AppColors.text;
   static const Color _textMute = AppColors.textMute;
 
+  List<Map<String, dynamic>> _allBusinesses = [];
   List<Map<String, dynamic>> _businesses = [];
+  List<String> _availableCities = [];
   bool _isLoadingBusinesses = true;
+  String? _selectedCity;
 
   // Выбранный магазин
   Map<String, dynamic>? _selectedBusiness;
@@ -65,8 +69,25 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       final bp = Provider.of<BusinessProvider>(context, listen: false);
       bp.loadSavedBusiness();
     });
+    _loadCitiesAndSelection();
     _loadBusinesses();
     _loadSavedAddress();
+  }
+
+  Future<void> _loadCitiesAndSelection() async {
+    final cities = await OnboardingService.fetchAvailableCities(forceRefresh: true);
+    final city = await OnboardingService.getSelectedCity();
+    if (!mounted) return;
+
+    final cityNames = cities.map((item) => item.name).toList();
+    final fallbackSelectedCity = cityNames.contains(city) ? city : (cityNames.isNotEmpty ? cityNames.first : null);
+
+    setState(() {
+      _availableCities = cityNames;
+      _selectedCity = fallbackSelectedCity;
+    });
+
+    await _refreshBusinessesForSelectedCity();
   }
 
   Future<void> _loadBusinesses() async {
@@ -78,10 +99,8 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       if (!mounted) return;
       if (data != null && data['businesses'] != null) {
         final list = List<Map<String, dynamic>>.from(data['businesses']);
-        setState(() {
-          _businesses = list;
-          _isLoadingBusinesses = false;
-        });
+        _allBusinesses = list;
+        await _refreshBusinessesForSelectedCity(markLoadingComplete: true);
         // Пытаемся выбрать ближайший магазин к текущему адресу
         _autoSelectNearestBusiness();
       } else {
@@ -109,6 +128,199 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     if (businessId != null) {
       likedProvider.loadLiked(int.tryParse(businessId.toString()) ?? 0);
     }
+  }
+
+  Future<void> _refreshBusinessesForSelectedCity({bool markLoadingComplete = false}) async {
+    if (!mounted) return;
+
+    final filteredBusinesses = _filterBusinessesByCity(_allBusinesses, _selectedCity);
+    final currentBusinessId = _businessIdOf(_selectedBusiness);
+    Map<String, dynamic>? preservedSelection;
+
+    if (currentBusinessId != null) {
+      for (final business in filteredBusinesses) {
+        if (_businessIdOf(business) == currentBusinessId) {
+          preservedSelection = business;
+          break;
+        }
+      }
+    }
+
+    final shouldClearStoredBusiness = _selectedBusiness != null && preservedSelection == null;
+
+    setState(() {
+      _businesses = filteredBusinesses;
+      _selectedBusiness = preservedSelection;
+      _lastNearestPromptKey = null;
+      if (markLoadingComplete) {
+        _isLoadingBusinesses = false;
+      }
+    });
+
+    if (shouldClearStoredBusiness) {
+      await Provider.of<BusinessProvider>(context, listen: false).clearSelectedBusiness();
+    }
+
+    if (!mounted || filteredBusinesses.isEmpty) return;
+    if (preservedSelection == null) {
+      _autoSelectNearestBusiness(force: true);
+    }
+  }
+
+  Future<void> _changeSelectedCity(String city) async {
+    if (city == _selectedCity) return;
+
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    if (cartProvider.items.isNotEmpty) {
+      final shouldProceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: _bgTop,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+          title: const Text('Сменить город?', style: TextStyle(color: _text, fontWeight: FontWeight.w800)),
+          content: const Text(
+            'При смене города активный магазин обновится, а корзина будет очищена.',
+            style: TextStyle(color: _textMute),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Отмена', style: TextStyle(color: _text))),
+            TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Сменить', style: TextStyle(color: _orange))),
+          ],
+        ),
+      );
+
+      if (shouldProceed != true || !mounted) {
+        return;
+      }
+
+      cartProvider.clearCart();
+    }
+
+    await OnboardingService.setSelectedCity(city);
+    if (!mounted) return;
+
+    setState(() {
+      _selectedCity = city;
+    });
+
+    await _refreshBusinessesForSelectedCity();
+
+    if (!mounted) return;
+    if (_selectedAddress != null && !_addressMatchesSelectedCity(_selectedAddress!, city)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Город изменён на $city. Проверьте адрес доставки.'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  List<Map<String, dynamic>> _filterBusinessesByCity(List<Map<String, dynamic>> businesses, String? city) {
+    if (city == null || city.trim().isEmpty) {
+      return List<Map<String, dynamic>>.from(businesses);
+    }
+
+    final cityIdMap = _buildCityIdMap(businesses);
+    return businesses.where((business) => _businessMatchesCity(business, city, cityIdMap)).toList();
+  }
+
+  Map<int, String> _buildCityIdMap(List<Map<String, dynamic>> businesses) {
+    final mapping = <int, String>{};
+
+    for (final business in businesses) {
+      final cityId = _parseCityId(business['city_id'] ?? business['cityId']);
+      if (cityId == null || mapping.containsKey(cityId)) continue;
+
+      final detectedCity = _detectBusinessCity(business);
+      if (detectedCity != null) {
+        mapping[cityId] = detectedCity;
+      }
+    }
+
+    for (final city in _availableCities) {
+      final cityId = OnboardingService.cachedCities
+          .where((item) => item.name == city)
+          .map((item) => item.id)
+          .cast<int?>()
+          .firstWhere((value) => value != null, orElse: () => null);
+      if (cityId != null) {
+        mapping.putIfAbsent(cityId, () => city);
+      }
+    }
+
+    return mapping;
+  }
+
+  bool _businessMatchesCity(Map<String, dynamic> business, String city, Map<int, String> cityIdMap) {
+    final explicitCity = _detectBusinessCity(business);
+    if (explicitCity != null) {
+      return explicitCity == city;
+    }
+
+    final cityId = _parseCityId(business['city_id'] ?? business['cityId']);
+    if (cityId != null) {
+      final mappedCity = cityIdMap[cityId] ?? OnboardingService.getCityNameById(cityId);
+      if (mappedCity != null) {
+        return mappedCity == city;
+      }
+    }
+
+    return false;
+  }
+
+  String? _detectBusinessCity(Map<String, dynamic> business) {
+    final rawSources = [
+      business['city'],
+      business['city_name'],
+      business['cityName'],
+      business['city_title'],
+      business['cityTitle'],
+      business['address'],
+      business['description'],
+    ];
+
+    for (final source in rawSources) {
+      if (source == null) continue;
+      final text = source.toString();
+      for (final city in _availableCities) {
+        if (_textMatchesCity(text, city)) {
+          return city;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  bool _addressMatchesSelectedCity(Map<String, dynamic> address, String city) {
+    final label = ApiService.formatAddressSummary(address, emptyText: '');
+    if (label.isEmpty) return true;
+
+    final containsKnownCity = _availableCities.any((knownCity) => _textMatchesCity(label, knownCity));
+    if (!containsKnownCity) return true;
+
+    return _textMatchesCity(label, city);
+  }
+
+  bool _textMatchesCity(String text, String city) {
+    final normalizedText = _normalizeText(text);
+    final normalizedCity = _normalizeText(city);
+    return normalizedCity.isNotEmpty && normalizedText.contains(normalizedCity);
+  }
+
+  String _normalizeText(String value) {
+    return value.toLowerCase().replaceAll('ё', 'е').replaceAll(RegExp(r'[^a-zа-я0-9]+'), ' ').trim();
+  }
+
+  int? _parseCityId(dynamic cityId) {
+    if (cityId == null) return null;
+    if (cityId is int) return cityId;
+    return int.tryParse(cityId.toString());
+  }
+
+  dynamic _businessIdOf(Map<String, dynamic>? business) {
+    return business?['id'] ?? business?['business_id'] ?? business?['businessId'];
   }
 
   // --- ЛОГИКА АВТОВЫБОРА БЛИЖАЙШЕГО МАГАЗИНА ---
@@ -363,10 +575,13 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       MainPage(
         key: const PageStorageKey('tab-home'),
         businesses: _businesses,
+        availableCities: _availableCities,
         selectedBusiness: _selectedBusiness,
         selectedAddress: _selectedAddress,
+        selectedCity: _selectedCity,
         userPosition: _userPosition,
         onBusinessSelected: _selectBusiness,
+        onCityChanged: _changeSelectedCity,
         onAddressChangeRequested: _changeAddress,
         isLoadingBusinesses: _isLoadingBusinesses,
       ),

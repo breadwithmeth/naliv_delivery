@@ -175,6 +175,45 @@ class ApiService {
     }
   }
 
+  static Future<List<Map<String, dynamic>>?> getAvailableCities() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString(_authTokenKey);
+      final uri = Uri.parse('$baseUrl/users/cities');
+
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        if (jsonResponse['success'] == true) {
+          final cities = jsonResponse['data']?['cities'];
+          if (cities is List) {
+            return cities.whereType<Map>().map((city) => Map<String, dynamic>.from(city)).toList();
+          }
+          return const [];
+        }
+
+        debugPrint('API getAvailableCities error: ${jsonResponse['message'] ?? 'Unknown error'}');
+        return null;
+      }
+
+      debugPrint('HTTP Error getAvailableCities: ${response.statusCode} - ${response.reasonPhrase}');
+      return null;
+    } catch (e) {
+      debugPrint('Network Error getAvailableCities: $e');
+      return null;
+    }
+  }
+
   /// Получить список всех бизнесов (без пагинации)
   ///
   /// Возвращает только массив бизнесов
@@ -229,12 +268,18 @@ class ApiService {
   /// [query] - строка поиска (например, "улица Пушкина 12")
   ///
   /// Возвращает список найденных адресов
-  static Future<List<Map<String, dynamic>>?> searchAddressByText(String query) async {
+  static Future<List<Map<String, dynamic>>?> searchAddressByText(
+    String query, {
+    String? city,
+    String country = 'Казахстан',
+  }) async {
     try {
+      final searchQuery = _buildAddressSearchQuery(query, city: city, country: country);
+
       // Формируем URL с query параметрами
       final uri = Uri.parse('$baseUrl/addresses/search').replace(
         queryParameters: {
-          'query': query,
+          'query': searchQuery,
         },
       );
 
@@ -257,7 +302,7 @@ class ApiService {
           // Extract features array or use empty list
           final List<dynamic> features = jsonResponse['data']['features'] ?? [];
           final List<Map<String, dynamic>> addresses = features.cast<Map<String, dynamic>>();
-          return addresses;
+          return _filterAddressResults(addresses, city: city, country: country, requireCityMatch: true);
         } else {
           debugPrint('API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
           return null;
@@ -357,15 +402,18 @@ class ApiService {
     String? query,
     double? lat,
     double? lon,
+    String? city,
+    String country = 'Казахстан',
   }) async {
     // Если указан текстовый запрос
     if (query != null && query.isNotEmpty) {
-      return await searchAddressByText(query);
+      return await searchAddressByText(query, city: city, country: country);
     }
 
     // Если указаны координаты
     if (lat != null && lon != null) {
-      return await searchAddressByCoordinates(lat, lon);
+      final results = await searchAddressByCoordinates(lat, lon);
+      return _filterAddressResults(results, city: city, country: country, requireCityMatch: true);
     }
 
     debugPrint('Error: Either query or coordinates (lat, lon) must be provided');
@@ -377,56 +425,32 @@ class ApiService {
     Map<String, dynamic>? rawAddress, {
     double? lat,
     double? lon,
+    String? preferredCity,
+    String country = 'Казахстан',
   }) {
     if (rawAddress == null) return null;
 
-    final directLabel = _firstNonEmptyString([
-      rawAddress['display_name'],
-      rawAddress['label'],
-      rawAddress['name'],
-      rawAddress['description'],
-    ]);
-    if (directLabel != null) return directLabel;
-
-    final feature = _extractGeoFeature(rawAddress);
-    if (feature == null) return null;
-
-    final properties = feature['properties'];
-    if (properties is! Map) return null;
-
-    final geocoding = properties['geocoding'];
-    if (geocoding is! Map) return null;
-
-    final geoLabel = _firstNonEmptyString([
-      geocoding['label'],
-      geocoding['name'],
-    ]);
-    if (geoLabel != null) return geoLabel;
-
-    final street = geocoding['street']?.toString().trim();
-    final houseNumber = _firstNonEmptyString([
-      geocoding['housenumber'],
-      geocoding['house_number'],
-    ]);
-    final district = geocoding['district']?.toString().trim();
-    final city = geocoding['city']?.toString().trim();
-
-    final parts = <String>[];
-    if (street != null && street.isNotEmpty) {
-      parts.add(street);
-    }
-    if (houseNumber != null) {
-      parts.add('дом $houseNumber');
-    }
-    if (district != null && district.isNotEmpty) {
-      parts.add(district);
-    }
-    if (city != null && city.isNotEmpty) {
-      parts.add(city);
+    final formattedFromGeocoding = _formatAddressFromGeocoding(
+      _extractGeocoding(rawAddress),
+      preferredCity: preferredCity,
+      country: country,
+    );
+    if (formattedFromGeocoding != null) {
+      return formattedFromGeocoding;
     }
 
-    if (parts.isNotEmpty) {
-      return parts.join(', ');
+    final directLabel = _compactDirectAddressLabel(
+      _firstNonEmptyString([
+        rawAddress['display_name'],
+        rawAddress['label'],
+        rawAddress['name'],
+        rawAddress['description'],
+      ]),
+      preferredCity: preferredCity,
+      country: country,
+    );
+    if (directLabel != null) {
+      return directLabel;
     }
 
     if (lat != null && lon != null) {
@@ -434,6 +458,46 @@ class ApiService {
     }
 
     return null;
+  }
+
+  static String formatAddressSummary(
+    Map<String, dynamic>? address, {
+    String emptyText = 'Адрес не указан',
+  }) {
+    if (address == null) return emptyText;
+
+    String? base = extractAddressLabel(address);
+    base ??= address['address']?.toString();
+
+    final street = address['street']?.toString().trim();
+    final house = address['house']?.toString().trim();
+    if ((base == null || base.trim().isEmpty) && street != null && street.isNotEmpty) {
+      base = house != null && house.isNotEmpty ? '$street, $house' : street;
+    }
+
+    final parts = <String>[(base == null || base.trim().isEmpty) ? emptyText : base.trim()];
+    final details = <String>[];
+
+    final entrance = address['entrance']?.toString().trim();
+    if (entrance != null && entrance.isNotEmpty) {
+      details.add('Под. $entrance');
+    }
+
+    final floor = address['floor']?.toString().trim();
+    if (floor != null && floor.isNotEmpty) {
+      details.add('Эт. $floor');
+    }
+
+    final apartment = address['apartment']?.toString().trim();
+    if (apartment != null && apartment.isNotEmpty) {
+      details.add('Кв. $apartment');
+    }
+
+    if (details.isNotEmpty) {
+      parts.add(details.join(', '));
+    }
+
+    return parts.join(' • ');
   }
 
   static Map<String, dynamic>? _extractGeoFeature(Map<String, dynamic> rawAddress) {
@@ -447,6 +511,237 @@ class ApiService {
     }
 
     return null;
+  }
+
+  static Map<dynamic, dynamic>? _extractGeocoding(Map<String, dynamic>? rawAddress) {
+    if (rawAddress == null) return null;
+
+    final feature = _extractGeoFeature(rawAddress) ?? rawAddress;
+    final properties = feature['properties'];
+    if (properties is! Map) return null;
+
+    final geocoding = properties['geocoding'];
+    if (geocoding is! Map) return null;
+
+    return geocoding;
+  }
+
+  static List<Map<String, dynamic>>? _filterAddressResults(
+    List<Map<String, dynamic>>? results, {
+    String? city,
+    String country = 'Казахстан',
+    bool requireCityMatch = false,
+  }) {
+    if (results == null) return null;
+
+    final filtered = results.where((item) {
+      if (!_isCountryMatch(item, country)) {
+        return false;
+      }
+
+      if (city == null || city.trim().isEmpty) {
+        return true;
+      }
+
+      final matchesCity = _isSelectedCityMatch(item, city);
+      return requireCityMatch ? matchesCity : true;
+    }).toList();
+
+    if (city == null || city.trim().isEmpty) {
+      return filtered;
+    }
+
+    filtered.sort((a, b) {
+      final aMatchesCity = _isSelectedCityMatch(a, city);
+      final bMatchesCity = _isSelectedCityMatch(b, city);
+      if (aMatchesCity == bMatchesCity) return 0;
+      return aMatchesCity ? -1 : 1;
+    });
+
+    return filtered;
+  }
+
+  static bool _isCountryMatch(Map<String, dynamic> item, String country) {
+    final normalizedCountry = _normalizeAddressToken(country);
+    final tokens = _extractAddressTokens(item);
+
+    if (tokens.contains(normalizedCountry)) {
+      return true;
+    }
+
+    return tokens.contains('kazakhstan') || tokens.contains('казахстан') || tokens.contains('қазақстан') || tokens.contains('kz');
+  }
+
+  static bool _isSelectedCityMatch(Map<String, dynamic> item, String city) {
+    final normalizedCity = _normalizeAddressToken(city);
+    if (normalizedCity.isEmpty) return true;
+
+    final geocoding = _extractGeocoding(item);
+    final geocodingCity = _normalizeAddressToken(_firstNonEmptyString([
+      geocoding?['city'],
+      geocoding?['town'],
+      geocoding?['municipality'],
+      geocoding?['county'],
+      geocoding?['state'],
+    ]));
+
+    if (geocodingCity == normalizedCity) {
+      return true;
+    }
+
+    return _extractAddressTokens(item).contains(normalizedCity);
+  }
+
+  static List<String> _extractAddressTokens(Map<String, dynamic> item) {
+    final geocoding = _extractGeocoding(item);
+    final rawTexts = [
+      item['display_name'],
+      item['label'],
+      item['name'],
+      item['description'],
+      geocoding?['label'],
+      geocoding?['country'],
+      geocoding?['country_code'],
+      geocoding?['city'],
+      geocoding?['town'],
+      geocoding?['municipality'],
+      geocoding?['district'],
+      geocoding?['state'],
+      geocoding?['county'],
+    ];
+
+    final tokens = <String>[];
+    for (final value in rawTexts) {
+      final text = value?.toString().trim();
+      if (text == null || text.isEmpty) continue;
+      tokens.addAll(text.split(',').map(_normalizeAddressToken).where((token) => token.isNotEmpty));
+    }
+
+    return tokens;
+  }
+
+  static String? _formatAddressFromGeocoding(
+    Map<dynamic, dynamic>? geocoding, {
+    String? preferredCity,
+    String country = 'Казахстан',
+  }) {
+    if (geocoding == null) return null;
+
+    final street = _firstNonEmptyString([
+      geocoding['street'],
+      geocoding['road'],
+      geocoding['name'],
+    ]);
+    final houseNumber = _firstNonEmptyString([
+      geocoding['housenumber'],
+      geocoding['house_number'],
+    ]);
+    final district = _firstNonEmptyString([
+      geocoding['district'],
+      geocoding['borough'],
+      geocoding['quarter'],
+      geocoding['suburb'],
+      geocoding['neighbourhood'],
+    ]);
+    final city = _firstNonEmptyString([
+      geocoding['city'],
+      geocoding['town'],
+      geocoding['municipality'],
+      geocoding['county'],
+      geocoding['state'],
+    ]);
+    final geoCountry = _normalizeAddressToken(_firstNonEmptyString([
+      geocoding['country'],
+      geocoding['country_code'],
+    ]));
+    final normalizedPreferredCity = _normalizeAddressToken(preferredCity);
+    final normalizedCity = _normalizeAddressToken(city);
+    final normalizedCountry = _normalizeAddressToken(country);
+
+    if (geoCountry.isNotEmpty &&
+        geoCountry != normalizedCountry &&
+        geoCountry != 'kazakhstan' &&
+        geoCountry != 'казахстан' &&
+        geoCountry != 'қазақстан' &&
+        geoCountry != 'kz') {
+      return null;
+    }
+
+    if (normalizedPreferredCity.isNotEmpty && normalizedCity.isNotEmpty && normalizedPreferredCity != normalizedCity) {
+      return null;
+    }
+
+    final parts = <String>[];
+    if (street != null && houseNumber != null) {
+      parts.add('$street, $houseNumber');
+    } else if (street != null) {
+      parts.add(street);
+    }
+
+    if (district != null && _normalizeAddressToken(district) != normalizedCity) {
+      parts.add(district);
+    }
+
+    if (city != null) {
+      parts.add(city);
+    }
+
+    if (parts.isNotEmpty) {
+      return parts.join(', ');
+    }
+
+    return _compactDirectAddressLabel(
+      _firstNonEmptyString([
+        geocoding['label'],
+        geocoding['name'],
+      ]),
+      preferredCity: preferredCity,
+      country: country,
+    );
+  }
+
+  static String? _compactDirectAddressLabel(
+    String? label, {
+    String? preferredCity,
+    String country = 'Казахстан',
+  }) {
+    final raw = label?.trim();
+    if (raw == null || raw.isEmpty) return null;
+
+    final normalizedPreferredCity = _normalizeAddressToken(preferredCity);
+    final normalizedCountry = _normalizeAddressToken(country);
+    final compactParts = <String>[];
+
+    for (final part in raw.split(',')) {
+      final trimmed = part.trim();
+      final normalized = _normalizeAddressToken(trimmed);
+      if (normalized.isEmpty) continue;
+      if (normalized == normalizedCountry ||
+          normalized == 'kazakhstan' ||
+          normalized == 'казахстан' ||
+          normalized == 'қазақстан' ||
+          normalized == 'kz') {
+        continue;
+      }
+      if (compactParts.any((existing) => _normalizeAddressToken(existing) == normalized)) {
+        continue;
+      }
+      compactParts.add(trimmed);
+    }
+
+    if (normalizedPreferredCity.isNotEmpty && compactParts.every((part) => _normalizeAddressToken(part) != normalizedPreferredCity)) {
+      compactParts.add(preferredCity!.trim());
+    }
+
+    if (compactParts.isEmpty) {
+      return raw;
+    }
+
+    return compactParts.take(3).join(', ');
+  }
+
+  static String _normalizeAddressToken(dynamic value) {
+    return value?.toString().trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ') ?? '';
   }
 
   static String? _firstNonEmptyString(List<dynamic> values) {
@@ -736,9 +1031,13 @@ class ApiService {
   /// [query] - строка поиска (например, "улица Пушкина 12")
   ///
   /// Возвращает список объектов Address
-  static Future<List<Address>?> searchAddressesByText(String query) async {
+  static Future<List<Address>?> searchAddressesByText(
+    String query, {
+    String? city,
+    String country = 'Казахстан',
+  }) async {
     try {
-      final addressesData = await searchAddressByText(query);
+      final addressesData = await searchAddressByText(query, city: city, country: country);
       if (addressesData != null) {
         return addressesData.map((json) => Address.fromJson(json)).toList();
       }
@@ -784,19 +1083,53 @@ class ApiService {
     String? query,
     double? lat,
     double? lon,
+    String? city,
+    String country = 'Казахстан',
   }) async {
     // Если указан текстовый запрос
     if (query != null && query.isNotEmpty) {
-      return await searchAddressesByText(query);
+      final addressesData = await searchAddressByText(query, city: city, country: country);
+      if (addressesData != null) {
+        return addressesData.map((json) => Address.fromJson(json)).toList();
+      }
+      return null;
     }
 
     // Если указаны координаты
     if (lat != null && lon != null) {
-      return await searchAddressesByCoordinates(lat, lon);
+      final addressesData = await searchAddresses(
+        lat: lat,
+        lon: lon,
+        city: city,
+        country: country,
+      );
+      if (addressesData != null) {
+        return addressesData.map((json) => Address.fromJson(json)).toList();
+      }
+      return null;
     }
 
     debugPrint('Error: Either query or coordinates (lat, lon) must be provided');
     return null;
+  }
+
+  static String _buildAddressSearchQuery(
+    String query, {
+    String? city,
+    String country = 'Казахстан',
+  }) {
+    final parts = <String>[country.trim()];
+    final cityPart = city?.trim();
+    if (cityPart != null && cityPart.isNotEmpty) {
+      parts.add(cityPart);
+    }
+
+    final queryPart = query.trim();
+    if (queryPart.isNotEmpty) {
+      parts.add(queryPart);
+    }
+
+    return parts.join(', ');
   }
 
   /// Получить активные акции
@@ -1363,6 +1696,48 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>?> getOrderDetails(int orderId) async {
+    final token = await getAuthToken();
+    if (token == null) {
+      debugPrint('API getOrderDetails: no auth token');
+      return null;
+    }
+
+    final uri = Uri.parse('$baseUrl/orders/$orderId');
+    try {
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        if (jsonResponse['success'] == true) {
+          final data = jsonResponse['data'];
+          if (data is Map<String, dynamic>) {
+            final order = data['order'];
+            if (order is Map<String, dynamic>) {
+              return order;
+            }
+            return data;
+          }
+        } else {
+          debugPrint('API getOrderDetails error: ${jsonResponse['message']}');
+        }
+      } else {
+        debugPrint('HTTP Error getOrderDetails: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Network Error getOrderDetails: $e');
+    }
+
+    return null;
+  }
+
   /// Получить активные заказы пользователя
   /// [businessId] - фильтр по ID бизнеса (опционально)
   /// [deliveryType] - фильтр по типу доставки (опционально)
@@ -1415,6 +1790,176 @@ class ApiService {
     } catch (e) {
       debugPrint('Network Error getMyActiveOrders: $e');
     }
+    return null;
+  }
+
+  static Future<List<Map<String, dynamic>>> getMyActiveOrdersList({
+    int? businessId,
+    String? deliveryType,
+  }) async {
+    final response = await getMyActiveOrders(
+      businessId: businessId,
+      deliveryType: deliveryType,
+    );
+    return _extractOrderList(
+      response,
+      preferredKeys: const ['active_orders', 'orders'],
+    ).where(_isRecentActiveOrder).toList();
+  }
+
+  static Future<Map<String, dynamic>?> getMyOrdersHistory({
+    int? businessId,
+    String? deliveryType,
+    int page = 1,
+  }) async {
+    final token = await getAuthToken();
+    if (token == null) {
+      debugPrint('API getMyOrdersHistory: no auth token');
+      return null;
+    }
+
+    final queryParams = <String, String>{};
+    if (businessId != null) {
+      queryParams['business_id'] = businessId.toString();
+    }
+    if (deliveryType != null) {
+      queryParams['delivery_type'] = deliveryType;
+    }
+    queryParams['page'] = page.toString();
+
+    final uri = Uri.parse('$baseUrl/orders/my-orders').replace(
+      queryParameters: queryParams.isEmpty ? null : queryParams,
+    );
+
+    try {
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        if (jsonResponse['success'] == true) {
+          return jsonResponse;
+        }
+
+        debugPrint('API getMyOrdersHistory error: ${jsonResponse['message']}');
+      } else {
+        debugPrint('HTTP Error getMyOrdersHistory: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Network Error getMyOrdersHistory: $e');
+    }
+
+    return null;
+  }
+
+  static Future<List<Map<String, dynamic>>> getMyOrdersHistoryList({
+    int? businessId,
+    String? deliveryType,
+    int page = 1,
+  }) async {
+    final response = await getMyOrdersHistory(
+      businessId: businessId,
+      deliveryType: deliveryType,
+      page: page,
+    );
+    return _extractOrderList(
+      response,
+      preferredKeys: const [
+        'orders',
+        'history_orders',
+        'order_history',
+        'completed_orders',
+      ],
+    );
+  }
+
+  static List<Map<String, dynamic>> _extractOrderList(
+    Map<String, dynamic>? response, {
+    List<String> preferredKeys = const [],
+  }) {
+    if (response == null) return <Map<String, dynamic>>[];
+
+    final data = response['data'];
+    if (data is List) {
+      return data.whereType<Map>().map((item) => item.cast<String, dynamic>()).toList();
+    }
+
+    if (data is! Map) return <Map<String, dynamic>>[];
+
+    for (final key in preferredKeys) {
+      final candidate = data[key];
+      if (candidate is List) {
+        return candidate.whereType<Map>().map((item) => item.cast<String, dynamic>()).toList();
+      }
+    }
+
+    for (final entry in data.entries) {
+      if (entry.value is List) {
+        final list = entry.value as List<dynamic>;
+        if (list.every((item) => item is Map)) {
+          return list.whereType<Map>().map((item) => item.cast<String, dynamic>()).toList();
+        }
+      }
+    }
+
+    return <Map<String, dynamic>>[];
+  }
+
+  static bool _isRecentActiveOrder(Map<String, dynamic> order) {
+    final rawTimestamp = order['log_timestamp']?.toString() ?? order['created_at']?.toString();
+    if (rawTimestamp == null || rawTimestamp.isEmpty) return true;
+
+    final parsed = DateTime.tryParse(rawTimestamp);
+    if (parsed == null) return true;
+
+    return DateTime.now().difference(parsed.toLocal()) < const Duration(hours: 1);
+  }
+
+  static Future<Map<String, dynamic>?> getCourierLocation(int orderId) async {
+    final token = await getAuthToken();
+    if (token == null) {
+      debugPrint('API getCourierLocation: no auth token');
+      return null;
+    }
+
+    final uri = Uri.parse('$baseUrl/orders/$orderId/courier-location');
+    try {
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        if (jsonResponse['success'] == true) {
+          final data = jsonResponse['data'];
+          if (data is Map<String, dynamic>) {
+            return data;
+          }
+          if (data is Map) {
+            return data.cast<String, dynamic>();
+          }
+          return <String, dynamic>{'value': data};
+        }
+
+        debugPrint('API getCourierLocation error: ${jsonResponse['message']}');
+      } else {
+        debugPrint('HTTP Error getCourierLocation: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Network Error getCourierLocation: $e');
+    }
+
     return null;
   }
 

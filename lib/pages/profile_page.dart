@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
+import 'package:naliv_delivery/pages/orders_history_page.dart';
 import '../utils/api.dart';
 import '../services/agreement_service.dart';
 import '../services/auth_service.dart';
@@ -150,6 +151,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       const SizedBox(height: 12),
                       _infoCard(user),
+                      _ordersCard(),
                       _addressesCard(addresses),
                       _cardsCard(cards),
                       _devSettingsCard(),
@@ -255,6 +257,37 @@ class _ProfilePageState extends State<ProfilePage> {
               )
               .toList(),
         ),
+      ),
+    );
+  }
+
+  Widget _ordersCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      decoration: AppDecorations.card(radius: 16),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: AppDecorations.pill(color: AppColors.blue),
+          child: const Icon(Icons.receipt_long, color: AppColors.orange),
+        ),
+        title: const Text(
+          'История заказов',
+          style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w900),
+        ),
+        subtitle: const Text(
+          'Открыть все активные и завершённые заказы',
+          style: TextStyle(color: AppColors.textMute),
+        ),
+        trailing: const Icon(Icons.chevron_right, color: AppColors.textMute),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const OrdersHistoryPage(),
+            ),
+          );
+        },
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/shared/app_theme.dart';
+import 'package:naliv_delivery/utils/api.dart';
 
 class OrderDetailPage extends StatefulWidget {
   final Map<String, dynamic> order;
@@ -12,13 +13,17 @@ class OrderDetailPage extends StatefulWidget {
 
 class _OrderDetailPageState extends State<OrderDetailPage> {
   Map<String, dynamic>? _orderDetails;
+  Map<String, dynamic>? _courierLocation;
   bool _isLoading = true;
+  bool _isLoadingCourier = false;
   String? _error;
+  String? _courierError;
 
   @override
   void initState() {
     super.initState();
     _loadOrderDetails();
+    _loadCourierLocation();
   }
 
   Future<void> _loadOrderDetails() async {
@@ -28,10 +33,15 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     });
 
     try {
-      await Future.delayed(const Duration(milliseconds: 100));
+      final orderId = int.tryParse(widget.order['order_id']?.toString() ?? '');
+      final details = orderId != null ? await ApiService.getOrderDetails(orderId) : null;
       if (!mounted) return;
       setState(() {
-        _orderDetails = widget.order;
+        _orderDetails = details ?? widget.order;
+        final courierLocation = _orderDetails?['courier_location'];
+        if (courierLocation is Map<String, dynamic>) {
+          _courierLocation = courierLocation;
+        }
         _isLoading = false;
       });
     } catch (e) {
@@ -39,6 +49,34 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       setState(() {
         _error = 'Ошибка загрузки деталей заказа: $e';
         _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadCourierLocation() async {
+    final orderId = int.tryParse(widget.order['order_id']?.toString() ?? '');
+    final deliveryType = widget.order['delivery_type']?.toString();
+    if (orderId == null || deliveryType != 'DELIVERY') {
+      return;
+    }
+
+    setState(() {
+      _isLoadingCourier = true;
+      _courierError = null;
+    });
+
+    try {
+      final location = await ApiService.getCourierLocation(orderId);
+      if (!mounted) return;
+      setState(() {
+        _courierLocation = location;
+        _isLoadingCourier = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _courierError = 'Не удалось загрузить местоположение курьера';
+        _isLoadingCourier = false;
       });
     }
   }
@@ -100,9 +138,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     final order = _orderDetails!;
     final business = order['business'] as Map<String, dynamic>?;
     final deliveryAddress = order['delivery_address'] as Map<String, dynamic>?;
-    final itemsSummary = order['items_summary'] as Map<String, dynamic>?;
-    final costSummary = order['cost_summary'] as Map<String, dynamic>?;
-    final statuses = (order['order_statuses'] as List<dynamic>?) ?? [];
+    final itemsSummary = _resolveItemsSummary(order);
+    final costSummary = _resolveCostSummary(order);
+    final statuses = _resolveStatuses(order);
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -118,6 +156,10 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             ],
             if (deliveryAddress != null) ...[
               _section(child: _addressCard(deliveryAddress)),
+              const SizedBox(height: 14),
+            ],
+            if (_shouldShowCourierCard(order)) ...[
+              _section(child: _courierCard()),
               const SizedBox(height: 14),
             ],
             if (itemsSummary != null) ...[
@@ -157,10 +199,10 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Widget _statusCard(Map<String, dynamic> order) {
-    final currentStatus = order['current_status'] as Map<String, dynamic>?;
-    final statusDescription = currentStatus?['status_description']?.toString() ?? 'Неизвестно';
+    final currentStatus = _resolveCurrentStatus(order);
+    final statusDescription = currentStatus?['status_description']?.toString() ?? currentStatus?['status_name']?.toString() ?? 'Неизвестно';
     final statusCode = currentStatus?['status']?.toString() ?? '';
-    final createdAt = order['log_timestamp']?.toString();
+    final createdAt = order['log_timestamp']?.toString() ?? order['created_at']?.toString();
     final deliveryType = order['delivery_type']?.toString() ?? 'Не указан';
 
     return Container(
@@ -244,7 +286,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     final entrance = address['entrance']?.toString();
     final floor = address['floor']?.toString();
     final apt = address['apartment']?.toString();
-    final comment = address['comment']?.toString();
+    final comment = address['comment']?.toString() ?? address['other']?.toString();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -288,7 +330,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Widget _itemsCard(Map<String, dynamic> summary) {
-    final items = (summary['items_preview'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+    final items = (summary['items_preview'] as List<dynamic>? ?? summary['items'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
     final itemsCount = summary['items_count'] ?? items.length;
     final totalAmount = summary['total_amount'] ?? 0;
 
@@ -313,11 +355,82 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
   }
 
+  Widget _courierCard() {
+    final coords = _extractCourierCoordinates(_courierLocation);
+    final updatedAt = _extractCourierTimestamp(_courierLocation);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.near_me, color: AppColors.orange),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text('Курьер', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+            ),
+            IconButton(
+              onPressed: _isLoadingCourier ? null : _loadCourierLocation,
+              icon: _isLoadingCourier
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation(AppColors.orange),
+                      ),
+                    )
+                  : const Icon(Icons.refresh, color: AppColors.textMute),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (_courierLocation == null && _courierError == null)
+          const Text(
+            'Местоположение курьера пока недоступно.',
+            style: TextStyle(color: AppColors.textMute),
+          )
+        else if (_courierError != null)
+          Text(_courierError!, style: const TextStyle(color: AppColors.textMute))
+        else ...[
+          if (coords != null)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: AppDecorations.card(radius: 12, color: AppColors.cardDark, shadow: false),
+              child: Row(
+                children: [
+                  const Icon(Icons.my_location, color: AppColors.orange, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${coords['lat']!.toStringAsFixed(6)}, ${coords['lon']!.toStringAsFixed(6)}',
+                      style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (updatedAt != null) ...[
+            const SizedBox(height: 8),
+            Text('Обновлено: ${_formatDateTime(updatedAt)}', style: const TextStyle(color: AppColors.textMute, fontSize: 13)),
+          ],
+          if (_courierLocation != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _buildCourierSummary(_courierLocation!),
+              style: const TextStyle(color: AppColors.textMute, fontSize: 13),
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+
   Widget _itemRow(Map<String, dynamic> item) {
-    final image = item['img']?.toString();
-    final name = item['name']?.toString() ?? 'Товар';
+    final image = item['img']?.toString() ?? item['item_img']?.toString();
+    final name = item['name']?.toString() ?? item['item_name']?.toString() ?? 'Товар';
     final qty = item['amount'] ?? 0;
-    final price = item['price'] ?? item['total'] ?? 0;
+    final price = item['price'] ?? item['total'] ?? item['sum'] ?? 0;
 
     return Row(
       children: [
@@ -357,6 +470,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Widget _costCard(Map<String, dynamic> cost) {
+    final deliveryFee = cost['delivery_fee'] ?? cost['delivery_price'];
+    final totalSum = cost['total_sum'] ?? cost['total'] ?? cost['order_total'];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -369,12 +484,12 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         ),
         const SizedBox(height: 12),
         _costRow('Товары', cost['items_total']),
-        if ((cost['delivery_fee'] ?? 0) > 0) _costRow('Доставка', cost['delivery_fee']),
+        if ((deliveryFee ?? 0) > 0) _costRow('Доставка', deliveryFee),
         if ((cost['service_fee'] ?? 0) > 0) _costRow('Сервисный сбор', cost['service_fee']),
         if ((cost['discount'] ?? 0) > 0) _costRow('Скидка', -cost['discount'], accent: Colors.greenAccent),
         if ((cost['bonus_used'] ?? 0) > 0) _costRow('Бонусы', -cost['bonus_used'], accent: Colors.greenAccent),
         const Divider(color: Color(0x229FB0C8), height: 18),
-        _costRow('Итого', cost['total_sum'], isTotal: true),
+        _costRow('Итого', totalSum, isTotal: true),
       ],
     );
   }
@@ -396,17 +511,196 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Widget _metaCard(Map<String, dynamic> order) {
+    final user = order['user'] as Map<String, dynamic>?;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Информация', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
         const SizedBox(height: 10),
         _infoRow('Способ оплаты', order['payment_method']),
-        _infoRow('Создан', _formatDateTime(order['created_at']?.toString())),
+        _infoRow('Создан', _formatDateTime(order['created_at']?.toString() ?? order['log_timestamp']?.toString())),
         _infoRow('Номер заказа', '#${order['order_id'] ?? '-'}'),
+        _infoRow('Клиент', user?['name']?.toString()),
+        _infoRow('Телефон', user?['phone']?.toString()),
         if (order['delivery_time'] != null) _infoRow('Доставка', order['delivery_time'].toString()),
       ],
     );
+  }
+
+  Map<String, dynamic>? _resolveItemsSummary(Map<String, dynamic> order) {
+    final explicitSummary = order['items_summary'];
+    if (explicitSummary is Map<String, dynamic>) {
+      return explicitSummary;
+    }
+
+    final items = (order['items'] as List<dynamic>? ?? []).whereType<Map>().map((item) => item.cast<String, dynamic>()).toList();
+    if (items.isEmpty) return null;
+
+    final totalAmount = items.fold<int>(
+      0,
+      (sum, item) => sum + ((item['amount'] as num?)?.toInt() ?? 0),
+    );
+
+    return {
+      'items_count': items.length,
+      'total_amount': totalAmount,
+      'items_preview': items,
+      'items': items,
+    };
+  }
+
+  Map<String, dynamic>? _resolveCostSummary(Map<String, dynamic> order) {
+    final explicitSummary = order['cost_summary'];
+    if (explicitSummary is Map<String, dynamic>) {
+      return explicitSummary;
+    }
+
+    final directCost = order['cost'];
+    if (directCost is Map<String, dynamic>) {
+      return directCost;
+    }
+
+    final items = (order['items'] as List<dynamic>? ?? []).whereType<Map>().map((item) => item.cast<String, dynamic>()).toList();
+    if (items.isEmpty &&
+        order['delivery_price'] == null &&
+        order['bonus_used'] == null &&
+        order['bonus'] == null &&
+        order['total_sum'] == null &&
+        order['total'] == null) {
+      return null;
+    }
+
+    final itemsTotal = items.fold<num>(0, (sum, item) {
+      final amount = (item['amount'] as num?) ?? 0;
+      final price = (item['price'] as num?) ?? (item['total'] as num?) ?? (item['sum'] as num?) ?? 0;
+      return sum + (amount > 0 && item['price'] != null ? amount * price : price);
+    });
+    final deliveryPrice = (order['delivery_price'] as num?) ?? 0;
+    final bonusUsed = (order['bonus_used'] as num?) ?? (order['bonus'] as num?) ?? 0;
+    final totalSum = (order['total_sum'] as num?) ?? (order['total'] as num?) ?? (itemsTotal + deliveryPrice - bonusUsed);
+
+    return {
+      'items_total': itemsTotal,
+      'delivery_price': deliveryPrice,
+      'bonus_used': bonusUsed,
+      'total_sum': totalSum,
+    };
+  }
+
+  List<dynamic> _resolveStatuses(Map<String, dynamic> order) {
+    final explicitStatuses = order['order_statuses'];
+    if (explicitStatuses is List<dynamic> && explicitStatuses.isNotEmpty) {
+      return explicitStatuses;
+    }
+
+    final statusHistory = order['status_history'];
+    if (statusHistory is List<dynamic> && statusHistory.isNotEmpty) {
+      return statusHistory
+          .whereType<Map>()
+          .map((entry) => {
+                'status': entry['status_name'] ?? entry['status'],
+                'description': entry['status_name'],
+                'timestamp': entry['log_timestamp'] ?? entry['timestamp'],
+              })
+          .toList();
+    }
+
+    final currentStatus = order['current_status'];
+    if (currentStatus is Map<String, dynamic>) {
+      return [
+        {
+          'status': currentStatus['status_description'] ?? currentStatus['status'],
+          'description': currentStatus['status_description'],
+          'timestamp': currentStatus['log_timestamp'] ?? order['log_timestamp'],
+        }
+      ];
+    }
+
+    final status = order['status'];
+    if (status is Map<String, dynamic>) {
+      return [
+        {
+          'status': status['status_name'] ?? status['status'],
+          'description': status['status_name'],
+          'timestamp': status['log_timestamp'] ?? order['log_timestamp'],
+        }
+      ];
+    }
+
+    return const [];
+  }
+
+  Map<String, dynamic>? _resolveCurrentStatus(Map<String, dynamic> order) {
+    final currentStatus = order['current_status'];
+    if (currentStatus is Map<String, dynamic>) {
+      return currentStatus;
+    }
+
+    final status = order['status'];
+    if (status is Map<String, dynamic>) {
+      return {
+        ...status,
+        'status_description': status['status_name'] ?? status['status_description'],
+      };
+    }
+
+    return null;
+  }
+
+  bool _shouldShowCourierCard(Map<String, dynamic> order) {
+    final deliveryType = order['delivery_type']?.toString();
+    return deliveryType == 'DELIVERY';
+  }
+
+  Map<String, double>? _extractCourierCoordinates(Map<String, dynamic>? data) {
+    if (data == null) return null;
+
+    final candidates = <Map<String, dynamic>>[
+      data,
+      if (data['courier'] is Map<String, dynamic>) data['courier'] as Map<String, dynamic>,
+      if (data['location'] is Map<String, dynamic>) data['location'] as Map<String, dynamic>,
+      if (data['courier_location'] is Map<String, dynamic>) data['courier_location'] as Map<String, dynamic>,
+    ];
+
+    for (final candidate in candidates) {
+      final lat = _parseDouble(candidate['lat'] ?? candidate['latitude']);
+      final lon = _parseDouble(candidate['lon'] ?? candidate['lng'] ?? candidate['longitude']);
+      if (lat != null && lon != null) {
+        return {'lat': lat, 'lon': lon};
+      }
+    }
+
+    return null;
+  }
+
+  String? _extractCourierTimestamp(Map<String, dynamic>? data) {
+    if (data == null) return null;
+    return data['updated_at']?.toString() ??
+        data['timestamp']?.toString() ??
+        (data['courier'] is Map<String, dynamic> ? (data['courier'] as Map<String, dynamic>)['updated_at']?.toString() : null);
+  }
+
+  String _buildCourierSummary(Map<String, dynamic> data) {
+    final parts = <String>[];
+    final courier = data['courier'];
+    if (courier is Map<String, dynamic>) {
+      final name = courier['name']?.toString();
+      final phone = courier['phone']?.toString();
+      if (name != null && name.isNotEmpty) parts.add('Курьер: $name');
+      if (phone != null && phone.isNotEmpty) parts.add('Телефон: $phone');
+    }
+    final eta = data['eta']?.toString() ?? data['estimated_arrival']?.toString();
+    if (eta != null && eta.isNotEmpty) {
+      parts.add('ETA: $eta');
+    }
+    return parts.isEmpty ? 'Данные о курьере получены.' : parts.join(' • ');
+  }
+
+  double? _parseDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    return double.tryParse(value.toString());
   }
 
   Widget _infoRow(String label, String? value) {
