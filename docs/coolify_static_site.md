@@ -22,7 +22,7 @@ flutter build web --release --dart-define=FIREBASE_WEB_VAPID_KEY=YOUR_PUBLIC_VAP
 ## Правильный nginx конфиг
 
 ```nginx
-server {
+server {    
     listen 80;
     server_name _;
 
