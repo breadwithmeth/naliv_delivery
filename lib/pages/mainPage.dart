@@ -5,6 +5,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 
+import '../shared/app_theme.dart';
 import '../utils/address_storage_service.dart';
 import '../utils/api.dart';
 import '../utils/cart_provider.dart';
@@ -142,6 +143,14 @@ class _MainPageState extends State<MainPage> {
         _activeOrders = <Map<String, dynamic>>[];
       });
     }
+  }
+
+  Future<void> _showMessageDialog(String title, String message) {
+    return AppDialogs.showMessage(
+      context,
+      title: title,
+      message: message,
+    );
   }
 
   Future<void> _loadPromotions() async {
@@ -970,7 +979,7 @@ class _MainPageState extends State<MainPage> {
                   final businessId =
                       widget.selectedBusiness?['id'] ?? widget.selectedBusiness?['business_id'] ?? widget.selectedBusiness?['businessId'];
                   if (businessId == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Сначала выберите магазин')));
+                    _showMessageDialog('Магазин не выбран', 'Сначала выберите магазин, чтобы открыть категорию.');
                     return;
                   }
                   Navigator.of(context).push(
@@ -1416,18 +1425,16 @@ class _MainPageState extends State<MainPage> {
   }
 
   Widget _floatingActiveOrdersButton() {
-    final primaryOrder = _activeOrders.first;
-    final status = (primaryOrder['current_status'] as Map<String, dynamic>?)?['status_description']?.toString() ?? 'В обработке';
-    final businessName = (primaryOrder['business'] as Map<String, dynamic>?)?['name']?.toString() ?? 'Магазин';
     final total = _activeOrders.length;
+    final bottomOffset = MediaQuery.of(context).padding.bottom + 122;
 
     return Positioned(
-      top: 92,
-      left: 0,
-      right: 0,
+      right: 16,
+      bottom: bottomOffset,
       child: SafeArea(
-        bottom: false,
-        child: Center(
+        top: false,
+        child: Align(
+          alignment: Alignment.bottomRight,
           child: Material(
             color: Colors.transparent,
             child: InkWell(
@@ -1441,7 +1448,7 @@ class _MainPageState extends State<MainPage> {
                 _loadActiveOrders();
               },
               child: Ink(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
                   color: _orange,
                   borderRadius: BorderRadius.circular(999),
@@ -1456,43 +1463,21 @@ class _MainPageState extends State<MainPage> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    const Icon(Icons.receipt_long_rounded, color: Colors.black, size: 18),
+                    const SizedBox(width: 8),
                     Container(
-                      width: 42,
-                      height: 42,
-                      decoration: const BoxDecoration(
+                      constraints: const BoxConstraints(minWidth: 24),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      decoration: BoxDecoration(
                         color: Colors.black,
-                        shape: BoxShape.circle,
+                        borderRadius: BorderRadius.circular(999),
                       ),
-                      child: Center(
-                        child: Text(
-                          '$total',
-                          style: const TextStyle(color: _orange, fontWeight: FontWeight.w900, fontSize: 16),
-                        ),
+                      child: Text(
+                        '$total',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: _orange, fontWeight: FontWeight.w900, fontSize: 12),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          total == 1 ? 'Активный заказ' : 'Активные заказы',
-                          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 13),
-                        ),
-                        const SizedBox(height: 2),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 180),
-                          child: Text(
-                            '$businessName • $status',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w700, fontSize: 12),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 10),
-                    const Icon(Icons.chevron_right, color: Colors.black),
                   ],
                 ),
               ),
@@ -1603,7 +1588,7 @@ class _MainPageState extends State<MainPage> {
                         leading: Icon(isSelected ? Icons.check_circle : Icons.location_city_rounded, color: isSelected ? _orange : _textMute),
                         title: Text(city, style: const TextStyle(color: _text, fontWeight: FontWeight.w800)),
                         subtitle: Text(
-                          isSelected ? 'Selected' : '',
+                          isSelected ? 'Выбранный' : '',
                           style: TextStyle(color: _textMute.withValues(alpha: 0.92)),
                         ),
                         onTap: () => Navigator.pop(ctx, city),

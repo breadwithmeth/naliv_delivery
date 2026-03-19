@@ -79,6 +79,28 @@ class AppDialogs {
       builder: (ctx) => dialog(title: title, content: content, actions: actions),
     );
   }
+
+  static Future<void> showMessage(
+    BuildContext context, {
+    required String title,
+    required String message,
+    List<Widget>? actions,
+    bool barrierDismissible = true,
+  }) {
+    return show<void>(
+      context,
+      title: title,
+      barrierDismissible: barrierDismissible,
+      content: Text(message),
+      actions: actions ??
+          <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
+              child: const Text('Понятно', style: TextStyle(color: AppColors.orange)),
+            ),
+          ],
+    );
+  }
 }
 
 class AppBackground extends StatelessWidget {

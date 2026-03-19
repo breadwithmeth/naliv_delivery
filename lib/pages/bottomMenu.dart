@@ -57,6 +57,13 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
 
   // Акции загружаются в MainPage
 
+  int? _selectedBusinessIdAsInt() {
+    final rawId = _selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId'];
+    if (rawId == null) return null;
+    if (rawId is int) return rawId;
+    return int.tryParse(rawId.toString());
+  }
+
   @override
   void initState() {
     super.initState();
@@ -95,10 +102,10 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       _isLoadingBusinesses = true;
     });
     try {
-      final data = await ApiService.getBusinesses(page: 1, limit: 20);
+      final allBusinesses = await ApiService.getAllBusinesses();
       if (!mounted) return;
-      if (data != null && data['businesses'] != null) {
-        final list = List<Map<String, dynamic>>.from(data['businesses']);
+      if (allBusinesses != null && allBusinesses.isNotEmpty) {
+        final list = List<Map<String, dynamic>>.from(allBusinesses);
         _allBusinesses = list;
         await _refreshBusinessesForSelectedCity(markLoadingComplete: true);
         // Пытаемся выбрать ближайший магазин к текущему адресу
@@ -571,6 +578,7 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
 
   @override
   Widget build(BuildContext context) {
+    final selectedBusinessId = _selectedBusinessIdAsInt();
     final pages = <Widget>[
       MainPage(
         key: const PageStorageKey('tab-home'),
@@ -587,12 +595,12 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       ),
       Catalog(
         key: ValueKey('tab-catalog-${_selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId']}'),
-        businessId: _selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId'],
+        businessId: selectedBusinessId,
       ),
-      widget.isAuthenticated
+      widget.isAuthenticated && selectedBusinessId != null
           ? LikedPage(
               key: ValueKey('tab-liked-${_selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId']}'),
-              businessId: _selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId'],
+              businessId: selectedBusinessId,
             )
           : const LoginPage(redirectTabIndex: 2),
       const CartPage(key: PageStorageKey('tab-cart')),

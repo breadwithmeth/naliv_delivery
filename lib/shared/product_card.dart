@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../model/item.dart' as ItemModel;
 import '../utils/cart_provider.dart';
 import '../models/cart_item.dart';
-import '../widgets/item_options_dialog.dart';
 import '../pages/product_detail_page.dart';
 import '../utils/api.dart';
 import '../utils/liked_storage_service.dart';
@@ -372,9 +371,10 @@ class _ProductCardState extends State<ProductCard> {
                                   onPressed: canIncrease
                                       ? () {
                                           if (item.hasOptions) {
-                                            showDialog(
-                                              context: context,
-                                              builder: (context) => ItemOptionsDialog(item: item),
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder: (context) => ProductDetailPage(item: item),
+                                              ),
                                             );
                                           } else {
                                             final variants = cartProvider.getItemVariants(item.itemId);
@@ -449,9 +449,10 @@ class _ProductCardState extends State<ProductCard> {
                                   onPressed: canAdd
                                       ? () {
                                           if (item.hasOptions) {
-                                            showDialog(
-                                              context: context,
-                                              builder: (context) => ItemOptionsDialog(item: item),
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder: (context) => ProductDetailPage(item: item),
+                                              ),
                                             );
                                           } else {
                                             final stepQuantity = item.effectiveStepQuantity;

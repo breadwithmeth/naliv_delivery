@@ -345,7 +345,7 @@ class ItemOptionItem {
   final String priceType;
   final String item_name; // Добавлено поле для имени товара
   final double price;
-  final int parentItemAmount;
+  final double parentItemAmount;
 
   ItemOptionItem({
     required this.relationId,
@@ -363,7 +363,7 @@ class ItemOptionItem {
       priceType: json['price_type'] ?? '',
       item_name: json['item_name'] ?? '', // Добавлено поле для имени товара
       price: Item._parseDouble(json['price']) ?? 0.0,
-      parentItemAmount: Item._parseInt(json['parent_item_amount']),
+      parentItemAmount: Item._parseDouble(json['parent_item_amount']) ?? 0.0,
     );
   }
 
@@ -379,7 +379,7 @@ class ItemOptionItem {
       priceType: categoryOptionItem.priceType,
       item_name: categoryOptionItem.item_name ?? '', // Добавлено поле для имени товара
       price: categoryOptionItem.price,
-      parentItemAmount: categoryOptionItem.parentItemAmount,
+      parentItemAmount: (categoryOptionItem.parentItemAmount as num).toDouble(),
     );
   }
 

@@ -99,9 +99,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     // Проверяем авторизацию
     final loggedIn = await ApiService.isUserLoggedIn();
     if (!loggedIn) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Пожалуйста, авторизуйтесь')),
-      );
+      await _showNotice('Нужна авторизация', 'Пожалуйста, авторизуйтесь, чтобы оформить заказ.');
       return;
     }
 
@@ -111,16 +109,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
     final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
     if (businessProvider.selectedBusiness == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Пожалуйста, выберите магазин')),
-      );
+      await _showNotice('Магазин не выбран', 'Пожалуйста, выберите магазин перед оформлением заказа.');
       setState(() => _isSubmitting = false);
       return;
     }
     if (_selectedAddress == null && _deliveryType == 'DELIVERY') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Пожалуйста, выберите адрес доставки')),
-      );
+      await _showNotice('Адрес не выбран', 'Пожалуйста, выберите адрес доставки.');
       setState(() => _isSubmitting = false);
       return;
     }
@@ -165,20 +159,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
       if (result['success'] == true) {
         final orderData = result['data'];
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Заказ создан: ID ${orderData['order_id']}')),
-        );
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => PaymentMethodPage(orderData: orderData),
+            builder: (context) => PaymentMethodPage(
+              orderData: orderData,
+              displayAmount: _getTotalWithDelivery(),
+            ),
           ),
         );
       } else {
         final errorMessage = result['error'] is Map ? result['error']['message'] : result['error'];
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка создания заказа: $errorMessage')),
-        );
+        await _showNotice('Ошибка создания заказа', '$errorMessage');
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -192,9 +184,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     setState(() => _isCalculatingDelivery = true);
     final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
     if (businessProvider.selectedBusiness == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Пожалуйста, выберите магазин')),
-      );
+      await _showNotice('Магазин не выбран', 'Сначала выберите магазин, чтобы рассчитать доставку.');
       setState(() => _isCalculatingDelivery = false);
       return;
     }
@@ -214,9 +204,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось рассчитать доставку: $e')),
-        );
+        await _showNotice('Доставка не рассчитана', 'Не удалось рассчитать доставку: $e');
       }
     } finally {
       if (mounted) setState(() => _isCalculatingDelivery = false);
@@ -328,21 +316,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     // Проверяем, что выбранное время не в прошлом
     if (selectedDateTime.isBefore(now)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Нельзя выбрать время в прошлом'),
-        ),
-      );
+      await _showNotice('Некорректное время', 'Нельзя выбрать время в прошлом.');
       return;
     }
 
     // Проверяем, что время в пределах 24 часов
     if (selectedDateTime.isAfter(now.add(const Duration(hours: 24)))) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Доставка возможна только в течение 24 часов'),
-        ),
-      );
+      await _showNotice('Некорректное время', 'Доставка возможна только в течение 24 часов.');
       return;
     }
 
@@ -805,10 +785,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     if (missing.isEmpty) return true;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Укажите ${missing.join(', ')} для адреса доставки')),
-    );
+    _showNotice('Незаполненный адрес', 'Укажите ${missing.join(', ')} для адреса доставки.');
     return false;
+  }
+
+  Future<void> _showNotice(String title, String message) {
+    return AppDialogs.showMessage(
+      context,
+      title: title,
+      message: message,
+    );
   }
 
   Widget _addressDetailsCard() {

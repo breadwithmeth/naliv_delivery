@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/shared/app_theme.dart';
+import 'package:naliv_delivery/utils/app_navigator.dart';
 import 'package:naliv_delivery/utils/api.dart';
+import 'package:naliv_delivery/utils/cart_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PaymentMethodPage extends StatefulWidget {
   final Map<String, dynamic> orderData;
+  final double? displayAmount;
 
-  const PaymentMethodPage({Key? key, required this.orderData}) : super(key: key);
+  const PaymentMethodPage({Key? key, required this.orderData, this.displayAmount}) : super(key: key);
 
   @override
   _PaymentMethodPageState createState() => _PaymentMethodPageState();
@@ -63,9 +67,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
       setState(() {
         _isLoading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка загрузки карт: $e')),
-      );
+      await _showNotice('Карты не загружены', 'Ошибка загрузки карт: $e');
     }
   }
 
@@ -78,15 +80,11 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Не удалось открыть ссылку для добавления карты')),
-        );
+        await _showNotice('Ссылка недоступна', 'Не удалось открыть ссылку для добавления карты.');
       }
     } else {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось получить ссылку для добавления карты')),
-      );
+      await _showNotice('Ссылка недоступна', 'Не удалось получить ссылку для добавления карты.');
     }
   }
 
@@ -94,9 +92,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
     if (_isPaying || _isLoading) return;
     if (_selectedCardId == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Пожалуйста, выберите карту для оплаты')),
-        );
+        await _showNotice('Карта не выбрана', 'Пожалуйста, выберите карту для оплаты.');
       }
       return;
     }
@@ -135,12 +131,10 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
 
     try {
       final orderId = widget.orderData['order_id']?.toString() ?? widget.orderData['order_uuid']?.toString();
-      if (orderId == null) {
+      if (orderId == null || orderId.isEmpty) {
         if (mounted) Navigator.of(context, rootNavigator: true).pop();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Ошибка: ID заказа не найден')),
-          );
+          await _showNotice('Заказ не найден', 'ID заказа не найден.');
         }
         return;
       }
@@ -155,38 +149,25 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
         final paymentStatus = paymentData['payment_status'];
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Оплата успешно проведена! Статус: $paymentStatus'),
-              backgroundColor: Colors.green,
-            ),
+          Provider.of<CartProvider>(context, listen: false).clearCart();
+          await _showNotice(
+            'Оплата прошла',
+            'Заказ #$orderId успешно оплачен. Статус: $paymentStatus.',
           );
-
-          // Возвращаемся на главную страницу после успешной оплаты
-          Navigator.of(context).popUntil((route) => route.isFirst);
+          await AppNavigator.goToHomeTab(0);
         }
       } else {
         // Ошибка оплаты
         final errorMessage = result['error'] is Map ? result['error']['message'] : result['error'].toString();
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Ошибка оплаты: $errorMessage'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          await _showNotice('Ошибка оплаты', 'Ошибка оплаты: $errorMessage');
         }
       }
     } catch (e) {
       if (mounted) Navigator.of(context, rootNavigator: true).pop();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Произошла ошибка: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        await _showNotice('Ошибка оплаты', 'Произошла ошибка: $e');
       }
     } finally {
       if (mounted) {
@@ -199,18 +180,34 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
 
   /// Получить сумму заказа из различных возможных полей
   String _getOrderAmount() {
+    if (widget.displayAmount != null) {
+      return widget.displayAmount!.toStringAsFixed(0);
+    }
+
     final orderData = widget.orderData;
 
     // Проверяем различные возможные поля для суммы
-    final amount = orderData['total_sum'] ??
+    final amount = orderData['payable_amount'] ??
+        orderData['final_amount'] ??
         orderData['total_amount'] ??
+        orderData['total_sum'] ??
         orderData['amount'] ??
+        orderData['cost_summary']?['total_sum'] ??
+        orderData['cost_summary']?['total'] ??
         orderData['data']?['total_sum'] ??
         orderData['data']?['total_amount'] ??
         orderData['data']?['amount'] ??
         'Не указана';
 
     return amount.toString();
+  }
+
+  Future<void> _showNotice(String title, String message) {
+    return AppDialogs.showMessage(
+      context,
+      title: title,
+      message: message,
+    );
   }
 
   @override

@@ -2,6 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/shared/app_theme.dart';
 import 'package:naliv_delivery/utils/api.dart';
 
+const Map<String, String> _orderStatusLabels = <String, String>{
+  '0': 'Новый заказ',
+  '1': 'Принят магазином',
+  '11': 'Просмотрен',
+  '12': 'Собирается',
+  '2': 'Готов к выдаче',
+  '21': 'Передан курьеру',
+  '3': 'Доставляется',
+  '31': 'Курьер рядом',
+  '4': 'Доставлен',
+  '5': 'Отменен',
+  '50': 'Отменен пользователем',
+  '51': 'Отменен магазином',
+  '52': 'Отменен: нет в наличии',
+  '6': 'Ошибка платежа',
+  '60': 'Ожидает оплаты',
+  '61': 'Оплата в обработке',
+  '66': 'Не оплачен',
+  '7': 'Возврат начат',
+  '71': 'Возврат завершен',
+};
+
 class OrderDetailPage extends StatefulWidget {
   final Map<String, dynamic> order;
 
@@ -18,6 +40,38 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   bool _isLoadingCourier = false;
   String? _error;
   String? _courierError;
+
+  Map<String, dynamic>? _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) {
+      return value.map((key, entryValue) => MapEntry(key.toString(), entryValue));
+    }
+    return null;
+  }
+
+  List<Map<String, dynamic>> _asMapList(dynamic value) {
+    if (value is! List) return const <Map<String, dynamic>>[];
+    return value.map(_asMap).whereType<Map<String, dynamic>>().toList();
+  }
+
+  num? _asNum(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value;
+    return num.tryParse(value.toString());
+  }
+
+  String _resolveStatusLabel(Map<String, dynamic>? status, {String fallback = 'Неизвестно'}) {
+    if (status == null) return fallback;
+
+    final explicitText = status['status_description']?.toString() ?? status['status_name']?.toString() ?? status['description']?.toString();
+    if (explicitText != null && explicitText.trim().isNotEmpty) {
+      return explicitText;
+    }
+
+    final code = status['status']?.toString();
+    if (code == null || code.isEmpty) return fallback;
+    return _orderStatusLabels[code] ?? 'Статус $code';
+  }
 
   @override
   void initState() {
@@ -38,8 +92,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       if (!mounted) return;
       setState(() {
         _orderDetails = details ?? widget.order;
-        final courierLocation = _orderDetails?['courier_location'];
-        if (courierLocation is Map<String, dynamic>) {
+        final courierLocation = _asMap(_orderDetails?['courier_location']);
+        if (courierLocation != null) {
           _courierLocation = courierLocation;
         }
         _isLoading = false;
@@ -136,8 +190,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
   Widget _buildOrderDetails() {
     final order = _orderDetails!;
-    final business = order['business'] as Map<String, dynamic>?;
-    final deliveryAddress = order['delivery_address'] as Map<String, dynamic>?;
+    final business = _asMap(order['business']);
+    final deliveryAddress = _asMap(order['delivery_address']);
     final itemsSummary = _resolveItemsSummary(order);
     final costSummary = _resolveCostSummary(order);
     final statuses = _resolveStatuses(order);
@@ -200,7 +254,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
   Widget _statusCard(Map<String, dynamic> order) {
     final currentStatus = _resolveCurrentStatus(order);
-    final statusDescription = currentStatus?['status_description']?.toString() ?? currentStatus?['status_name']?.toString() ?? 'Неизвестно';
+    final statusDescription = _resolveStatusLabel(currentStatus);
     final statusCode = currentStatus?['status']?.toString() ?? '';
     final createdAt = order['log_timestamp']?.toString() ?? order['created_at']?.toString();
     final deliveryType = order['delivery_type']?.toString() ?? 'Не указан';
@@ -429,8 +483,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   Widget _itemRow(Map<String, dynamic> item) {
     final image = item['img']?.toString() ?? item['item_img']?.toString();
     final name = item['name']?.toString() ?? item['item_name']?.toString() ?? 'Товар';
-    final qty = item['amount'] ?? 0;
-    final price = item['price'] ?? item['total'] ?? item['sum'] ?? 0;
+    final qty = _asNum(item['amount']) ?? 0;
+    final price = _asNum(item['price']) ?? _asNum(item['total']) ?? _asNum(item['sum']) ?? 0;
 
     return Row(
       children: [
@@ -459,7 +513,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis),
               const SizedBox(height: 4),
-              Text('Количество: $qty', style: const TextStyle(color: AppColors.textMute, fontSize: 12)),
+              Text('Количество: ${qty % 1 == 0 ? qty.toInt() : qty}', style: const TextStyle(color: AppColors.textMute, fontSize: 12)),
             ],
           ),
         ),
@@ -470,8 +524,12 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Widget _costCard(Map<String, dynamic> cost) {
-    final deliveryFee = cost['delivery_fee'] ?? cost['delivery_price'];
-    final totalSum = cost['total_sum'] ?? cost['total'] ?? cost['order_total'];
+    final itemsTotal = _asNum(cost['items_total']);
+    final deliveryFee = _asNum(cost['delivery_fee']) ?? _asNum(cost['delivery_price']);
+    final serviceFee = _asNum(cost['service_fee']);
+    final discount = _asNum(cost['discount']);
+    final bonusUsed = _asNum(cost['bonus_used']);
+    final totalSum = _asNum(cost['total_sum']) ?? _asNum(cost['total']) ?? _asNum(cost['order_total']);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -483,11 +541,11 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           ],
         ),
         const SizedBox(height: 12),
-        _costRow('Товары', cost['items_total']),
+        _costRow('Товары', itemsTotal),
         if ((deliveryFee ?? 0) > 0) _costRow('Доставка', deliveryFee),
-        if ((cost['service_fee'] ?? 0) > 0) _costRow('Сервисный сбор', cost['service_fee']),
-        if ((cost['discount'] ?? 0) > 0) _costRow('Скидка', -cost['discount'], accent: Colors.greenAccent),
-        if ((cost['bonus_used'] ?? 0) > 0) _costRow('Бонусы', -cost['bonus_used'], accent: Colors.greenAccent),
+        if ((serviceFee ?? 0) > 0) _costRow('Сервисный сбор', serviceFee),
+        if ((discount ?? 0) > 0) _costRow('Скидка', -(discount ?? 0), accent: Colors.greenAccent),
+        if ((bonusUsed ?? 0) > 0) _costRow('Бонусы', -(bonusUsed ?? 0), accent: Colors.greenAccent),
         const Divider(color: Color(0x229FB0C8), height: 18),
         _costRow('Итого', totalSum, isTotal: true),
       ],
@@ -511,7 +569,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Widget _metaCard(Map<String, dynamic> order) {
-    final user = order['user'] as Map<String, dynamic>?;
+    final user = _asMap(order['user']);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -529,16 +587,17 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
   Map<String, dynamic>? _resolveItemsSummary(Map<String, dynamic> order) {
     final explicitSummary = order['items_summary'];
-    if (explicitSummary is Map<String, dynamic>) {
-      return explicitSummary;
+    final mappedSummary = _asMap(explicitSummary);
+    if (mappedSummary != null) {
+      return mappedSummary;
     }
 
-    final items = (order['items'] as List<dynamic>? ?? []).whereType<Map>().map((item) => item.cast<String, dynamic>()).toList();
+    final items = _asMapList(order['items']);
     if (items.isEmpty) return null;
 
     final totalAmount = items.fold<int>(
       0,
-      (sum, item) => sum + ((item['amount'] as num?)?.toInt() ?? 0),
+      (sum, item) => sum + ((_asNum(item['amount']))?.toInt() ?? 0),
     );
 
     return {
@@ -551,16 +610,17 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
   Map<String, dynamic>? _resolveCostSummary(Map<String, dynamic> order) {
     final explicitSummary = order['cost_summary'];
-    if (explicitSummary is Map<String, dynamic>) {
-      return explicitSummary;
+    final mappedSummary = _asMap(explicitSummary);
+    if (mappedSummary != null) {
+      return mappedSummary;
     }
 
-    final directCost = order['cost'];
-    if (directCost is Map<String, dynamic>) {
+    final directCost = _asMap(order['cost']);
+    if (directCost != null) {
       return directCost;
     }
 
-    final items = (order['items'] as List<dynamic>? ?? []).whereType<Map>().map((item) => item.cast<String, dynamic>()).toList();
+    final items = _asMapList(order['items']);
     if (items.isEmpty &&
         order['delivery_price'] == null &&
         order['bonus_used'] == null &&
@@ -571,13 +631,13 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     }
 
     final itemsTotal = items.fold<num>(0, (sum, item) {
-      final amount = (item['amount'] as num?) ?? 0;
-      final price = (item['price'] as num?) ?? (item['total'] as num?) ?? (item['sum'] as num?) ?? 0;
+      final amount = _asNum(item['amount']) ?? 0;
+      final price = _asNum(item['price']) ?? _asNum(item['total']) ?? _asNum(item['sum']) ?? 0;
       return sum + (amount > 0 && item['price'] != null ? amount * price : price);
     });
-    final deliveryPrice = (order['delivery_price'] as num?) ?? 0;
-    final bonusUsed = (order['bonus_used'] as num?) ?? (order['bonus'] as num?) ?? 0;
-    final totalSum = (order['total_sum'] as num?) ?? (order['total'] as num?) ?? (itemsTotal + deliveryPrice - bonusUsed);
+    final deliveryPrice = _asNum(order['delivery_price']) ?? 0;
+    final bonusUsed = _asNum(order['bonus_used']) ?? _asNum(order['bonus']) ?? 0;
+    final totalSum = _asNum(order['total_sum']) ?? _asNum(order['total']) ?? (itemsTotal + deliveryPrice - bonusUsed);
 
     return {
       'items_total': itemsTotal,
@@ -606,18 +666,19 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     }
 
     final currentStatus = order['current_status'];
-    if (currentStatus is Map<String, dynamic>) {
+    final mappedCurrentStatus = _asMap(currentStatus);
+    if (mappedCurrentStatus != null) {
       return [
         {
-          'status': currentStatus['status_description'] ?? currentStatus['status'],
-          'description': currentStatus['status_description'],
-          'timestamp': currentStatus['log_timestamp'] ?? order['log_timestamp'],
+          'status': mappedCurrentStatus['status_description'] ?? mappedCurrentStatus['status'],
+          'description': mappedCurrentStatus['status_description'],
+          'timestamp': mappedCurrentStatus['log_timestamp'] ?? order['log_timestamp'],
         }
       ];
     }
 
-    final status = order['status'];
-    if (status is Map<String, dynamic>) {
+    final status = _asMap(order['status']);
+    if (status != null) {
       return [
         {
           'status': status['status_name'] ?? status['status'],
@@ -631,13 +692,13 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Map<String, dynamic>? _resolveCurrentStatus(Map<String, dynamic> order) {
-    final currentStatus = order['current_status'];
-    if (currentStatus is Map<String, dynamic>) {
+    final currentStatus = _asMap(order['current_status']);
+    if (currentStatus != null) {
       return currentStatus;
     }
 
-    final status = order['status'];
-    if (status is Map<String, dynamic>) {
+    final status = _asMap(order['status']);
+    if (status != null) {
       return {
         ...status,
         'status_description': status['status_name'] ?? status['status_description'],
@@ -657,9 +718,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
     final candidates = <Map<String, dynamic>>[
       data,
-      if (data['courier'] is Map<String, dynamic>) data['courier'] as Map<String, dynamic>,
-      if (data['location'] is Map<String, dynamic>) data['location'] as Map<String, dynamic>,
-      if (data['courier_location'] is Map<String, dynamic>) data['courier_location'] as Map<String, dynamic>,
+      if (_asMap(data['courier']) != null) _asMap(data['courier'])!,
+      if (_asMap(data['location']) != null) _asMap(data['location'])!,
+      if (_asMap(data['courier_location']) != null) _asMap(data['courier_location'])!,
     ];
 
     for (final candidate in candidates) {
@@ -675,15 +736,13 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
   String? _extractCourierTimestamp(Map<String, dynamic>? data) {
     if (data == null) return null;
-    return data['updated_at']?.toString() ??
-        data['timestamp']?.toString() ??
-        (data['courier'] is Map<String, dynamic> ? (data['courier'] as Map<String, dynamic>)['updated_at']?.toString() : null);
+    return data['updated_at']?.toString() ?? data['timestamp']?.toString() ?? _asMap(data['courier'])?['updated_at']?.toString();
   }
 
   String _buildCourierSummary(Map<String, dynamic> data) {
     final parts = <String>[];
-    final courier = data['courier'];
-    if (courier is Map<String, dynamic>) {
+    final courier = _asMap(data['courier']);
+    if (courier != null) {
       final name = courier['name']?.toString();
       final phone = courier['phone']?.toString();
       if (name != null && name.isNotEmpty) parts.add('Курьер: $name');
@@ -730,7 +789,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         ),
         const SizedBox(height: 12),
         for (int i = 0; i < statuses.length; i++) ...[
-          _historyItem(statuses[i] as Map<String, dynamic>, isLatest: i == 0),
+          _historyItem(_asMap(statuses[i]) ?? const <String, dynamic>{}, isLatest: i == 0),
           if (i < statuses.length - 1) const Divider(color: Color(0x229FB0C8), height: 14),
         ],
       ],
@@ -738,7 +797,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Widget _historyItem(Map<String, dynamic> status, {required bool isLatest}) {
-    final label = status['status']?.toString() ?? 'Неизвестный статус';
+    final label = _resolveStatusLabel(status, fallback: 'Неизвестный статус');
     final desc = status['description']?.toString();
     final ts = status['timestamp']?.toString();
     return Row(

@@ -1718,12 +1718,13 @@ class ApiService {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true) {
           final data = jsonResponse['data'];
-          if (data is Map<String, dynamic>) {
-            final order = data['order'];
-            if (order is Map<String, dynamic>) {
+          final mappedData = _asStringKeyedMap(data);
+          if (mappedData != null) {
+            final order = _asStringKeyedMap(mappedData['order']);
+            if (order != null) {
               return order;
             }
-            return data;
+            return mappedData;
           }
         } else {
           debugPrint('API getOrderDetails error: ${jsonResponse['message']}');
@@ -1887,7 +1888,7 @@ class ApiService {
 
     final data = response['data'];
     if (data is List) {
-      return data.whereType<Map>().map((item) => item.cast<String, dynamic>()).toList();
+      return _asStringKeyedMapList(data);
     }
 
     if (data is! Map) return <Map<String, dynamic>>[];
@@ -1895,7 +1896,7 @@ class ApiService {
     for (final key in preferredKeys) {
       final candidate = data[key];
       if (candidate is List) {
-        return candidate.whereType<Map>().map((item) => item.cast<String, dynamic>()).toList();
+        return _asStringKeyedMapList(candidate);
       }
     }
 
@@ -1903,7 +1904,7 @@ class ApiService {
       if (entry.value is List) {
         final list = entry.value as List<dynamic>;
         if (list.every((item) => item is Map)) {
-          return list.whereType<Map>().map((item) => item.cast<String, dynamic>()).toList();
+          return _asStringKeyedMapList(list);
         }
       }
     }
@@ -1918,7 +1919,21 @@ class ApiService {
     final parsed = DateTime.tryParse(rawTimestamp);
     if (parsed == null) return true;
 
-    return DateTime.now().difference(parsed.toLocal()) < const Duration(hours: 1);
+    return DateTime.now().difference(parsed.toLocal()) < const Duration(hours: 2);
+  }
+
+  static Map<String, dynamic>? _asStringKeyedMap(dynamic value) {
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+    if (value is Map) {
+      return value.map((key, entryValue) => MapEntry(key.toString(), entryValue));
+    }
+    return null;
+  }
+
+  static List<Map<String, dynamic>> _asStringKeyedMapList(List<dynamic> source) {
+    return source.map(_asStringKeyedMap).whereType<Map<String, dynamic>>().toList();
   }
 
   static Future<Map<String, dynamic>?> getCourierLocation(int orderId) async {
@@ -2954,7 +2969,7 @@ class CategoryItemVariant {
   final String priceType; // "add" | "replace"
   final String? item_name; // может быть null, если не указано
   final double price;
-  final int parentItemAmount;
+  final double parentItemAmount;
 
   CategoryItemVariant({
     required this.relationId,
@@ -2972,7 +2987,7 @@ class CategoryItemVariant {
       priceType: json['price_type'] ?? 'add',
       item_name: json['item_name'], // может быть null
       price: ApiService._parseDouble(json['price']) ?? 0.0,
-      parentItemAmount: ApiService._parseInt(json['parent_item_amount']),
+      parentItemAmount: ApiService._parseDouble(json['parent_item_amount']) ?? 0.0,
     );
   }
 

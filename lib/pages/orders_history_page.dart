@@ -5,6 +5,28 @@ import '../shared/app_theme.dart';
 import '../utils/api.dart';
 import 'order_detail_page.dart';
 
+const Map<String, String> _orderStatusLabels = <String, String>{
+  '0': 'Новый заказ',
+  '1': 'Принят магазином',
+  '11': 'Просмотрен',
+  '12': 'Собирается',
+  '2': 'Готов к выдаче',
+  '21': 'Передан курьеру',
+  '3': 'Доставляется',
+  '31': 'Курьер рядом',
+  '4': 'Доставлен',
+  '5': 'Отменен',
+  '50': 'Отменен пользователем',
+  '51': 'Отменен магазином',
+  '52': 'Отменен: нет в наличии',
+  '6': 'Ошибка платежа',
+  '60': 'Ожидает оплаты',
+  '61': 'Оплата в обработке',
+  '66': 'Не оплачен',
+  '7': 'Возврат начат',
+  '71': 'Возврат завершен',
+};
+
 class OrdersHistoryPage extends StatefulWidget {
   final List<Map<String, dynamic>>? initialActiveOrders;
   final List<Map<String, dynamic>>? initialHistoryOrders;
@@ -20,6 +42,7 @@ class OrdersHistoryPage extends StatefulWidget {
 }
 
 class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
+  final ScrollController _scrollController = ScrollController();
   List<Map<String, dynamic>> _activeOrders = <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _historyOrders = <Map<String, dynamic>>[];
   bool _isLoading = true;
@@ -31,7 +54,16 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _loadOrders();
+  }
+
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
+    super.dispose();
   }
 
   Future<void> _loadOrders() async {
@@ -114,6 +146,14 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
     }
   }
 
+  void _onScroll() {
+    if (!_scrollController.hasClients || _isLoadingMore || !_hasMoreHistory) return;
+    final position = _scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 320) {
+      _loadMoreHistory();
+    }
+  }
+
   List<Map<String, dynamic>> _dedupeOrders(
     List<Map<String, dynamic>> source, {
     List<Map<String, dynamic>> exclude = const <Map<String, dynamic>>[],
@@ -142,6 +182,37 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
     final raw = order['log_timestamp']?.toString() ?? order['created_at']?.toString();
     if (raw == null || raw.isEmpty) return DateTime.fromMillisecondsSinceEpoch(0);
     return DateTime.tryParse(raw)?.toLocal() ?? DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  List<_HistoryListEntry> _historyEntries() {
+    final entries = <_HistoryListEntry>[];
+    DateTime? previousDate;
+
+    for (final order in _historyOrders) {
+      final orderDate = _orderTimestamp(order);
+      if (previousDate == null || !_isSameDate(previousDate, orderDate)) {
+        entries.add(_HistoryListEntry.divider(_formatHistoryDivider(orderDate)));
+        previousDate = orderDate;
+      }
+      entries.add(_HistoryListEntry.order(order));
+    }
+
+    return entries;
+  }
+
+  bool _isSameDate(DateTime left, DateTime right) {
+    return left.year == right.year && left.month == right.month && left.day == right.day;
+  }
+
+  String _formatHistoryDivider(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final normalized = DateTime(date.year, date.month, date.day);
+
+    if (normalized == today) return 'Сегодня';
+    if (normalized == yesterday) return 'Вчера';
+    return DateFormat('d MMMM y', 'ru').format(date);
   }
 
   @override
@@ -230,7 +301,10 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
       );
     }
 
+    final historyEntries = _historyEntries();
+
     return ListView(
+      controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
@@ -255,30 +329,44 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
             ),
           )
         else
-          ..._historyOrders.map((order) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: OrderPreviewCard(order: order),
-              )),
-        if (_historyOrders.isNotEmpty) ...[
+          ...historyEntries.map((entry) {
+            if (entry.label != null) {
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(2, 12, 2, 10),
+                child: Text(
+                  entry.label!,
+                  style: const TextStyle(
+                    color: AppColors.textMute,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                  ),
+                ),
+              );
+            }
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: OrderPreviewCard(order: entry.order!),
+            );
+          }),
+        if (_isLoadingMore) ...[
           const SizedBox(height: 8),
-          Center(
-            child: OutlinedButton(
-              onPressed: _isLoadingMore || !_hasMoreHistory ? null : _loadMoreHistory,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.orange,
-                side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          const Center(
+            child: SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.2,
+                valueColor: AlwaysStoppedAnimation(AppColors.orange),
               ),
-              child: _isLoadingMore
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation(AppColors.orange),
-                      ),
-                    )
-                  : Text(_hasMoreHistory ? 'Показать ещё' : 'Больше заказов нет'),
+            ),
+          ),
+        ] else if (!_hasMoreHistory && _historyOrders.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          const Center(
+            child: Text(
+              'Все заказы загружены',
+              style: TextStyle(color: AppColors.textMute, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -328,17 +416,43 @@ class OrderPreviewCard extends StatelessWidget {
     return '${value.toStringAsFixed(0)} ₸';
   }
 
+  Map<String, dynamic>? _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) {
+      return value.map((key, entryValue) => MapEntry(key.toString(), entryValue));
+    }
+    return null;
+  }
+
+  List<Map<String, dynamic>> _asMapList(dynamic value) {
+    if (value is! List) return const <Map<String, dynamic>>[];
+    return value.map(_asMap).whereType<Map<String, dynamic>>().toList();
+  }
+
+  String _resolveStatusText(Map<String, dynamic>? status) {
+    if (status == null) return 'Статус уточняется';
+
+    final explicitText = status['status_description']?.toString() ?? status['status_name']?.toString();
+    if (explicitText != null && explicitText.trim().isNotEmpty) {
+      return explicitText;
+    }
+
+    final code = status['status']?.toString();
+    if (code == null || code.isEmpty) return 'Статус уточняется';
+    return _orderStatusLabels[code] ?? 'Статус $code';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final business = order['business'] as Map<String, dynamic>?;
-    final currentStatus = order['current_status'] as Map<String, dynamic>?;
+    final business = _asMap(order['business']);
+    final currentStatus = _asMap(order['current_status']);
     final itemsSummary = _resolveItemsSummary(order);
     final costSummary = _resolveCostSummary(order);
-    final address = order['delivery_address'] as Map<String, dynamic>?;
+    final address = _asMap(order['delivery_address']);
 
     final title = '#${order['order_id'] ?? '—'}';
     final businessName = business?['name']?.toString() ?? 'Магазин не указан';
-    final statusText = currentStatus?['status_description']?.toString() ?? 'Статус уточняется';
+    final statusText = _resolveStatusText(currentStatus);
     final statusColor = _parseStatusColor(currentStatus?['status_color']?.toString());
     final dateText = _formatDate(order['log_timestamp']?.toString() ?? order['created_at']?.toString());
     final itemsCount = (itemsSummary?['items_count'] as num?)?.toInt();
@@ -460,9 +574,10 @@ class OrderPreviewCard extends StatelessWidget {
 
   Map<String, dynamic>? _resolveItemsSummary(Map<String, dynamic> order) {
     final summary = order['items_summary'];
-    if (summary is Map<String, dynamic>) return summary;
+    final mappedSummary = _asMap(summary);
+    if (mappedSummary != null) return mappedSummary;
 
-    final items = (order['items'] as List<dynamic>? ?? []).whereType<Map>().map((item) => item.cast<String, dynamic>()).toList();
+    final items = _asMapList(order['items']);
     if (items.isEmpty) return null;
 
     final totalAmount = items.fold<int>(0, (sum, item) => sum + ((item['amount'] as num?)?.toInt() ?? 0));
@@ -475,7 +590,8 @@ class OrderPreviewCard extends StatelessWidget {
 
   Map<String, dynamic>? _resolveCostSummary(Map<String, dynamic> order) {
     final summary = order['cost_summary'];
-    if (summary is Map<String, dynamic>) return summary;
+    final mappedSummary = _asMap(summary);
+    if (mappedSummary != null) return mappedSummary;
 
     final deliveryPrice = order['delivery_price'] as num?;
     final bonusUsed = order['bonus_used'] as num?;
@@ -486,4 +602,15 @@ class OrderPreviewCard extends StatelessWidget {
       'bonus_used': bonusUsed,
     };
   }
+}
+
+class _HistoryListEntry {
+  final String? label;
+  final Map<String, dynamic>? order;
+
+  const _HistoryListEntry._({this.label, this.order});
+
+  factory _HistoryListEntry.divider(String label) => _HistoryListEntry._(label: label);
+
+  factory _HistoryListEntry.order(Map<String, dynamic> order) => _HistoryListEntry._(order: order);
 }
