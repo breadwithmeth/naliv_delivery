@@ -896,7 +896,27 @@ class _MainPageState extends State<MainPage> {
   }
 
   Widget _addressPill() {
-    final addressText = ApiService.formatAddressSummary(_selectedAddress, emptyText: 'Укажите адрес');
+    final baseText = ApiService.extractAddressLabel(_selectedAddress) ?? _selectedAddress?['address']?.toString();
+    final street = _selectedAddress?['street']?.toString().trim();
+    final house = _selectedAddress?['house']?.toString().trim();
+    String addressLine;
+    if (baseText != null && baseText.trim().isNotEmpty) {
+      addressLine = baseText.trim();
+    } else if (street != null && street.isNotEmpty) {
+      addressLine = house != null && house.isNotEmpty ? '$street, $house' : street;
+    } else {
+      addressLine = 'Укажите адрес';
+    }
+
+    final details = <String>[];
+    final entrance = _selectedAddress?['entrance']?.toString().trim();
+    if (entrance != null && entrance.isNotEmpty) details.add('Под. $entrance');
+    final floor = _selectedAddress?['floor']?.toString().trim();
+    if (floor != null && floor.isNotEmpty) details.add('Эт. $floor');
+    final apartment = _selectedAddress?['apartment']?.toString().trim();
+    if (apartment != null && apartment.isNotEmpty) details.add('Кв. $apartment');
+    final detailsLine = details.isNotEmpty ? details.join(', ') : null;
+
     return GestureDetector(
       onTap: _showAddressSelectionModal,
       child: Container(
@@ -919,11 +939,26 @@ class _MainPageState extends State<MainPage> {
             ),
             SizedBox(width: 9.s),
             Expanded(
-              child: Text(
-                addressText,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: _text, fontSize: 11.sp, fontWeight: FontWeight.w800, height: 1.15),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    addressLine,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: _text, fontSize: 11.sp, fontWeight: FontWeight.w800, height: 1.15),
+                  ),
+                  if (detailsLine != null) ...[
+                    SizedBox(height: 2.s),
+                    Text(
+                      detailsLine,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: _textMute, fontSize: 10.sp, fontWeight: FontWeight.w600, height: 1.15),
+                    ),
+                  ],
+                ],
               ),
             ),
             SizedBox(width: 4.s),

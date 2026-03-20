@@ -428,8 +428,8 @@ class _CatalogState extends State<Catalog> {
               padding: EdgeInsets.symmetric(horizontal: 10.s),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  // Responsive: 3 columns on wider screens, 2 on narrow
-                  final crossCount = constraints.maxWidth > 400 ? 3 : 2;
+                  // Always 3 columns – keeps tiles compact on small phones
+                  final crossCount = 3;
                   final spacing = 6.s;
                   final tileWidth = (constraints.maxWidth - (crossCount - 1) * spacing - 10.s) / crossCount;
                   final tileHeight = tileWidth / 0.95;

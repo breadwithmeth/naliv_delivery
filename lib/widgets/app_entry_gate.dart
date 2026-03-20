@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/onboarding_page.dart';
 import 'package:naliv_delivery/services/onboarding_service.dart';
 import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
+import 'package:naliv_delivery/widgets/app_loading_screen.dart';
 
 class AppEntryGate extends StatefulWidget {
   const AppEntryGate({super.key});
@@ -41,9 +42,7 @@ class _AppEntryGateState extends State<AppEntryGate> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const AppLoadingScreen();
     }
 
     if (_isCompleted) {

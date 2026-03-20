@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/pages/bottomMenu.dart';
 import 'package:naliv_delivery/services/auth_service.dart';
+import 'package:naliv_delivery/widgets/app_loading_screen.dart';
 
 class AuthenticationWrapper extends StatefulWidget {
   final int? initialTabIndex;
@@ -53,11 +54,7 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const AppLoadingScreen();
     }
 
     // Всегда показываем bottomMenu, но передаем статус авторизации
