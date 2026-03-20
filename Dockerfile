@@ -1,20 +1,10 @@
-# Stage 1: Build the Flutter app
-FROM ghcr.io/cirruslabs/flutter:stable AS build
-WORKDIR /app
-
-# Copy the source code
-COPY . .
-
-# Fetch dependencies and build for web
-RUN flutter pub get
-RUN flutter build web
-
-# Stage 2: Serve the app with Nginx
+# We only need the server stage
 FROM nginx:alpine
-# Copy the built static files to Nginx's serving directory
-COPY --from=build /app/build/web /usr/share/nginx/html
 
-# Optional but recommended: Copy custom Nginx config for routing
+# Copy the ALREADY BUILT files from your local machine to the container
+COPY build/web /usr/share/nginx/html
+
+# Optional: If you have a custom nginx.conf to handle Flutter routing
 # COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
